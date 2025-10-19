@@ -1,0 +1,6 @@
+node_modules
+build
+transcode_cache
+generated
+prisma/client
+.env
