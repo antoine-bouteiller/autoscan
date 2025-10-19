@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "env": {
+    "builtin": true,
+    "node": true,
+    "commonjs": true
+  },
+  "rules": {
+    "no-console": "error",
+    "no-unused-vars": "error",
+    "no-unused-expressions": "error",
+    "no-await-in-loop": "off",
+
+    "unicorn/filename-case": [
+      "error",
+      {
+        "cases": {
+          "snakeCase": true
+        }
+      }
+    ]
+  },
+  "ignorePatterns": ["bun.lock"]
+}

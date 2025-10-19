@@ -1,0 +1,27 @@
+commit-msg:
+  commands:
+    lint-commit-msg:
+      run: npx --no -- commitlint --edit
+pre-commit:
+  parallel: true
+  jobs:
+    - run: pnpm dlx oxlint {staged_files} --fix
+      glob:
+        - '*.js'
+        - '*.jsx'
+        - '*.ts'
+        - '*.tsx'
+        - '*.json'
+        - '*.jsonc'
+        - '*.css'
+      stage_fixed: true
+    - run: pnpm dlx prettier --write {staged_files}
+      glob:
+        - '*.js'
+        - '*.jsx'
+        - '*.ts'
+        - '*.tsx'
+        - '*.json'
+        - '*.jsonc'
+        - '*.css'
+      stage_fixed: true
