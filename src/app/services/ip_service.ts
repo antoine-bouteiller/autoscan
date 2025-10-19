@@ -60,7 +60,7 @@ async function updateDnsRecord(recordName: string) {
     return
   }
 
-  cloudflare.dns.records.edit(record.id, {
+  await cloudflare.dns.records.edit(record.id, {
     zone_id: zoneId,
     type: record.type,
     name: recordName,
