@@ -29,7 +29,7 @@ export async function transcodeAll() {
         details.originalLanguage
       )
 
-      const executedTranscode = await tryCatch(transcodeService.transcodeFile)
+      const executedTranscode = await tryCatch(() => transcodeService.transcodeFile())
 
       if (executedTranscode) {
         await refreshSection(section.key, resolve(details.file, '..'))

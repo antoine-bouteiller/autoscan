@@ -5,8 +5,11 @@ import { sonarrWebhook } from '@/app/controllers/sonarr_controller'
 import { transcodeAll } from '@/app/controllers/transcode_controller'
 import { handleError } from '@/app/exceptions/handler'
 import { logger } from '@/config/logger'
+import { dynDns } from '@/app/services/ip_service'
 
 const fastify = Fastify()
+
+await dynDns()
 
 fastify.post('/sonarr', sonarrWebhook)
 
