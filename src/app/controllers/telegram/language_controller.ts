@@ -5,10 +5,10 @@ import { InlineKeyboard } from 'grammy'
 import type { MediaType } from '@/types/plex'
 import type { ConfigureLanguageContext, ConfigureLanguageConversation } from '@/types/telegram'
 
-import { getMediaByTypeWithPagination } from '@/app/services/media_service'
+import { getMediaByTypeWithPagination } from '@/app/services/media/media_service'
 import { db } from '@/config/db'
 import env from '@/config/env'
-import { type Media, media as mediaTable } from '@/db/schema'
+import { type Media, media as mediaTable } from '@/database/schema'
 import { countryISOMapping } from '@/types/iso_codes'
 
 export const selectMediaType = async (

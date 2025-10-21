@@ -2,8 +2,8 @@ import ky from 'ky'
 
 import type { PlexMedia, PlexReponse } from '@/types/plex'
 
-import { getLanguage } from '@/app/services/language_service'
 import env from '@/config/env'
+import { getLanguage } from '@/app/services/media/language_service'
 
 const plexClient = ky.create({
   headers: {

@@ -6,8 +6,8 @@ import {
   getSectionMedia,
   getSections,
   refreshSection,
-} from '@/app/services/plex_service'
-import { TranscodeService } from '@/app/services/transcode_service'
+} from '@/app/services/integrations/plex_service'
+import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
 import { logger } from '@/config/logger'
 
 let isTranscoding = false
@@ -33,7 +33,7 @@ export const runTranscodeProcess = async () => {
           continue
         }
 
-        const transcodeService = new TranscodeService(
+        const transcodeService = new TranscodeOrchestrator(
           details.file,
           details.mediaTitle,
           details.originalLanguage
@@ -55,20 +55,4 @@ export const runTranscodeProcess = async () => {
   }
 }
 
-export const transcodeAll = (_request: Request) => {
-  if (isTranscoding) {
-    return Response.json({
-      message: 'Transcode process is already running',
-      status: 'already_running',
-    })
-  }
-
-  // Lance le processus de transcodage en arrière-plan
-  // On garde une référence pour éviter que la Promise soit garbage collectée
-  runTranscodeProcess().catch((error) => {
-    logger.error({ error }, 'Unhandled error in transcode process')
-  })
-
-  // Retourne immédiatement une réponse OK
-  return Response.json({ message: 'Transcode process started', status: 'ok' })
-}
+export const getTranscodingStatus = () => isTranscoding

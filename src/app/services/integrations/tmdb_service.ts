@@ -3,7 +3,7 @@ import ky from 'ky'
 import type { MediaType } from '@/types/plex'
 import type { TmdbResponse } from '@/types/tmdb'
 
-import { createdOrUpdatedMedia } from '@/app/services/media_service'
+import { createdOrUpdatedMedia } from '@/app/services/media/media_service'
 import env from '@/config/env'
 import { countryISOMapping, type iso2 } from '@/types/iso_codes'
 

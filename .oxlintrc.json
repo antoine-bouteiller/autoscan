@@ -50,7 +50,8 @@
     "prefer-default-export": "off",
     "no-magic-numbers": "off",
     "sort-imports": "off",
-    "no-ternary": "off"
+    "no-ternary": "off",
+    "init-declarations": "off"
   },
   "ignorePatterns": ["bun.lock"]
 }

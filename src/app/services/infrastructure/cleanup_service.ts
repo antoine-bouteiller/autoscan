@@ -27,7 +27,7 @@ const radarrClient = ky.create({
 // Initialize the strike count dictionary
 const strikeCounts = new Map<number, number>()
 
-const cleanupAll = async (): Promise<void> => {
+export const cleanupAll = async (): Promise<void> => {
   await tryCatch(removeStalledDownloads, sonarrClient, 'Sonarr')
   await tryCatch(removeStalledDownloads, radarrClient, 'Radarr')
 }
@@ -76,5 +76,3 @@ const removeStalledDownloads = async (client: typeof ky, serviceName: string): P
 
   await Promise.all(promises)
 }
-
-export { cleanupAll }

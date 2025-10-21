@@ -14,7 +14,6 @@
     "@grammyjs/hydrate": "^1.6.0",
     "cloudflare": "^5.2.0",
     "croner": "^9.1.0",
-    "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.6",
     "grammy": "^1.38.3",
     "ky": "^1.12.0",
