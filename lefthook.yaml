@@ -5,7 +5,8 @@ commit-msg:
 pre-commit:
   parallel: true
   jobs:
-    - run: pnpm dlx oxlint {staged_files} --fix
+    - name: Lint
+      run: bunx lint {staged_files} --fix
       glob:
         - '*.js'
         - '*.jsx'
@@ -15,7 +16,8 @@ pre-commit:
         - '*.jsonc'
         - '*.css'
       stage_fixed: true
-    - run: pnpm dlx prettier --write {staged_files}
+    - name: Format
+      run: bunx prettier --write {staged_files}
       glob:
         - '*.js'
         - '*.jsx'
