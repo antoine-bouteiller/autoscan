@@ -32,7 +32,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 # copy production dependencies and source code into final image
-FROM gcr.io/distroless/base-debian12 AS release
+FROM gcr.io/distroless/cc-debian12 AS release
 
 # Copy ffmpeg binaries from ffmpeg stage
 COPY --from=ffmpeg /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
@@ -44,5 +44,6 @@ COPY --from=prerelease /autoscan/index .
 COPY --from=prerelease /autoscan/package.json .
 
 # run the app
+USER nonroot
 EXPOSE 3000/tcp
-ENTRYPOINT [ "index" ]
+ENTRYPOINT [ "/index" ]
