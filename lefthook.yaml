@@ -1,7 +1,7 @@
 commit-msg:
   commands:
     lint-commit-msg:
-      run: npx --no -- commitlint --edit
+      run: bunx --no -- commitlint --edit
 pre-commit:
   parallel: true
   jobs:
