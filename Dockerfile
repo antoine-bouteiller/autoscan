@@ -37,8 +37,9 @@ COPY --from=install /temp/prod/node_modules /autoscan/node_modules
 COPY --from=prerelease /autoscan/src /autoscan/src
 COPY --from=prerelease /autoscan/migrations /autoscan/migrations
 COPY --from=prerelease /autoscan/package.json /autoscan/package.json
+COPY --from=prerelease /autoscan/tsconfig.json /autoscan/tsconfig.json
 
 # run the app
 USER bun
 EXPOSE 3000/tcp
-ENTRYPOINT [ "bun", "run", "autoscan/src/index.ts" ]
+ENTRYPOINT [ "bun", "run", "src/index.ts" ]
