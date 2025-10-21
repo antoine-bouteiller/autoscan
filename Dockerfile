@@ -4,18 +4,12 @@ FROM oven/bun:1 AS base
 WORKDIR /autoscan
 
 FROM base AS install
-RUN mkdir -p /temp/dev
-COPY package.json bun.lock /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile
-
 RUN mkdir -p /temp/prod
 COPY package.json bun.lock /temp/prod/
 RUN cd /temp/prod && bun install --frozen-lockfile --production
 
 FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
-RUN bun build src/index.ts --compile
 
 # Download ffmpeg static binaries (cached layer - changes rarely)
 FROM base AS ffmpeg
@@ -32,18 +26,19 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 # copy production dependencies and source code into final image
-FROM gcr.io/distroless/cc-debian12 AS release
+FROM base AS release
 
 # Copy ffmpeg binaries from ffmpeg stage
 COPY --from=ffmpeg /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ffprobe
 
 # Copy dependencies and source code (changes frequently - at the end)
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /autoscan/index .
-COPY --from=prerelease /autoscan/package.json .
+COPY --from=install /temp/prod/node_modules /autoscan/node_modules
+COPY --from=prerelease /autoscan/src /autoscan/src
+COPY --from=prerelease /autoscan/migrations /autoscan/migrations
+COPY --from=prerelease /autoscan/package.json /autoscan/package.json
 
 # run the app
-USER nonroot
+USER bun
 EXPOSE 3000/tcp
-ENTRYPOINT [ "/index" ]
+ENTRYPOINT [ "bun", "run", "autoscan/src/index.ts" ]

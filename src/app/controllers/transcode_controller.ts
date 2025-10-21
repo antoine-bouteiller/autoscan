@@ -1,7 +1,5 @@
 import { resolve } from 'node:path'
 
-import type { FastifyReply, FastifyRequest } from 'fastify'
-
 import { tryCatch } from '@/app/exceptions/handler'
 import {
   getMediaDetails,
@@ -57,9 +55,9 @@ export const runTranscodeProcess = async () => {
   }
 }
 
-export const transcodeAll = (_request: FastifyRequest, reply: FastifyReply) => {
+export const transcodeAll = (_request: Request) => {
   if (isTranscoding) {
-    return reply.status(409).send({
+    return Response.json({
       message: 'Transcode process is already running',
       status: 'already_running',
     })
@@ -72,5 +70,5 @@ export const transcodeAll = (_request: FastifyRequest, reply: FastifyReply) => {
   })
 
   // Retourne immédiatement une réponse OK
-  return reply.status(200).send({ message: 'Transcode process started', status: 'ok' })
+  return Response.json({ message: 'Transcode process started', status: 'ok' })
 }

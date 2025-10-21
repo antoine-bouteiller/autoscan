@@ -1,5 +1,3 @@
-import type { FastifyReply, FastifyRequest } from 'fastify'
-
 import { join } from 'node:path'
 
 import { handleError } from '@/app/exceptions/handler'
@@ -8,14 +6,13 @@ import { getSections, refreshSection } from '@/app/services/plex_service'
 import { TranscodeService } from '@/app/services/transcode_service'
 import { sonarrValidator } from '@/app/validators/sonarr_validator'
 
-export const sonarrWebhook = async (request: FastifyRequest, response: FastifyReply) => {
+export const sonarrWebhook = async (request: Request) => {
   const body = sonarrValidator.parse(request.body)
 
   const { eventType } = body
 
   if (eventType === 'Test') {
-    response.send('ok')
-    return
+    return Response.json({ message: 'ok' })
   }
 
   try {
@@ -44,5 +41,5 @@ export const sonarrWebhook = async (request: FastifyRequest, response: FastifyRe
     handleError(error)
   }
 
-  response.send('ok')
+  return Response.json({ message: 'ok' })
 }

@@ -1,5 +1,3 @@
-import type { FastifyReply, FastifyRequest } from 'fastify'
-
 import { join } from 'node:path'
 
 import { handleError } from '@/app/exceptions/handler'
@@ -8,14 +6,13 @@ import { getSections, refreshSection } from '@/app/services/plex_service'
 import { TranscodeService } from '@/app/services/transcode_service'
 import { radarrValidator } from '@/app/validators/radarr_validator'
 
-export const radarrWebhook = async (request: FastifyRequest, response: FastifyReply) => {
+export const radarrWebhook = async (request: Request) => {
   const body = radarrValidator.parse(request.body)
 
   const { eventType } = body
 
   if (eventType === 'Test') {
-    response.send('ok')
-    return
+    return Response.json({ message: 'ok' })
   }
 
   try {
@@ -38,5 +35,5 @@ export const radarrWebhook = async (request: FastifyRequest, response: FastifyRe
     handleError(error)
   }
 
-  response.send('ok')
+  return Response.json({ message: 'ok' })
 }
