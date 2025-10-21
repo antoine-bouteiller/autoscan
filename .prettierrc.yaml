@@ -7,5 +7,4 @@ bracketSpacing: true
 arrowParens: always
 printWidth: 100
 plugins:
-  - "@prettier/plugin-oxc"
-  - "@trivago/prettier-plugin-sort-imports"
+  - '@prettier/plugin-oxc'
