@@ -44,6 +44,5 @@ COPY --from=prerelease /autoscan/index .
 COPY --from=prerelease /autoscan/package.json .
 
 # run the app
-USER bun
 EXPOSE 3000/tcp
 ENTRYPOINT [ "index" ]
