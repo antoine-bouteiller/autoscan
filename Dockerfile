@@ -33,11 +33,11 @@ COPY --from=ffmpeg /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ffprobe
 
 # Copy dependencies and source code (changes frequently - at the end)
-COPY --from=install /temp/prod/node_modules /autoscan/node_modules
-COPY --from=prerelease /autoscan/src /autoscan/src
-COPY --from=prerelease /autoscan/migrations /autoscan/migrations
-COPY --from=prerelease /autoscan/package.json /autoscan/package.json
-COPY --from=prerelease /autoscan/tsconfig.json /autoscan/tsconfig.json
+COPY --from=install /temp/prod/node_modules node_modules
+COPY --from=prerelease /autoscan/src src
+COPY --from=prerelease /autoscan/migrations migrations
+COPY --from=prerelease /autoscan/package.json package.json
+COPY --from=prerelease /autoscan/tsconfig.json tsconfig.json
 
 # run the app
 USER bun
