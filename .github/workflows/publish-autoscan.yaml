@@ -15,7 +15,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        uses: bun install
+        run: bun install
 
       - name: Lint
         run: bun lint
@@ -34,7 +34,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        uses: bun install
+        run: bun install
 
       - name: Test
         run: bun test
