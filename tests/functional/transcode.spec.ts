@@ -1,13 +1,13 @@
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect } from 'vitest'
+import { describe, expect, test } from 'bun:test'
 
 import type { iso2 } from '@/types/iso_codes'
 
 import { ffprobe } from '@/app/services/ffmpeg_service'
 import { TranscodeService } from '@/app/services/transcode_service'
 
-import { test, videosPath } from '../config.js'
+import { setupTestContext, videosPath } from '../config.js'
 
 interface FileDataset {
   filename: string
@@ -72,9 +72,13 @@ const dataset: FileDataset[] = [
 ]
 
 describe('Transcode', () => {
-  test.for(dataset)(
-    '$title',
-    async ({ filename, keepFile, outputStreams, shouldExecute }, { testDir }) => {
+  for (const testCase of dataset) {
+    const getContext = setupTestContext(testCase.title)
+
+    test(testCase.title, async () => {
+      const { testDir } = getContext()
+      const { filename, keepFile, outputStreams, shouldExecute } = testCase
+
       copyFileSync(join(videosPath, filename), join(testDir, filename))
 
       const transcodeService = new TranscodeService(join(testDir, filename), 'test', 'eng')
@@ -104,6 +108,6 @@ describe('Transcode', () => {
           expect(streams[stream.index]?.tags?.language).toBe(stream.language)
         }
       }
-    }
-  )
+    })
+  }
 })

@@ -11,15 +11,15 @@ import { sonarrValidator } from '@/app/validators/sonarr_validator'
 export const sonarrWebhook = async (request: FastifyRequest, response: FastifyReply) => {
   const body = sonarrValidator.parse(request.body)
 
-  const eventType = body.eventType
+  const { eventType } = body
 
-  if ('Test' === eventType) {
+  if (eventType === 'Test') {
     response.send('ok')
     return
   }
 
   try {
-    if ('Download' === eventType) {
+    if (eventType === 'Download') {
       const file = join(body.series.path, body.episodeFile.relativePath)
 
       const originalLanguage = await getLanguage(body.series.tmdbId, 'show')
@@ -37,7 +37,7 @@ export const sonarrWebhook = async (request: FastifyRequest, response: FastifyRe
 
     await Promise.all(
       sections
-        .filter((section) => 'show' === section.type)
+        .filter((section) => section.type === 'show')
         .map((section) => refreshSection(section.key, body.series.path))
     )
   } catch (error) {

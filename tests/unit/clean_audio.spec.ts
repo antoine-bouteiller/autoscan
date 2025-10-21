@@ -1,6 +1,6 @@
-import { test, videosPath } from '../config.js'
+import { setupTestContext, videosPath } from '../config.js'
 import { TranscodeService } from '@/app/services/transcode_service'
-import { describe, expect } from 'vitest'
+import { describe, expect, test } from 'bun:test'
 import type { iso2 } from '@/types/iso_codes'
 import { copyFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -63,20 +63,27 @@ const dataset: TestCase[] = [
 ]
 
 describe('Clean audio', () => {
-  test.for(dataset)('$title', async ({ expected, file, language }, { testDir }) => {
-    copyFileSync(join(videosPath, file), join(testDir, file))
+  for (const testCase of dataset) {
+    const getContext = setupTestContext(testCase.title)
 
-    const transcodeService = new TranscodeService(join(testDir, file), 'test', language)
-    await transcodeService.init()
+    test(testCase.title, async () => {
+      const { testDir } = getContext()
+      const { expected, file, language } = testCase
 
-    transcodeService.cleanAudio()
+      copyFileSync(join(videosPath, file), join(testDir, file))
 
-    const command = transcodeService.command
+      const transcodeService = new TranscodeService(join(testDir, file), 'test', language)
+      await transcodeService.init()
 
-    expect(command.length).toBe(expected.length)
+      transcodeService.cleanAudio()
 
-    expected.commandAt?.forEach(({ index, value }) => {
-      expect(command[index]).toBe(value)
+      const { command } = transcodeService
+
+      expect(command.length).toBe(expected.length)
+
+      for (const { index, value } of expected.commandAt ?? []) {
+        expect(command[index]).toBe(value)
+      }
     })
-  })
+  }
 })

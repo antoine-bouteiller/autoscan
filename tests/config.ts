@@ -1,25 +1,36 @@
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { test as base } from 'vitest'
+import { afterEach, beforeEach } from 'bun:test'
 
 interface TestContext {
   testDir: string
 }
 
-const test = base.extend<TestContext>({
-  // eslint-disable-next-line no-empty-pattern
-  testDir: async ({}, use) => {
+const testContexts = new Map<string, TestContext>()
+
+export const setupTestContext = function setupTestContext(testId: string) {
+  beforeEach(() => {
     const testDir = join(import.meta.dirname, randomUUID())
-
     mkdirSync(testDir, { recursive: true })
+    testContexts.set(testId, { testDir })
+  })
 
-    await use(testDir)
+  afterEach(() => {
+    const context = testContexts.get(testId)
+    if (context) {
+      rmSync(context.testDir, { recursive: true })
+      testContexts.delete(testId)
+    }
+  })
 
-    rmSync(testDir, { recursive: true })
-  },
-})
+  return () => {
+    const context = testContexts.get(testId)
+    if (!context) {
+      throw new Error(`Test context not found for test: ${testId}`)
+    }
+    return context
+  }
+}
 
 export const videosPath = join(import.meta.dirname, 'videos')
-
-export { test }

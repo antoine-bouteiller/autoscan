@@ -1,0 +1,14 @@
+{
+  "lsp": {
+    "oxc": {
+      "initialization_options": {
+        "options": {
+          "configPath": null,
+          "tsConfigPath": null,
+          "unusedDisableDirectives": "allow",
+          "typeAware": true
+        }
+      }
+    }
+  }
+}

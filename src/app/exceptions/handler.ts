@@ -2,26 +2,27 @@ import { ZodError } from 'zod'
 
 import { logger } from '@/config/logger'
 
-export function handleError(error: unknown) {
+export const handleError = (error: unknown) => {
   if (error instanceof ZodError) {
     logger.error(error.message)
   } else if (error instanceof Error) {
-    let message = error.message
-    if (error.cause && 'object' === typeof error.cause && 'message' in error.cause) {
-      message += `: ${error.cause.message}`
-    }
-    logger.error(message)
+    const { message, cause } = error
+    const fullMessage =
+      cause && typeof cause === 'object' && 'message' in cause
+        ? `${message}: ${cause.message}`
+        : message
+    logger.error(fullMessage)
   } else {
     logger.error(String(error))
   }
 }
 
-export async function tryCatch<T, Args extends unknown[]>(
-  fn: (...args: Args) => Promise<T>,
+export const tryCatch = async <T, Args extends unknown[]>(
+  asyncFunction: (...args: Args) => Promise<T>,
   ...args: Args
-) {
+) => {
   try {
-    return await fn(...args)
+    return await asyncFunction(...args)
   } catch (error) {
     handleError(error)
   }

@@ -2,26 +2,48 @@
 # see all versions at https://hub.docker.com/r/oven/bun/tags
 FROM oven/bun:1 AS base
 WORKDIR /autoscan
+
+FROM base AS install
+RUN mkdir -p /temp/dev
+COPY package.json bun.lock /temp/dev/
+RUN cd /temp/dev && bun install --frozen-lockfile
+
+RUN mkdir -p /temp/prod
+COPY package.json bun.lock /temp/prod/
+RUN cd /temp/prod && bun install --frozen-lockfile --production
+
+FROM base AS prerelease
+COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
+RUN bun build src/index.ts --compile
 
+# Download ffmpeg static binaries (cached layer - changes rarely)
+FROM base AS ffmpeg
 ARG FFMPEG_STATIC_URL=https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends curl xz-utils ca-certificates; \
-    apt-get clean; \
-    rm -rf /var/lib/apt/lists/*
-
-RUN curl -fsSL "$FFMPEG_STATIC_URL" -o /tmp/ffmpeg.tar.xz; \
+    curl -fsSL "$FFMPEG_STATIC_URL" -o /tmp/ffmpeg.tar.xz; \
     tar -C /tmp -xJf /tmp/ffmpeg.tar.xz; \
     mv /tmp/ffmpeg-*/ffmpeg /tmp/ffmpeg-*/ffprobe /usr/local/bin/; \
     chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe; \
-    rm -rf /tmp/ffmpeg*;
+    rm -rf /tmp/ffmpeg*; \
+    apt-get purge -y --auto-remove curl xz-utils ca-certificates; \
+    rm -rf /var/lib/apt/lists/*
 
-RUN apt-get purge -y --auto-remove curl xz-utils ca-certificates;
-RUN rm -rf /var/lib/apt/lists/*
+# copy production dependencies and source code into final image
+FROM gcr.io/distroless/base-debian12 AS release
 
-RUN bun install --frozen-lockfile --production
+# Copy ffmpeg binaries from ffmpeg stage
+COPY --from=ffmpeg /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
+COPY --from=ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ffprobe
 
-EXPOSE 3030
-CMD [ "bun", "src/index.ts" ]
+# Copy dependencies and source code (changes frequently - at the end)
+COPY --from=install /temp/prod/node_modules node_modules
+COPY --from=prerelease /autoscan/index .
+COPY --from=prerelease /autoscan/package.json .
+
+# run the app
+USER bun
+EXPOSE 3000/tcp
+ENTRYPOINT [ "index" ]

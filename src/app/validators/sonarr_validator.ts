@@ -12,22 +12,16 @@ export const sonarrValidator = z.discriminatedUnion('eventType', [
     ),
     eventType: z.literal('Download'),
     series: z.object({
-      tmdbId: z.coerce.number(),
-      path: z.string(),
-      title: z.string(),
+      path: z.string(), title: z.string(), tmdbId: z.coerce.number(),
     }),
   }),
   z.object({
-    eventType: z.literal(['EpisodeFileDeleted', 'EpisodeFileRenamed']),
     episodeFile: z
       .object({
         relativePath: z.string(),
       })
-      .optional(),
-    series: z.object({
-      tmdbId: z.coerce.number(),
-      path: z.string(),
-      title: z.string(),
+      .optional(), eventType: z.literal(['EpisodeFileDeleted', 'EpisodeFileRenamed']), series: z.object({
+      path: z.string(), title: z.string(), tmdbId: z.coerce.number(),
     }),
   }),
   z.object({

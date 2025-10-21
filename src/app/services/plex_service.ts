@@ -14,7 +14,7 @@ const plexClient = ky.create({
   throwHttpErrors: false,
 })
 
-export async function getMediaDetails(plexMedia: PlexMedia) {
+export const getMediaDetails = async (plexMedia: PlexMedia) => {
   const mediaTitle = [plexMedia.grandparentTitle, plexMedia.parentTitle, plexMedia.title]
     .filter(Boolean)
     .join(' - ')
@@ -35,7 +35,7 @@ export async function getMediaDetails(plexMedia: PlexMedia) {
 
   const originalLanguage = await getLanguage(
     tmdbId,
-    'episode' === plexMedia.type ? 'show' : plexMedia.type
+    plexMedia.type === 'episode' ? 'show' : plexMedia.type
   )
 
   const part = details.MediaContainer.Metadata[0]?.Media[0]?.Part[0]
@@ -45,28 +45,28 @@ export async function getMediaDetails(plexMedia: PlexMedia) {
   }
 
   return {
-    partsId: part.id,
-    tmdbId,
     file,
     mediaTitle,
     originalLanguage,
+    partsId: part.id,
     streams: part.Stream,
+    tmdbId,
   }
 }
 
-export async function getSectionMedia(id: number, sectionType: 'movie' | 'show') {
-  const type = 'show' === sectionType ? 4 : 1
+export const getSectionMedia = async (id: number, sectionType: 'movie' | 'show') => {
+  const type = sectionType === 'show' ? 4 : 1
   const response = await plexClient<PlexReponse>(`library/sections/${id}/all?type=${type}`).json()
 
   return response.MediaContainer.Metadata
 }
 
-export async function getSections() {
+export const getSections = async () => {
   const response = await plexClient<PlexReponse>(`library/sections`).json()
   return response.MediaContainer.Directory
 }
 
-export async function refreshSection(id: number, filePath: string) {
+export const refreshSection = async (id: number, filePath: string) => {
   await plexClient(`library/sections/${id}/refresh`, {
     searchParams: {
       path: filePath,
@@ -74,14 +74,17 @@ export async function refreshSection(id: number, filePath: string) {
   })
 }
 
-export async function updateStream(
-  partsId: number,
-  subtitleStreamId: number,
-  originalLanguage: string,
+interface UpdateStreamParams {
+  partsId: number
+  subtitleStreamId: number
+  originalLanguage: string
   type: 'audio' | 'subtitle'
-) {
+}
+
+export const updateStream = async (params: UpdateStreamParams) => {
+  const { partsId, subtitleStreamId, originalLanguage, type } = params
   await plexClient.put(
-    `library/parts/${partsId}?${type}StreamID=${'fra' === originalLanguage ? 0 : subtitleStreamId}`,
+    `library/parts/${partsId}?${type}StreamID=${originalLanguage === 'fra' ? 0 : subtitleStreamId}`,
     {
       searchParams: { allParts: 1 },
     }
