@@ -3,6 +3,7 @@ import { sonarrWebhook } from '@/app/controllers/sonarr_controller'
 import { transcodeAll } from '@/app/controllers/transcode_controller'
 
 export const server = Bun.serve({
+  port: 3030,
   routes: {
     '/api/status': {
       POST: (request) => radarrWebhook(request),
