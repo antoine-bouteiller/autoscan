@@ -4,7 +4,8 @@ import { describe, expect, test } from 'bun:test'
 
 import type { iso2 } from '@/types/iso_codes'
 
-import { TranscodeService } from '@/app/services/transcode_service'
+import { SubtitleProcessor } from '@/app/services/transcode/subtitle_processor'
+import { ffprobe } from '@/app/services/infrastructure/ffmpeg_service'
 
 import { setupTestContext, videosPath } from '../config.js'
 
@@ -52,10 +53,19 @@ describe('Extract subtitles', () => {
 
       copyFileSync(join(videosPath, file), join(testDir, file))
 
-      const transcodeService = new TranscodeService(join(testDir, file), 'test', language)
-      await transcodeService.init()
+      const streams = await ffprobe(join(testDir, file))
+      const subtitleStreams = streams.filter((stream) => stream.codec_type === 'subtitle')
 
-      await transcodeService.extractSubtitles()
+      const fileName = file.slice(0, file.lastIndexOf('.')).split('/').pop() ?? file
+      const subtitleProcessor = new SubtitleProcessor(
+        join(testDir, file),
+        fileName,
+        subtitleStreams,
+        language,
+        'test'
+      )
+
+      await subtitleProcessor.process()
 
       const output = join(testDir, 'transcode', file.replace('.mkv', `.${language}.srt`))
 

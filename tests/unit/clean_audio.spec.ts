@@ -1,5 +1,6 @@
 import { setupTestContext, videosPath } from '../config.js'
-import { TranscodeService } from '@/app/services/transcode_service'
+import { AudioProcessor } from '@/app/services/transcode/audio_processor'
+import { ffprobe } from '@/app/services/infrastructure/ffmpeg_service'
 import { describe, expect, test } from 'bun:test'
 import type { iso2 } from '@/types/iso_codes'
 import { copyFileSync } from 'node:fs'
@@ -18,8 +19,8 @@ interface TestCase {
 const dataset: TestCase[] = [
   {
     expected: {
-      commandAt: [{ index: 2, value: '-metadata:s:a:0 language=eng' }],
-      length: 3,
+      commandAt: [{ index: 1, value: '-metadata:s:a:0 language=eng' }],
+      length: 2,
     },
     file: 'test_audio_undefined.mkv',
     language: 'eng',
@@ -27,8 +28,8 @@ const dataset: TestCase[] = [
   },
   {
     expected: {
-      commandAt: [{ index: 2, value: '-metadata:s:a:0 language=fre' }],
-      length: 3,
+      commandAt: [{ index: 1, value: '-metadata:s:a:0 language=fre' }],
+      length: 2,
     },
     file: 'test_audio_undefined.mkv',
     language: 'fre',
@@ -36,8 +37,8 @@ const dataset: TestCase[] = [
   },
   {
     expected: {
-      commandAt: [{ index: 2, value: '-c:a:0 aac' }],
-      length: 4,
+      commandAt: [{ index: 1, value: '-c:a:0 aac' }],
+      length: 3,
     },
     file: 'test_audio_dts.mkv',
     language: 'eng',
@@ -45,8 +46,8 @@ const dataset: TestCase[] = [
   },
   {
     expected: {
-      commandAt: [{ index: 1, value: '-map 0:a:0' }],
-      length: 2,
+      commandAt: [{ index: 0, value: '-map 0:a:0' }],
+      length: 1,
     },
     file: 'test_audio_aac_dts.mkv',
     language: 'eng',
@@ -54,7 +55,7 @@ const dataset: TestCase[] = [
   },
   {
     expected: {
-      length: 4,
+      length: 3,
     },
     file: 'test_audio_fre_eng_spa.mkv',
     language: 'spa',
@@ -72,17 +73,16 @@ describe('Clean audio', () => {
 
       copyFileSync(join(videosPath, file), join(testDir, file))
 
-      const transcodeService = new TranscodeService(join(testDir, file), 'test', language)
-      await transcodeService.init()
+      const streams = await ffprobe(join(testDir, file))
+      const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
 
-      transcodeService.cleanAudio()
+      const audioProcessor = new AudioProcessor(audioStreams, language, 'test')
+      const result = audioProcessor.process()
 
-      const { command } = transcodeService
-
-      expect(command.length).toBe(expected.length)
+      expect(result.command.length).toBe(expected.length)
 
       for (const { index, value } of expected.commandAt ?? []) {
-        expect(command[index]).toBe(value)
+        expect(result.command[index]).toBe(value)
       }
     })
   }

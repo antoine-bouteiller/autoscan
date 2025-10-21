@@ -1,9 +1,9 @@
 import type { iso2 } from '@/types/iso_codes'
 import type { MediaType, PlexMediaStream } from '@/types/plex'
 
-import { getMediaByIdAndType } from '@/app/services/media_service'
-import { updateStream } from '@/app/services/plex_service'
-import { getLanguageByIdAndType } from '@/app/services/tmdb_service'
+import { getMediaByIdAndType } from '@/app/services/media/media_service'
+import { updateStream } from '@/app/services/integrations/plex_service'
+import { getLanguageByIdAndType } from '@/app/services/integrations/tmdb_service'
 import { logger } from '@/config/logger'
 
 export const getLanguage = async (tmdbId: number, mediaType: MediaType) => {
@@ -40,7 +40,10 @@ export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
   if (!audioStream.selected) {
     logger.info(`[${mediaTitle}] Setting audio in ${originalLanguage}`)
     await updateStream({
-      originalLanguage, partsId, subtitleStreamId: audioStream.id, type: 'audio',
+      originalLanguage,
+      partsId,
+      subtitleStreamId: audioStream.id,
+      type: 'audio',
     })
   }
 }

@@ -4,8 +4,8 @@ import { describe, expect, test } from 'bun:test'
 
 import type { iso2 } from '@/types/iso_codes'
 
-import { ffprobe } from '@/app/services/ffmpeg_service'
-import { TranscodeService } from '@/app/services/transcode_service'
+import { ffprobe } from '@/app/services/infrastructure/ffmpeg_service'
+import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
 
 import { setupTestContext, videosPath } from '../config.js'
 
@@ -81,7 +81,7 @@ describe('Transcode', () => {
 
       copyFileSync(join(videosPath, filename), join(testDir, filename))
 
-      const transcodeService = new TranscodeService(join(testDir, filename), 'test', 'eng')
+      const transcodeService = new TranscodeOrchestrator(join(testDir, filename), 'test', 'eng')
       const executed = await transcodeService.transcodeFile()
 
       expect(executed).toBe(shouldExecute)
