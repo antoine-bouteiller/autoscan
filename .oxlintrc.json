@@ -4,7 +4,9 @@
   "categories": {
     "correctness": "error",
     "suspicious": "error",
-    "perf": "error"
+    "perf": "error",
+    "pedantic": "error",
+    "style": "error"
   },
   "env": {
     "builtin": true,
@@ -12,11 +14,31 @@
     "commonjs": true
   },
   "rules": {
+    // restriction
+    "default-case": "error",
+    "no-empty": "error",
+    "no-empty-function": "error",
     "no-console": "error",
     "no-unused-vars": "error",
     "no-unused-expressions": "error",
-    "no-await-in-loop": "off",
+    "no-explicit-any": "error",
+    "no-non-null-assertion": "error",
+    "no-array-for-each": "error",
+    "prefer-modern-math-apis": "error",
+    "prefer-number-properties": "error",
 
+    // pedantic
+    "max-lines": "off",
+    "max-lines-per-function": "off",
+    "max-classes-per-file": "off",
+    "explicit-length-check": "off",
+    "max-params": "off",
+    "no-continue": "off",
+    "no-await-in-loop": "off",
+    "prefer-top-level-await": "off",
+    "id-length": "off",
+
+    // style
     "unicorn/filename-case": [
       "error",
       {
@@ -24,7 +46,11 @@
           "snakeCase": true
         }
       }
-    ]
+    ],
+    "prefer-default-export": "off",
+    "no-magic-numbers": "off",
+    "sort-imports": "off",
+    "no-ternary": "off"
   },
   "ignorePatterns": ["bun.lock"]
 }

@@ -7,7 +7,7 @@ interface IpifyResponse {
   ip: string
 }
 
-let zoneId: string
+let zoneId = ''
 
 const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]
 const ZONE_NAME = env.DOMAIN
@@ -16,20 +16,22 @@ const cloudflare = new Cloudflare({
   apiToken: env.CLOUDFLARE_TOKEN,
 })
 
-async function getPublicIP() {
+const getPublicIP = async () => {
   const data = await ky<IpifyResponse>('https://api.ipify.org?format=json').json()
 
   return data.ip
 }
 
-async function getZoneId(): Promise<string> {
-  if (zoneId) return zoneId
+const getZoneId = async (): Promise<string> => {
+  if (zoneId) {
+    return zoneId
+  }
 
   const zonesResp = await cloudflare.zones.list({
     name: ZONE_NAME,
   })
 
-  const zone = zonesResp.result[0]
+  const [zone] = zonesResp.result
 
   if (!zone) {
     throw new Error(`Zone not found`)
@@ -39,16 +41,16 @@ async function getZoneId(): Promise<string> {
   return zone.id
 }
 
-async function updateDnsRecord(recordName: string) {
-  const zoneId = await getZoneId()
+const updateDnsRecord = async (recordName: string) => {
+  const currentZoneId = await getZoneId()
 
   const listResp = await cloudflare.dns.records.list({
-    zone_id: zoneId,
     name: { exact: recordName },
     type: 'A',
+    zone_id: currentZoneId,
   })
 
-  const record = listResp.result[0]
+  const [record] = listResp.result
 
   if (!record) {
     throw new Error(`No record A found with name ${recordName}`)
@@ -61,16 +63,16 @@ async function updateDnsRecord(recordName: string) {
   }
 
   await cloudflare.dns.records.edit(record.id, {
-    zone_id: zoneId,
-    type: record.type,
-    name: recordName,
     content: currentIp,
-    ttl: record.ttl,
+    name: recordName,
     proxied: record.proxied,
+    ttl: record.ttl,
+    type: record.type,
+    zone_id: currentZoneId,
   })
 }
 
-export function dynDns() {
+export const dynDns = () => {
   for (const domain of DOMAINES_TO_UPDATE) {
     tryCatch(updateDnsRecord, domain)
   }

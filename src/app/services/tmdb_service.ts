@@ -15,18 +15,21 @@ const tmdbClient = ky.create({
   throwHttpErrors: false,
 })
 
-export async function getLanguageByIdAndType(tmdbId: number, type: MediaType): Promise<iso2> {
+export const getLanguageByIdAndType = (tmdbId: number, type: MediaType): Promise<iso2> => {
   switch (type) {
-    case 'movie':
+    case 'movie': {
       return getMovieLanguageById(tmdbId)
-    case 'show':
+    }
+    case 'show': {
       return getSeriesLanguageById(tmdbId)
-    default:
+    }
+    default: {
       throw new Error('Invalid type')
+    }
   }
 }
 
-async function getMovieLanguageById(tmdbId: number): Promise<iso2> {
+const getMovieLanguageById = async (tmdbId: number): Promise<iso2> => {
   const response = await tmdbClient<TmdbResponse>(`movie/${tmdbId}`)
 
   if (!response.ok) {
@@ -42,7 +45,7 @@ async function getMovieLanguageById(tmdbId: number): Promise<iso2> {
   return language
 }
 
-async function getSeriesLanguageById(tmdbId: number): Promise<iso2> {
+const getSeriesLanguageById = async (tmdbId: number): Promise<iso2> => {
   const response = await tmdbClient<TmdbResponse>(`tv/${tmdbId}`)
 
   if (!response.ok) {

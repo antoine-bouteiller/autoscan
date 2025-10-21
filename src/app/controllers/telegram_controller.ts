@@ -11,10 +11,10 @@ import env from '@/config/env'
 import { type Media, media as mediaTable } from '@/db/schema'
 import { countryISOMapping } from '@/types/iso_codes'
 
-export async function selectMediaType(
+export const selectMediaType = async (
   conversation: ConfigureLanguageConversation,
   ctx: ConfigureLanguageContext
-) {
+) => {
   if (ctx.message?.chat.id !== env.TELEGRAM_CHAT_ID) {
     return ctx.reply('Unauthorized')
   }
@@ -26,33 +26,36 @@ export async function selectMediaType(
 
   const media = await conversation.external(() => getMediaByTypeWithPagination(mediaType, 0, 100))
 
-  function createMenu(
-    conversation: ConfigureLanguageConversation,
-    media: Media[],
-    page: number,
-    parent?: string
-  ) {
-    const currentMenu = media.slice(0, 10)
+  const createMenu = (
+    menuConversation: ConfigureLanguageConversation,
+    menuMedia: Media[],
+    page: number
+  ): ReturnType<typeof menuConversation.menu> => {
+    const currentMenu = menuMedia.slice(0, 10)
 
-    const nextMenu = media.slice(10)
+    const nextMenu = menuMedia.slice(10)
 
     const menuId = `menu-${page}`
+    const parentMenuId = page > 0 ? `menu-${page - 1}` : undefined
 
-    const menu = conversation.menu(menuId, { parent })
+    const menu = menuConversation.menu(menuId, { parent: parentMenuId })
 
-    menu.dynamic(async () => {
-      return currentMenu.reduce(
+    menu.dynamic(() =>
+      currentMenu.reduce(
         (range, entry) =>
           range
             .text(entry.title, async () => {
               await message.editText(`Wich language do you want to set for ${entry.title} ?`)
 
-              const language = await conversation.form.select(Object.values(countryISOMapping), {
-                action: (ctx) => ctx.deleteMessage(),
-                otherwise: (ctx) => ctx.reply('Invalid language code'),
-              })
+              const language = await menuConversation.form.select(
+                Object.values(countryISOMapping),
+                {
+                  action: (ctx) => ctx.deleteMessage(),
+                  otherwise: (ctx) => ctx.reply('Invalid language code'),
+                }
+              )
 
-              await conversation.external(() =>
+              await menuConversation.external(() =>
                 db
                   .update(mediaTable)
                   .set({
@@ -63,19 +66,19 @@ export async function selectMediaType(
 
               await message.editText(`Language of ${entry.title} updated to ${language}`)
 
-              await conversation.halt()
+              await menuConversation.halt()
             })
             .row(),
         new ConversationMenuRange<ConfigureLanguageContext>()
       )
-    })
+    )
 
-    if (0 < page) {
+    if (page > 0) {
       menu.back('Previous')
     }
 
-    if (0 < nextMenu.length) {
-      menu.submenu('Next', createMenu(conversation, nextMenu, page + 1, menuId))
+    if (nextMenu.length > 0) {
+      menu.submenu('Next', createMenu(menuConversation, nextMenu, page + 1))
     }
 
     return menu

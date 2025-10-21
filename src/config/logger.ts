@@ -1,6 +1,4 @@
-import type { DestinationStream, LoggerOptions } from 'pino'
-
-import { pino } from 'pino'
+import { type DestinationStream, type LoggerOptions, pino } from 'pino'
 
 const optionsMap: Record<string, DestinationStream | LoggerOptions> = {
   development: {

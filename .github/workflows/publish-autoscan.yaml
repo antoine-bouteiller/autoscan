@@ -4,8 +4,45 @@ on:
       - main
 
 jobs:
-  deploy:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        uses: bun install
+
+      - name: Lint
+        run: bun lint
+
+      - name: Lint
+        run: bun typecheck
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        uses: bun install
+
+      - name: Test
+        run: bun test
+
+  deploy:
+    name: Deploy to GCP
+    runs-on: ubuntu-latest
+    needs: [lint, test]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -11,15 +11,15 @@ import { radarrValidator } from '@/app/validators/radarr_validator'
 export const radarrWebhook = async (request: FastifyRequest, response: FastifyReply) => {
   const body = radarrValidator.parse(request.body)
 
-  const eventType = body.eventType
+  const { eventType } = body
 
-  if ('Test' === eventType) {
+  if (eventType === 'Test') {
     response.send('ok')
     return
   }
 
   try {
-    if ('Download' === eventType) {
+    if (eventType === 'Download') {
       const file = join(body.movie.folderPath, body.movieFile.relativePath)
       const originalLanguage = await getLanguage(body.movie.tmdbId, 'movie')
 
@@ -31,7 +31,7 @@ export const radarrWebhook = async (request: FastifyRequest, response: FastifyRe
 
     await Promise.all(
       sections
-        .filter((section) => 'movie' === section.type)
+        .filter((section) => section.type === 'movie')
         .map((section) => refreshSection(section.key, body.movie.folderPath))
     )
   } catch (error) {

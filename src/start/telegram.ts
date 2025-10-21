@@ -21,9 +21,7 @@ bot.use(createConversation(selectMediaType, { plugins: [hydrate()] }))
 
 bot.command('setlanguage', (ctx) => ctx.conversation.enter('selectMediaType'))
 
-bot.command('cancel', async (ctx) => {
-  return ctx.reply('Nothing to cancel')
-})
+bot.command('cancel', (ctx) => ctx.reply('Nothing to cancel'))
 
 logger.info('Telegram bot starting...')
 void bot.start()

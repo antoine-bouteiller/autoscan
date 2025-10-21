@@ -1,28 +1,25 @@
-import Fastify from 'fastify'
+import fastify from 'fastify'
 
+import { handleError } from '@/app/exceptions/handler'
+import { logger } from '@/config/logger'
 import { radarrWebhook } from '@/app/controllers/radarr_controller'
 import { sonarrWebhook } from '@/app/controllers/sonarr_controller'
 import { transcodeAll } from '@/app/controllers/transcode_controller'
-import { handleError } from '@/app/exceptions/handler'
-import { logger } from '@/config/logger'
-import { dynDns } from '@/app/services/ip_service'
 
-const fastify = Fastify()
+const app = fastify()
 
-await dynDns()
+app.post('/sonarr', sonarrWebhook)
 
-fastify.post('/sonarr', sonarrWebhook)
+app.post('/radarr', radarrWebhook)
 
-fastify.post('/radarr', radarrWebhook)
+app.post('/transcode/all', transcodeAll)
 
-fastify.post('/transcode/all', transcodeAll)
-
-fastify.setErrorHandler((error, _, reply) => {
+app.setErrorHandler((error, _request, reply) => {
   handleError(error)
   reply.status(500).send({ message: 'Internal Server Error', statusCode: 500 })
 })
 
-fastify
+await app
   .listen({ host: '0.0.0.0', port: 3030 })
   .then(() => {
     logger.info('Webserver started on port 3030')

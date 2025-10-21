@@ -1,12 +1,12 @@
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect } from 'vitest'
+import { describe, expect, test } from 'bun:test'
 
 import type { iso2 } from '@/types/iso_codes'
 
 import { TranscodeService } from '@/app/services/transcode_service'
 
-import { test, videosPath } from '../config.js'
+import { setupTestContext, videosPath } from '../config.js'
 
 interface TestCase {
   exists: boolean
@@ -43,20 +43,27 @@ const dataset: TestCase[] = [
 ]
 
 describe('Extract subtitles', () => {
-  test.for(dataset)('$title', async ({ exists, file, language }, { testDir }) => {
-    copyFileSync(join(videosPath, file), join(testDir, file))
+  for (const testCase of dataset) {
+    const getContext = setupTestContext(testCase.title)
 
-    const transcodeService = new TranscodeService(join(testDir, file), 'test', language)
-    await transcodeService.init()
+    test(testCase.title, async () => {
+      const { testDir } = getContext()
+      const { exists, file, language } = testCase
 
-    await transcodeService.extractSubtitles()
+      copyFileSync(join(videosPath, file), join(testDir, file))
 
-    const output = join(testDir, 'transcode', file.replace('.mkv', `.${language}.srt`))
+      const transcodeService = new TranscodeService(join(testDir, file), 'test', language)
+      await transcodeService.init()
 
-    if (exists) {
-      expect(existsSync(output)).toBe(true)
-    } else {
-      expect(existsSync(output)).toBe(false)
-    }
-  })
+      await transcodeService.extractSubtitles()
+
+      const output = join(testDir, 'transcode', file.replace('.mkv', `.${language}.srt`))
+
+      if (exists) {
+        expect(existsSync(output)).toBe(true)
+      } else {
+        expect(existsSync(output)).toBe(false)
+      }
+    })
+  }
 })
