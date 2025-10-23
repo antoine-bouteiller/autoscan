@@ -1,3 +1,4 @@
+import { handleError } from '@/app/exceptions/handler'
 import { logger } from '@/config/logger'
 
 type RouteConfig = Record<
@@ -40,6 +41,12 @@ class HttpProvider {
     }
 
     this.server = Bun.serve({
+      error(error) {
+        handleError(error)
+        return new Response('Internal Server Error', {
+          status: 500,
+        })
+      },
       hostname: this.options.hostname,
       port: this.options.port,
       routes: this.routes,
