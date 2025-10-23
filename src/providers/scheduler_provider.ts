@@ -1,5 +1,5 @@
-import { Cron, type CronOptions } from 'croner'
 import { logger } from '@/config/logger'
+import { Cron, type CronOptions } from 'croner'
 
 interface JobConfig {
   name: string
@@ -35,13 +35,8 @@ class SchedulerProvider {
           ...options,
         },
         async () => {
-          const startTime = Date.now()
-          logger.info(`🚀 Starting cron job: ${name}`)
-
           try {
             await handler()
-            const duration = Date.now() - startTime
-            logger.info(`Cron job "${name}" completed in ${duration}ms`)
           } catch (error) {
             logger.error({ error, name }, `Cron job "${name}" failed`)
           }
