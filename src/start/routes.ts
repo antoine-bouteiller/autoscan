@@ -4,7 +4,7 @@ import { transcodeAll } from '@/app/controllers/http/transcode_controller'
 import { getHttpProvider } from '@/providers/http_provider'
 
 getHttpProvider().registerRoutes({
-  '/api/status': {
+  '/radarr': {
     POST: (request: Request) => radarrWebhook(request),
   },
   '/sonarr': {
