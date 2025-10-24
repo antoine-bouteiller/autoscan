@@ -20,5 +20,8 @@ const env = envSchema.parse(process.env)
 
 export default {
   ...env,
-  DATABASE_URL: join(__dirname, '../../resources/autoscan.db'),
+  DATABASE_URL:
+    process.env.NODE_ENV === 'development'
+      ? ':memory:'
+      : join(__dirname, '../../resources/autoscan.db'),
 }

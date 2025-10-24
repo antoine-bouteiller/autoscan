@@ -24,7 +24,7 @@ class HttpProvider {
 
   constructor(options: HttpProviderOptions) {
     this.options = {
-      hostname: 'localhost',
+      hostname: '0.0.0.0',
       port: 3030,
       ...options,
     }
