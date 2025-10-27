@@ -4,3 +4,4 @@ transcode_cache
 generated
 prisma/client
 .env
+autoscan.db
