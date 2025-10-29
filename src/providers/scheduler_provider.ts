@@ -1,3 +1,4 @@
+import { handleError, tryCatch } from '@/app/exceptions/handler'
 import { logger } from '@/config/logger'
 import { Cron, type CronOptions } from 'croner'
 
@@ -6,19 +7,13 @@ interface JobConfig {
   pattern: string
   handler: () => Promise<void> | void
   options?: CronOptions
-  enabled?: boolean
 }
 
 class SchedulerProvider {
   private jobs = new Map<string, Cron>()
 
   register(config: JobConfig): Cron | undefined {
-    const { enabled = true, handler, name, options = {}, pattern } = config
-
-    if (!enabled) {
-      logger.info(`Cron job "${name}" is disabled`)
-      return undefined
-    }
+    const { handler, name, options = {}, pattern } = config
 
     const existingJob = this.jobs.get(name)
     if (existingJob) {
@@ -35,11 +30,7 @@ class SchedulerProvider {
           ...options,
         },
         async () => {
-          try {
-            await handler()
-          } catch (error) {
-            logger.error({ error, name }, `Cron job "${name}" failed`)
-          }
+          await tryCatch(handler)
         }
       )
 
@@ -48,8 +39,7 @@ class SchedulerProvider {
 
       return job
     } catch (error) {
-      logger.error({ error, name }, `Failed to register cron job: "${name}"`)
-      return undefined
+      handleError(error)
     }
   }
 
@@ -60,9 +50,8 @@ class SchedulerProvider {
   }
 
   stopAll(): void {
-    for (const [name, job] of this.jobs) {
+    for (const [, job] of this.jobs) {
       job.stop()
-      logger.info(`Stopped cron job: ${name}`)
     }
     logger.info('All cron jobs stopped')
   }

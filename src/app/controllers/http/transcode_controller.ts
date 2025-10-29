@@ -2,7 +2,7 @@ import {
   getTranscodingStatus,
   runTranscodeProcess,
 } from '@/app/controllers/commands/transcode_command'
-import { logger } from '@/config/logger'
+import { tryCatch } from '@/app/exceptions/handler'
 
 export const transcodeAll = (_request: Request) => {
   if (getTranscodingStatus()) {
@@ -12,12 +12,7 @@ export const transcodeAll = (_request: Request) => {
     })
   }
 
-  // Lance le processus de transcodage en arrière-plan
-  // On garde une référence pour éviter que la Promise soit garbage collectée
-  runTranscodeProcess().catch((error) => {
-    logger.error({ error }, 'Unhandled error in transcode process')
-  })
+  tryCatch(runTranscodeProcess)
 
-  // Retourne immédiatement une réponse OK
   return Response.json({ message: 'Transcode process started', status: 'ok' })
 }
