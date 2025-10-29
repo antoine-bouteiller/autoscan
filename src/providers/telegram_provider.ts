@@ -37,7 +37,6 @@ class TelegramProvider {
 
     this.bot = this.configure()
 
-    logger.info('Starting Telegram bot...')
     void this.bot.start()
     logger.info('Telegram bot started')
   }

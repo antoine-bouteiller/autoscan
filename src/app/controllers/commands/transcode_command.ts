@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 
-import { tryCatch } from '@/app/exceptions/handler'
+import { handleError, tryCatch } from '@/app/exceptions/handler'
 import {
   getMediaDetails,
   getSectionMedia,
@@ -49,7 +49,7 @@ export const runTranscodeProcess = async () => {
 
     logger.info('Transcoding finished')
   } catch (error) {
-    logger.error({ error }, 'Error during transcode process')
+    handleError(error)
   } finally {
     isTranscoding = false
   }
