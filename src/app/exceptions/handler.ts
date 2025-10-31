@@ -5,7 +5,7 @@ import { CloudflareError } from 'cloudflare'
 
 export const handleError = (error: unknown, context: object = {}) => {
   if (error instanceof ZodError) {
-    logger.error(context, error.issues.map((issue) => issue.message).join(', '))
+    logger.error({ ...context, issues: error.issues }, 'Parsing error')
   } else if (error instanceof CloudflareError && 'errors' in error && Array.isArray(error.errors)) {
     logger.error(context, error.errors.map((error) => error.message).join(', '))
   } else if (error instanceof Error) {
