@@ -4,7 +4,7 @@ import { Bot } from 'grammy'
 
 import type { TelegramContext } from '@/types/telegram'
 
-import { selectMediaType } from '@/app/controllers/telegram/language_controller'
+import { selectMediaType } from '@/app/controllers/telegram/language_command'
 import env from '@/config/env'
 import { logger } from '@/config/logger'
 

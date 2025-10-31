@@ -1,10 +1,10 @@
+import { describe, expect, test } from 'bun:test'
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, test } from 'bun:test'
 
 import type { iso2 } from '@/types/iso_codes'
 
-import { ffprobe } from '@/app/services/infrastructure/ffmpeg_service'
+import { ffprobe } from '@/app/services/transcode/ffmpeg_service'
 import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
 
 import { setupTestContext, videosPath } from '../config.js'

@@ -1,7 +1,7 @@
+import { executeFfmpeg } from '@/app/services/transcode/ffmpeg_service'
 import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
-import type { iso2 } from '@/types/iso_codes'
-import { executeFfmpeg } from '@/app/services/infrastructure/ffmpeg_service'
 import { logger } from '@/config/logger'
+import type { iso2 } from '@/types/iso_codes'
 
 type Criteria =
   | {

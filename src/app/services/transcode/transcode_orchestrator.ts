@@ -3,8 +3,8 @@ import { join } from 'node:path'
 
 import type { iso2 } from '@/types/iso_codes'
 
-import { executeFfmpeg, ffprobe } from '@/app/services/infrastructure/ffmpeg_service'
 import { AudioProcessor } from '@/app/services/transcode/audio_processor'
+import { executeFfmpeg, ffprobe } from '@/app/services/transcode/ffmpeg_service'
 import { SubtitleProcessor } from '@/app/services/transcode/subtitle_processor'
 import { VideoProcessor } from '@/app/services/transcode/video_processor'
 import { logger } from '@/config/logger'

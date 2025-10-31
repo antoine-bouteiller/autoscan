@@ -1,10 +1,10 @@
-import { setupTestContext, videosPath } from '../config.js'
 import { AudioProcessor } from '@/app/services/transcode/audio_processor'
-import { ffprobe } from '@/app/services/infrastructure/ffmpeg_service'
-import { describe, expect, test } from 'bun:test'
+import { ffprobe } from '@/app/services/transcode/ffmpeg_service'
 import type { iso2 } from '@/types/iso_codes'
+import { describe, expect, test } from 'bun:test'
 import { copyFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { setupTestContext, videosPath } from '../config.js'
 
 interface TestCase {
   expected: {

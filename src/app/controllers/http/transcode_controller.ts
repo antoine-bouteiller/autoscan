@@ -1,7 +1,4 @@
-import {
-  getTranscodingStatus,
-  runTranscodeProcess,
-} from '@/app/controllers/commands/transcode_command'
+import { getTranscodingStatus, runTranscodeProcess } from '@/app/controllers/tasks/transcode_task'
 import { tryCatch } from '@/app/exceptions/handler'
 
 export const transcodeAll = (_request: Request) => {
