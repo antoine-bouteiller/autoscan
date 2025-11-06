@@ -1,29 +1,19 @@
 commit-msg:
   commands:
     lint-commit-msg:
-      run: bunx --no -- commitlint --edit
+      run: bunx commitlint --edit
 pre-commit:
   parallel: true
   jobs:
-    - name: Lint
-      run: bunx lint {staged_files} --fix
-      glob:
-        - '*.js'
-        - '*.jsx'
-        - '*.ts'
-        - '*.tsx'
-        - '*.json'
-        - '*.jsonc'
-        - '*.css'
+    - name: check-lockfile
+      run: bun i --frozen-lockfile --silent
+    - name: check
+      glob: '*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx}'
+      run: bunx oxlint {staged_files} --fix
       stage_fixed: true
-    - name: Format
-      run: bunx prettier --write {staged_files}
-      glob:
-        - '*.js'
-        - '*.jsx'
-        - '*.ts'
-        - '*.tsx'
-        - '*.json'
-        - '*.jsonc'
-        - '*.css'
+    - name: format
+      glob: '*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}'
+      run: bunx prettier {staged_files} --write --log-level silent
       stage_fixed: true
+    - name: type-check
+      run: bun typecheck
