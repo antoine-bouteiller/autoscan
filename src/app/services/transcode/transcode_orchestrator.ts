@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import type { iso2 } from '@/types/iso_codes'
 
 import { AudioProcessor } from '@/app/services/transcode/audio_processor'
-import { executeFfmpeg, ffprobe } from '@/app/services/transcode/ffmpeg_service'
+import { executeFfmpeg, ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
 import { SubtitleProcessor } from '@/app/services/transcode/subtitle_processor'
 import { VideoProcessor } from '@/app/services/transcode/video_processor'
 import { logger } from '@/config/logger'

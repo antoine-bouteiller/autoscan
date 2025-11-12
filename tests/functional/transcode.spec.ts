@@ -4,9 +4,9 @@ import { join } from 'node:path'
 
 import type { iso2 } from '@/types/iso_codes'
 
-import { ffprobe } from '@/app/services/transcode/ffmpeg_service'
 import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
 
+import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client.js'
 import { setupTestContext, videosPath } from '../config.js'
 
 interface FileDataset {

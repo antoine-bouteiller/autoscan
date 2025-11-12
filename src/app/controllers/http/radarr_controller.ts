@@ -1,8 +1,8 @@
 import { join } from 'node:path'
 
 import { handleError } from '@/app/exceptions/handler'
-import { getSections, refreshSection } from '@/app/services/integrations/plex_service'
-import { getOriginalLanguage } from '@/app/services/media/media_orchestration_service'
+import { getSections, refreshSection } from '@/app/integrations/plex/plex_client'
+import { getOriginalLanguage } from '@/app/services/media/metadata_service'
 import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
 import { radarrValidator } from '@/app/validators/http/radarr_webhook_validator'
 

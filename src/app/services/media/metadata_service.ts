@@ -1,8 +1,8 @@
 import { type iso2, countryISOMapping } from '@/types/iso_codes'
 import type { MediaType, PlexMedia, PlexMediaStream } from '@/types/plex'
 
-import { getPlexMetadata } from '@/app/services/integrations/plex_service'
-import { getTmdbMedia } from '@/app/services/integrations/tmdb_service'
+import { getPlexMetadata } from '@/app/integrations/plex/plex_client'
+import { getTmdbMedia } from '@/app/integrations/tmdb/tmdb_client'
 
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from './media_service'
 

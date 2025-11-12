@@ -1,12 +1,8 @@
 import { resolve } from 'node:path'
 
 import { handleError, tryCatch } from '@/app/exceptions/handler'
-import {
-  getSectionMedia,
-  getSections,
-  refreshSection,
-} from '@/app/services/integrations/plex_service'
-import { getCompleteMediaDetails } from '@/app/services/media/media_orchestration_service'
+import { getSectionMedia, getSections, refreshSection } from '@/app/integrations/plex/plex_client'
+import { getCompleteMediaDetails } from '@/app/services/media/metadata_service'
 import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
 import { logger } from '@/config/logger'
 

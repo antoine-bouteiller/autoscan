@@ -22,7 +22,7 @@ export const mockGetSections = mock()
 export const mockRefreshSection = mock()
 export const mockUpdateStream = mock()
 
-mock.module('@/app/services/integrations/plex_service', () => ({
+mock.module('@/app/integrations/plex/plex_client', () => ({
   getPlexMetadata: mockGetPlexMetadata,
   getSectionMedia: mockGetSectionMedia,
   getSections: mockGetSections,
@@ -32,7 +32,7 @@ mock.module('@/app/services/integrations/plex_service', () => ({
 
 export const mockGetTmdbMedia = mock()
 
-mock.module('@/app/services/integrations/tmdb_service', () => ({
+mock.module('@/app/integrations/tmdb/tmdb_client', () => ({
   getTmdbMedia: mockGetTmdbMedia,
 }))
 
@@ -41,7 +41,7 @@ export const mockGetZoneId = mock()
 export const mockGetARecord = mock()
 export const mockUpdateDnsRecord = mock()
 
-mock.module('@/app/services/integrations/cloudflare_service', () => ({
+mock.module('@/app/integrations/cloudflare/cloudflare_client', () => ({
   getARecord: mockGetARecord,
   getPublicIP: mockGetPublicIP,
   getZoneId: mockGetZoneId,
@@ -51,7 +51,7 @@ mock.module('@/app/services/integrations/cloudflare_service', () => ({
 export const mockSonarrGetQueue = mock()
 export const mockSonarrRemoveQueueItem = mock()
 
-mock.module('@/app/services/integrations/sonarr_service', () => ({
+mock.module('@/app/integrations/arr/sonarr_client', () => ({
   getQueue: mockSonarrGetQueue,
   removeQueueItem: mockSonarrRemoveQueueItem,
 }))
@@ -59,7 +59,7 @@ mock.module('@/app/services/integrations/sonarr_service', () => ({
 export const mockRadarrGetQueue = mock()
 export const mockRadarrRemoveQueueItem = mock()
 
-mock.module('@/app/services/integrations/radarr_service', () => ({
+mock.module('@/app/integrations/arr/radarr_client', () => ({
   getQueue: mockRadarrGetQueue,
   removeQueueItem: mockRadarrRemoveQueueItem,
 }))

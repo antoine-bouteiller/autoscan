@@ -11,9 +11,9 @@ const {
   getCompleteMediaDetails,
   getOriginalLanguage,
   normalizeLanguageCode,
-} = await import('@/app/services/media/media_orchestration_service')
+} = await import('@/app/services/media/metadata_service')
 
-describe('MediaOrchestrationService', () => {
+describe('MetadataService', () => {
   beforeAll(() => {
     // Mock TMDB API responses - default for both movies and shows
     mockGetTmdbMedia.mockResolvedValue({

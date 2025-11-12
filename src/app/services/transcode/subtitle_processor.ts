@@ -1,4 +1,4 @@
-import { executeFfmpeg } from '@/app/services/transcode/ffmpeg_service'
+import { executeFfmpeg } from '@/app/integrations/ffmpeg/ffmpeg_client'
 import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
 import { logger } from '@/config/logger'
 import type { iso2 } from '@/types/iso_codes'

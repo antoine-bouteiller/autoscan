@@ -1,6 +1,6 @@
 import { tryCatch } from '@/app/exceptions/handler'
-import * as radarrService from '@/app/services/integrations/radarr_service'
-import * as sonarrService from '@/app/services/integrations/sonarr_service'
+import * as radarrService from '@/app/integrations/arr/radarr_client'
+import * as sonarrService from '@/app/integrations/arr/sonarr_client'
 import { logger } from '@/config/logger'
 import type { QueueResponse } from '@/types/cleaner'
 

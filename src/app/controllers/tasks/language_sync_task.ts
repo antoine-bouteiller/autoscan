@@ -1,7 +1,7 @@
 import { tryCatch } from '@/app/exceptions/handler'
-import { getSectionMedia, getSections } from '@/app/services/integrations/plex_service'
+import { getSectionMedia, getSections } from '@/app/integrations/plex/plex_client'
 import { handleUpdateLanguage } from '@/app/services/media/language_service'
-import { getCompleteMediaDetails } from '@/app/services/media/media_orchestration_service'
+import { getCompleteMediaDetails } from '@/app/services/media/metadata_service'
 
 export const updatePlexSelectedLanguages = async () => {
   const sections = await getSections()

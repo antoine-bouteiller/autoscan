@@ -4,7 +4,7 @@ import {
   getPublicIP,
   getZoneId,
   updateDnsRecord,
-} from '@/app/services/integrations/cloudflare_service'
+} from '@/app/integrations/cloudflare/cloudflare_client'
 import env from '@/config/env'
 
 const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]
