@@ -60,17 +60,3 @@ jobs:
 
       - name: Run tests
         run: bun test
-
-  ci-success:
-    name: CI Success
-    runs-on: ubuntu-latest
-    needs: [lint, typecheck, test]
-    if: always()
-    steps:
-      - name: Check job results
-        run: |
-          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ] || [ "${{ contains(needs.*.result, 'cancelled') }}" = "true" ]; then
-            echo "One or more CI jobs failed"
-            exit 1
-          fi
-          echo "All CI jobs passed successfully"
