@@ -3,7 +3,6 @@ import ky from 'ky'
 import type { PlexMedia, PlexReponse } from '@/types/plex'
 
 import env from '@/config/env'
-import { getLanguage } from '@/app/services/media/language_service'
 
 const plexClient = ky.create({
   headers: {
@@ -14,43 +13,19 @@ const plexClient = ky.create({
   throwHttpErrors: false,
 })
 
-export const getMediaDetails = async (plexMedia: PlexMedia) => {
-  const mediaTitle = [plexMedia.grandparentTitle, plexMedia.parentTitle, plexMedia.title]
-    .filter(Boolean)
-    .join(' - ')
+export const getPlexMetadata = async (ratingKey: number) => {
+  const response = await plexClient<PlexReponse>(`library/metadata/${ratingKey}`).json()
+  return response.MediaContainer.Metadata[0]
+}
 
+export const getBasicMediaInfo = (plexMedia: PlexMedia) => {
   const file = plexMedia.Media[0]?.Part[0]?.file
-
-  if (!file) {
-    throw new Error(`[${mediaTitle}] No file found"`)
-  }
-
-  const details = await plexClient<PlexReponse>(`library/metadata/${plexMedia.ratingKey}`).json()
-
-  const tmdbId = Number(/{tmdb-(.*?)}/g.exec(file)?.[1])
-
-  if (!tmdbId) {
-    throw new Error(`[${mediaTitle}] No tmdbId found"`)
-  }
-
-  const originalLanguage = await getLanguage(
-    tmdbId,
-    plexMedia.type === 'episode' ? 'show' : plexMedia.type
-  )
-
-  const part = details.MediaContainer.Metadata[0]?.Media[0]?.Part[0]
-
-  if (!part) {
-    throw new Error(`[${mediaTitle}] No part found"`)
-  }
+  const type = plexMedia.type === 'episode' ? 'show' : plexMedia.type
 
   return {
     file,
-    mediaTitle,
-    originalLanguage,
-    partsId: part.id,
-    streams: part.Stream,
-    tmdbId,
+    ratingKey: plexMedia.ratingKey,
+    type,
   }
 }
 
@@ -74,19 +49,12 @@ export const refreshSection = async (id: number, filePath: string) => {
   })
 }
 
-interface UpdateStreamParams {
-  partsId: number
-  subtitleStreamId: number
-  originalLanguage: string
+export const updateStream = async (
+  partsId: number,
+  streamId: number,
   type: 'audio' | 'subtitle'
-}
-
-export const updateStream = async (params: UpdateStreamParams) => {
-  const { partsId, subtitleStreamId, originalLanguage, type } = params
-  await plexClient.put(
-    `library/parts/${partsId}?${type}StreamID=${originalLanguage === 'fra' ? 0 : subtitleStreamId}`,
-    {
-      searchParams: { allParts: 1 },
-    }
-  )
+) => {
+  await plexClient.put(`library/parts/${partsId}?${type}StreamID=${streamId}`, {
+    searchParams: { allParts: 1 },
+  })
 }

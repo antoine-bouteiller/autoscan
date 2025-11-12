@@ -1,39 +1,32 @@
-import ky from 'ky'
-
+import { tryCatch } from '@/app/exceptions/handler'
+import * as radarrService from '@/app/services/integrations/radarr_service'
+import * as sonarrService from '@/app/services/integrations/sonarr_service'
+import { logger } from '@/config/logger'
 import type { QueueResponse } from '@/types/cleaner'
 
-import { tryCatch } from '@/app/exceptions/handler'
-import env from '@/config/env'
-import { logger } from '@/config/logger'
-
 const STRIKE_COUNT = 5
-
-const sonarrClient = ky.create({
-  headers: {
-    'X-Api-Key': env.SONARR_API_KEY,
-  },
-  prefixUrl: `${env.SONARR_API_URL}/api/v3`,
-  throwHttpErrors: false,
-})
-
-const radarrClient = ky.create({
-  headers: {
-    'X-Api-Key': env.RADARR_API_KEY,
-  },
-  prefixUrl: `${env.RADARR_API_URL}/api/v3`,
-  throwHttpErrors: false,
-})
 
 // Initialize the strike count dictionary
 const strikeCounts = new Map<number, number>()
 
-export const cleanupAll = async (): Promise<void> => {
-  await tryCatch(removeStalledDownloads, sonarrClient, 'Sonarr')
-  await tryCatch(removeStalledDownloads, radarrClient, 'Radarr')
+interface QueueService {
+  getQueue: () => Promise<QueueResponse | undefined>
+  removeQueueItem: (
+    id: number,
+    options: { blocklist: boolean; removeFromClient: boolean }
+  ) => Promise<void>
 }
 
-const removeStalledDownloads = async (client: typeof ky, serviceName: string): Promise<void> => {
-  const queue = await client.get<QueueResponse | undefined>('queue').json()
+export const cleanupAll = async (): Promise<void> => {
+  await tryCatch(removeStalledDownloads, sonarrService, 'Sonarr')
+  await tryCatch(removeStalledDownloads, radarrService, 'Radarr')
+}
+
+const removeStalledDownloads = async (
+  service: QueueService,
+  serviceName: string
+): Promise<void> => {
+  const queue = await service.getQueue()
 
   const promises = []
 
@@ -59,11 +52,9 @@ const removeStalledDownloads = async (client: typeof ky, serviceName: string): P
       if (noEligibleFiles || (strikeCounts.get(itemId) ?? 0) >= STRIKE_COUNT) {
         logger.info(`Removing ${serviceName} download: ${item.title}`)
         promises.push(
-          client.delete(`queue/${itemId}`, {
-            searchParams: {
-              blocklist: 'true',
-              removeFromClient: 'true',
-            },
+          service.removeQueueItem(itemId, {
+            blocklist: true,
+            removeFromClient: true,
           })
         )
       }

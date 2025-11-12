@@ -5,7 +5,6 @@
     "correctness": "error",
     "suspicious": "error",
     "perf": "error",
-    "pedantic": "error",
     "style": "error"
   },
   "env": {
@@ -28,15 +27,7 @@
     "prefer-number-properties": "error",
 
     // pedantic
-    "max-lines": "off",
-    "max-lines-per-function": "off",
-    "max-classes-per-file": "off",
-    "explicit-length-check": "off",
-    "max-params": "off",
-    "no-continue": "off",
-    "no-await-in-loop": "off",
-    "prefer-top-level-await": "off",
-    "id-length": "off",
+    "no-deprecated": "off",
 
     // style
     "unicorn/filename-case": [
@@ -51,6 +42,10 @@
     "no-magic-numbers": "off",
     "sort-imports": "off",
     "no-ternary": "off",
+    "id-length": "off",
+    "no-continue": "off",
+    "max-params": "off",
+    "no-await-in-loop": "off",
     "init-declarations": "off"
   },
   "ignorePatterns": ["bun.lock"]

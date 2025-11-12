@@ -1,25 +1,13 @@
+import { afterEach, beforeEach } from 'bun:test'
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { afterEach, beforeEach } from 'bun:test'
-
-// Load test environment variables
-process.env['CLOUDFLARE_TOKEN'] = process.env['CLOUDFLARE_TOKEN'] || 'test-cloudflare-token'
-process.env['DOMAIN'] = process.env['DOMAIN'] || 'test.example.com'
-process.env['PLEX_TOKEN'] = process.env['PLEX_TOKEN'] || 'test-plex-token'
-process.env['PLEX_URL'] = process.env['PLEX_URL'] || 'http://localhost:32400'
-process.env['RADARR_API_KEY'] = process.env['RADARR_API_KEY'] || 'test-radarr-key'
-process.env['RADARR_API_URL'] = process.env['RADARR_API_URL'] || 'http://localhost:7878'
-process.env['SONARR_API_KEY'] = process.env['SONARR_API_KEY'] || 'test-sonarr-key'
-process.env['SONARR_API_URL'] = process.env['SONARR_API_URL'] || 'http://localhost:8989'
-process.env['TELEGRAM_CHAT_ID'] = process.env['TELEGRAM_CHAT_ID'] || '123456789'
-process.env['TELEGRAM_TOKEN'] = process.env['TELEGRAM_TOKEN'] || 'test-telegram-token'
-process.env['TMDB_API_TOKEN'] = process.env['TMDB_API_TOKEN'] || 'test-tmdb-token'
-process.env['TMDB_API_URL'] = process.env['TMDB_API_URL'] || 'https://api.themoviedb.org/3'
 
 interface TestContext {
   testDir: string
 }
+
+process.env.NODE_ENV = 'test'
 
 const testContexts = new Map<string, TestContext>()
 

@@ -2,8 +2,9 @@
   "name": "autoscan",
   "private": true,
   "scripts": {
-    "lint": "oxlint --fix",
+    "lint": "oxlint",
     "format": "prettier --write .",
+    "test": "bun test",
     "typecheck": "tsgo --noEmit",
     "dev": "NODE_ENV=development bun --watch src/index.ts",
     "build": "bun build src/index.ts --compile"

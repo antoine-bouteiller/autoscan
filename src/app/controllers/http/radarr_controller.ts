@@ -2,7 +2,7 @@ import { join } from 'node:path'
 
 import { handleError } from '@/app/exceptions/handler'
 import { getSections, refreshSection } from '@/app/services/integrations/plex_service'
-import { getLanguage } from '@/app/services/media/language_service'
+import { getOriginalLanguage } from '@/app/services/media/media_orchestration_service'
 import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
 import { radarrValidator } from '@/app/validators/http/radarr_webhook_validator'
 
@@ -23,7 +23,7 @@ export const radarrWebhook = async (request: Request) => {
 
   if (eventType === 'Download') {
     const file = join(data.movie.folderPath, data.movieFile.relativePath)
-    const originalLanguage = await getLanguage(data.movie.tmdbId, 'movie')
+    const originalLanguage = await getOriginalLanguage(data.movie.tmdbId, 'movie')
 
     const transcodeService = new TranscodeOrchestrator(file, data.movie.title, originalLanguage)
 

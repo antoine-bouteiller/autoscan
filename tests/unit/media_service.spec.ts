@@ -4,155 +4,108 @@ import {
   getMediaByIdAndType,
   getMediaByTypeWithPagination,
 } from '@/app/services/media/media_service'
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
-
-// Mock db
-const mockSelect = mock()
-const mockFrom = mock()
-const mockWhere = mock()
-const mockInsert = mock()
-const mockValues = mock()
-const mockOnConflictDoUpdate = mock()
-const mockOrderBy = mock()
-const mockOffset = mock()
-const mockLimit = mock()
-const mockThen = mock()
-
-const mockDb = {
-  insert: mockInsert,
-  select: mockSelect,
-}
-
-mock.module('@/config/db', () => ({
-  db: mockDb,
-}))
-
-// Mock schema
-const mockMediaTable = {
-  originalLanguage: 'originalLanguage',
-  title: 'title',
-  tmdbId: 'tmdbId',
-  type: 'type',
-}
-
-mock.module('@/database/schema', () => ({
-  media: mockMediaTable,
-}))
+import { db } from '@/config/db'
+import { media } from '@/database/schema'
+import { afterEach, describe, expect, test } from 'bun:test'
+import { and, eq } from 'drizzle-orm'
 
 describe('MediaService', () => {
-  beforeEach(() => {
-    mockSelect.mockReset()
-    mockFrom.mockReset()
-    mockWhere.mockReset()
-    mockInsert.mockReset()
-    mockValues.mockReset()
-    mockOnConflictDoUpdate.mockReset()
-    mockOrderBy.mockReset()
-    mockOffset.mockReset()
-    mockLimit.mockReset()
-    mockThen.mockReset()
+  afterEach(async () => {
+    await db.delete(media)
   })
-
   describe('countMediaByType', () => {
-    test('should return count of movies', () => {
-      mockSelect.mockReturnValue({ from: mockFrom })
-      mockFrom.mockReturnValue({ where: mockWhere })
-      mockWhere.mockReturnValue([{ count: 5 }])
+    test('should return count of movies', async () => {
+      await db.insert(media).values([
+        { originalLanguage: 'eng', title: 'Movie 1', tmdbId: 1, type: 'movie' },
+        { originalLanguage: 'eng', title: 'Movie 2', tmdbId: 2, type: 'movie' },
+        { originalLanguage: 'fre', title: 'Movie 3', tmdbId: 3, type: 'movie' },
+        { originalLanguage: 'eng', title: 'Movie 4', tmdbId: 4, type: 'movie' },
+        { originalLanguage: 'spa', title: 'Movie 5', tmdbId: 5, type: 'movie' },
+        { originalLanguage: 'eng', title: 'Show 1', tmdbId: 1, type: 'show' },
+      ])
 
-      const result = countMediaByType('movie')
+      const result = await countMediaByType('movie')
 
-      expect(mockSelect).toHaveBeenCalled()
-      expect(mockFrom).toHaveBeenCalledWith(mockMediaTable)
-      expect(result).toBeDefined()
+      expect(result[0]?.count).toBe(5)
     })
 
-    test('should return count of shows', () => {
-      mockSelect.mockReturnValue({ from: mockFrom })
-      mockFrom.mockReturnValue({ where: mockWhere })
-      mockWhere.mockReturnValue([{ count: 3 }])
+    test('should return count of shows', async () => {
+      await db.insert(media).values([
+        { originalLanguage: 'eng', title: 'Show 1', tmdbId: 1, type: 'show' },
+        { originalLanguage: 'fre', title: 'Show 2', tmdbId: 2, type: 'show' },
+        { originalLanguage: 'eng', title: 'Show 3', tmdbId: 3, type: 'show' },
+        { originalLanguage: 'eng', title: 'Movie 1', tmdbId: 1, type: 'movie' },
+      ])
 
-      const result = countMediaByType('show')
+      const result = await countMediaByType('show')
 
-      expect(mockSelect).toHaveBeenCalled()
-      expect(mockFrom).toHaveBeenCalledWith(mockMediaTable)
-      expect(result).toBeDefined()
+      expect(result[0]?.count).toBe(3)
     })
   })
 
   describe('createdOrUpdatedMedia', () => {
-    test('should insert new media', () => {
-      mockInsert.mockReturnValue({ values: mockValues })
-      mockValues.mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate })
-      mockOnConflictDoUpdate.mockResolvedValue({})
+    test('should insert new media', async () => {
+      await createdOrUpdatedMedia(123, 'movie', 'Test Movie', 'eng')
 
-      const result = createdOrUpdatedMedia(123, 'movie', 'Test Movie', 'eng')
+      const result = await db
+        .select()
+        .from(media)
+        .where(and(eq(media.tmdbId, 123), eq(media.type, 'movie')))
 
-      expect(mockInsert).toHaveBeenCalledWith(mockMediaTable)
-      expect(mockValues).toHaveBeenCalledWith({
+      expect(result).toHaveLength(1)
+      expect(result[0]).toMatchObject({
         originalLanguage: 'eng',
         title: 'Test Movie',
         tmdbId: 123,
         type: 'movie',
       })
-      expect(mockOnConflictDoUpdate).toHaveBeenCalledWith({
-        set: { originalLanguage: 'eng', title: 'Test Movie' },
-        target: [mockMediaTable.tmdbId, mockMediaTable.type],
-      })
-      expect(result).toBeDefined()
     })
 
-    test('should update existing media', () => {
-      mockInsert.mockReturnValue({ values: mockValues })
-      mockValues.mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate })
-      mockOnConflictDoUpdate.mockResolvedValue({})
+    test('should update existing media', async () => {
+      await db.insert(media).values({
+        originalLanguage: 'eng',
+        title: 'Old Title',
+        tmdbId: 456,
+        type: 'show',
+      })
 
-      const result = createdOrUpdatedMedia(456, 'show', 'Test Show', 'fre')
+      await createdOrUpdatedMedia(456, 'show', 'Test Show', 'fre')
 
-      expect(mockInsert).toHaveBeenCalledWith(mockMediaTable)
-      expect(mockValues).toHaveBeenCalledWith({
+      const result = await db
+        .select()
+        .from(media)
+        .where(and(eq(media.tmdbId, 456), eq(media.type, 'show')))
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toMatchObject({
         originalLanguage: 'fre',
         title: 'Test Show',
         tmdbId: 456,
         type: 'show',
       })
-      expect(result).toBeDefined()
     })
   })
 
   describe('getMediaByIdAndType', () => {
     test('should return media by id and type', async () => {
-      const mockMedia = {
-        id: 1,
+      await db.insert(media).values({
         originalLanguage: 'eng',
         title: 'Test Movie',
         tmdbId: 123,
         type: 'movie',
-      }
-
-      const mockChain = {
-        // @ts-expect-error - Using then for query chaining
-        then: (fn: (value: unknown[]) => unknown) => fn([mockMedia]),
-      }
-
-      mockSelect.mockReturnValue({ from: mockFrom })
-      mockFrom.mockReturnValue({ where: mockWhere })
-      mockWhere.mockReturnValue(mockChain)
+      })
 
       const result = await getMediaByIdAndType(123, 'movie')
 
-      expect(result).toEqual(mockMedia)
+      expect(result).toMatchObject({
+        originalLanguage: 'eng',
+        title: 'Test Movie',
+        tmdbId: 123,
+        type: 'movie',
+      })
     })
 
     test('should return undefined if media not found', async () => {
-      const mockChain = {
-        // @ts-expect-error - Using then for query chaining
-        then: (fn: (value: unknown[]) => unknown) => fn([]),
-      }
-
-      mockSelect.mockReturnValue({ from: mockFrom })
-      mockFrom.mockReturnValue({ where: mockWhere })
-      mockWhere.mockReturnValue(mockChain)
-
       const result = await getMediaByIdAndType(999, 'movie')
 
       expect(result).toBeUndefined()
@@ -160,79 +113,52 @@ describe('MediaService', () => {
   })
 
   describe('getMediaByTypeWithPagination', () => {
-    test('should return paginated movies', () => {
-      const mockMovies = [
-        {
-          id: 1,
-          originalLanguage: 'eng',
-          title: 'Movie 1',
-          tmdbId: 1,
-          type: 'movie',
-        },
-        {
-          id: 2,
-          originalLanguage: 'eng',
-          title: 'Movie 2',
-          tmdbId: 2,
-          type: 'movie',
-        },
-      ]
+    test('should return paginated movies', async () => {
+      // Insert test data
+      await db.insert(media).values([
+        { originalLanguage: 'eng', title: 'A Movie', tmdbId: 1, type: 'movie' },
+        { originalLanguage: 'eng', title: 'B Movie', tmdbId: 2, type: 'movie' },
+        { originalLanguage: 'fre', title: 'C Movie', tmdbId: 3, type: 'movie' },
+        { originalLanguage: 'eng', title: 'Show 1', tmdbId: 4, type: 'show' },
+      ])
 
-      mockSelect.mockReturnValue({ from: mockFrom })
-      mockFrom.mockReturnValue({ where: mockWhere })
-      mockWhere.mockReturnValue({ orderBy: mockOrderBy })
-      mockOrderBy.mockReturnValue({ offset: mockOffset })
-      mockOffset.mockReturnValue({ limit: mockLimit })
-      mockLimit.mockReturnValue(mockMovies)
+      const result = await getMediaByTypeWithPagination('movie', 0, 10)
 
-      const result = getMediaByTypeWithPagination('movie', 0, 10)
-
-      expect(mockSelect).toHaveBeenCalled()
-      expect(mockFrom).toHaveBeenCalledWith(mockMediaTable)
-      expect(mockOrderBy).toHaveBeenCalled()
-      expect(mockOffset).toHaveBeenCalledWith(0)
-      expect(mockLimit).toHaveBeenCalledWith(10)
-      expect(result).toBeDefined()
+      expect(result).toHaveLength(3)
+      expect(result[0]?.title).toBe('A Movie')
+      expect(result[1]?.title).toBe('B Movie')
+      expect(result[2]?.title).toBe('C Movie')
     })
 
-    test('should return second page of shows', () => {
-      const mockShows = [
-        {
-          id: 11,
-          originalLanguage: 'fre',
-          title: 'Show 11',
-          tmdbId: 11,
-          type: 'show',
-        },
-      ]
+    test('should return second page of shows', async () => {
+      const shows = Array.from({ length: 15 }, (_, i) => ({
+        originalLanguage: 'eng',
+        title: `Show ${String(i + 1).padStart(2, '0')}`,
+        tmdbId: i + 1,
+        type: 'show' as const,
+      }))
+      await db.insert(media).values(shows)
 
-      mockSelect.mockReturnValue({ from: mockFrom })
-      mockFrom.mockReturnValue({ where: mockWhere })
-      mockWhere.mockReturnValue({ orderBy: mockOrderBy })
-      mockOrderBy.mockReturnValue({ offset: mockOffset })
-      mockOffset.mockReturnValue({ limit: mockLimit })
-      mockLimit.mockReturnValue(mockShows)
+      const result = await getMediaByTypeWithPagination('show', 1, 10)
 
-      const result = getMediaByTypeWithPagination('show', 1, 10)
-
-      expect(mockOffset).toHaveBeenCalledWith(10)
-      expect(mockLimit).toHaveBeenCalledWith(10)
-      expect(result).toBeDefined()
+      expect(result).toHaveLength(5)
+      expect(result[0]?.title).toBe('Show 11')
     })
 
-    test('should handle custom page sizes', () => {
-      mockSelect.mockReturnValue({ from: mockFrom })
-      mockFrom.mockReturnValue({ where: mockWhere })
-      mockWhere.mockReturnValue({ orderBy: mockOrderBy })
-      mockOrderBy.mockReturnValue({ offset: mockOffset })
-      mockOffset.mockReturnValue({ limit: mockLimit })
-      mockLimit.mockReturnValue([])
+    test('should handle custom page sizes', async () => {
+      // Insert test data
+      const movies = Array.from({ length: 75 }, (_, i) => ({
+        originalLanguage: 'eng',
+        title: `Movie ${String(i + 1).padStart(2, '0')}`,
+        tmdbId: i + 1,
+        type: 'movie' as const,
+      }))
+      await db.insert(media).values(movies)
 
-      const result = getMediaByTypeWithPagination('movie', 2, 25)
+      const result = await getMediaByTypeWithPagination('movie', 2, 25)
 
-      expect(mockOffset).toHaveBeenCalledWith(50)
-      expect(mockLimit).toHaveBeenCalledWith(25)
-      expect(result).toBeDefined()
+      expect(result).toHaveLength(25)
+      expect(result[0]?.title).toBe('Movie 51')
     })
   })
 })
