@@ -1,5 +1,5 @@
 import { AudioProcessor } from '@/app/services/transcode/audio_processor'
-import { ffprobe } from '@/app/services/transcode/ffmpeg_service'
+import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
 import type { iso2 } from '@/types/iso_codes'
 import { describe, expect, test } from 'bun:test'
 import { copyFileSync } from 'node:fs'

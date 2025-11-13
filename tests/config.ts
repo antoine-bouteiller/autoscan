@@ -1,11 +1,13 @@
+import { afterEach, beforeEach } from 'bun:test'
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { afterEach, beforeEach } from 'bun:test'
 
 interface TestContext {
   testDir: string
 }
+
+process.env.NODE_ENV = 'test'
 
 const testContexts = new Map<string, TestContext>()
 

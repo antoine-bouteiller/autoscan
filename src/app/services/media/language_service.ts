@@ -1,24 +1,9 @@
 import type { iso2 } from '@/types/iso_codes'
-import type { MediaType, PlexMediaStream } from '@/types/plex'
+import type { PlexMediaStream } from '@/types/plex'
 
-import { getMediaByIdAndType } from '@/app/services/media/media_service'
-import { updateStream } from '@/app/services/integrations/plex_service'
-import { getLanguageByIdAndType } from '@/app/services/integrations/tmdb_service'
+import { updateStream } from '@/app/integrations/plex/plex_client'
+import { normalizeLanguageCode } from '@/app/services/media/metadata_service'
 import { logger } from '@/config/logger'
-
-export const getLanguage = async (tmdbId: number, mediaType: MediaType) => {
-  const mediaDetails = await getMediaByIdAndType(tmdbId, mediaType)
-
-  if (mediaDetails) {
-    return mediaDetails.originalLanguage as iso2
-  }
-
-  if (tmdbId) {
-    return getLanguageByIdAndType(tmdbId, mediaType)
-  }
-
-  return 'eng'
-}
 
 interface UpdateLanguageParams {
   mediaTitle: string
@@ -29,21 +14,22 @@ interface UpdateLanguageParams {
 
 export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
   const { mediaTitle, streams, originalLanguage, partsId } = params
+
+  const normalizedLanguage = normalizeLanguageCode(originalLanguage)
+
   const audioStream = streams.find(
     (stream: PlexMediaStream) =>
-      stream.streamType === 2 && stream.languageCode === originalLanguage.replace('fre', 'fra')
+      stream.streamType === 2 && stream.languageCode === normalizedLanguage
   )
+
   if (!audioStream) {
     logger.warn(`[${mediaTitle}] No ${originalLanguage} audio stream found`)
     return
   }
+
   if (!audioStream.selected) {
     logger.info(`[${mediaTitle}] Setting audio in ${originalLanguage}`)
-    await updateStream({
-      originalLanguage,
-      partsId,
-      subtitleStreamId: audioStream.id,
-      type: 'audio',
-    })
+
+    await updateStream(partsId, normalizedLanguage === 'fra' ? 0 : audioStream.id, 'audio')
   }
 }
