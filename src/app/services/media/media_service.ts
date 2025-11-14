@@ -22,12 +22,14 @@ export const createdOrUpdatedMedia = (
       target: [mediaTable.tmdbId, mediaTable.type],
     })
 
-export const getMediaByIdAndType = (tmdbId: number, type: MediaType) =>
-  db
+export const getMediaByIdAndType = async (tmdbId: number, type: MediaType) => {
+  const result = await db
     .select()
     .from(mediaTable)
     .where(and(eq(mediaTable.tmdbId, tmdbId), eq(mediaTable.type, type)))
-    .then((res) => res[0])
+
+  return result[0]
+}
 
 export const getMediaByTypeWithPagination = (type: MediaType, page: number, pageSize: number) =>
   db

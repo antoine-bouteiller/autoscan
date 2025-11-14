@@ -1,12 +1,8 @@
 import { resolve } from 'node:path'
 
 import { handleError, tryCatch } from '@/app/exceptions/handler'
-import {
-  getMediaDetails,
-  getSectionMedia,
-  getSections,
-  refreshSection,
-} from '@/app/services/integrations/plex_service'
+import { getSectionMedia, getSections, refreshSection } from '@/app/integrations/plex/plex_client'
+import { getCompleteMediaDetails } from '@/app/services/media/metadata_service'
 import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
 import { logger } from '@/config/logger'
 
@@ -27,7 +23,7 @@ export const runTranscodeProcess = async () => {
       const medias = (await tryCatch(getSectionMedia, section.key, section.type)) ?? []
 
       for (const media of medias) {
-        const details = await tryCatch(getMediaDetails, media)
+        const details = await tryCatch(getCompleteMediaDetails, media)
 
         if (!details) {
           continue

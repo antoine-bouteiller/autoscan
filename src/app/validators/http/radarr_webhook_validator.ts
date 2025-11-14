@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const radarrValidator = z.discriminatedUnion('eventType', [
   z.object({
-    eventType: z.literal('DeleteFile'),
+    eventType: z.literal('MovieFileDelete'),
     movie: z.object({
       folderPath: z.string(),
       title: z.string(),

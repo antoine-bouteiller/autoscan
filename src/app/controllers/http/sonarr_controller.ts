@@ -1,8 +1,8 @@
 import { join } from 'node:path'
 
 import { handleError } from '@/app/exceptions/handler'
-import { getSections, refreshSection } from '@/app/services/integrations/plex_service'
-import { getLanguage } from '@/app/services/media/language_service'
+import { getSections, refreshSection } from '@/app/integrations/plex/plex_client'
+import { getOriginalLanguage } from '@/app/services/media/metadata_service'
 import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
 import { sonarrValidator } from '@/app/validators/http/sonarr_webhook_validator'
 
@@ -24,7 +24,7 @@ export const sonarrWebhook = async (request: Request) => {
   if (eventType === 'Download') {
     const file = join(data.series.path, data.episodeFile.relativePath)
 
-    const originalLanguage = await getLanguage(data.series.tmdbId, 'show')
+    const originalLanguage = await getOriginalLanguage(data.series.tmdbId, 'show')
 
     const transcodeService = new TranscodeOrchestrator(
       file,

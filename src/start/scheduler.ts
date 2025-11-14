@@ -1,7 +1,7 @@
 import { runCleanupProcess } from '@/app/controllers/tasks/cleanup_task'
+import { dynDns } from '@/app/controllers/tasks/dyn_dns_task'
 import { updatePlexSelectedLanguages } from '@/app/controllers/tasks/language_sync_task'
 import { runTranscodeProcess } from '@/app/controllers/tasks/transcode_task'
-import { dynDns } from '@/app/services/integrations/ip_service'
 import { getSchedulerProvider } from '@/providers/scheduler_provider'
 
 getSchedulerProvider().registerMany([
