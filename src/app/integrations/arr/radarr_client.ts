@@ -26,3 +26,28 @@ export const removeQueueItem = async (
     },
   })
 }
+
+export const refreshMovie = async (movieId: number): Promise<void> => {
+  await radarrClient.post('command', {
+    json: {
+      movieId,
+      name: 'RefreshMovie',
+    },
+  })
+}
+
+export const renameMovie = async (movieId: number): Promise<void> => {
+  await radarrClient.post('command', {
+    json: {
+      files: [],
+      movieId,
+      name: 'RenameMovie',
+    },
+  })
+}
+
+export const getMovieByPath = async (filePath: string): Promise<number | undefined> => {
+  const response = await radarrClient.get('movie').json<{ id: number; path: string }[]>()
+  const movie = response.find((m) => filePath.startsWith(m.path))
+  return movie?.id
+}

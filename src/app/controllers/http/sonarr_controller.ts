@@ -1,9 +1,8 @@
 import { join } from 'node:path'
 
 import { handleError } from '@/app/exceptions/handler'
-import { getSections, refreshSection } from '@/app/integrations/plex/plex_client'
 import { getOriginalLanguage } from '@/app/services/media/metadata_service'
-import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
+import { transcodeFile } from '@/app/services/transcode/transcode_service'
 import { sonarrValidator } from '@/app/validators/http/sonarr_webhook_validator'
 
 export const sonarrWebhook = async (request: Request) => {
@@ -23,25 +22,11 @@ export const sonarrWebhook = async (request: Request) => {
 
   if (eventType === 'Download') {
     const file = join(data.series.path, data.episodeFile.relativePath)
-
+    const mediaTitle = `${data.series.title} ${data.episodes[0]?.title}`
     const originalLanguage = await getOriginalLanguage(data.series.tmdbId, 'show')
 
-    const transcodeService = new TranscodeOrchestrator(
-      file,
-      `${data.series.title} ${data.episodes[0]?.title}`,
-      originalLanguage
-    )
-
-    await transcodeService.transcodeFile()
+    transcodeFile(file, mediaTitle, originalLanguage, 'show')
   }
-
-  const sections = await getSections()
-
-  await Promise.all(
-    sections
-      .filter((section) => section.type === 'show')
-      .map((section) => refreshSection(section.key, data.series.path))
-  )
 
   return Response.json({ message: 'ok' })
 }

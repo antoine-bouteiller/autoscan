@@ -11,7 +11,7 @@ export const countryISOMapping = {
   et: 'est',
   fa: 'fas',
   fi: 'fin',
-  fr: 'fre',
+  fr: 'fra',
   hi: 'hin',
   hr: 'hrv',
   hu: 'hun',

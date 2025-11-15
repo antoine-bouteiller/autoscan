@@ -15,11 +15,9 @@ interface UpdateLanguageParams {
 export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
   const { mediaTitle, streams, originalLanguage, partsId } = params
 
-  const normalizedLanguage = normalizeLanguageCode(originalLanguage)
-
   const audioStream = streams.find(
     (stream: PlexMediaStream) =>
-      stream.streamType === 2 && stream.languageCode === normalizedLanguage
+      stream.streamType === 2 && normalizeLanguageCode(stream.languageCode) === originalLanguage
   )
 
   if (!audioStream) {
@@ -30,6 +28,6 @@ export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
   if (!audioStream.selected) {
     logger.info(`[${mediaTitle}] Setting audio in ${originalLanguage}`)
 
-    await updateStream(partsId, normalizedLanguage === 'fra' ? 0 : audioStream.id, 'audio')
+    await updateStream(partsId, originalLanguage === 'fra' ? 0 : audioStream.id, 'audio')
   }
 }

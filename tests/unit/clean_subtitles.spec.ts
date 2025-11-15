@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import type { iso2 } from '@/types/iso_codes'
 
 import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
-import { SubtitleProcessor } from '@/app/services/transcode/subtitle_processor'
+import { processSubtitleStreams } from '@/app/services/transcode/helpers/subtitle_processor.js'
 
 import { setupTestContext, videosPath } from '../config.js'
 
@@ -38,8 +38,8 @@ const dataset: TestCase[] = [
   {
     exists: false,
     file: 'test_subtitle_forced.mkv',
-    language: 'fre',
-    title: 'should not keep subilte if original language is fre',
+    language: 'fra',
+    title: 'should not keep subilte if original language is fra',
   },
 ]
 
@@ -57,15 +57,8 @@ describe('Extract subtitles', () => {
       const subtitleStreams = streams.filter((stream) => stream.codec_type === 'subtitle')
 
       const fileName = file.slice(0, file.lastIndexOf('.')).split('/').pop() ?? file
-      const subtitleProcessor = new SubtitleProcessor(
-        join(testDir, file),
-        fileName,
-        subtitleStreams,
-        language,
-        'test'
-      )
 
-      await subtitleProcessor.process()
+      await processSubtitleStreams(join(testDir, file), fileName, subtitleStreams, language, 'test')
 
       const output = join(testDir, 'transcode', file.replace('.mkv', `.${language}.srt`))
 

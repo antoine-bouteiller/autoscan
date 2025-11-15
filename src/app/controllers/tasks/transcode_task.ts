@@ -1,22 +1,21 @@
-import { resolve } from 'node:path'
-
 import { handleError, tryCatch } from '@/app/exceptions/handler'
-import { getSectionMedia, getSections, refreshSection } from '@/app/integrations/plex/plex_client'
+import { getSectionMedia, getSections } from '@/app/integrations/plex/plex_client'
 import { getCompleteMediaDetails } from '@/app/services/media/metadata_service'
-import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
+import { transcodeQueue } from '@/app/services/transcode/helpers/transcode_queue'
+import { transcodeFile } from '@/app/services/transcode/transcode_service'
 import { logger } from '@/config/logger'
 
-let isTranscoding = false
+let isScanning = false
 
 export const runTranscodeProcess = async () => {
-  if (isTranscoding) {
-    logger.warn('Transcode process is already running, skipping...')
+  if (isScanning) {
+    logger.warn('Transcode scan is already running, skipping...')
     return
   }
 
-  isTranscoding = true
+  isScanning = true
   try {
-    logger.info('Starting transcode process...')
+    logger.info('Starting transcode scan...')
     const sections = await getSections()
 
     for (const section of sections) {
@@ -28,27 +27,24 @@ export const runTranscodeProcess = async () => {
         if (!details) {
           continue
         }
-
-        const transcodeService = new TranscodeOrchestrator(
+        await transcodeFile(
           details.file,
           details.mediaTitle,
-          details.originalLanguage
+          details.originalLanguage,
+          details.mediaType
         )
-
-        const executedTranscode = await tryCatch(() => transcodeService.transcodeFile())
-
-        if (executedTranscode) {
-          await refreshSection(section.key, resolve(details.file, '..'))
-        }
       }
     }
 
-    logger.info('Transcoding finished')
+    logger.info('Transcode scan finished, jobs added to queue')
   } catch (error) {
     handleError(error)
   } finally {
-    isTranscoding = false
+    isScanning = false
   }
 }
 
-export const getTranscodingStatus = () => isTranscoding
+export const getTranscodingStatus = () => {
+  const queueStatus = transcodeQueue.getStatus()
+  return isScanning || queueStatus.isProcessing
+}

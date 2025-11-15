@@ -1,8 +1,8 @@
-import { VideoProcessor } from '@/app/services/transcode/video_processor'
+import { processVideoStreams } from '@/app/services/transcode/helpers/video_processor'
 import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
 import { describe, expect, test } from 'bun:test'
 
-describe('VideoProcessor', () => {
+describe('processVideoStreams', () => {
   test('should keep valid video streams', () => {
     const videoStreams: FFprobeStream[] = [
       {
@@ -12,8 +12,7 @@ describe('VideoProcessor', () => {
       },
     ]
 
-    const processor = new VideoProcessor(videoStreams, 'test-media')
-    const result = processor.process()
+    const result = processVideoStreams(videoStreams, 'test-media')
 
     expect(result.command).toEqual(['-map 0:v:0'])
     expect(result.shouldExecute).toBe(false)
@@ -33,8 +32,7 @@ describe('VideoProcessor', () => {
       },
     ]
 
-    const processor = new VideoProcessor(videoStreams, 'test-media')
-    const result = processor.process()
+    const result = processVideoStreams(videoStreams, 'test-media')
 
     expect(result.command).toEqual(['-map 0:v:0'])
     expect(result.shouldExecute).toBe(true)
@@ -54,8 +52,7 @@ describe('VideoProcessor', () => {
       },
     ]
 
-    const processor = new VideoProcessor(videoStreams, 'test-media')
-    const result = processor.process()
+    const result = processVideoStreams(videoStreams, 'test-media')
 
     expect(result.command).toEqual(['-map 0:v:0'])
     expect(result.shouldExecute).toBe(true)
@@ -75,8 +72,7 @@ describe('VideoProcessor', () => {
       },
     ]
 
-    const processor = new VideoProcessor(videoStreams, 'test-media')
-    const result = processor.process()
+    const result = processVideoStreams(videoStreams, 'test-media')
 
     expect(result.command).toEqual(['-map 0:v:0'])
     expect(result.shouldExecute).toBe(true)
@@ -96,8 +92,7 @@ describe('VideoProcessor', () => {
       },
     ]
 
-    const processor = new VideoProcessor(videoStreams, 'test-media')
-    const result = processor.process()
+    const result = processVideoStreams(videoStreams, 'test-media')
 
     expect(result.command).toEqual(['-map 0:v:0', '-map 0:v:1'])
     expect(result.shouldExecute).toBe(false)
@@ -106,8 +101,7 @@ describe('VideoProcessor', () => {
   test('should return empty command for no video streams', () => {
     const videoStreams: FFprobeStream[] = []
 
-    const processor = new VideoProcessor(videoStreams, 'test-media')
-    const result = processor.process()
+    const result = processVideoStreams(videoStreams, 'test-media')
 
     expect(result.command).toEqual([])
     expect(result.shouldExecute).toBe(false)
@@ -127,8 +121,7 @@ describe('VideoProcessor', () => {
       },
     ]
 
-    const processor = new VideoProcessor(videoStreams, 'test-media')
-    const result = processor.process()
+    const result = processVideoStreams(videoStreams, 'test-media')
 
     expect(result.command).toEqual(['-map 0:v:0'])
     expect(result.shouldExecute).toBe(true)

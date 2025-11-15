@@ -1,5 +1,5 @@
-import { AudioProcessor } from '@/app/services/transcode/audio_processor'
 import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
+import { processAudioStreams } from '@/app/services/transcode/helpers/audio_processor.js'
 import type { iso2 } from '@/types/iso_codes'
 import { describe, expect, test } from 'bun:test'
 import { copyFileSync } from 'node:fs'
@@ -28,12 +28,12 @@ const dataset: TestCase[] = [
   },
   {
     expected: {
-      commandAt: [{ index: 1, value: '-metadata:s:a:0 language=fre' }],
+      commandAt: [{ index: 1, value: '-metadata:s:a:0 language=fra' }],
       length: 2,
     },
     file: 'test_audio_undefined.mkv',
-    language: 'fre',
-    title: 'should tag audio stream with language if language is undefined - fre',
+    language: 'fra',
+    title: 'should tag audio stream with language if language is undefined - fra',
   },
   {
     expected: {
@@ -59,7 +59,7 @@ const dataset: TestCase[] = [
     },
     file: 'test_audio_fre_eng_spa.mkv',
     language: 'spa',
-    title: 'should keep fre, eng and original language',
+    title: 'should keep fra, eng and original language',
   },
 ]
 
@@ -76,8 +76,7 @@ describe('Clean audio', () => {
       const streams = await ffprobe(join(testDir, file))
       const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
 
-      const audioProcessor = new AudioProcessor(audioStreams, language, 'test')
-      const result = audioProcessor.process()
+      const result = processAudioStreams(audioStreams, language, 'test')
 
       expect(result.command.length).toBe(expected.length)
 

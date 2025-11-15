@@ -50,16 +50,28 @@ mock.module('@/app/integrations/cloudflare/cloudflare_client', () => ({
 
 export const mockSonarrGetQueue = mock()
 export const mockSonarrRemoveQueueItem = mock()
+export const mockRefreshSeries = mock()
+export const mockRenameSeries = mock()
+export const mockGetSeriesByPath = mock()
 
 mock.module('@/app/integrations/arr/sonarr_client', () => ({
   getQueue: mockSonarrGetQueue,
+  getSeriesByPath: mockGetSeriesByPath,
+  refreshSeries: mockRefreshSeries,
   removeQueueItem: mockSonarrRemoveQueueItem,
+  renameSeries: mockRenameSeries,
 }))
 
 export const mockRadarrGetQueue = mock()
 export const mockRadarrRemoveQueueItem = mock()
+export const mockRefreshMovie = mock()
+export const mockRenameMovie = mock()
+export const mockGetMovieByPath = mock()
 
 mock.module('@/app/integrations/arr/radarr_client', () => ({
+  getMovieByPath: mockGetMovieByPath,
   getQueue: mockRadarrGetQueue,
+  refreshMovie: mockRefreshMovie,
   removeQueueItem: mockRadarrRemoveQueueItem,
+  renameMovie: mockRenameMovie,
 }))

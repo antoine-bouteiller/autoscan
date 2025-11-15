@@ -17,8 +17,12 @@ export const buildMediaTitle = (
   title?: string
 ): string => [grandparentTitle, parentTitle, title].filter(Boolean).join(' - ')
 
-export const normalizeLanguageCode = (languageCode: string): string =>
-  languageCode.replace('fre', 'fra')
+export const normalizeLanguageCode = (languageCode?: string) => {
+  if (!languageCode) {
+    return undefined
+  }
+  return languageCode?.replace('fre', 'fra').replace('ger', 'deu') as iso2
+}
 
 export const getOriginalLanguage = async (tmdbId: number, mediaType: MediaType): Promise<iso2> => {
   const cachedMedia = await getMediaFromDb(tmdbId, mediaType)
@@ -58,7 +62,7 @@ export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
     throw new Error(`[${mediaTitle}] No tmdbId found in path: ${file}`)
   }
 
-  const mediaType = plexMedia.type === 'episode' ? 'show' : plexMedia.type
+  const mediaType: MediaType = plexMedia.type === 'episode' ? 'show' : plexMedia.type
 
   const originalLanguage = await getOriginalLanguage(tmdbId, mediaType)
 

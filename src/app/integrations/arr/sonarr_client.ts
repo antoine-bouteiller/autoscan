@@ -26,3 +26,27 @@ export const removeQueueItem = async (
     },
   })
 }
+
+export const refreshSeries = async (seriesId: number): Promise<void> => {
+  await sonarrClient.post('command', {
+    json: {
+      name: 'RefreshSeries',
+      seriesId,
+    },
+  })
+}
+
+export const renameSeries = async (seriesId: number): Promise<void> => {
+  await sonarrClient.post('command', {
+    json: {
+      name: 'RenameSeries',
+      seriesIds: [seriesId],
+    },
+  })
+}
+
+export const getSeriesByPath = async (filePath: string): Promise<number | undefined> => {
+  const response = await sonarrClient.get('series').json<{ id: number; path: string }[]>()
+  const series = response.find((s) => filePath.startsWith(s.path))
+  return series?.id
+}

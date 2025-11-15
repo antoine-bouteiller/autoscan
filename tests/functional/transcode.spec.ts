@@ -4,14 +4,26 @@ import { join } from 'node:path'
 
 import type { iso2 } from '@/types/iso_codes'
 
-import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
-
 import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client.js'
+import { transcodeQueue } from '@/app/services/transcode/helpers/transcode_queue.js'
+import { transcodeFile } from '@/app/services/transcode/transcode_service.js'
 import { setupTestContext, videosPath } from '../config.js'
+
+const waitForQueueCompletion = async (): Promise<void> =>
+  new Promise((resolve) => {
+    const checkQueue = () => {
+      const status = transcodeQueue.getStatus()
+      if (!status.isProcessing && status.queueLength === 0) {
+        resolve()
+      } else {
+        setTimeout(checkQueue, 100)
+      }
+    }
+    checkQueue()
+  })
 
 interface FileDataset {
   filename: string
-  keepFile?: boolean
   outputStreams: {
     codecName: string
     codecType: string
@@ -61,13 +73,9 @@ const dataset: FileDataset[] = [
   },
   {
     filename: 'test_audio_spa.mkv',
-    keepFile: true,
-    outputStreams: [
-      { codecName: 'h264', codecType: 'video', index: 0 },
-      { codecName: 'aac', codecType: 'audio', index: 1, language: 'spa' },
-    ],
-    shouldExecute: true,
-    title: 'should not keep transcoded file if no audio stream in output',
+    outputStreams: [],
+    shouldExecute: false,
+    title: 'should not transcode if no audio stream would be kept in output',
   },
 ]
 
@@ -77,19 +85,20 @@ describe('Transcode', () => {
 
     test(testCase.title, async () => {
       const { testDir } = getContext()
-      const { filename, keepFile, outputStreams, shouldExecute } = testCase
+      const { filename, outputStreams, shouldExecute } = testCase
 
       copyFileSync(join(videosPath, filename), join(testDir, filename))
 
-      const transcodeService = new TranscodeOrchestrator(join(testDir, filename), 'test', 'eng')
-      const executed = await transcodeService.transcodeFile()
+      const executed = await transcodeFile(join(testDir, filename), 'test', 'eng', 'movie')
 
       expect(executed).toBe(shouldExecute)
 
-      if (!executed || keepFile) {
+      if (!executed) {
         expect(existsSync(join(testDir, filename))).toBe(true)
         return
       }
+
+      await waitForQueueCompletion()
 
       const outputFileName = filename.replace('.mkv', '.mp4')
       expect(existsSync(join(testDir, outputFileName))).toBe(true)

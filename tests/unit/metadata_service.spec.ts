@@ -27,7 +27,7 @@ describe('MetadataService', () => {
     // Insert test data
     await db
       .insert(media)
-      .values({ originalLanguage: 'fre', title: 'Cached Movie', tmdbId: 123, type: 'movie' })
+      .values({ originalLanguage: 'fra', title: 'Cached Movie', tmdbId: 123, type: 'movie' })
 
     // Reset mocks
     mockGetPlexMetadata.mockReset()
@@ -96,7 +96,7 @@ describe('MetadataService', () => {
 
       const result = await getOriginalLanguage(123, 'movie')
 
-      expect(result).toBe('fre')
+      expect(result).toBe('fra')
       // TMDB should not be called since we have cached data
       expect(mockGetTmdbMedia).not.toHaveBeenCalled()
     })

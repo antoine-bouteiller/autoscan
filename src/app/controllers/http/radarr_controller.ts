@@ -1,9 +1,8 @@
 import { join } from 'node:path'
 
 import { handleError } from '@/app/exceptions/handler'
-import { getSections, refreshSection } from '@/app/integrations/plex/plex_client'
 import { getOriginalLanguage } from '@/app/services/media/metadata_service'
-import { TranscodeOrchestrator } from '@/app/services/transcode/transcode_orchestrator'
+import { transcodeFile } from '@/app/services/transcode/transcode_service'
 import { radarrValidator } from '@/app/validators/http/radarr_webhook_validator'
 
 export const radarrWebhook = async (request: Request) => {
@@ -23,19 +22,11 @@ export const radarrWebhook = async (request: Request) => {
 
   if (eventType === 'Download') {
     const file = join(data.movie.folderPath, data.movieFile.relativePath)
+    const mediaTitle = data.movie.title
     const originalLanguage = await getOriginalLanguage(data.movie.tmdbId, 'movie')
 
-    const transcodeService = new TranscodeOrchestrator(file, data.movie.title, originalLanguage)
-
-    await transcodeService.transcodeFile()
+    transcodeFile(file, mediaTitle, originalLanguage, 'movie')
   }
-  const sections = await getSections()
-
-  await Promise.all(
-    sections
-      .filter((section) => section.type === 'movie')
-      .map((section) => refreshSection(section.key, data.movie.folderPath))
-  )
 
   return Response.json({ message: 'ok' })
 }
