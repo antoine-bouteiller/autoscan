@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join } from 'node:path'
 import { z } from 'zod'
 
 const envSchema = z.object({

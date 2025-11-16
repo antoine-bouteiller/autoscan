@@ -1,5 +1,5 @@
 import { type iso2, countryISOMapping } from '@/types/iso_codes'
-import type { MediaType, PlexMedia, PlexMediaStream } from '@/types/plex'
+import type { MediaType, PlexMedia } from '@/types/plex'
 
 import { getPlexMetadata } from '@/app/integrations/plex/plex_client'
 import { getTmdbMedia } from '@/app/integrations/tmdb/tmdb_client'
@@ -72,7 +72,7 @@ export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
     mediaType,
     originalLanguage,
     partsId: part.id,
-    streams: part.Stream as PlexMediaStream[],
+    streams: part.Stream,
     tmdbId,
   }
 }

@@ -53,8 +53,6 @@ class TelegramProvider {
 let telegramProvider: TelegramProvider | undefined
 
 export const getTelegramProvider = (): TelegramProvider => {
-  if (!telegramProvider) {
-    telegramProvider = new TelegramProvider()
-  }
+  telegramProvider ??= new TelegramProvider()
   return telegramProvider
 }

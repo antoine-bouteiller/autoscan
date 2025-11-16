@@ -18,7 +18,7 @@ interface HttpProviderOptions {
 }
 
 class HttpProvider {
-  private options: HttpProviderOptions
+  private readonly options: HttpProviderOptions
   private server: ReturnType<typeof Bun.serve> | undefined = undefined
   private routes: RouteConfig = {}
 
@@ -69,8 +69,6 @@ class HttpProvider {
 let httpProvider: HttpProvider | undefined
 
 export const getHttpProvider = (): HttpProvider => {
-  if (!httpProvider) {
-    httpProvider = new HttpProvider({ port: 3030 })
-  }
+  httpProvider ??= new HttpProvider({ port: 3030 })
   return httpProvider
 }

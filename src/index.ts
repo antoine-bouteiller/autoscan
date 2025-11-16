@@ -12,7 +12,7 @@ const telegramProvider = getTelegramProvider()
 httpProvider.start()
 
 if (process.env.NODE_ENV !== 'development') {
-  void telegramProvider.start()
+  telegramProvider.start()
 }
 
 process.on('SIGINT', async () => {

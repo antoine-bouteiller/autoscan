@@ -26,6 +26,31 @@ export const selectMediaType = async (
 
   const media = await conversation.external(() => getMediaByTypeWithPagination(mediaType, 0, 100))
 
+  const handleMediaSelection = async (
+    menuConversation: ConfigureLanguageConversation,
+    entry: Media
+  ) => {
+    await message.editText(`Wich language do you want to set for ${entry.title} ?`)
+
+    const language = await menuConversation.form.select(Object.values(countryISOMapping), {
+      action: (ctx) => ctx.deleteMessage(),
+      otherwise: (ctx) => ctx.reply('Invalid language code'),
+    })
+
+    await menuConversation.external(() =>
+      db
+        .update(mediaTable)
+        .set({
+          originalLanguage: language,
+        })
+        .where(and(eq(mediaTable.tmdbId, entry.tmdbId), eq(mediaTable.type, mediaType)))
+    )
+
+    await message.editText(`Language of ${entry.title} updated to ${language}`)
+
+    await menuConversation.halt()
+  }
+
   const createMenu = (
     menuConversation: ConfigureLanguageConversation,
     menuMedia: Media[],
@@ -43,32 +68,7 @@ export const selectMediaType = async (
     menu.dynamic(() =>
       currentMenu.reduce(
         (range, entry) =>
-          range
-            .text(entry.title, async () => {
-              await message.editText(`Wich language do you want to set for ${entry.title} ?`)
-
-              const language = await menuConversation.form.select(
-                Object.values(countryISOMapping),
-                {
-                  action: (ctx) => ctx.deleteMessage(),
-                  otherwise: (ctx) => ctx.reply('Invalid language code'),
-                }
-              )
-
-              await menuConversation.external(() =>
-                db
-                  .update(mediaTable)
-                  .set({
-                    originalLanguage: language,
-                  })
-                  .where(and(eq(mediaTable.tmdbId, entry.tmdbId), eq(mediaTable.type, mediaType)))
-              )
-
-              await message.editText(`Language of ${entry.title} updated to ${language}`)
-
-              await menuConversation.halt()
-            })
-            .row(),
+          range.text(entry.title, () => handleMediaSelection(menuConversation, entry)).row(),
         new ConversationMenuRange<ConfigureLanguageContext>()
       )
     )

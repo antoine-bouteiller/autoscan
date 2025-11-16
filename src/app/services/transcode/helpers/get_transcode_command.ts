@@ -62,5 +62,4 @@ export const getTranscodeCommand = async (
   }
 
   logger.info(`[${mediaTitle}] File does not need transcoding`)
-  return
 }

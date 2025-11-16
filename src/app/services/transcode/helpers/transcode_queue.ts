@@ -12,7 +12,7 @@ export interface TranscodeJob {
 }
 
 class TranscodeQueue {
-  private queue: TranscodeJob[] = []
+  private readonly queue: TranscodeJob[] = []
   private isProcessing = false
   private currentJob?: TranscodeJob
 

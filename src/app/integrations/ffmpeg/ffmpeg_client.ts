@@ -1,4 +1,4 @@
-import { mkdirSync } from 'fs'
+import { mkdirSync } from 'node:fs'
 
 import { ffprobeOutputValidator } from '@/app/validators/ffprobe_validator'
 import { execPromise } from '@/utils/exec_promisify'

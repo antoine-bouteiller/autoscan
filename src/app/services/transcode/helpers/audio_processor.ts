@@ -1,41 +1,11 @@
 import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
 import { logger } from '@/config/logger'
 import type { iso2 } from '@/types/iso_codes'
-
-type Criteria =
-  | {
-      exclude?: string[]
-      language: iso2
-      wantedEncodings?: string[]
-    }
-  | {
-      language: 'und'
-      wantedEncodings?: string[]
-    }
+import { isStreamWanted, type Criteria } from './utils'
 
 const wantedAudioEncodings = ['aac', 'ac3', 'eac3']
 
-const isStreamWanted = (criteria: Criteria) => (stream: FFprobeStream) => {
-  if (criteria.language === 'und') {
-    return stream.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und'
-  }
-  return (
-    stream.tags?.language?.toLowerCase() === criteria.language &&
-    (!criteria.exclude?.length ||
-      !criteria.exclude.some((term) => stream.tags?.title?.toLowerCase().includes(term))) &&
-    (!criteria.wantedEncodings?.length ||
-      (stream.codec_name && criteria.wantedEncodings.includes(stream.codec_name.toLowerCase())))
-  )
-}
-
-export const processAudioStreams = (
-  audioStreams: FFprobeStream[],
-  originalLanguage: iso2,
-  mediaTitle: string
-): { command: string[]; shouldExecute: boolean } => {
-  const command: string[] = []
-  let shouldExecute = false
-
+const getCriterias = (originalLanguage: iso2) => {
   const criterias: Criteria[][] = [
     [
       { language: originalLanguage, wantedEncodings: wantedAudioEncodings },
@@ -59,43 +29,87 @@ export const processAudioStreams = (
     ])
   }
 
-  let countAudioStreamToKeep = 0
+  return criterias
+}
 
-  for (const languageCriteria of criterias) {
-    let audioStreamToKeep = -1
-    for (const condition of languageCriteria) {
-      audioStreamToKeep = audioStreams.findIndex(isStreamWanted(condition))
-      if (audioStreamToKeep !== -1) {
-        break
-      }
-    }
-
-    if (audioStreamToKeep >= 0) {
-      const stream = audioStreams[audioStreamToKeep]
-      command.push(`-map 0:a:${audioStreamToKeep}`)
-      countAudioStreamToKeep++
-
-      const codec = stream?.codec_name?.toLowerCase()
-
-      if (!codec || !wantedAudioEncodings.includes(codec)) {
-        command.push(`-c:a:${audioStreamToKeep} aac`)
-
-        shouldExecute = true
-
-        logger.warn(
-          `[${mediaTitle}] ${languageCriteria[0]?.language} audio stream 0:a:${audioStreamToKeep} is ${codec}, converting to aac.`
-        )
-      }
-
-      if (stream?.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und') {
-        command.push(`-metadata:s:a:${audioStreamToKeep} language=${originalLanguage}`)
-        shouldExecute = true
-      }
+const findAudioStreamByCriteria = (
+  audioStreams: FFprobeStream[],
+  languageCriteria: Criteria[]
+): number => {
+  for (const condition of languageCriteria) {
+    const streamIndex = audioStreams.findIndex(isStreamWanted(condition))
+    if (streamIndex !== -1) {
+      return streamIndex
     }
   }
+  return -1
+}
 
+const processAudioStream = (
+  stream: FFprobeStream,
+  streamIndex: number,
+  languageCriteria: Criteria[],
+  originalLanguage: iso2,
+  mediaTitle: string
+): { commands: string[]; needsTranscode: boolean } => {
+  const commands: string[] = [`-map 0:a:${streamIndex}`]
+  let needsTranscode = false
+
+  const codec = stream?.codec_name?.toLowerCase()
+
+  if (!codec || !wantedAudioEncodings.includes(codec)) {
+    commands.push(`-c:a:${streamIndex} aac`)
+    needsTranscode = true
+    logger.warn(
+      `[${mediaTitle}] ${languageCriteria[0]?.language} audio stream 0:a:${streamIndex} is ${codec}, converting to aac.`
+    )
+  }
+
+  if (stream?.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und') {
+    commands.push(`-metadata:s:a:${streamIndex} language=${originalLanguage}`)
+    needsTranscode = true
+  }
+
+  return { commands, needsTranscode }
+}
+
+export const processAudioStreams = (
+  audioStreams: FFprobeStream[],
+  originalLanguage: iso2,
+  mediaTitle: string
+): { command: string[]; shouldExecute: boolean } => {
   if (audioStreams.length === 0) {
     throw new Error(`[${mediaTitle}] No audio streams found for language ${originalLanguage}`)
+  }
+
+  const command: string[] = []
+  let shouldExecute = false
+  let countAudioStreamToKeep = 0
+
+  const criterias = getCriterias(originalLanguage)
+
+  for (const languageCriteria of criterias) {
+    const audioStreamIndex = findAudioStreamByCriteria(audioStreams, languageCriteria)
+
+    if (audioStreamIndex >= 0) {
+      const stream = audioStreams[audioStreamIndex]
+      if (!stream) {
+        continue
+      }
+      const result = processAudioStream(
+        stream,
+        audioStreamIndex,
+        languageCriteria,
+        originalLanguage,
+        mediaTitle
+      )
+      command.push(...result.commands)
+      countAudioStreamToKeep++
+
+      if (result.needsTranscode) {
+        shouldExecute = true
+      }
+    }
   }
 
   if (countAudioStreamToKeep === 0) {

@@ -10,7 +10,7 @@ interface JobConfig {
 }
 
 class SchedulerProvider {
-  private jobs = new Map<string, Cron>()
+  private readonly jobs = new Map<string, Cron>()
 
   register(config: JobConfig): Cron | undefined {
     const { handler, name, options = {}, pattern } = config
@@ -60,8 +60,6 @@ class SchedulerProvider {
 let schedulerProvider: SchedulerProvider | undefined
 
 export const getSchedulerProvider = (): SchedulerProvider => {
-  if (!schedulerProvider) {
-    schedulerProvider = new SchedulerProvider()
-  }
+  schedulerProvider ??= new SchedulerProvider()
   return schedulerProvider
 }
