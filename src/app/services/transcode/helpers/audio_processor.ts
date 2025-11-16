@@ -1,7 +1,6 @@
 import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
 import { logger } from '@/config/logger'
 import type { iso2 } from '@/types/iso_codes'
-import { normalizeLanguageCode } from '../../media/metadata_service'
 
 type Criteria =
   | {
@@ -21,7 +20,7 @@ const isStreamWanted = (criteria: Criteria) => (stream: FFprobeStream) => {
     return stream.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und'
   }
   return (
-    normalizeLanguageCode(stream.tags?.language?.toLowerCase()) === criteria.language &&
+    stream.tags?.language?.toLowerCase() === criteria.language &&
     (!criteria.exclude?.length ||
       !criteria.exclude.some((term) => stream.tags?.title?.toLowerCase().includes(term))) &&
     (!criteria.wantedEncodings?.length ||
@@ -46,17 +45,17 @@ export const processAudioStreams = (
     ],
   ]
 
-  if (originalLanguage !== 'eng' && originalLanguage !== 'fra') {
+  if (originalLanguage !== 'eng' && originalLanguage !== 'fre') {
     criterias.push([
       { language: 'eng', wantedEncodings: wantedAudioEncodings },
       { language: 'eng' },
     ])
   }
 
-  if (originalLanguage !== 'fra') {
+  if (originalLanguage !== 'fre') {
     criterias.push([
-      { language: 'fra', wantedEncodings: wantedAudioEncodings },
-      { language: 'fra' },
+      { language: 'fre', wantedEncodings: wantedAudioEncodings },
+      { language: 'fre' },
     ])
   }
 

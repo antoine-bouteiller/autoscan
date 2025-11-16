@@ -28,12 +28,12 @@ const dataset: TestCase[] = [
   },
   {
     expected: {
-      commandAt: [{ index: 1, value: '-metadata:s:a:0 language=fra' }],
+      commandAt: [{ index: 1, value: '-metadata:s:a:0 language=fre' }],
       length: 2,
     },
     file: 'test_audio_undefined.mkv',
-    language: 'fra',
-    title: 'should tag audio stream with language if language is undefined - fra',
+    language: 'fre',
+    title: 'should tag audio stream with language if language is undefined - fre',
   },
   {
     expected: {

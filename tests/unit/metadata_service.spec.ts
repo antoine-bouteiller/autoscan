@@ -5,13 +5,8 @@ import { and, eq } from 'drizzle-orm'
 import { mockPlexEpisode, mockPlexMovie, mockPlexMovieResponse } from '../fixtures/plex.fixtures'
 import { mockGetPlexMetadata, mockGetTmdbMedia } from '../mocks'
 
-const {
-  buildMediaTitle,
-  extractTmdbIdFromPath,
-  getCompleteMediaDetails,
-  getOriginalLanguage,
-  normalizeLanguageCode,
-} = await import('@/app/services/media/metadata_service')
+const { buildMediaTitle, extractTmdbIdFromPath, getCompleteMediaDetails, getOriginalLanguage } =
+  await import('@/app/services/media/metadata_service')
 
 describe('MetadataService', () => {
   beforeAll(() => {
@@ -27,7 +22,7 @@ describe('MetadataService', () => {
     // Insert test data
     await db
       .insert(media)
-      .values({ originalLanguage: 'fra', title: 'Cached Movie', tmdbId: 123, type: 'movie' })
+      .values({ originalLanguage: 'fre', title: 'Cached Movie', tmdbId: 123, type: 'movie' })
 
     // Reset mocks
     mockGetPlexMetadata.mockReset()
@@ -78,25 +73,13 @@ describe('MetadataService', () => {
     })
   })
 
-  describe('normalizeLanguageCode', () => {
-    test('should convert fre to fra', () => {
-      expect(normalizeLanguageCode('fre')).toBe('fra')
-    })
-
-    test('should leave other codes unchanged', () => {
-      expect(normalizeLanguageCode('eng')).toBe('eng')
-      expect(normalizeLanguageCode('spa')).toBe('spa')
-      expect(normalizeLanguageCode('deu')).toBe('deu')
-    })
-  })
-
   describe('getOriginalLanguage', () => {
     test('should return language from database cache if available', async () => {
       mockGetTmdbMedia.mockClear() // Clear previous calls from other tests
 
       const result = await getOriginalLanguage(123, 'movie')
 
-      expect(result).toBe('fra')
+      expect(result).toBe('fre')
       // TMDB should not be called since we have cached data
       expect(mockGetTmdbMedia).not.toHaveBeenCalled()
     })

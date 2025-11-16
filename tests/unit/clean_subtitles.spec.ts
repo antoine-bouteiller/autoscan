@@ -38,7 +38,7 @@ const dataset: TestCase[] = [
   {
     exists: false,
     file: 'test_subtitle_forced.mkv',
-    language: 'fra',
+    language: 'fre',
     title: 'should not keep subilte if original language is fra',
   },
 ]

@@ -23,7 +23,7 @@ describe('LanguageService', () => {
     test('should update audio stream if original language stream found and not selected', async () => {
       await handleUpdateLanguage({
         mediaTitle: 'Test Movie',
-        originalLanguage: 'fra',
+        originalLanguage: 'fre',
         partsId: 123,
         streams: mockAudioStreams,
       })
@@ -56,7 +56,7 @@ describe('LanguageService', () => {
     test('should handle fre to fra conversion', async () => {
       await handleUpdateLanguage({
         mediaTitle: 'Test Movie',
-        originalLanguage: 'fra',
+        originalLanguage: 'fre',
         partsId: 123,
         streams: mockAudioStreamFrench,
       })

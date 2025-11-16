@@ -42,7 +42,7 @@ export const processSubtitleStreams = async (
     { language: 'und', wantedEncodings: wantedSubtitleEncodings },
   ]
 
-  if (originalLanguage === 'fra' || subtitleStreams.length === 0) {
+  if (originalLanguage === 'fre' || subtitleStreams.length === 0) {
     return false
   }
 

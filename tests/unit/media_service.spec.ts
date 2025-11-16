@@ -18,7 +18,7 @@ describe('MediaService', () => {
       await db.insert(media).values([
         { originalLanguage: 'eng', title: 'Movie 1', tmdbId: 1, type: 'movie' },
         { originalLanguage: 'eng', title: 'Movie 2', tmdbId: 2, type: 'movie' },
-        { originalLanguage: 'fra', title: 'Movie 3', tmdbId: 3, type: 'movie' },
+        { originalLanguage: 'fre', title: 'Movie 3', tmdbId: 3, type: 'movie' },
         { originalLanguage: 'eng', title: 'Movie 4', tmdbId: 4, type: 'movie' },
         { originalLanguage: 'spa', title: 'Movie 5', tmdbId: 5, type: 'movie' },
         { originalLanguage: 'eng', title: 'Show 1', tmdbId: 1, type: 'show' },
@@ -32,7 +32,7 @@ describe('MediaService', () => {
     test('should return count of shows', async () => {
       await db.insert(media).values([
         { originalLanguage: 'eng', title: 'Show 1', tmdbId: 1, type: 'show' },
-        { originalLanguage: 'fra', title: 'Show 2', tmdbId: 2, type: 'show' },
+        { originalLanguage: 'fre', title: 'Show 2', tmdbId: 2, type: 'show' },
         { originalLanguage: 'eng', title: 'Show 3', tmdbId: 3, type: 'show' },
         { originalLanguage: 'eng', title: 'Movie 1', tmdbId: 1, type: 'movie' },
       ])
@@ -69,7 +69,7 @@ describe('MediaService', () => {
         type: 'show',
       })
 
-      await createdOrUpdatedMedia(456, 'show', 'Test Show', 'fra')
+      await createdOrUpdatedMedia(456, 'show', 'Test Show', 'fre')
 
       const result = await db
         .select()
@@ -78,7 +78,7 @@ describe('MediaService', () => {
 
       expect(result).toHaveLength(1)
       expect(result[0]).toMatchObject({
-        originalLanguage: 'fra',
+        originalLanguage: 'fre',
         title: 'Test Show',
         tmdbId: 456,
         type: 'show',
@@ -118,7 +118,7 @@ describe('MediaService', () => {
       await db.insert(media).values([
         { originalLanguage: 'eng', title: 'A Movie', tmdbId: 1, type: 'movie' },
         { originalLanguage: 'eng', title: 'B Movie', tmdbId: 2, type: 'movie' },
-        { originalLanguage: 'fra', title: 'C Movie', tmdbId: 3, type: 'movie' },
+        { originalLanguage: 'fre', title: 'C Movie', tmdbId: 3, type: 'movie' },
         { originalLanguage: 'eng', title: 'Show 1', tmdbId: 4, type: 'show' },
       ])
 

@@ -17,13 +17,6 @@ export const buildMediaTitle = (
   title?: string
 ): string => [grandparentTitle, parentTitle, title].filter(Boolean).join(' - ')
 
-export const normalizeLanguageCode = (languageCode?: string) => {
-  if (!languageCode) {
-    return undefined
-  }
-  return languageCode?.replace('fre', 'fra').replace('ger', 'deu') as iso2
-}
-
 export const getOriginalLanguage = async (tmdbId: number, mediaType: MediaType): Promise<iso2> => {
   const cachedMedia = await getMediaFromDb(tmdbId, mediaType)
   if (cachedMedia) {

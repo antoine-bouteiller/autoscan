@@ -3,7 +3,7 @@ import type { PlexMediaStream } from '@/types/plex'
 export const mockAudioStreams: PlexMediaStream[] = [
   {
     id: 1,
-    languageCode: 'fra',
+    languageCode: 'fre',
     selected: false,
     streamType: 2,
   },
@@ -36,7 +36,7 @@ export const mockAudioStreamNotMatching: PlexMediaStream[] = [
 export const mockAudioStreamFrench: PlexMediaStream[] = [
   {
     id: 1,
-    languageCode: 'fra',
+    languageCode: 'fre',
     selected: false,
     streamType: 2,
   },
