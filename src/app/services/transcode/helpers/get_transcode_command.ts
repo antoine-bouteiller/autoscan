@@ -4,15 +4,12 @@ import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
 import { processAudioStreams } from '@/app/services/transcode/helpers/audio_processor'
 import { processSubtitleStreams } from '@/app/services/transcode/helpers/subtitle_processor'
 import { processVideoStreams } from '@/app/services/transcode/helpers/video_processor'
-import { logger } from '@/config/logger'
 
 export const getTranscodeCommand = async (
   file: string,
   mediaTitle: string,
   originalLanguage: iso2
 ): Promise<string[] | undefined> => {
-  logger.info(`[${mediaTitle}] Analyzing file for transcoding needs`)
-
   const streams = await ffprobe(file)
 
   const videoStreams = streams.filter((stream) => stream.codec_type === 'video')
@@ -57,9 +54,6 @@ export const getTranscodeCommand = async (
   }
 
   if (shouldExecute) {
-    logger.info(`[${mediaTitle}] File needs transcoding with command: ${command.join(' ')}`)
     return command
   }
-
-  logger.info(`[${mediaTitle}] File does not need transcoding`)
 }

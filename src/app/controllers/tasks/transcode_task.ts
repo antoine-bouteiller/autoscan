@@ -36,7 +36,7 @@ export const runTranscodeProcess = async () => {
       }
     }
 
-    logger.info('Transcode scan finished, jobs added to queue')
+    logger.info('Transcode scan finished')
   } catch (error) {
     handleError(error)
   } finally {

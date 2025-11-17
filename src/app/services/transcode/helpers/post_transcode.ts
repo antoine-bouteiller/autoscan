@@ -70,10 +70,6 @@ export const handlePostTranscode = async (
         return
       }
 
-      logger.info(
-        `[${mediaTitle}] Refreshing metadata and renaming in Radarr (movieId: ${movieId})`
-      )
-
       await refreshMovie(movieId)
       await renameMovie(movieId)
     } else {
@@ -83,10 +79,6 @@ export const handlePostTranscode = async (
         logger.warn(`[${mediaTitle}] Could not find series in Sonarr for path: ${filePath}`)
         return
       }
-
-      logger.info(
-        `[${mediaTitle}] Refreshing metadata and renaming in Sonarr (seriesId: ${seriesId})`
-      )
 
       await refreshSeries(seriesId)
       await renameSeries(seriesId)

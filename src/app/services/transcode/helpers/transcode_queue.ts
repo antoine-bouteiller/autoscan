@@ -43,7 +43,7 @@ class TranscodeQueue {
 
       try {
         logger.info(
-          `[Queue] Processing job for "${job.mediaTitle}" (${this.queue.length} jobs remaining)`
+          `[${job.mediaTitle}] Processing job with command "${job.command}" (${this.queue.length} jobs remaining)`
         )
 
         const fileName = job.file.slice(0, job.file.lastIndexOf('.')).split('/').pop()
