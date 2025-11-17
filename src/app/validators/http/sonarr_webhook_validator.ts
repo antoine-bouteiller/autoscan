@@ -23,7 +23,15 @@ export const sonarrValidator = z.discriminatedUnion('eventType', [
         relativePath: z.string(),
       })
       .optional(),
-    eventType: z.literal(['EpisodeFileDeleted', 'EpisodeFileRenamed']),
+    eventType: z.literal(['EpisodeFileDelete', 'Rename']),
+    series: z.object({
+      path: z.string(),
+      title: z.string(),
+      tmdbId: z.coerce.number(),
+    }),
+  }),
+  z.object({
+    eventType: z.literal(['SeriesDelete']),
     series: z.object({
       path: z.string(),
       title: z.string(),

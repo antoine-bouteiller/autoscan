@@ -15,6 +15,15 @@ export const radarrValidator = z.discriminatedUnion('eventType', [
       .optional(),
   }),
   z.object({
+    deletedFiles: z.boolean(),
+    eventType: z.literal('MovieDelete'),
+    movie: z.object({
+      folderPath: z.string(),
+      title: z.string(),
+      tmdbId: z.coerce.number(),
+    }),
+  }),
+  z.object({
     eventType: z.literal('Download'),
     movie: z.object({
       folderPath: z.string(),
