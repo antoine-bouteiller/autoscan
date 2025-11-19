@@ -5,3 +5,5 @@ generated
 prisma/client
 .env
 autoscan.db
+tmp
+index

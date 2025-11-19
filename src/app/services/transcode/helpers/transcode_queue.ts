@@ -1,14 +1,16 @@
 import { executeFfmpeg } from '@/app/integrations/ffmpeg/ffmpeg_client'
 import { handlePostTranscode } from '@/app/services/transcode/helpers/post_transcode'
 import { logger } from '@/config/logger'
-import type { iso2 } from '@/types/iso_codes'
+import type { ISOCode1 } from '@/types/iso_codes'
 
 export interface TranscodeJob {
+  id: number
   file: string
   mediaTitle: string
-  originalLanguage: iso2
+  originalLanguage: ISOCode1
   mediaType: 'movie' | 'show'
   command: string[]
+  subtitlesToExtract: { language: ISOCode1; index: number }[]
 }
 
 class TranscodeQueue {
@@ -17,8 +19,12 @@ class TranscodeQueue {
   private currentJob?: TranscodeJob
 
   enqueue(job: TranscodeJob): void {
+    if (this.queue.find((j) => j.id === job.id)) {
+      logger.warn(`${job.mediaTitle} already in queue`)
+    }
+
     this.queue.push(job)
-    logger.info(`[Queue] Added job for "${job.mediaTitle}" (${this.queue.length} jobs in queue)`)
+    logger.info(`Added job for ${job.mediaTitle} (${this.queue.length} jobs in queue)`)
 
     if (!this.isProcessing) {
       this.processQueue()
@@ -51,12 +57,26 @@ class TranscodeQueue {
           throw new Error(`[${job.mediaTitle}] File name not initialized`)
         }
 
+        for (const subtitle of job.subtitlesToExtract) {
+          logger.info(`[${job.mediaTitle}] Extracting subtitle in ${subtitle.language}`)
+
+          await executeFfmpeg(job.id, job.file, `${fileName}.${subtitle.language}.srt`, [
+            `-map 0:s:${subtitle.index}`,
+            `-c:s:${subtitle.index} srt`,
+          ])
+        }
+
         const newFileName = `${fileName}.mp4`
         logger.info(`[${job.mediaTitle}] Executing transcode`)
-        await executeFfmpeg(job.file, newFileName, job.command)
+        await executeFfmpeg(job.id, job.file, newFileName, job.command)
         logger.info(`[${job.mediaTitle}] Transcoded successfully`)
 
-        await handlePostTranscode(job.file, job.mediaType, job.mediaTitle)
+        await handlePostTranscode({
+          filePath: job.file,
+          id: job.id,
+          mediaTitle: job.mediaTitle,
+          mediaType: job.mediaType,
+        })
       } catch (error) {
         logger.error(
           {

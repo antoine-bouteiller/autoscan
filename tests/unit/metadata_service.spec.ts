@@ -1,11 +1,12 @@
 import { db } from '@/config/db'
 import { media } from '@/database/schema'
+import { normalizeToIso1 } from '@/types/iso_codes'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 import { and, eq } from 'drizzle-orm'
 import { mockPlexEpisode, mockPlexMovie, mockPlexMovieResponse } from '../fixtures/plex.fixtures'
 import { mockGetPlexMetadata, mockGetTmdbMedia } from '../mocks'
 
-const { buildMediaTitle, extractTmdbIdFromPath, getCompleteMediaDetails, getOriginalLanguage } =
+const { buildMediaTitle, extractTmdbIdFromPath, getOriginalLanguage, getCompleteMediaDetails } =
   await import('@/app/services/media/metadata_service')
 
 describe('MetadataService', () => {
@@ -20,9 +21,13 @@ describe('MetadataService', () => {
 
   beforeEach(async () => {
     // Insert test data
-    await db
-      .insert(media)
-      .values({ originalLanguage: 'fre', title: 'Cached Movie', tmdbId: 123, type: 'movie' })
+    await db.insert(media).values({
+      originalLanguage: 'fr',
+      title: 'Cached Movie',
+      tmdbId: 123,
+      type: 'movie',
+      wantedLanguage: 'fr',
+    })
 
     // Reset mocks
     mockGetPlexMetadata.mockReset()
@@ -73,13 +78,35 @@ describe('MetadataService', () => {
     })
   })
 
+  describe('normalizeLanguageCode', () => {
+    test('should convert fre (bibliographic) to fr (ISO 639-1)', () => {
+      expect(normalizeToIso1('fre')).toBe('fr')
+    })
+
+    test('should convert fra (terminologic) to fr (ISO 639-1)', () => {
+      expect(normalizeToIso1('fra')).toBe('fr')
+    })
+
+    test('should convert 3-character codes to 2-character codes', () => {
+      expect(normalizeToIso1('eng')).toBe('en')
+      expect(normalizeToIso1('spa')).toBe('es')
+      expect(normalizeToIso1('deu')).toBe('de')
+    })
+
+    test('should handle 2-character codes directly', () => {
+      expect(normalizeToIso1('en')).toBe('en')
+      expect(normalizeToIso1('fr')).toBe('fr')
+      expect(normalizeToIso1('es')).toBe('es')
+    })
+  })
+
   describe('getOriginalLanguage', () => {
     test('should return language from database cache if available', async () => {
       mockGetTmdbMedia.mockClear() // Clear previous calls from other tests
 
       const result = await getOriginalLanguage(123, 'movie')
 
-      expect(result).toBe('fre')
+      expect(result).toBe('fr')
       // TMDB should not be called since we have cached data
       expect(mockGetTmdbMedia).not.toHaveBeenCalled()
     })
@@ -87,7 +114,7 @@ describe('MetadataService', () => {
     test('should fetch from TMDB and persist if not in cache', async () => {
       const result = await getOriginalLanguage(456, 'show')
 
-      expect(result).toBe('spa')
+      expect(result).toBe('es')
       expect(mockGetTmdbMedia).toHaveBeenCalled()
 
       // Verify it was persisted to database
@@ -98,18 +125,18 @@ describe('MetadataService', () => {
 
       expect(cachedMedia).toHaveLength(1)
       expect(cachedMedia[0]).toMatchObject({
-        originalLanguage: 'spa',
+        originalLanguage: 'es',
         tmdbId: 456,
         type: 'show',
       })
     })
 
-    test('should return eng as fallback if TMDB fails', async () => {
+    test('should return en as fallback if TMDB fails', async () => {
       mockGetTmdbMedia.mockResolvedValueOnce(undefined)
 
       const result = await getOriginalLanguage(789, 'movie')
 
-      expect(result).toBe('eng')
+      expect(result).toBe('en')
     })
   })
 

@@ -14,6 +14,7 @@ const envSchema = z.object({
   TELEGRAM_TOKEN: z.string(),
   TMDB_API_TOKEN: z.string(),
   TMDB_API_URL: z.string(),
+  TRANSCODE_DIR: z.string(),
 })
 
 const env = envSchema.parse(process.env)

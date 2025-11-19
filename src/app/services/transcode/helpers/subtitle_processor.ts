@@ -1,52 +1,68 @@
-import { executeFfmpeg } from '@/app/integrations/ffmpeg/ffmpeg_client'
 import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
 import { logger } from '@/config/logger'
-import type { iso2 } from '@/types/iso_codes'
+import { type ISOCode1 } from '@/types/iso_codes'
 import { isStreamWanted, type Criteria } from './utils'
 
 const wantedSubtitleEncodings = ['subrip', 'ass']
 
-const criterias: Criteria[] = [
-  { exclude: ['forced', 'sdh'], language: 'eng', wantedEncodings: wantedSubtitleEncodings },
-  { exclude: ['forced'], language: 'eng', wantedEncodings: wantedSubtitleEncodings },
-  { language: 'und', wantedEncodings: wantedSubtitleEncodings },
+const criterias: Criteria[][] = [
+  [
+    {
+      exclude: ['forced', 'sdh'],
+      language: 'en',
+      wantedEncodings: wantedSubtitleEncodings,
+    },
+    {
+      exclude: ['forced'],
+      language: 'en',
+      wantedEncodings: wantedSubtitleEncodings,
+    },
+    { language: 'und', wantedEncodings: wantedSubtitleEncodings },
+  ],
+  [
+    {
+      exclude: ['forced', 'sdh'],
+      language: 'fr',
+      wantedEncodings: wantedSubtitleEncodings,
+    },
+    {
+      exclude: ['forced'],
+      language: 'fr',
+      wantedEncodings: wantedSubtitleEncodings,
+    },
+  ],
 ]
 
 export const processSubtitleStreams = async (
-  file: string,
-  fileName: string,
   subtitleStreams: FFprobeStream[],
-  originalLanguage: iso2,
+  originalLanguage: ISOCode1,
   mediaTitle: string
-): Promise<boolean> => {
-  if (originalLanguage === 'fre' || subtitleStreams.length === 0) {
-    return false
+) => {
+  const subtitlesToKeep: { language: ISOCode1; index: number }[] = []
+  if (originalLanguage === 'fr' || subtitleStreams.length === 0) {
+    return []
   }
 
   let subtitleStreamToKeep = -1
-  for (const condition of criterias) {
-    subtitleStreamToKeep = subtitleStreams.findIndex(isStreamWanted(condition))
-    if (subtitleStreamToKeep !== -1) {
-      break
+
+  for (const criteria of criterias) {
+    for (const condition of criteria) {
+      subtitleStreamToKeep = subtitleStreams.findIndex(isStreamWanted(condition))
+      if (subtitleStreamToKeep !== -1) {
+        const stream = subtitleStreams[subtitleStreamToKeep]
+
+        subtitlesToKeep.push({
+          index: subtitleStreamToKeep,
+          language: stream?.tags?.language ?? 'en',
+        })
+
+        subtitleStreamToKeep = -1
+        break
+      }
     }
   }
 
-  if (subtitleStreamToKeep === -1) {
-    return false
-  }
-
-  const stream = subtitleStreams[subtitleStreamToKeep]
-
-  const language = stream?.tags?.language?.toLowerCase() ?? 'eng'
-
-  logger.info(`[${mediaTitle}] Extracting subtitles`)
-
-  await executeFfmpeg(file, `${fileName}.${language}.srt`, [
-    `-map 0:s:${subtitleStreamToKeep}`,
-    `-c:s:${subtitleStreamToKeep} srt`,
-  ])
-
   logger.info(`[${mediaTitle}] Subtitle extracted`)
 
-  return true
+  return subtitlesToKeep
 }

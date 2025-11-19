@@ -1,4 +1,4 @@
-import { type iso2, countryISOMapping } from '@/types/iso_codes'
+import { iso1ToIso2T, type ISOCode1 } from '@/types/iso_codes'
 import type { MediaType, PlexMedia } from '@/types/plex'
 
 import { getPlexMetadata } from '@/app/integrations/plex/plex_client'
@@ -17,18 +17,23 @@ export const buildMediaTitle = (
   title?: string
 ): string => [grandparentTitle, parentTitle, title].filter(Boolean).join(' - ')
 
-export const getOriginalLanguage = async (tmdbId: number, mediaType: MediaType): Promise<iso2> => {
+export const getOriginalLanguage = async (
+  tmdbId: number,
+  mediaType: MediaType
+): Promise<ISOCode1> => {
   const cachedMedia = await getMediaFromDb(tmdbId, mediaType)
   if (cachedMedia) {
-    return cachedMedia.originalLanguage as iso2
+    return cachedMedia.originalLanguage as ISOCode1
   }
 
   const tmdbData = await getTmdbMedia(tmdbId, mediaType)
   if (!tmdbData) {
-    return 'eng'
+    return 'en'
   }
 
-  const language = countryISOMapping[tmdbData.original_language] || 'eng'
+  // TMDB returns ISO 639-1 (2-character) codes
+  const language =
+    tmdbData.original_language in iso1ToIso2T ? (tmdbData.original_language as ISOCode1) : 'en'
   const title = mediaType === 'movie' ? tmdbData.title : tmdbData.name
 
   await createdOrUpdatedMedia(tmdbId, mediaType, title, language)

@@ -1,4 +1,4 @@
-import type { iso2 } from '@/types/iso_codes'
+import type { ISOCode1 } from '@/types/iso_codes'
 
 import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
 import { processAudioStreams } from '@/app/services/transcode/helpers/audio_processor'
@@ -8,8 +8,8 @@ import { processVideoStreams } from '@/app/services/transcode/helpers/video_proc
 export const getTranscodeCommand = async (
   file: string,
   mediaTitle: string,
-  originalLanguage: iso2
-): Promise<string[] | undefined> => {
+  originalLanguage: ISOCode1
+) => {
   const streams = await ffprobe(file)
 
   const videoStreams = streams.filter((stream) => stream.codec_type === 'video')
@@ -38,14 +38,12 @@ export const getTranscodeCommand = async (
     shouldExecute = true
   }
 
-  const subtitleResult = await processSubtitleStreams(
-    file,
-    fileName,
+  const subtitlesToExtract = await processSubtitleStreams(
     subtitleStreams,
     originalLanguage,
     mediaTitle
   )
-  if (subtitleResult) {
+  if (subtitlesToExtract.length > 0) {
     shouldExecute = true
   }
 
@@ -54,6 +52,6 @@ export const getTranscodeCommand = async (
   }
 
   if (shouldExecute) {
-    return command
+    return { command, subtitlesToExtract: subtitlesToExtract }
   }
 }

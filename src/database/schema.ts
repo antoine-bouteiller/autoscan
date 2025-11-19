@@ -7,8 +7,14 @@ export const media = sqliteTable(
     title: text().notNull(),
     tmdbId: integer('tmdb_id').notNull(),
     type: text().notNull(),
+    wantedLanguage: text('wanted_language').notNull(),
   },
-  (table) => [primaryKey({ columns: [table.tmdbId, table.type], name: 'media_tmdb_id_type_pk' })]
+  (table) => [
+    primaryKey({
+      columns: [table.tmdbId, table.type],
+      name: 'media_tmdb_id_type_pk',
+    }),
+  ]
 )
 
 export type Media = typeof media.$inferSelect

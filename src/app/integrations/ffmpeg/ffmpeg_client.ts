@@ -3,13 +3,13 @@ import { mkdirSync } from 'node:fs'
 import { ffprobeOutputValidator } from '@/app/validators/ffprobe_validator'
 import { execPromise } from '@/utils/exec_promisify'
 
-export const executeFfmpeg = (input: string, output: string, command: string[]) => {
+export const executeFfmpeg = (id: number, input: string, output: string, command: string[]) => {
   const path = input.split('/')
   path.pop()
 
-  mkdirSync(`${path.join('/')}/transcode`, { recursive: true })
+  mkdirSync(`${path.join('/')}/transcode/${id}`, { recursive: true })
 
-  return ffmpeg(`-i "${input}"`, ...command, `"${path.join('/')}/transcode/${output}"`)
+  return ffmpeg(`-i "${input}"`, ...command, `"${path.join('/')}/transcode/${id}/${output}"`)
 }
 
 export const ffprobe = async (input: string) => {

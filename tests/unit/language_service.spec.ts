@@ -1,3 +1,4 @@
+import { ISO2T } from '@/types/iso_codes'
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
 import {
   mockAudioStreamFrench,
@@ -23,7 +24,7 @@ describe('LanguageService', () => {
     test('should update audio stream if original language stream found and not selected', async () => {
       await handleUpdateLanguage({
         mediaTitle: 'Test Movie',
-        originalLanguage: 'fre',
+        originalLanguage: 'fr',
         partsId: 123,
         streams: mockAudioStreams,
       })
@@ -34,7 +35,7 @@ describe('LanguageService', () => {
     test('should not update if audio stream already selected', async () => {
       await handleUpdateLanguage({
         mediaTitle: 'Test Movie',
-        originalLanguage: 'eng',
+        originalLanguage: 'en',
         partsId: 123,
         streams: mockAudioStreamSelected,
       })
@@ -45,7 +46,7 @@ describe('LanguageService', () => {
     test('should not update if no matching audio stream found', async () => {
       await handleUpdateLanguage({
         mediaTitle: 'Test Movie',
-        originalLanguage: 'spa',
+        originalLanguage: 'es',
         partsId: 123,
         streams: mockAudioStreamNotMatching,
       })
@@ -53,10 +54,10 @@ describe('LanguageService', () => {
       expect(mockUpdateStream).not.toHaveBeenCalled()
     })
 
-    test('should handle fre to fra conversion', async () => {
+    test('should handle fre to fr conversion', async () => {
       await handleUpdateLanguage({
         mediaTitle: 'Test Movie',
-        originalLanguage: 'fre',
+        originalLanguage: 'fr',
         partsId: 123,
         streams: mockAudioStreamFrench,
       })
@@ -69,7 +70,7 @@ describe('LanguageService', () => {
       const mockEngStream = [
         {
           id: 5,
-          languageCode: 'eng',
+          languageCode: ISO2T.ENG,
           selected: false,
           streamType: 2,
         },
@@ -77,7 +78,7 @@ describe('LanguageService', () => {
 
       await handleUpdateLanguage({
         mediaTitle: 'Test Movie',
-        originalLanguage: 'eng',
+        originalLanguage: 'en',
         partsId: 456,
         streams: mockEngStream,
       })
@@ -89,7 +90,7 @@ describe('LanguageService', () => {
     test('should ignore non-audio streams', async () => {
       await handleUpdateLanguage({
         mediaTitle: 'Test Movie',
-        originalLanguage: 'eng',
+        originalLanguage: 'en',
         partsId: 123,
         streams: mockNonAudioStreams,
       })

@@ -16,12 +16,48 @@ describe('MediaService', () => {
   describe('countMediaByType', () => {
     test('should return count of movies', async () => {
       await db.insert(media).values([
-        { originalLanguage: 'eng', title: 'Movie 1', tmdbId: 1, type: 'movie' },
-        { originalLanguage: 'eng', title: 'Movie 2', tmdbId: 2, type: 'movie' },
-        { originalLanguage: 'fre', title: 'Movie 3', tmdbId: 3, type: 'movie' },
-        { originalLanguage: 'eng', title: 'Movie 4', tmdbId: 4, type: 'movie' },
-        { originalLanguage: 'spa', title: 'Movie 5', tmdbId: 5, type: 'movie' },
-        { originalLanguage: 'eng', title: 'Show 1', tmdbId: 1, type: 'show' },
+        {
+          originalLanguage: 'eng',
+          title: 'Movie 1',
+          tmdbId: 1,
+          type: 'movie',
+          wantedLanguage: 'eng',
+        },
+        {
+          originalLanguage: 'eng',
+          title: 'Movie 2',
+          tmdbId: 2,
+          type: 'movie',
+          wantedLanguage: 'eng',
+        },
+        {
+          originalLanguage: 'fra',
+          title: 'Movie 3',
+          tmdbId: 3,
+          type: 'movie',
+          wantedLanguage: 'fra',
+        },
+        {
+          originalLanguage: 'eng',
+          title: 'Movie 4',
+          tmdbId: 4,
+          type: 'movie',
+          wantedLanguage: 'eng',
+        },
+        {
+          originalLanguage: 'spa',
+          title: 'Movie 5',
+          tmdbId: 5,
+          type: 'movie',
+          wantedLanguage: 'spa',
+        },
+        {
+          originalLanguage: 'eng',
+          title: 'Show 1',
+          tmdbId: 1,
+          type: 'show',
+          wantedLanguage: 'eng',
+        },
       ])
 
       const result = await countMediaByType('movie')
@@ -31,10 +67,34 @@ describe('MediaService', () => {
 
     test('should return count of shows', async () => {
       await db.insert(media).values([
-        { originalLanguage: 'eng', title: 'Show 1', tmdbId: 1, type: 'show' },
-        { originalLanguage: 'fre', title: 'Show 2', tmdbId: 2, type: 'show' },
-        { originalLanguage: 'eng', title: 'Show 3', tmdbId: 3, type: 'show' },
-        { originalLanguage: 'eng', title: 'Movie 1', tmdbId: 1, type: 'movie' },
+        {
+          originalLanguage: 'eng',
+          title: 'Show 1',
+          tmdbId: 1,
+          type: 'show',
+          wantedLanguage: 'eng',
+        },
+        {
+          originalLanguage: 'fra',
+          title: 'Show 2',
+          tmdbId: 2,
+          type: 'show',
+          wantedLanguage: 'fra',
+        },
+        {
+          originalLanguage: 'eng',
+          title: 'Show 3',
+          tmdbId: 3,
+          type: 'show',
+          wantedLanguage: 'eng',
+        },
+        {
+          originalLanguage: 'eng',
+          title: 'Movie 1',
+          tmdbId: 1,
+          type: 'movie',
+          wantedLanguage: 'eng',
+        },
       ])
 
       const result = await countMediaByType('show')
@@ -63,13 +123,14 @@ describe('MediaService', () => {
 
     test('should update existing media', async () => {
       await db.insert(media).values({
-        originalLanguage: 'eng',
+        originalLanguage: 'en',
         title: 'Old Title',
         tmdbId: 456,
         type: 'show',
+        wantedLanguage: 'en',
       })
 
-      await createdOrUpdatedMedia(456, 'show', 'Test Show', 'fre')
+      await createdOrUpdatedMedia(456, 'show', 'Test Show', 'fr')
 
       const result = await db
         .select()
@@ -78,10 +139,11 @@ describe('MediaService', () => {
 
       expect(result).toHaveLength(1)
       expect(result[0]).toMatchObject({
-        originalLanguage: 'fre',
+        originalLanguage: 'fr',
         title: 'Test Show',
         tmdbId: 456,
         type: 'show',
+        wantedLanguage: 'fr',
       })
     })
   })
@@ -89,16 +151,17 @@ describe('MediaService', () => {
   describe('getMediaByIdAndType', () => {
     test('should return media by id and type', async () => {
       await db.insert(media).values({
-        originalLanguage: 'eng',
+        originalLanguage: 'en',
         title: 'Test Movie',
         tmdbId: 123,
         type: 'movie',
+        wantedLanguage: 'en',
       })
 
       const result = await getMediaByIdAndType(123, 'movie')
 
       expect(result).toMatchObject({
-        originalLanguage: 'eng',
+        originalLanguage: 'en',
         title: 'Test Movie',
         tmdbId: 123,
         type: 'movie',
@@ -116,10 +179,34 @@ describe('MediaService', () => {
     test('should return paginated movies', async () => {
       // Insert test data
       await db.insert(media).values([
-        { originalLanguage: 'eng', title: 'A Movie', tmdbId: 1, type: 'movie' },
-        { originalLanguage: 'eng', title: 'B Movie', tmdbId: 2, type: 'movie' },
-        { originalLanguage: 'fre', title: 'C Movie', tmdbId: 3, type: 'movie' },
-        { originalLanguage: 'eng', title: 'Show 1', tmdbId: 4, type: 'show' },
+        {
+          originalLanguage: 'eng',
+          title: 'A Movie',
+          tmdbId: 1,
+          type: 'movie',
+          wantedLanguage: 'eng',
+        },
+        {
+          originalLanguage: 'eng',
+          title: 'B Movie',
+          tmdbId: 2,
+          type: 'movie',
+          wantedLanguage: 'eng',
+        },
+        {
+          originalLanguage: 'fra',
+          title: 'C Movie',
+          tmdbId: 3,
+          type: 'movie',
+          wantedLanguage: 'fra',
+        },
+        {
+          originalLanguage: 'eng',
+          title: 'Show 1',
+          tmdbId: 4,
+          type: 'show',
+          wantedLanguage: 'eng',
+        },
       ])
 
       const result = await getMediaByTypeWithPagination('movie', 0, 10)
@@ -132,10 +219,11 @@ describe('MediaService', () => {
 
     test('should return second page of shows', async () => {
       const shows = Array.from({ length: 15 }, (_, i) => ({
-        originalLanguage: 'eng',
+        originalLanguage: 'en',
         title: `Show ${String(i + 1).padStart(2, '0')}`,
         tmdbId: i + 1,
         type: 'show' as const,
+        wantedLanguage: 'en',
       }))
       await db.insert(media).values(shows)
 
@@ -148,10 +236,11 @@ describe('MediaService', () => {
     test('should handle custom page sizes', async () => {
       // Insert test data
       const movies = Array.from({ length: 75 }, (_, i) => ({
-        originalLanguage: 'eng',
-        title: `Movie ${String(i + 1).padStart(2, '0')}`,
+        originalLanguage: 'en',
+        title: `Movie ${String(i + 1).padStart(2, '00')}`,
         tmdbId: i + 1,
         type: 'movie' as const,
+        wantedLanguage: 'en',
       }))
       await db.insert(media).values(movies)
 

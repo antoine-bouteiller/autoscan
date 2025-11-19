@@ -9,7 +9,7 @@ import { getMediaByTypeWithPagination } from '@/app/services/media/media_service
 import { db } from '@/config/db'
 import env from '@/config/env'
 import { type Media, media as mediaTable } from '@/database/schema'
-import { countryISOMapping } from '@/types/iso_codes'
+import { iso1ToIso2T } from '@/types/iso_codes'
 
 export const selectMediaType = async (
   conversation: ConfigureLanguageConversation,
@@ -32,7 +32,8 @@ export const selectMediaType = async (
   ) => {
     await message.editText(`Wich language do you want to set for ${entry.title} ?`)
 
-    const language = await menuConversation.form.select(Object.values(countryISOMapping), {
+    // Use 2-character ISO codes for the selection
+    const language = await menuConversation.form.select(Object.keys(iso1ToIso2T), {
       action: (ctx) => ctx.deleteMessage(),
       otherwise: (ctx) => ctx.reply('Invalid language code'),
     })

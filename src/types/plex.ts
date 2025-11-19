@@ -1,3 +1,5 @@
+import type { ISOCode2T } from './iso_codes'
+
 export type MediaType = 'movie' | 'show'
 
 export interface PlexMedia {
@@ -21,7 +23,7 @@ export interface PlexMedia {
 
 export interface PlexMediaStream {
   id: number
-  languageCode: string
+  languageCode: ISOCode2T
   selected: boolean
   streamType: number
   title?: string

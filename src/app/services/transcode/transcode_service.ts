@@ -1,23 +1,28 @@
 import { tryCatch } from '@/app/exceptions/handler'
-import type { iso2 } from '@/types/iso_codes'
+import type { ISOCode1 } from '@/types/iso_codes'
 import { getTranscodeCommand } from './helpers/get_transcode_command'
 import { transcodeQueue } from './helpers/transcode_queue'
+import { simpleHash } from './helpers/utils'
 
 export const transcodeFile = async (
   file: string,
   mediaTitle: string,
-  originalLanguage: iso2,
+  originalLanguage: ISOCode1,
   mediaType: 'movie' | 'show'
 ) => {
-  const command = await tryCatch(() => getTranscodeCommand(file, mediaTitle, originalLanguage))
+  const transcodeComands = await tryCatch(() =>
+    getTranscodeCommand(file, mediaTitle, originalLanguage)
+  )
 
-  if (command) {
+  if (transcodeComands) {
+    const id = simpleHash(file)
     transcodeQueue.enqueue({
-      command,
-      file: file,
-      mediaTitle: mediaTitle,
-      mediaType: mediaType,
-      originalLanguage: originalLanguage,
+      file,
+      id,
+      mediaTitle,
+      mediaType,
+      originalLanguage,
+      ...transcodeComands,
     })
     return true
   }

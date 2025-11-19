@@ -1,3 +1,4 @@
+import { ISO1, normalizeToIso1 } from '@/types/iso_codes'
 import { z } from 'zod'
 
 export const ffprobeOutputValidator = z.object({
@@ -10,7 +11,7 @@ export const ffprobeOutputValidator = z.object({
       sample_rate: z.coerce.number().optional(),
       tags: z
         .object({
-          language: z.string().optional(),
+          language: z.string().optional().transform(normalizeToIso1).pipe(z.enum(ISO1).optional()),
           title: z.string().optional(),
         })
         .optional(),

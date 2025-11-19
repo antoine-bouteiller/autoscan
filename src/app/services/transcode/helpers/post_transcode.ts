@@ -7,12 +7,12 @@ import { getSections, refreshSection } from '@/app/integrations/plex/plex_client
 import { logger } from '@/config/logger'
 import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 
-export const cleanUp = async (file: string, mediaTitle: string): Promise<void> => {
+export const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<void> => {
   const paths = file.split('/')
 
   paths.pop()
 
-  const transcodePath = `${paths.join('/')}/transcode`
+  const transcodePath = `${paths.join('/')}/transcode/${id}`
 
   if (!existsSync(transcodePath)) {
     return
@@ -45,22 +45,22 @@ export const cleanUp = async (file: string, mediaTitle: string): Promise<void> =
   rmSync(transcodePath, { recursive: true })
 }
 
-export const handlePostTranscode = async (
-  filePath: string,
-  mediaType: 'movie' | 'show',
+export const handlePostTranscode = async ({
+  id,
+  filePath,
+  mediaType,
+  mediaTitle,
+}: {
+  filePath: string
+  mediaType: 'movie' | 'show'
   mediaTitle: string
-): Promise<void> => {
+  id: number
+}): Promise<void> => {
   try {
-    await cleanUp(filePath, mediaTitle)
+    await cleanUp(id, filePath, mediaTitle)
 
     const sections = await getSections()
     const fileDirectory = resolve(filePath, '..')
-
-    await Promise.all(
-      sections
-        .filter((section) => section.type === mediaType)
-        .map((section) => refreshSection(section.key, fileDirectory))
-    )
 
     if (mediaType === 'movie') {
       const movieId = await getMovieByPath(filePath)
@@ -83,6 +83,12 @@ export const handlePostTranscode = async (
       await refreshSeries(seriesId)
       await renameSeries(seriesId)
     }
+
+    await Promise.all(
+      sections
+        .filter((section) => section.type === mediaType)
+        .map((section) => refreshSection(section.key, fileDirectory))
+    )
   } catch (error) {
     logger.error(
       {

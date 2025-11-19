@@ -1,11 +1,11 @@
 import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
 import { logger } from '@/config/logger'
-import type { iso2 } from '@/types/iso_codes'
+import { iso1ToIso2B, type ISOCode1 } from '@/types/iso_codes'
 import { isStreamWanted, type Criteria } from './utils'
 
 const wantedAudioEncodings = ['aac', 'ac3', 'eac3']
 
-const getCriterias = (originalLanguage: iso2) => {
+const getCriterias = (originalLanguage: ISOCode1) => {
   const criterias: Criteria[][] = [
     [
       { language: originalLanguage, wantedEncodings: wantedAudioEncodings },
@@ -15,18 +15,12 @@ const getCriterias = (originalLanguage: iso2) => {
     ],
   ]
 
-  if (originalLanguage !== 'eng' && originalLanguage !== 'fre') {
-    criterias.push([
-      { language: 'eng', wantedEncodings: wantedAudioEncodings },
-      { language: 'eng' },
-    ])
+  if (originalLanguage !== 'en' && originalLanguage !== 'fr') {
+    criterias.push([{ language: 'en', wantedEncodings: wantedAudioEncodings }, { language: 'en' }])
   }
 
-  if (originalLanguage !== 'fre') {
-    criterias.push([
-      { language: 'fre', wantedEncodings: wantedAudioEncodings },
-      { language: 'fre' },
-    ])
+  if (originalLanguage !== 'fr') {
+    criterias.push([{ language: 'fr', wantedEncodings: wantedAudioEncodings }, { language: 'fr' }])
   }
 
   return criterias
@@ -49,7 +43,7 @@ const processAudioStream = (
   stream: FFprobeStream,
   streamIndex: number,
   languageCriteria: Criteria[],
-  originalLanguage: iso2,
+  originalLanguage: ISOCode1,
   mediaTitle: string
 ): { commands: string[]; needsTranscode: boolean } => {
   const commands: string[] = [`-map 0:a:${streamIndex}`]
@@ -66,7 +60,9 @@ const processAudioStream = (
   }
 
   if (stream?.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und') {
-    commands.push(`-metadata:s:a:${streamIndex} language=${originalLanguage}`)
+    // Convert to ISO 639-2/B (bibliographic) format for ffmpeg metadata
+    const iso2BCode = iso1ToIso2B(originalLanguage)
+    commands.push(`-metadata:s:a:${streamIndex} language=${iso2BCode}`)
     needsTranscode = true
   }
 
@@ -75,7 +71,7 @@ const processAudioStream = (
 
 export const processAudioStreams = (
   audioStreams: FFprobeStream[],
-  originalLanguage: iso2,
+  originalLanguage: ISOCode1,
   mediaTitle: string
 ): { command: string[]; shouldExecute: boolean } => {
   if (audioStreams.length === 0) {

@@ -16,9 +16,9 @@ export const createdOrUpdatedMedia = (
 ) =>
   db
     .insert(mediaTable)
-    .values({ originalLanguage, title, tmdbId, type })
+    .values({ originalLanguage, title, tmdbId, type, wantedLanguage: originalLanguage })
     .onConflictDoUpdate({
-      set: { originalLanguage, title },
+      set: { originalLanguage, title, wantedLanguage: originalLanguage },
       target: [mediaTable.tmdbId, mediaTable.type],
     })
 

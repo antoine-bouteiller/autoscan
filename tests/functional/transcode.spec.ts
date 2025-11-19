@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import type { iso2 } from '@/types/iso_codes'
+import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
 
 import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client.js'
 import { transcodeQueue } from '@/app/services/transcode/helpers/transcode_queue.js'
@@ -28,7 +28,7 @@ interface FileDataset {
     codecName: string
     codecType: string
     index: number
-    language?: iso2
+    language?: NonNullable<FFprobeStream['tags']>['language']
   }[]
   shouldExecute: boolean
   title: string
@@ -39,7 +39,7 @@ const dataset: FileDataset[] = [
     filename: 'test_audio_dts.mkv',
     outputStreams: [
       { codecName: 'h264', codecType: 'video', index: 0 },
-      { codecName: 'aac', codecType: 'audio', index: 1, language: 'eng' },
+      { codecName: 'aac', codecType: 'audio', index: 1, language: 'en' },
     ],
     shouldExecute: true,
     title: 'should convert dts to aac',
@@ -48,7 +48,7 @@ const dataset: FileDataset[] = [
     filename: 'test_correct_file.mkv',
     outputStreams: [
       { codecName: 'h264', codecType: 'video', index: 0 },
-      { codecName: 'aac', codecType: 'audio', index: 1, language: 'eng' },
+      { codecName: 'aac', codecType: 'audio', index: 1, language: 'en' },
     ],
     shouldExecute: true,
     title: 'should convert format to mp4',
@@ -57,7 +57,7 @@ const dataset: FileDataset[] = [
     filename: 'test_audio_aac_dts.mkv',
     outputStreams: [
       { codecName: 'h264', codecType: 'video', index: 0 },
-      { codecName: 'aac', codecType: 'audio', index: 1, language: 'eng' },
+      { codecName: 'aac', codecType: 'audio', index: 1, language: 'en' },
     ],
     shouldExecute: true,
     title: 'should keep only wanted tracks',
@@ -66,7 +66,7 @@ const dataset: FileDataset[] = [
     filename: 'test_correct_file.mp4',
     outputStreams: [
       { codecName: 'h264', codecType: 'video', index: 0 },
-      { codecName: 'aac', codecType: 'audio', index: 1, language: 'eng' },
+      { codecName: 'aac', codecType: 'audio', index: 1, language: 'en' },
     ],
     shouldExecute: false,
     title: 'should not transcode already correct file',
@@ -89,7 +89,7 @@ describe('Transcode', () => {
 
       copyFileSync(join(videosPath, filename), join(testDir, filename))
 
-      const executed = await transcodeFile(join(testDir, filename), 'test', 'eng', 'movie')
+      const executed = await transcodeFile(join(testDir, filename), 'test', 'en', 'movie')
 
       expect(executed).toBe(shouldExecute)
 
@@ -102,7 +102,7 @@ describe('Transcode', () => {
 
       const outputFileName = filename.replace('.mkv', '.mp4')
       expect(existsSync(join(testDir, outputFileName))).toBe(true)
-      expect(existsSync(join(testDir, outputFileName.replace('.mp4', '.eng.srt')))).toBe(true)
+      expect(existsSync(join(testDir, outputFileName.replace('.mp4', '.en.srt')))).toBe(true)
 
       if (outputFileName !== filename) {
         expect(existsSync(join(testDir, filename))).toBe(false)
