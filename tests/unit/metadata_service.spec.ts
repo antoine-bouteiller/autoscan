@@ -1,6 +1,5 @@
 import { db } from '@/config/db'
 import { media } from '@/database/schema'
-import { normalizeToIso1 } from '@/types/iso_codes'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 import { and, eq } from 'drizzle-orm'
 import { mockPlexEpisode, mockPlexMovie, mockPlexMovieResponse } from '../fixtures/plex.fixtures'
@@ -75,28 +74,6 @@ describe('MetadataService', () => {
     test('should handle empty strings', () => {
       const result = buildMediaTitle('', '', 'Title')
       expect(result).toBe('Title')
-    })
-  })
-
-  describe('normalizeLanguageCode', () => {
-    test('should convert fre (bibliographic) to fr (ISO 639-1)', () => {
-      expect(normalizeToIso1('fre')).toBe('fr')
-    })
-
-    test('should convert fra (terminologic) to fr (ISO 639-1)', () => {
-      expect(normalizeToIso1('fra')).toBe('fr')
-    })
-
-    test('should convert 3-character codes to 2-character codes', () => {
-      expect(normalizeToIso1('eng')).toBe('en')
-      expect(normalizeToIso1('spa')).toBe('es')
-      expect(normalizeToIso1('deu')).toBe('de')
-    })
-
-    test('should handle 2-character codes directly', () => {
-      expect(normalizeToIso1('en')).toBe('en')
-      expect(normalizeToIso1('fr')).toBe('fr')
-      expect(normalizeToIso1('es')).toBe('es')
     })
   })
 

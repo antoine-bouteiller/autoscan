@@ -47,12 +47,12 @@ export const mockNonAudioStreams: PlexMediaStream[] = [
     id: 1,
     languageCode: 'eng',
     selected: false,
-    streamType: 1, // video stream
+    streamType: 1,
   },
   {
     id: 2,
     languageCode: 'eng',
     selected: false,
-    streamType: 3, // subtitle stream
+    streamType: 3,
   },
 ]

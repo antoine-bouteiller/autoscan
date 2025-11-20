@@ -4,6 +4,7 @@ import type { MediaType } from '@/types/plex'
 
 import { db } from '@/config/db'
 import { media as mediaTable } from '@/database/schema'
+import type { ISOCode1 } from '@/types/iso_codes'
 
 export const countMediaByType = (type: MediaType) =>
   db.select({ count: count() }).from(mediaTable).where(eq(mediaTable.type, type))
@@ -12,11 +13,17 @@ export const createdOrUpdatedMedia = (
   tmdbId: number,
   type: MediaType,
   title: string,
-  originalLanguage: string
+  originalLanguage: ISOCode1
 ) =>
   db
     .insert(mediaTable)
-    .values({ originalLanguage, title, tmdbId, type, wantedLanguage: originalLanguage })
+    .values({
+      originalLanguage,
+      title,
+      tmdbId,
+      type,
+      wantedLanguage: originalLanguage,
+    })
     .onConflictDoUpdate({
       set: { originalLanguage, title, wantedLanguage: originalLanguage },
       target: [mediaTable.tmdbId, mediaTable.type],

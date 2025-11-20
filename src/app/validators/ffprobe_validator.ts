@@ -1,4 +1,5 @@
-import { ISO1, normalizeToIso1 } from '@/types/iso_codes'
+import { ISO1 } from '@/types/iso_codes'
+import { normalizeToIso1 } from '@/utils/iso_codes'
 import { z } from 'zod'
 
 export const ffprobeOutputValidator = z.object({

@@ -32,8 +32,7 @@ export const getOriginalLanguage = async (
   }
 
   // TMDB returns ISO 639-1 (2-character) codes
-  const language =
-    tmdbData.original_language in iso1ToIso2T ? (tmdbData.original_language as ISOCode1) : 'en'
+  const language = tmdbData.original_language in iso1ToIso2T ? tmdbData.original_language : 'en'
   const title = mediaType === 'movie' ? tmdbData.title : tmdbData.name
 
   await createdOrUpdatedMedia(tmdbId, mediaType, title, language)

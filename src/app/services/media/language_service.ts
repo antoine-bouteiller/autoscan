@@ -1,8 +1,9 @@
-import { normalizeToIso1, type ISOCode1 } from '@/types/iso_codes'
+import { type ISOCode1 } from '@/types/iso_codes'
 import type { PlexMediaStream } from '@/types/plex'
 
 import { updateStream } from '@/app/integrations/plex/plex_client'
 import { logger } from '@/config/logger'
+import { normalizeToIso1 } from '@/utils/iso_codes'
 
 interface UpdateLanguageParams {
   mediaTitle: string

@@ -1,13 +1,14 @@
+import { ISO1 } from '@/types/iso_codes'
 import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 export const media = sqliteTable(
   'media',
   {
-    originalLanguage: text('original_language').notNull(),
+    originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
     title: text().notNull(),
     tmdbId: integer('tmdb_id').notNull(),
     type: text().notNull(),
-    wantedLanguage: text('wanted_language').notNull(),
+    wantedLanguage: text('wanted_language', { enum: ISO1 }).notNull(),
   },
   (table) => [
     primaryKey({

@@ -10,6 +10,7 @@ import { db } from '@/config/db'
 import env from '@/config/env'
 import { type Media, media as mediaTable } from '@/database/schema'
 import { iso1ToIso2T } from '@/types/iso_codes'
+import { normalizeToIso1 } from '@/utils/iso_codes'
 
 export const selectMediaType = async (
   conversation: ConfigureLanguageConversation,
@@ -42,7 +43,7 @@ export const selectMediaType = async (
       db
         .update(mediaTable)
         .set({
-          originalLanguage: language,
+          originalLanguage: normalizeToIso1(language),
         })
         .where(and(eq(mediaTable.tmdbId, entry.tmdbId), eq(mediaTable.type, mediaType)))
     )

@@ -1,4 +1,4 @@
-import { ISO2T } from '@/types/iso_codes'
+import type { PlexMediaStream } from '@/types/plex'
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
 import {
   mockAudioStreamFrench,
@@ -67,10 +67,10 @@ describe('LanguageService', () => {
     })
 
     test('should use audio stream ID for non-French languages', async () => {
-      const mockEngStream = [
+      const mockEngStream: PlexMediaStream[] = [
         {
           id: 5,
-          languageCode: ISO2T.ENG,
+          languageCode: 'eng',
           selected: false,
           streamType: 2,
         },

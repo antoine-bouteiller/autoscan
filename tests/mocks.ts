@@ -13,7 +13,6 @@ mock.module('@/config/env', () => ({
     SONARR_API_URL: 'http://sonarr.test',
     TMDB_API_TOKEN: 'test-tmdb-token',
     TMDB_API_URL: 'http://tmdb.test',
-    TRANSCODE_DIR: './tmp',
   },
 }))
 
