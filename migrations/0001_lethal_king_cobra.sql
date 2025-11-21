@@ -1,10 +1,3 @@
--- Add wanted_language column first
-ALTER TABLE `media` ADD `wanted_language` text NOT NULL DEFAULT '';
-
--- Copy original_language to wanted_language (before conversion)
-UPDATE `media` SET `wanted_language` = `original_language`;
-
--- Update both columns from 3-char to 2-char codes
 UPDATE `media` SET
   `original_language` = CASE `original_language`
     WHEN 'ara' THEN 'ar'
@@ -54,54 +47,9 @@ UPDATE `media` SET
     WHEN 'zho' THEN 'zh'
     WHEN 'chi' THEN 'zh'
     ELSE `original_language`
-  END,
-  `wanted_language` = CASE `wanted_language`
-    WHEN 'ara' THEN 'ar'
-    WHEN 'bul' THEN 'bg'
-    WHEN 'ben' THEN 'bn'
-    WHEN 'ces' THEN 'cs'
-    WHEN 'cze' THEN 'cs'
-    WHEN 'dan' THEN 'da'
-    WHEN 'deu' THEN 'de'
-    WHEN 'ger' THEN 'de'
-    WHEN 'ell' THEN 'el'
-    WHEN 'gre' THEN 'el'
-    WHEN 'eng' THEN 'en'
-    WHEN 'spa' THEN 'es'
-    WHEN 'est' THEN 'et'
-    WHEN 'fas' THEN 'fa'
-    WHEN 'per' THEN 'fa'
-    WHEN 'fin' THEN 'fi'
-    WHEN 'fra' THEN 'fr'
-    WHEN 'fre' THEN 'fr'
-    WHEN 'hin' THEN 'hi'
-    WHEN 'hrv' THEN 'hr'
-    WHEN 'hun' THEN 'hu'
-    WHEN 'ind' THEN 'id'
-    WHEN 'isl' THEN 'is'
-    WHEN 'ice' THEN 'is'
-    WHEN 'ita' THEN 'it'
-    WHEN 'jpn' THEN 'ja'
-    WHEN 'kor' THEN 'ko'
-    WHEN 'lit' THEN 'lt'
-    WHEN 'lav' THEN 'lv'
-    WHEN 'mlt' THEN 'mt'
-    WHEN 'nld' THEN 'nl'
-    WHEN 'dut' THEN 'nl'
-    WHEN 'nor' THEN 'no'
-    WHEN 'pol' THEN 'pl'
-    WHEN 'por' THEN 'pt'
-    WHEN 'ron' THEN 'ro'
-    WHEN 'rum' THEN 'ro'
-    WHEN 'rus' THEN 'ru'
-    WHEN 'slk' THEN 'sk'
-    WHEN 'slo' THEN 'sk'
-    WHEN 'slv' THEN 'sl'
-    WHEN 'srp' THEN 'sr'
-    WHEN 'swe' THEN 'sv'
-    WHEN 'tur' THEN 'tr'
-    WHEN 'zho' THEN 'zh'
-    WHEN 'chi' THEN 'zh'
-    ELSE `wanted_language`
   END
 WHERE `original_language` IN ('ara', 'bul', 'ben', 'ces', 'cze', 'dan', 'deu', 'ger', 'ell', 'gre', 'eng', 'spa', 'est', 'fas', 'per', 'fin', 'fra', 'fre', 'hin', 'hrv', 'hun', 'ind', 'isl', 'ice', 'ita', 'jpn', 'kor', 'lit', 'lav', 'mlt', 'nld', 'dut', 'nor', 'pol', 'por', 'ron', 'rum', 'rus', 'slk', 'slo', 'slv', 'srp', 'swe', 'tur', 'zho', 'chi');
+--> statement-breakpoint
+ALTER TABLE `media` ADD `wanted_language` text NOT NULL DEFAULT '';
+--> statement-breakpoint
+UPDATE `media` SET `wanted_language` = `original_language`;

@@ -23,7 +23,7 @@ export const getOriginalLanguage = async (
 ): Promise<ISOCode1> => {
   const cachedMedia = await getMediaFromDb(tmdbId, mediaType)
   if (cachedMedia) {
-    return cachedMedia.originalLanguage as ISOCode1
+    return cachedMedia.originalLanguage
   }
 
   const tmdbData = await getTmdbMedia(tmdbId, mediaType)

@@ -19,7 +19,7 @@ class TranscodeQueue {
   private currentJob?: TranscodeJob
 
   enqueue(job: TranscodeJob): void {
-    if (this.queue.find((j) => j.id === job.id)) {
+    if (this.queue.some((j) => j.id === job.id)) {
       logger.warn(`${job.mediaTitle} already in queue`)
     }
 

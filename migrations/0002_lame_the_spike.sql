@@ -1,0 +1,1 @@
+ALTER TABLE `media` RENAME COLUMN "wanted_language" TO "preferred_language";

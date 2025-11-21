@@ -19,13 +19,13 @@ export const createdOrUpdatedMedia = (
     .insert(mediaTable)
     .values({
       originalLanguage,
+      preferredLanguage: originalLanguage,
       title,
       tmdbId,
       type,
-      wantedLanguage: originalLanguage,
     })
     .onConflictDoUpdate({
-      set: { originalLanguage, title, wantedLanguage: originalLanguage },
+      set: { originalLanguage, preferredLanguage: originalLanguage, title },
       target: [mediaTable.tmdbId, mediaTable.type],
     })
 

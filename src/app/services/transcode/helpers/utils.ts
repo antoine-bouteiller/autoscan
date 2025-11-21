@@ -28,10 +28,13 @@ export const isStreamWanted = (criteria: Criteria) => (stream: FFprobeStream) =>
 
 export const simpleHash = (str: string) => {
   let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
+  let index = 0
+  let char = str.codePointAt(index)
+
+  while (char !== undefined) {
     hash = (hash << 5) - hash + char
     hash &= hash
+    char = str.codePointAt(index++)
   }
   return hash
 }

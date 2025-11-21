@@ -4,7 +4,7 @@ import { Bot } from 'grammy'
 
 import type { TelegramContext } from '@/types/telegram'
 
-import { selectMediaType } from '@/app/controllers/telegram/language_command'
+import { selectPreferedLanguage } from '@/app/controllers/telegram/language_command'
 import env from '@/config/env'
 import { logger } from '@/config/logger'
 
@@ -21,9 +21,9 @@ class TelegramProvider {
       return error.ctx.reply('An error occurred')
     })
 
-    bot.use(createConversation(selectMediaType, { plugins: [hydrate()] }))
+    bot.use(createConversation(selectPreferedLanguage, { plugins: [hydrate()] }))
 
-    bot.command('setlanguage', (ctx) => ctx.conversation.enter('selectMediaType'))
+    bot.command('setlanguage', (ctx) => ctx.conversation.enter('selectPreferedLanguage'))
     bot.command('cancel', (ctx) => ctx.reply('Nothing to cancel'))
 
     return bot

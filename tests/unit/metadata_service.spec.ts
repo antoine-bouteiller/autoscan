@@ -22,10 +22,10 @@ describe('MetadataService', () => {
     // Insert test data
     await db.insert(media).values({
       originalLanguage: 'fr',
+      preferredLanguage: 'fr',
       title: 'Cached Movie',
       tmdbId: 123,
       type: 'movie',
-      wantedLanguage: 'fr',
     })
 
     // Reset mocks

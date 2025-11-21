@@ -5,10 +5,10 @@ export const media = sqliteTable(
   'media',
   {
     originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
+    preferredLanguage: text('preferred_language', { enum: ISO1 }).notNull(),
     title: text().notNull(),
     tmdbId: integer('tmdb_id').notNull(),
     type: text().notNull(),
-    wantedLanguage: text('wanted_language', { enum: ISO1 }).notNull(),
   },
   (table) => [
     primaryKey({
