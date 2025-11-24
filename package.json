@@ -30,7 +30,7 @@
     "@typescript/native-preview": "^7.0.0-dev.20251106.1",
     "drizzle-kit": "^0.31.6",
     "lefthook": "^2.0.2",
-    "oxfmt": "^0.14.0",
+    "oxfmt": "^0.15.0",
     "oxlint": "^1.26.0",
     "oxlint-tsgolint": "^0.8.0"
   },
