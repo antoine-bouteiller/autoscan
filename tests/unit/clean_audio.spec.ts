@@ -1,9 +1,12 @@
-import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
-import { processAudioStreams } from '@/app/services/transcode/helpers/audio_processor.js'
-import type { ISOCode1 } from '@/types/iso_codes'
 import { describe, expect, test } from 'bun:test'
 import { copyFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import type { ISOCode1 } from '@/types/iso_codes'
+
+import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
+import { processAudioStreams } from '@/app/services/transcode/helpers/audio_processor.js'
+
 import { setupTestContext, videosPath } from '../config.js'
 
 interface TestCase {

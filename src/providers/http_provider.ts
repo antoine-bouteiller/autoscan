@@ -13,14 +13,14 @@ type RouteConfig = Record<
 >
 
 interface HttpProviderOptions {
-  port?: number
   hostname?: string
+  port?: number
 }
 
 class HttpProvider {
   private readonly options: HttpProviderOptions
-  private server: ReturnType<typeof Bun.serve> | undefined = undefined
   private routes: RouteConfig = {}
+  private server: ReturnType<typeof Bun.serve> | undefined = undefined
 
   constructor(options: HttpProviderOptions) {
     this.options = {

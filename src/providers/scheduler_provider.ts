@@ -1,12 +1,13 @@
-import { handleError, tryCatch } from '@/app/exceptions/handler'
-import { logger } from '@/config/logger'
 import { Cron, type CronOptions } from 'croner'
 
+import { handleError, tryCatch } from '@/app/exceptions/handler'
+import { logger } from '@/config/logger'
+
 interface JobConfig {
-  name: string
-  pattern: string
   handler: () => Promise<void> | void
+  name: string
   options?: CronOptions
+  pattern: string
 }
 
 class SchedulerProvider {

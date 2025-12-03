@@ -1,5 +1,6 @@
-import { ISO1 } from '@/types/iso_codes'
 import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+
+import { ISO1 } from '@/types/iso_codes'
 
 export const media = sqliteTable(
   'media',

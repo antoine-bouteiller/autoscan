@@ -1,8 +1,9 @@
+import type { QueueResponse } from '@/types/cleaner'
+
 import { tryCatch } from '@/app/exceptions/handler'
 import * as radarrService from '@/app/integrations/arr/radarr_client'
 import * as sonarrService from '@/app/integrations/arr/sonarr_client'
 import { logger } from '@/config/logger'
-import type { QueueResponse } from '@/types/cleaner'
 
 const STRIKE_COUNT = 5
 

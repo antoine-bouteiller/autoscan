@@ -1,7 +1,9 @@
-import env from '@/config/env'
-import Cloudflare from 'cloudflare'
 import type { RecordResponse } from 'cloudflare/resources/dns'
+
+import Cloudflare from 'cloudflare'
 import ky from 'ky'
+
+import env from '@/config/env'
 
 interface IpifyResponse {
   ip: string

@@ -1,8 +1,8 @@
-import { iso1ToIso2T, type ISOCode1 } from '@/types/iso_codes'
 import type { MediaType, PlexMedia } from '@/types/plex'
 
 import { getPlexMetadata } from '@/app/integrations/plex/plex_client'
 import { getTmdbMedia } from '@/app/integrations/tmdb/tmdb_client'
+import { iso1ToIso2T, type ISOCode1 } from '@/types/iso_codes'
 
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from './media_service'
 

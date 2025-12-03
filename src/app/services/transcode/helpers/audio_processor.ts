@@ -1,8 +1,10 @@
 import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
+
 import { logger } from '@/config/logger'
 import { type ISOCode1 } from '@/types/iso_codes'
 import { iso1ToIso2B } from '@/utils/iso_codes'
-import { isStreamWanted, type Criteria } from './utils'
+
+import { type Criteria, isStreamWanted } from './utils'
 
 const wantedAudioEncodings = ['aac', 'ac3', 'eac3']
 

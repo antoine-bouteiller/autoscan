@@ -1,3 +1,6 @@
+import { afterEach, describe, expect, test } from 'bun:test'
+import { and, eq } from 'drizzle-orm'
+
 import {
   countMediaByType,
   createdOrUpdatedMedia,
@@ -6,8 +9,6 @@ import {
 } from '@/app/services/media/media_service'
 import { db } from '@/config/db'
 import { media, type Media } from '@/database/schema'
-import { afterEach, describe, expect, test } from 'bun:test'
-import { and, eq } from 'drizzle-orm'
 
 describe('MediaService', () => {
   afterEach(async () => {

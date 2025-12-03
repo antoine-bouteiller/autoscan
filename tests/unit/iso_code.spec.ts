@@ -1,5 +1,6 @@
-import { iso1ToIso2B, normalizeToIso1 } from '@/utils/iso_codes'
 import { describe, expect, test } from 'bun:test'
+
+import { iso1ToIso2B, normalizeToIso1 } from '@/utils/iso_codes'
 
 describe('ISO codes', () => {
   describe('normalizeToIso1', () => {

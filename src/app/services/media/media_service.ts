@@ -1,10 +1,10 @@
 import { and, asc, count, eq } from 'drizzle-orm'
 
+import type { ISOCode1 } from '@/types/iso_codes'
 import type { MediaType } from '@/types/plex'
 
 import { db } from '@/config/db'
 import { media as mediaTable } from '@/database/schema'
-import type { ISOCode1 } from '@/types/iso_codes'
 
 export const countMediaByType = (type: MediaType) =>
   db.select({ count: count() }).from(mediaTable).where(eq(mediaTable.type, type))

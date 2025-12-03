@@ -1,12 +1,15 @@
+import type { MessageXFragment } from '@grammyjs/hydrate/out/data/message'
+
+import { ConversationMenuRange } from '@grammyjs/conversations'
+import { and, eq } from 'drizzle-orm'
+
+import type { MediaType } from '@/types/plex'
+import type { ConfigureLanguageContext, ConfigureLanguageConversation } from '@/types/telegram'
+
 import { db } from '@/config/db'
 import { media, type Media } from '@/database/schema'
 import { iso1ToIso2T } from '@/types/iso_codes'
-import type { MediaType } from '@/types/plex'
-import type { ConfigureLanguageContext, ConfigureLanguageConversation } from '@/types/telegram'
 import { normalizeToIso1 } from '@/utils/iso_codes'
-import { ConversationMenuRange } from '@grammyjs/conversations'
-import type { MessageXFragment } from '@grammyjs/hydrate/out/data/message'
-import { and, eq } from 'drizzle-orm'
 
 const handleMediaSelection = async (
   menuConversation: ConfigureLanguageConversation,
@@ -36,17 +39,17 @@ const handleMediaSelection = async (
 }
 
 export const createMenu = ({
+  mediaType,
   menuConversation,
   menuMedia,
-  page,
-  mediaType,
   message,
+  page,
 }: {
+  mediaType: MediaType
   menuConversation: ConfigureLanguageConversation
   menuMedia: Media[]
-  page: number
   message: MessageXFragment
-  mediaType: MediaType
+  page: number
 }): ReturnType<typeof menuConversation.menu> => {
   const currentMenu = menuMedia.slice(0, 10)
 

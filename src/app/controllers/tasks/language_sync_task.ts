@@ -9,7 +9,7 @@ export const updatePlexSelectedLanguages = async () => {
   for (const section of sections) {
     const medias = await getSectionMedia(section.key, section.type)
     for (const media of medias) {
-      const { partsId, mediaTitle, originalLanguage, streams } =
+      const { mediaTitle, originalLanguage, partsId, streams } =
         await getCompleteMediaDetails(media)
 
       await tryCatch(handleUpdateLanguage, { mediaTitle, originalLanguage, partsId, streams })

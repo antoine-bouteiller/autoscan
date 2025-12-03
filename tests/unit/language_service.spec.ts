@@ -1,5 +1,7 @@
-import type { PlexMediaStream } from '@/types/plex'
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
+
+import type { PlexMediaStream } from '@/types/plex'
+
 import {
   mockAudioStreamFrench,
   mockAudioStreamNotMatching,

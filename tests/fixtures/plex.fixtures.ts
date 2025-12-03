@@ -1,19 +1,19 @@
 import type { PlexMedia, PlexReponse } from '@/types/plex'
 
 export const mockPlexMovie: PlexMedia = {
+  key: '/library/metadata/123',
+  librarySectionID: 1,
   Media: [
     {
       Part: [
         {
-          Stream: [],
           file: '/path/to/{tmdb-12345}/movie.mkv',
           id: 456,
+          Stream: [],
         },
       ],
     },
   ],
-  key: '/library/metadata/123',
-  librarySectionID: 1,
   primaryExtraKey: '/library/metadata/123',
   ratingKey: '123',
   title: 'Test Movie',
@@ -22,20 +22,20 @@ export const mockPlexMovie: PlexMedia = {
 }
 
 export const mockPlexEpisode: PlexMedia = {
+  grandparentTitle: 'Test Show',
+  key: '/library/metadata/789',
+  librarySectionID: 2,
   Media: [
     {
       Part: [
         {
-          Stream: [],
           file: '/path/to/{tmdb-67890}/S01E01.mkv',
           id: 999,
+          Stream: [],
         },
       ],
     },
   ],
-  grandparentTitle: 'Test Show',
-  key: '/library/metadata/789',
-  librarySectionID: 2,
   parentTitle: 'Season 1',
   primaryExtraKey: '/library/metadata/789',
   ratingKey: '789',
@@ -49,19 +49,19 @@ export const mockPlexMovieResponse: PlexReponse = {
     Directory: [],
     Metadata: [
       {
+        key: '/library/metadata/123',
+        librarySectionID: 1,
         Media: [
           {
             Part: [
               {
-                Stream: [],
                 file: '/path/to/{tmdb-12345}/movie.mkv',
                 id: 456,
+                Stream: [],
               },
             ],
           },
         ],
-        key: '/library/metadata/123',
-        librarySectionID: 1,
         primaryExtraKey: '/library/metadata/123',
         ratingKey: '123',
         title: 'Test Movie',
@@ -77,20 +77,20 @@ export const mockPlexEpisodeResponse: PlexReponse = {
     Directory: [],
     Metadata: [
       {
+        grandparentTitle: 'Test Show',
+        key: '/library/metadata/789',
+        librarySectionID: 2,
         Media: [
           {
             Part: [
               {
-                Stream: [],
                 file: '/path/to/{tmdb-67890}/S01E01.mkv',
                 id: 999,
+                Stream: [],
               },
             ],
           },
         ],
-        grandparentTitle: 'Test Show',
-        key: '/library/metadata/789',
-        librarySectionID: 2,
         parentTitle: 'Season 1',
         primaryExtraKey: '/library/metadata/789',
         ratingKey: '789',
@@ -113,9 +113,9 @@ export const mockPlexSectionsResponse: PlexReponse = {
 }
 
 export const mockPlexMovieMetadata: PlexMedia = {
-  Media: [],
   key: '/library/metadata/1',
   librarySectionID: 1,
+  Media: [],
   primaryExtraKey: '/library/metadata/1',
   ratingKey: '1',
   title: 'Movie 1',
@@ -124,10 +124,10 @@ export const mockPlexMovieMetadata: PlexMedia = {
 }
 
 export const mockPlexEpisodeMetadata: PlexMedia = {
-  Media: [],
   grandparentTitle: 'Show 2',
   key: '3',
   librarySectionID: 4,
+  Media: [],
   primaryExtraKey: '4',
   ratingKey: '2',
   title: 'Show 1',
@@ -136,9 +136,9 @@ export const mockPlexEpisodeMetadata: PlexMedia = {
 }
 
 export const mockPlexMovieNoFile: PlexMedia = {
-  Media: [],
   key: '/library/metadata/123',
   librarySectionID: 1,
+  Media: [],
   primaryExtraKey: '/library/metadata/123',
   ratingKey: '123',
   title: 'Test Movie',
@@ -147,19 +147,19 @@ export const mockPlexMovieNoFile: PlexMedia = {
 }
 
 export const mockPlexMovieNoTmdbId: PlexMedia = {
+  key: '/library/metadata/123',
+  librarySectionID: 1,
   Media: [
     {
       Part: [
         {
-          Stream: [],
           file: '/path/to/movie.mkv',
           id: 456,
+          Stream: [],
         },
       ],
     },
   ],
-  key: '/library/metadata/123',
-  librarySectionID: 1,
   primaryExtraKey: '/library/metadata/123',
   ratingKey: '123',
   title: 'Test Movie',

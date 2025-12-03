@@ -1,7 +1,9 @@
 import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
+
 import { logger } from '@/config/logger'
 import { type ISOCode1 } from '@/types/iso_codes'
-import { isStreamWanted, type Criteria } from './utils'
+
+import { type Criteria, isStreamWanted } from './utils'
 
 const wantedSubtitleEncodings = ['subrip', 'ass']
 
@@ -38,7 +40,7 @@ export const processSubtitleStreams = async (
   originalLanguage: ISOCode1,
   mediaTitle: string
 ) => {
-  const subtitlesToKeep: { language: ISOCode1; index: number }[] = []
+  const subtitlesToKeep: { index: number; language: ISOCode1 }[] = []
   if (originalLanguage === 'fr' || subtitleStreams.length === 0) {
     return []
   }

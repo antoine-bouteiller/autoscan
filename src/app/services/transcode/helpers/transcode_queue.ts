@@ -1,22 +1,23 @@
+import type { ISOCode1 } from '@/types/iso_codes'
+
 import { executeFfmpeg } from '@/app/integrations/ffmpeg/ffmpeg_client'
 import { handlePostTranscode } from '@/app/services/transcode/helpers/post_transcode'
 import { logger } from '@/config/logger'
-import type { ISOCode1 } from '@/types/iso_codes'
 
 export interface TranscodeJob {
-  id: number
-  file: string
-  mediaTitle: string
-  originalLanguage: ISOCode1
-  mediaType: 'movie' | 'show'
   command: string[]
-  subtitlesToExtract: { language: ISOCode1; index: number }[]
+  file: string
+  id: number
+  mediaTitle: string
+  mediaType: 'movie' | 'show'
+  originalLanguage: ISOCode1
+  subtitlesToExtract: { index: number; language: ISOCode1 }[]
 }
 
 class TranscodeQueue {
-  private readonly queue: TranscodeJob[] = []
-  private isProcessing = false
   private currentJob?: TranscodeJob
+  private isProcessing = false
+  private readonly queue: TranscodeJob[] = []
 
   enqueue(job: TranscodeJob): void {
     if (this.queue.some((j) => j.id === job.id)) {
@@ -28,6 +29,18 @@ class TranscodeQueue {
 
     if (!this.isProcessing) {
       this.processQueue()
+    }
+  }
+
+  getStatus(): {
+    currentJob?: TranscodeJob
+    isProcessing: boolean
+    queueLength: number
+  } {
+    return {
+      currentJob: this.currentJob,
+      isProcessing: this.isProcessing,
+      queueLength: this.queue.length,
     }
   }
 
@@ -91,18 +104,6 @@ class TranscodeQueue {
     }
 
     this.isProcessing = false
-  }
-
-  getStatus(): {
-    currentJob?: TranscodeJob
-    isProcessing: boolean
-    queueLength: number
-  } {
-    return {
-      currentJob: this.currentJob,
-      isProcessing: this.isProcessing,
-      queueLength: this.queue.length,
-    }
   }
 }
 

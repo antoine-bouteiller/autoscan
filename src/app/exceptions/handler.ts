@@ -1,7 +1,7 @@
+import { CloudflareError } from 'cloudflare'
 import { ZodError } from 'zod'
 
 import { logger } from '@/config/logger'
-import { CloudflareError } from 'cloudflare'
 
 export const handleError = (error: unknown, context: object = {}) => {
   if (error instanceof ZodError) {
@@ -9,7 +9,7 @@ export const handleError = (error: unknown, context: object = {}) => {
   } else if (error instanceof CloudflareError && 'errors' in error && Array.isArray(error.errors)) {
     logger.error(context, error.errors.map((error) => error.message).join(', '))
   } else if (error instanceof Error) {
-    const { message, cause } = error
+    const { cause, message } = error
     const fullMessage =
       cause && typeof cause === 'object' && 'message' in cause
         ? `${message}: ${cause.message}`

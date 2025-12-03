@@ -1,11 +1,13 @@
-import { db } from '@/config/db'
-import { media } from '@/database/schema'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 import { and, eq } from 'drizzle-orm'
+
+import { db } from '@/config/db'
+import { media } from '@/database/schema'
+
 import { mockPlexEpisode, mockPlexMovie, mockPlexMovieResponse } from '../fixtures/plex.fixtures'
 import { mockGetPlexMetadata, mockGetTmdbMedia } from '../mocks'
 
-const { buildMediaTitle, extractTmdbIdFromPath, getOriginalLanguage, getCompleteMediaDetails } =
+const { buildMediaTitle, extractTmdbIdFromPath, getCompleteMediaDetails, getOriginalLanguage } =
   await import('@/app/services/media/metadata_service')
 
 describe('MetadataService', () => {
@@ -140,8 +142,8 @@ describe('MetadataService', () => {
           {
             Part: [
               {
-                Stream: [],
                 id: 999,
+                Stream: [],
               },
             ],
           },
@@ -175,9 +177,9 @@ describe('MetadataService', () => {
           {
             Part: [
               {
-                Stream: [],
                 file: '/path/without/tmdb/movie.mkv',
                 id: 456,
+                Stream: [],
               },
             ],
           },

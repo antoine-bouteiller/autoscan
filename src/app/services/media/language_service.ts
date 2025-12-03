@@ -1,19 +1,19 @@
-import { type ISOCode1 } from '@/types/iso_codes'
 import type { PlexMediaStream } from '@/types/plex'
 
 import { updateStream } from '@/app/integrations/plex/plex_client'
 import { logger } from '@/config/logger'
+import { type ISOCode1 } from '@/types/iso_codes'
 import { normalizeToIso1 } from '@/utils/iso_codes'
 
 interface UpdateLanguageParams {
   mediaTitle: string
-  streams: PlexMediaStream[]
   originalLanguage: ISOCode1
   partsId: number
+  streams: PlexMediaStream[]
 }
 
 export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
-  const { mediaTitle, streams, originalLanguage, partsId } = params
+  const { mediaTitle, originalLanguage, partsId, streams } = params
 
   const audioStream = streams.find(
     (stream: PlexMediaStream) =>

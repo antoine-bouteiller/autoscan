@@ -1,3 +1,4 @@
+import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 import { getMovieByPath, refreshMovie, renameMovie } from '@/app/integrations/arr/radarr_client'
@@ -5,7 +6,6 @@ import { getSeriesByPath, refreshSeries, renameSeries } from '@/app/integrations
 import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
 import { getSections, refreshSection } from '@/app/integrations/plex/plex_client'
 import { logger } from '@/config/logger'
-import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 
 export const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<void> => {
   const paths = file.split('/')
@@ -46,15 +46,15 @@ export const cleanUp = async (id: number, file: string, mediaTitle: string): Pro
 }
 
 export const handlePostTranscode = async ({
-  id,
   filePath,
-  mediaType,
+  id,
   mediaTitle,
+  mediaType,
 }: {
   filePath: string
-  mediaType: 'movie' | 'show'
-  mediaTitle: string
   id: number
+  mediaTitle: string
+  mediaType: 'movie' | 'show'
 }): Promise<void> => {
   try {
     await cleanUp(id, filePath, mediaTitle)

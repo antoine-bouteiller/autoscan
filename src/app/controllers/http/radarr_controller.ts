@@ -7,7 +7,7 @@ import { radarrValidator } from '@/app/validators/http/radarr_webhook_validator'
 
 export const radarrWebhook = async (request: Request) => {
   const body = await request.json()
-  const { success, data, error } = radarrValidator.safeParse(body)
+  const { data, error, success } = radarrValidator.safeParse(body)
 
   if (!success) {
     handleError(error, { body })
