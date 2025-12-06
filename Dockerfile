@@ -29,7 +29,8 @@ FROM gcr.io/distroless/cc-debian12 AS release
 COPY --from=ffmpeg /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ffprobe
 
-COPY --from=prerelease /autoscan/index index
+COPY --from=prerelease /autoscan/index autoscan/index
+COPY --from=prerelease /autoscan/migrations autoscan/migrations
 
 EXPOSE 3030
-ENTRYPOINT ["./index"]
+ENTRYPOINT ["./autoscan/index"]
