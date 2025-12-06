@@ -21,7 +21,7 @@ export const ffprobe = async (input: string) => {
   const parsedOutput = ffprobeOutputValidator(JSON.parse(output))
 
   if (parsedOutput instanceof ArkErrors) {
-    throw new Error(`(ffprobe) output validation failed: ${parsedOutput.summary}`)
+    throw new TypeError(`(ffprobe) output validation failed: ${parsedOutput.summary}`)
   }
 
   return parsedOutput.streams
