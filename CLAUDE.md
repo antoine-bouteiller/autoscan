@@ -48,10 +48,10 @@ Tests mirror the source structure for easy navigation:
     - `subtitle.spec.ts` - Subtitle stream processing
     - `video.spec.ts` - Video stream processing
 - `tests/utils/` - Utility function tests
+- `tests/mocks.ts` - Mock implementations
 - `tests/ressources/` - Test Ressources files (non-test code)
   - `fixtures/` - Test fixtures and mock data
   - `videos/` - Sample video files for integration tests
-  - `mocks.ts` - Mock implementations
   - `config.ts` - Test configuration and helpers
 
 ## Key Features
