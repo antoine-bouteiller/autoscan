@@ -4,8 +4,8 @@ import { join } from 'node:path'
 
 import type { ISOCode1 } from '@/types/iso_codes'
 
-import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client'
-import { processSubtitleStreams } from '@/app/services/transcode/helpers/subtitle_processor.js'
+import { processSubtitleStreams } from '@/features/transcode/helpers/subtitle'
+import { ffprobe } from '@/integrations/ffmpeg/client'
 
 import { setupTestContext, videosPath } from '../config.js'
 

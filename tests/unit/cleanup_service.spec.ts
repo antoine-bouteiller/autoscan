@@ -15,7 +15,7 @@ import {
   mockSonarrRemoveQueueItem,
 } from '../mocks'
 
-const { cleanupAll } = await import('@/app/services/downloads/cleanup_service')
+const { cleanupAll } = await import('@/features/cleanup/service')
 
 describe('CleanupService', () => {
   beforeEach(() => {

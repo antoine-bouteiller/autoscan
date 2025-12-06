@@ -1,4 +1,4 @@
-import type { PlexMedia, PlexReponse } from '@/types/plex'
+import type { PlexMedia, PlexReponse } from '@/integrations/plex/client'
 
 export const mockPlexMovie: PlexMedia = {
   key: '/library/metadata/123',

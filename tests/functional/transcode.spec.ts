@@ -2,11 +2,10 @@ import { describe, expect, test } from 'bun:test'
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
+import type { FFprobeStream } from '@/features/transcode/validator'
 
-import { ffprobe } from '@/app/integrations/ffmpeg/ffmpeg_client.js'
-import { transcodeQueue } from '@/app/services/transcode/helpers/transcode_queue.js'
-import { transcodeFile } from '@/app/services/transcode/transcode_service.js'
+import { transcodeFile, transcodeQueue } from '@/features/transcode/service'
+import { ffprobe } from '@/integrations/ffmpeg/client.js'
 
 import { setupTestContext, videosPath } from '../config.js'
 

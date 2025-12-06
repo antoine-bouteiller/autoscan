@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
 
-import type { PlexMediaStream } from '@/types/plex'
+import type { PlexMediaStream } from '@/integrations/plex/client'
 
 import {
   mockAudioStreamFrench,
@@ -11,7 +11,7 @@ import {
 } from '../fixtures/media.fixtures'
 import { mockUpdateStream } from '../mocks'
 
-const { handleUpdateLanguage } = await import('@/app/services/media/language_service')
+const { handleUpdateLanguage } = await import('@/features/language/service')
 
 describe('LanguageService', () => {
   beforeEach(() => {

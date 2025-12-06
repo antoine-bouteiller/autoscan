@@ -8,7 +8,7 @@ import { mockPlexEpisode, mockPlexMovie, mockPlexMovieResponse } from '../fixtur
 import { mockGetPlexMetadata, mockGetTmdbMedia } from '../mocks'
 
 const { buildMediaTitle, extractTmdbIdFromPath, getCompleteMediaDetails, getOriginalLanguage } =
-  await import('@/app/services/media/metadata_service')
+  await import('@/features/metadata/service')
 
 describe('MetadataService', () => {
   beforeAll(() => {

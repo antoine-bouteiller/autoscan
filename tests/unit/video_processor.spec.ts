@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { FFprobeStream } from '@/app/validators/ffprobe_validator'
+import type { FFprobeStream } from '@/features/transcode/validator'
 
-import { processVideoStreams } from '@/app/services/transcode/helpers/video_processor'
+import { processVideoStreams } from '@/features/transcode/helpers/video'
 
 describe('processVideoStreams', () => {
   test('should keep valid video streams', () => {

@@ -1,4 +1,4 @@
-import type { QueueResponse } from '@/types/cleaner'
+import type { QueueResponse } from '@/features/cleanup/types'
 
 export const mockQueueResponseWithNoEligibleFiles: QueueResponse = {
   records: [

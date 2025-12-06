@@ -1,5 +1,5 @@
-import { handleError } from '@/app/exceptions/handler'
 import { logger } from '@/config/logger'
+import { handleError } from '@/utils/error_handler'
 
 type RouteConfig = Record<
   string,
@@ -36,7 +36,7 @@ class HttpProvider {
 
   start(): ReturnType<typeof Bun.serve> {
     if (this.server) {
-      logger.warn('HTTP server is already running')
+      logger.warn('server is already running', 'HTTP')
       return this.server
     }
 
@@ -52,7 +52,7 @@ class HttpProvider {
       routes: this.routes,
     })
 
-    logger.info(`HTTP server running at ${this.server.url}`)
+    logger.info(`Server running at ${this.server.url}`, 'HTTP')
 
     return this.server
   }
@@ -60,7 +60,7 @@ class HttpProvider {
   stop(): void {
     if (this.server) {
       this.server.stop()
-      logger.info('HTTP server stopped')
+      logger.info('Server stopped', 'HTTP')
       this.server = undefined
     }
   }
