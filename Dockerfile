@@ -24,13 +24,17 @@ RUN set -eux; \
 
 # copy production dependencies and source code into final image
 FROM gcr.io/distroless/cc-debian12 AS release
+WORKDIR /autoscan
 
 # Copy ffmpeg binaries from ffmpeg stage
 COPY --from=ffmpeg /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ffprobe
 
-COPY --from=prerelease /autoscan/index autoscan/index
-COPY --from=prerelease /autoscan/migrations autoscan/migrations
+COPY --from=prerelease /autoscan/index /autoscan/index
+COPY --from=prerelease /autoscan/migrations /autoscan/migrations
+COPY --from=prerelease /autoscan/resources /autoscan/resources
+
+USER 1000
 
 EXPOSE 3030
-ENTRYPOINT ["./autoscan/index"]
+ENTRYPOINT ["./index"]
