@@ -7,3 +7,4 @@ prisma/client
 autoscan.db
 tmp
 index
+*.bun-build

@@ -22,7 +22,7 @@ export const mockGetSections = mock()
 export const mockRefreshSection = mock()
 export const mockUpdateStream = mock()
 
-mock.module('@/app/integrations/plex/plex_client', () => ({
+mock.module('@/integrations/plex/client', () => ({
   getPlexMetadata: mockGetPlexMetadata,
   getSectionMedia: mockGetSectionMedia,
   getSections: mockGetSections,
@@ -32,7 +32,7 @@ mock.module('@/app/integrations/plex/plex_client', () => ({
 
 export const mockGetTmdbMedia = mock()
 
-mock.module('@/app/integrations/tmdb/tmdb_client', () => ({
+mock.module('@/integrations/tmdb/client', () => ({
   getTmdbMedia: mockGetTmdbMedia,
 }))
 
@@ -41,7 +41,7 @@ export const mockGetZoneId = mock()
 export const mockGetARecord = mock()
 export const mockUpdateDnsRecord = mock()
 
-mock.module('@/app/integrations/cloudflare/cloudflare_client', () => ({
+mock.module('@/integrations/cloudflare/client', () => ({
   getARecord: mockGetARecord,
   getPublicIP: mockGetPublicIP,
   getZoneId: mockGetZoneId,
@@ -54,7 +54,7 @@ export const mockRefreshSeries = mock()
 export const mockRenameSeries = mock()
 export const mockGetSeriesByPath = mock()
 
-mock.module('@/app/integrations/arr/sonarr_client', () => ({
+mock.module('@/integrations/sonarr/client', () => ({
   getQueue: mockSonarrGetQueue,
   getSeriesByPath: mockGetSeriesByPath,
   refreshSeries: mockRefreshSeries,
@@ -68,7 +68,7 @@ export const mockRefreshMovie = mock()
 export const mockRenameMovie = mock()
 export const mockGetMovieByPath = mock()
 
-mock.module('@/app/integrations/arr/radarr_client', () => ({
+mock.module('@/integrations/radarr/client', () => ({
   getMovieByPath: mockGetMovieByPath,
   getQueue: mockRadarrGetQueue,
   refreshMovie: mockRefreshMovie,

@@ -1,7 +1,7 @@
 import { Cron, type CronOptions } from 'croner'
 
-import { handleError, tryCatch } from '@/app/exceptions/handler'
 import { logger } from '@/config/logger'
+import { handleError, tryCatch } from '@/utils/error_handler'
 
 interface JobConfig {
   handler: () => Promise<void> | void
@@ -18,7 +18,7 @@ class SchedulerProvider {
 
     const existingJob = this.jobs.get(name)
     if (existingJob) {
-      logger.warn(`Cron job "${name}" already exists, skipping...`)
+      logger.warn(`job "${name}" already exists, skipping...`, 'Scheduler')
       return existingJob
     }
 
@@ -36,11 +36,11 @@ class SchedulerProvider {
       )
 
       this.jobs.set(name, job)
-      logger.info(`Registered cron job: ${name} (${pattern})`)
+      logger.info(`Registered cron job: ${name} (${pattern})`, 'Scheduler')
 
       return job
     } catch (error) {
-      handleError(error)
+      handleError(error, 'Scheduler')
     }
   }
 
@@ -54,7 +54,7 @@ class SchedulerProvider {
     for (const [, job] of this.jobs) {
       job.stop()
     }
-    logger.info('All cron jobs stopped')
+    logger.info('All cron jobs stopped', 'Scheduler')
   }
 }
 

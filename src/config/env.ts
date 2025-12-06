@@ -1,22 +1,20 @@
+import arkenv from 'arkenv'
 import { join } from 'node:path'
-import { z } from 'zod'
 
-const envSchema = z.object({
-  CLOUDFLARE_TOKEN: z.string(),
-  DOMAIN: z.string(),
-  PLEX_TOKEN: z.string(),
-  PLEX_URL: z.string(),
-  RADARR_API_KEY: z.string(),
-  RADARR_API_URL: z.string(),
-  SONARR_API_KEY: z.string(),
-  SONARR_API_URL: z.string(),
-  TELEGRAM_CHAT_ID: z.coerce.number(),
-  TELEGRAM_TOKEN: z.string(),
-  TMDB_API_TOKEN: z.string(),
-  TMDB_API_URL: z.string(),
+const env = arkenv({
+  CLOUDFLARE_TOKEN: 'string',
+  DOMAIN: 'string',
+  PLEX_TOKEN: 'string',
+  PLEX_URL: 'string',
+  RADARR_API_KEY: 'string',
+  RADARR_API_URL: 'string',
+  SONARR_API_KEY: 'string',
+  SONARR_API_URL: 'string',
+  TELEGRAM_CHAT_ID: 'string.numeric.parse',
+  TELEGRAM_TOKEN: 'string',
+  TMDB_API_TOKEN: 'string',
+  TMDB_API_URL: 'string',
 })
-
-const env = envSchema.parse(process.env)
 
 export default {
   ...env,

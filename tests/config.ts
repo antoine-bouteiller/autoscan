@@ -35,4 +35,4 @@ export const setupTestContext = function setupTestContext(testId: string) {
   }
 }
 
-export const videosPath = join(import.meta.dirname, 'videos')
+export const videosPath = join(import.meta.dirname, 'ressources/videos')
