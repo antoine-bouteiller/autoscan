@@ -1,3 +1,4 @@
+import { ArkErrors } from 'arktype'
 import { join } from 'node:path'
 
 import { handleError } from '@/app/exceptions/handler'
@@ -7,10 +8,10 @@ import { sonarrValidator } from '@/app/validators/http/sonarr_webhook_validator'
 
 export const sonarrWebhook = async (request: Request) => {
   const body = await request.json()
-  const { data, error, success } = sonarrValidator.safeParse(body)
+  const data = sonarrValidator(body)
 
-  if (!success) {
-    handleError(error, { body })
+  if (data instanceof ArkErrors) {
+    handleError(data, { body })
     return Response.json({ message: 'invalid request' }, { status: 400 })
   }
 

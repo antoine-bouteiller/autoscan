@@ -1,44 +1,40 @@
-import { z } from 'zod'
+import { type } from 'arktype'
 
-export const sonarrValidator = z.discriminatedUnion('eventType', [
-  z.object({
-    episodeFile: z.object({
-      relativePath: z.string(),
-    }),
-    episodes: z.array(
-      z.object({
-        title: z.string(),
-      })
-    ),
-    eventType: z.literal('Download'),
-    series: z.object({
-      path: z.string(),
-      title: z.string(),
-      tmdbId: z.coerce.number(),
-    }),
-  }),
-  z.object({
-    episodeFile: z
-      .object({
-        relativePath: z.string(),
-      })
-      .optional(),
-    eventType: z.literal(['EpisodeFileDelete', 'Rename']),
-    series: z.object({
-      path: z.string(),
-      title: z.string(),
-      tmdbId: z.coerce.number(),
-    }),
-  }),
-  z.object({
-    eventType: z.literal(['SeriesDelete']),
-    series: z.object({
-      path: z.string(),
-      title: z.string(),
-      tmdbId: z.coerce.number(),
-    }),
-  }),
-  z.object({
-    eventType: z.literal('Test'),
-  }),
-])
+const episodeType = type({
+  title: 'string',
+})
+
+export const sonarrValidator = type({
+  episodeFile: {
+    relativePath: 'string',
+  },
+  episodes: episodeType.array(),
+  eventType: "'Download'",
+  series: {
+    path: 'string',
+    title: 'string',
+    tmdbId: 'string.numeric.parse',
+  },
+})
+  .or({
+    'episodeFile?': {
+      relativePath: 'string',
+    },
+    eventType: "'EpisodeFileDelete' | 'Rename'",
+    series: {
+      path: 'string',
+      title: 'string',
+      tmdbId: 'string.numeric.parse',
+    },
+  })
+  .or({
+    eventType: "'SeriesDelete'",
+    series: {
+      path: 'string',
+      title: 'string',
+      tmdbId: 'string.numeric.parse',
+    },
+  })
+  .or({
+    eventType: "'Test'",
+  })

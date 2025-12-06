@@ -1,3 +1,4 @@
+import { ArkErrors } from 'arktype'
 import { mkdirSync } from 'node:fs'
 
 import { ffprobeOutputValidator } from '@/app/validators/ffprobe_validator'
@@ -17,7 +18,11 @@ export const ffprobe = async (input: string) => {
     `ffprobe -loglevel error -show_entries stream=index,codec_name,codec_type,channels,sample_rate:stream_tags=language -print_format json "${input}"`
   )
 
-  const parsedOutput = ffprobeOutputValidator.parse(JSON.parse(output))
+  const parsedOutput = ffprobeOutputValidator(JSON.parse(output))
+
+  if (parsedOutput instanceof ArkErrors) {
+    throw new Error(`ffprobe output validation failed: ${parsedOutput.summary}`)
+  }
 
   return parsedOutput.streams
 }

@@ -1,11 +1,11 @@
+import { ArkErrors } from 'arktype'
 import { CloudflareError } from 'cloudflare'
-import { ZodError } from 'zod'
 
 import { logger } from '@/config/logger'
 
 export const handleError = (error: unknown, context: object = {}) => {
-  if (error instanceof ZodError) {
-    logger.error({ ...context, issues: error.issues }, 'Parsing error')
+  if (error instanceof ArkErrors) {
+    logger.error({ ...context }, error.summary)
   } else if (error instanceof CloudflareError && 'errors' in error && Array.isArray(error.errors)) {
     logger.error(context, error.errors.map((error) => error.message).join(', '))
   } else if (error instanceof Error) {

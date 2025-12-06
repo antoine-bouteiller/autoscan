@@ -1,40 +1,36 @@
-import { z } from 'zod'
+import { type } from 'arktype'
 
-export const radarrValidator = z.discriminatedUnion('eventType', [
-  z.object({
-    eventType: z.literal('MovieFileDelete'),
-    movie: z.object({
-      folderPath: z.string(),
-      title: z.string(),
-      tmdbId: z.coerce.number(),
-    }),
-    movieFile: z
-      .object({
-        relativePath: z.string(),
-      })
-      .optional(),
-  }),
-  z.object({
-    deletedFiles: z.boolean(),
-    eventType: z.literal('MovieDelete'),
-    movie: z.object({
-      folderPath: z.string(),
-      title: z.string(),
-      tmdbId: z.coerce.number(),
-    }),
-  }),
-  z.object({
-    eventType: z.literal('Download'),
-    movie: z.object({
-      folderPath: z.string(),
-      title: z.string(),
-      tmdbId: z.coerce.number(),
-    }),
-    movieFile: z.object({
-      relativePath: z.string(),
-    }),
-  }),
-  z.object({
-    eventType: z.literal('Test'),
-  }),
-])
+export const radarrValidator = type({
+  eventType: "'MovieFileDelete'",
+  movie: {
+    folderPath: 'string',
+    title: 'string',
+    tmdbId: 'number',
+  },
+  'movieFile?': {
+    relativePath: 'string',
+  },
+})
+  .or({
+    deleteFiles: 'boolean',
+    eventType: "'MovieDelete'",
+    movie: {
+      folderPath: 'string',
+      title: 'string',
+      tmdbId: 'number',
+    },
+  })
+  .or({
+    eventType: "'Download'",
+    movie: {
+      folderPath: 'string',
+      title: 'string',
+      tmdbId: 'number',
+    },
+    movieFile: {
+      relativePath: 'string',
+    },
+  })
+  .or({
+    eventType: "'Test'",
+  })
