@@ -4,8 +4,12 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '@/config/db'
 import { media } from '@/database/schema'
 
-import { mockPlexEpisode, mockPlexMovie, mockPlexMovieResponse } from '../fixtures/plex.fixtures'
-import { mockGetPlexMetadata, mockGetTmdbMedia } from '../mocks'
+import { mockGetPlexMetadata, mockGetTmdbMedia } from '../../mocks'
+import {
+  mockPlexEpisode,
+  mockPlexMovie,
+  mockPlexMovieResponse,
+} from '../../ressources/fixtures/plex.fixtures'
 
 const { buildMediaTitle, extractTmdbIdFromPath, getCompleteMediaDetails, getOriginalLanguage } =
   await import('@/features/metadata/service')

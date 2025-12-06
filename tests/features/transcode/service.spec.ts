@@ -7,7 +7,7 @@ import type { FFprobeStream } from '@/features/transcode/validator'
 import { transcodeFile, transcodeQueue } from '@/features/transcode/service'
 import { ffprobe } from '@/integrations/ffmpeg/client.js'
 
-import { setupTestContext, videosPath } from '../config.js'
+import { setupTestContext, videosPath } from '../../config.js'
 
 const waitForQueueCompletion = async (): Promise<void> =>
   new Promise((resolve) => {

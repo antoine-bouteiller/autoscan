@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
 import {
+  mockRadarrGetQueue,
+  mockRadarrRemoveQueueItem,
+  mockSonarrGetQueue,
+  mockSonarrRemoveQueueItem,
+} from '../../mocks'
+import {
   mockQueueResponseEmpty,
   mockQueueResponseNormal,
   mockQueueResponseWithDangerousFiles,
   mockQueueResponseWithMissingFields,
   mockQueueResponseWithNoEligibleFiles,
   mockQueueResponseWithStalledWarning,
-} from '../fixtures/queue.fixtures'
-import {
-  mockRadarrGetQueue,
-  mockRadarrRemoveQueueItem,
-  mockSonarrGetQueue,
-  mockSonarrRemoveQueueItem,
-} from '../mocks'
+} from '../../ressources/fixtures/queue.fixtures'
 
 const { cleanupAll } = await import('@/features/cleanup/service')
 

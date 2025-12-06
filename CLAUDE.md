@@ -15,12 +15,44 @@ Media automation service that integrates with Radarr, Sonarr, Plex, and TMDB.
 
 ## Architecture
 
-- `src/app/controllers/` - HTTP and task controllers
-- `src/app/integrations/` - External service clients (Radarr, Sonarr, Plex, TMDB, Cloudflare, FFmpeg)
-- `src/app/validators/` - Request validation
+### Source Structure
+
+- `src/features/` - Feature modules organized by domain
+  - `arr/` - Radarr and Sonarr webhook handlers
+  - `cleanup/` - Download queue cleanup service
+  - `dns/` - Dynamic DNS management
+  - `language/` - Audio language selection
+  - `media/` - Media database operations
+  - `metadata/` - TMDB metadata fetching
+  - `telegram/` - Telegram bot commands
+  - `transcode/` - FFmpeg transcoding pipeline
+- `src/integrations/` - External service clients (Radarr, Sonarr, Plex, TMDB, Cloudflare, FFmpeg)
 - `src/providers/` - HTTP, Telegram, and Scheduler providers
+- `src/config/` - Application configuration
 - `src/database/` - Database schema
 - `src/types/` - Type definitions
+- `src/utils/` - Utility functions
+
+### Test Structure
+
+Tests mirror the source structure for easy navigation:
+
+- `tests/features/` - Feature tests organized by domain
+  - `cleanup/service.spec.ts` - Cleanup service tests
+  - `language/service.spec.ts` - Language service tests
+  - `media/service.spec.ts` - Media service tests
+  - `metadata/service.spec.ts` - Metadata service tests
+  - `transcode/service.spec.ts` - End-to-end transcode tests
+  - `transcode/helpers/` - Transcode helper unit tests
+    - `audio.spec.ts` - Audio stream processing
+    - `subtitle.spec.ts` - Subtitle stream processing
+    - `video.spec.ts` - Video stream processing
+- `tests/utils/` - Utility function tests
+- `tests/ressources/` - Test Ressources files (non-test code)
+  - `fixtures/` - Test fixtures and mock data
+  - `videos/` - Sample video files for integration tests
+  - `mocks.ts` - Mock implementations
+  - `config.ts` - Test configuration and helpers
 
 ## Key Features
 

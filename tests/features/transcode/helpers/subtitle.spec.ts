@@ -7,7 +7,7 @@ import type { ISOCode1 } from '@/types/iso_codes'
 import { processSubtitleStreams } from '@/features/transcode/helpers/subtitle'
 import { ffprobe } from '@/integrations/ffmpeg/client'
 
-import { setupTestContext, videosPath } from '../config.js'
+import { setupTestContext, videosPath } from '../../../config.js'
 
 interface TestCase {
   file: string

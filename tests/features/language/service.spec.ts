@@ -2,14 +2,14 @@ import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
 
 import type { PlexMediaStream } from '@/integrations/plex/client'
 
+import { mockUpdateStream } from '../../mocks'
 import {
   mockAudioStreamFrench,
   mockAudioStreamNotMatching,
   mockAudioStreams,
   mockAudioStreamSelected,
   mockNonAudioStreams,
-} from '../fixtures/media.fixtures'
-import { mockUpdateStream } from '../mocks'
+} from '../../ressources/fixtures/media.fixtures'
 
 const { handleUpdateLanguage } = await import('@/features/language/service')
 

@@ -7,7 +7,7 @@ import type { ISOCode1 } from '@/types/iso_codes'
 import { processAudioStreams } from '@/features/transcode/helpers/audio'
 import { ffprobe } from '@/integrations/ffmpeg/client'
 
-import { setupTestContext, videosPath } from '../config.js'
+import { setupTestContext, videosPath } from '../../../config.js'
 
 interface TestCase {
   expected: {
