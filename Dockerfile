@@ -32,4 +32,4 @@ COPY --from=ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ffprobe
 COPY --from=prerelease /autoscan/index index
 
 EXPOSE 3030
-ENTRYPOINT [ "index" ]
+ENTRYPOINT ["./index"]
