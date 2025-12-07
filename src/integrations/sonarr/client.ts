@@ -1,64 +1,82 @@
 import env from '@/config/env'
 import { type QueueResponse, queueResponseValidator } from '@/features/cleanup'
+import { handleHttpError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import { seriesValidator } from './validators'
 
 const sonarrClient = httpClient({
-  baseUrl: `${env.SONARR_API_URL}/api/v3`,
+  baseUrl: new URL('/api/v3/', env.SONARR_API_URL),
   headers: {
     'X-Api-Key': env.SONARR_API_KEY,
   },
 })
 
 export const getQueue = async (): Promise<QueueResponse | undefined> => {
-  try {
-    return await sonarrClient.get('queue', {
-      validator: queueResponseValidator,
-    })
-  } catch {
+  const result = await sonarrClient.get('queue', {
+    validator: queueResponseValidator,
+  })
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Sonarr')
     return undefined
   }
+
+  return result.data
 }
 
 export const removeQueueItem = async (
   itemId: number,
   options: { blocklist: boolean; removeFromClient: boolean }
 ): Promise<void> => {
-  await sonarrClient.delete(`queue/${itemId}`, {
+  const result = await sonarrClient.delete(`queue/${itemId}`, {
     params: {
       blocklist: options.blocklist,
       removeFromClient: options.removeFromClient,
     },
   })
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Sonarr')
+  }
 }
 
 export const refreshSeries = async (seriesId: number): Promise<void> => {
-  await sonarrClient.post('command', {
+  const result = await sonarrClient.post('command', {
     body: {
       name: 'RefreshSeries',
       seriesId,
     },
   })
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Sonarr')
+  }
 }
 
 export const renameSeries = async (seriesId: number): Promise<void> => {
-  await sonarrClient.post('command', {
+  const result = await sonarrClient.post('command', {
     body: {
       name: 'RenameSeries',
       seriesIds: [seriesId],
     },
   })
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Sonarr')
+  }
 }
 
 export const getSeriesByPath = async (filePath: string): Promise<number | undefined> => {
-  try {
-    const series = await sonarrClient.get('series', {
-      validator: seriesValidator.array(),
-    })
-    const result = series.find((s) => filePath.startsWith(s.path))
-    return result?.id
-  } catch {
+  const result = await sonarrClient.get('series', {
+    validator: seriesValidator.array(),
+  })
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Sonarr')
     return undefined
   }
+
+  const series = result.data.find((s) => filePath.startsWith(s.path))
+  return series?.id
 }

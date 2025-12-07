@@ -1,40 +1,54 @@
 import env from '@/config/env'
+import { formatHttpError, handleHttpError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import {
   type DnsRecord,
-  type DnsRecordsResponse,
   dnsRecordsResponseValidator,
+  type ErrorResponse,
+  errorValidator,
   ipifyResponseValidator,
   zonesResponseValidator,
 } from './validators'
 
 const ipifyClient = httpClient({
-  baseUrl: 'https://api.ipify.org',
+  baseUrl: 'https://api.ipify.org/',
 })
 
 const cloudflareClient = httpClient({
-  baseUrl: 'https://api.cloudflare.com/client/v4',
+  baseUrl: 'https://api.cloudflare.com/client/v4/',
+  errorValidator: errorValidator,
   headers: {
     Authorization: `Bearer ${env.CLOUDFLARE_TOKEN}`,
   },
 })
 
+const formatCloudflareError = (body: ErrorResponse) => body.errors.map((e) => e.message).join(', ')
+
 export const getPublicIP = async () => {
-  const response = await ipifyClient.get('', {
+  const result = await ipifyClient.get('', {
     params: { format: 'json' },
     validator: ipifyResponseValidator,
   })
-  return response.ip
+
+  if (!result.ok) {
+    throw new Error(`(Cloudflare) ${formatHttpError(result.error)}`)
+  }
+
+  return result.data.ip
 }
 
 export const getZoneId = async (zoneName: string): Promise<string> => {
-  const zonesResp = await cloudflareClient.get('zones', {
+  const result = await cloudflareClient.get('zones', {
     params: { name: zoneName },
     validator: zonesResponseValidator,
   })
 
-  const [zone] = zonesResp.result
+  if (!result.ok) {
+    throw new Error(`(Cloudflare) ${formatHttpError(result.error, formatCloudflareError)}`)
+  }
+
+  const [zone] = result.data.result
 
   if (!zone) {
     throw new Error(`(Cloudflare) Zone not found`)
@@ -43,14 +57,22 @@ export const getZoneId = async (zoneName: string): Promise<string> => {
   return zone.id
 }
 
-export const getARecord = (recordName: string, zoneId: string): Promise<DnsRecordsResponse> =>
-  cloudflareClient.get(`zones/${zoneId}/dns_records`, {
+export const getARecord = async (recordName: string, zoneId: string) => {
+  const result = await cloudflareClient.get(`zones/${zoneId}/dns_records`, {
     params: { name: recordName, type: 'A' },
     validator: dnsRecordsResponseValidator,
   })
 
+  if (!result.ok) {
+    handleHttpError(result.error, 'Cloudflare', formatCloudflareError)
+    return undefined
+  }
+
+  return result.data
+}
+
 export const updateDnsRecord = async (record: DnsRecord, ip: string, zoneId: string) => {
-  await cloudflareClient.patch(`zones/${zoneId}/dns_records/${record.id}`, {
+  const result = await cloudflareClient.patch(`zones/${zoneId}/dns_records/${record.id}`, {
     body: {
       content: ip,
       name: record.name,
@@ -58,4 +80,8 @@ export const updateDnsRecord = async (record: DnsRecord, ip: string, zoneId: str
       type: record.type,
     },
   })
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Cloudflare', formatCloudflareError)
+  }
 }

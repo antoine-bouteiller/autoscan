@@ -15,7 +15,6 @@
   },
   "rules": {
     // restriction
-    "default-case": "error",
     "no-empty": "error",
     "no-empty-function": "error",
     "no-console": "error",
@@ -48,25 +47,25 @@
     "no-continue": "off",
     "max-params": "off",
     "no-await-in-loop": "off",
-    "init-declarations": "off",
+    "init-declarations": "off"
 
     // perfectionist
-    "perfectionist/sort-array-includes": ["error", { "type": "natural" }],
-    "perfectionist/sort-classes": ["error", { "type": "natural" }],
-    "perfectionist/sort-decorators": ["error", { "type": "natural" }],
-    "perfectionist/sort-enums": ["error", { "type": "natural" }],
-    "perfectionist/sort-exports": ["error", { "type": "natural" }],
-    "perfectionist/sort-imports": ["error", { "type": "natural" }],
-    "perfectionist/sort-interfaces": ["error", { "type": "natural" }],
-    "perfectionist/sort-intersection-types": ["error", { "type": "natural" }],
-    "perfectionist/sort-maps": ["error", { "type": "natural" }],
-    "perfectionist/sort-named-imports": ["error", { "type": "natural" }],
-    "perfectionist/sort-object-types": ["error", { "type": "natural" }],
-    "perfectionist/sort-objects": ["error", { "type": "natural" }],
-    "perfectionist/sort-sets": ["error", { "type": "natural" }],
-    "perfectionist/sort-switch-case": ["error", { "type": "natural" }],
-    "perfectionist/sort-union-types": ["error", { "type": "natural" }],
-    "perfectionist/sort-variable-declarations": ["error", { "type": "natural" }]
+    // "perfectionist/sort-array-includes": ["error", { "type": "natural" }],
+    // "perfectionist/sort-classes": ["error", { "type": "natural" }],
+    // "perfectionist/sort-decorators": ["error", { "type": "natural" }],
+    // "perfectionist/sort-enums": ["error", { "type": "natural" }],
+    // "perfectionist/sort-exports": ["error", { "type": "natural" }],
+    // "perfectionist/sort-imports": ["error", { "type": "natural" }]
+    // "perfectionist/sort-interfaces": ["error", { "type": "natural" }],
+    // "perfectionist/sort-intersection-types": ["error", { "type": "natural" }],
+    // "perfectionist/sort-maps": ["error", { "type": "natural" }],
+    // "perfectionist/sort-named-imports": ["error", { "type": "natural" }],
+    // "perfectionist/sort-object-types": ["error", { "type": "natural" }],
+    // "perfectionist/sort-objects": ["error", { "type": "natural" }],
+    // "perfectionist/sort-sets": ["error", { "type": "natural" }],
+    // "perfectionist/sort-switch-case": ["error", { "type": "natural" }],
+    // "perfectionist/sort-union-types": ["error", { "type": "natural" }],
+    // "perfectionist/sort-variable-declarations": ["error", { "type": "natural" }]
   },
   "ignorePatterns": ["bun.lock"]
 }

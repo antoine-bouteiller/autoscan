@@ -12,9 +12,13 @@ export const handleUpdateIp = async (recordName: string) => {
     zoneId = await getZoneId(ZONE_NAME)
   }
 
-  const listResp = await getARecord(recordName, zoneId)
+  const data = await getARecord(recordName, zoneId)
 
-  const [record] = listResp.result
+  if (!data) {
+    return
+  }
+
+  const [record] = data.result
 
   if (!record) {
     throw new Error(`(Cloudflare) No record A found with name ${recordName}`)

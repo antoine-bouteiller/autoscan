@@ -1,4 +1,5 @@
 import env from '@/config/env'
+import { handleHttpError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import { type PlexMedia, plexResponseValidator } from './validators'
@@ -15,10 +16,16 @@ const plexClient = httpClient({
 })
 
 export const getPlexMetadata = async (ratingKey: number) => {
-  const response = await plexClient.get(`library/metadata/${ratingKey}`, {
+  const result = await plexClient.get(`library/metadata/${ratingKey}`, {
     validator: plexResponseValidator,
   })
-  return response.MediaContainer.Metadata?.[0]
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Plex')
+    return undefined
+  }
+
+  return result.data.MediaContainer.Metadata?.[0]
 }
 
 export const getBasicMediaInfo = (plexMedia: PlexMedia) => {
@@ -34,25 +41,40 @@ export const getBasicMediaInfo = (plexMedia: PlexMedia) => {
 
 export const getSectionMedia = async (id: number, sectionType: 'movie' | 'show') => {
   const type = sectionType === 'show' ? 4 : 1
-  const response = await plexClient.get(`library/sections/${id}/all`, {
+  const result = await plexClient.get(`library/sections/${id}/all`, {
     params: { type },
     validator: plexResponseValidator,
   })
 
-  return response.MediaContainer.Metadata
+  if (!result.ok) {
+    handleHttpError(result.error, 'Plex')
+    return undefined
+  }
+
+  return result.data.MediaContainer.Metadata
 }
 
 export const getSections = async () => {
-  const response = await plexClient.get(`library/sections`, {
+  const result = await plexClient.get(`library/sections`, {
     validator: plexResponseValidator,
   })
-  return response.MediaContainer.Directory
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Plex')
+    return undefined
+  }
+
+  return result.data.MediaContainer.Directory
 }
 
 export const refreshSection = async (id: number, filePath: string) => {
-  await plexClient.get(`library/sections/${id}/refresh`, {
+  const result = await plexClient.get(`library/sections/${id}/refresh`, {
     params: { path: filePath },
   })
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Plex')
+  }
 }
 
 export const updateStream = async (
@@ -60,10 +82,14 @@ export const updateStream = async (
   streamId: number,
   type: 'audio' | 'subtitle'
 ) => {
-  await plexClient.put(`library/parts/${partsId}`, {
+  const result = await plexClient.put(`library/parts/${partsId}`, {
     params: {
       [`${type}StreamID`]: streamId,
       allParts: 1,
     },
   })
+
+  if (!result.ok) {
+    handleHttpError(result.error, 'Plex')
+  }
 }

@@ -29,7 +29,16 @@ export const zonesResponseValidator = type({
   success: 'boolean',
 })
 
+export const errorValidator = type({
+  errors: type({
+    code: 'number',
+    message: 'string',
+  }).array(),
+  success: 'boolean',
+})
+
 export type DnsRecord = typeof dnsRecordValidator.infer
 export type DnsRecordsResponse = typeof dnsRecordsResponseValidator.infer
+export type ErrorResponse = typeof errorValidator.infer
 export type Zone = typeof zoneValidator.infer
 export type ZonesResponse = typeof zonesResponseValidator.infer
