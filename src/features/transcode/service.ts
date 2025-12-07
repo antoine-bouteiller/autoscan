@@ -84,8 +84,10 @@ class TranscodeQueue {
           logger.info(`Extracting subtitle in ${subtitle.language}`, 'Transcode', job.mediaTitle)
 
           await executeFfmpeg(job.id, job.file, `${fileName}.${subtitle.language}.srt`, [
-            `-map 0:s:${subtitle.index}`,
-            `-c:s:${subtitle.index} srt`,
+            `-map`,
+            `0:s:${subtitle.index}`,
+            `-c:s:${subtitle.index}`,
+            `srt`,
           ])
         }
 
@@ -132,7 +134,7 @@ export const getTranscodeCommand = async (
     throw new Error(`(Transcode)(${mediaTitle}) File name not initialized`)
   }
 
-  const command: string[] = ['-c copy']
+  const command: string[] = ['-c', 'copy']
   let shouldExecute = false
 
   const videoResult = processVideoStreams(videoStreams, mediaTitle)

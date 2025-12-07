@@ -10,10 +10,7 @@ import { ffprobe } from '@/integrations/ffmpeg/client'
 import { setupTestContext, videosPath } from '../../../config.js'
 
 interface TestCase {
-  expected: {
-    commandAt?: { index: number; value: string }[]
-    length: number
-  }
+  expectedCommand: string[]
   file: string
   language: ISOCode1
   title: string
@@ -21,45 +18,31 @@ interface TestCase {
 
 const dataset: TestCase[] = [
   {
-    expected: {
-      commandAt: [{ index: 1, value: '-metadata:s:a:0 language=eng' }],
-      length: 2,
-    },
+    expectedCommand: ['-map', '0:a:0', '-metadata:s:a:0', 'language=eng'],
     file: 'test_audio_undefined.mkv',
     language: 'en',
     title: 'should tag audio stream with language if language is undefined - en',
   },
   {
-    expected: {
-      commandAt: [{ index: 1, value: '-metadata:s:a:0 language=fre' }],
-      length: 2,
-    },
+    expectedCommand: ['-map', '0:a:0', '-metadata:s:a:0', 'language=fre'],
     file: 'test_audio_undefined.mkv',
     language: 'fr',
     title: 'should tag audio stream with language if language is undefined - fr',
   },
   {
-    expected: {
-      commandAt: [{ index: 1, value: '-c:a:0 aac' }],
-      length: 3,
-    },
+    expectedCommand: ['-map', '0:a:0', '-c:a:0', 'aac', '-metadata:s:a:0', 'language=eng'],
     file: 'test_audio_dts.mkv',
     language: 'en',
     title: 'should convert dts to aac',
   },
   {
-    expected: {
-      commandAt: [{ index: 0, value: '-map 0:a:0' }],
-      length: 1,
-    },
+    expectedCommand: ['-map', '0:a:0'],
     file: 'test_audio_aac_dts.mkv',
     language: 'en',
     title: 'should keep aac over dts',
   },
   {
-    expected: {
-      length: 3,
-    },
+    expectedCommand: ['-map', '0:a:0', '-map', '0:a:1', '-map', '0:a:2'],
     file: 'test_audio_fre_eng_spa.mkv',
     language: 'es',
     title: 'should keep fr, en and original language',
@@ -72,7 +55,7 @@ describe('Clean audio', () => {
 
     test(testCase.title, async () => {
       const { testDir } = getContext()
-      const { expected, file, language } = testCase
+      const { expectedCommand, file, language } = testCase
 
       copyFileSync(join(videosPath, file), join(testDir, file))
 
@@ -81,11 +64,7 @@ describe('Clean audio', () => {
 
       const result = processAudioStreams(audioStreams, language, 'test')
 
-      expect(result.command.length).toBe(expected.length)
-
-      for (const { index, value } of expected.commandAt ?? []) {
-        expect(result.command[index]).toBe(value)
-      }
+      expect(result.command).toEqual(expectedCommand)
     })
   }
 })

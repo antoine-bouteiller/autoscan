@@ -16,7 +16,7 @@ describe('processVideoStreams', () => {
 
     const result = processVideoStreams(videoStreams, 'test-media')
 
-    expect(result.command).toEqual(['-map 0:v:0'])
+    expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(false)
   })
 
@@ -36,7 +36,7 @@ describe('processVideoStreams', () => {
 
     const result = processVideoStreams(videoStreams, 'test-media')
 
-    expect(result.command).toEqual(['-map 0:v:0'])
+    expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(true)
   })
 
@@ -56,7 +56,7 @@ describe('processVideoStreams', () => {
 
     const result = processVideoStreams(videoStreams, 'test-media')
 
-    expect(result.command).toEqual(['-map 0:v:0'])
+    expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(true)
   })
 
@@ -76,7 +76,7 @@ describe('processVideoStreams', () => {
 
     const result = processVideoStreams(videoStreams, 'test-media')
 
-    expect(result.command).toEqual(['-map 0:v:0'])
+    expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(true)
   })
 
@@ -96,7 +96,7 @@ describe('processVideoStreams', () => {
 
     const result = processVideoStreams(videoStreams, 'test-media')
 
-    expect(result.command).toEqual(['-map 0:v:0', '-map 0:v:1'])
+    expect(result.command).toEqual(['-map', '0:v:0', '-map', '0:v:1'])
     expect(result.shouldExecute).toBe(false)
   })
 
@@ -125,7 +125,7 @@ describe('processVideoStreams', () => {
 
     const result = processVideoStreams(videoStreams, 'test-media')
 
-    expect(result.command).toEqual(['-map 0:v:0'])
+    expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(true)
   })
 })

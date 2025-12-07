@@ -49,13 +49,13 @@ const processAudioStream = (
   originalLanguage: ISOCode1,
   mediaTitle: string
 ): { commands: string[]; needsTranscode: boolean } => {
-  const commands: string[] = [`-map 0:a:${streamIndex}`]
+  const commands: string[] = [`-map`, `0:a:${streamIndex}`]
   let needsTranscode = false
 
   const codec = stream?.codec_name?.toLowerCase()
 
   if (!codec || !wantedAudioEncodings.includes(codec)) {
-    commands.push(`-c:a:${streamIndex} aac`)
+    commands.push(`-c:a:${streamIndex}`, 'aac')
     needsTranscode = true
     logger.warn(
       `${languageCriteria[0]?.language} audio stream 0:a:${streamIndex} is ${codec}, converting to aac.`,
@@ -67,7 +67,7 @@ const processAudioStream = (
   if (stream?.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und') {
     // Convert to ISO 639-2/B (bibliographic) format for ffmpeg metadata
     const iso2BCode = iso1ToIso2B(originalLanguage)
-    commands.push(`-metadata:s:a:${streamIndex} language=${iso2BCode}`)
+    commands.push(`-metadata:s:a:${streamIndex}`, `language=${iso2BCode}`)
     needsTranscode = true
   }
 

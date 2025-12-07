@@ -1,16 +1,36 @@
-import { exec } from 'node:child_process'
-import { promisify } from 'node:util'
+import { spawn, type SpawnOptionsWithoutStdio } from 'node:child_process'
 
-const promisifiedExec = promisify(exec)
+export const spawnPromise = (
+  command: string,
+  args: string[] = [],
+  options: SpawnOptionsWithoutStdio = {}
+): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const child = spawn(command, args, options)
+    let stdout = ''
+    let stderr = ''
 
-export const execPromise = async (command: string) => {
-  try {
-    const { stdout } = await promisifiedExec(command)
-    return stdout
-  } catch (error) {
-    if (error instanceof Error && 'stderr' in error) {
-      throw new Error(String(error.stderr), { cause: error })
+    if (child.stdout) {
+      child.stdout.on('data', (data: Buffer) => {
+        stdout += data.toString()
+      })
     }
-    throw error
-  }
-}
+
+    if (child.stderr) {
+      child.stderr.on('data', (data: Buffer) => {
+        stderr += data.toString()
+      })
+    }
+
+    child.on('error', (err: Error) => {
+      reject(new Error(stderr || err.message, { cause: err }))
+    })
+
+    child.on('close', (code: null | number) => {
+      if (code !== 0) {
+        reject(new Error(stderr || `Command failed with exit code ${code}`))
+      } else {
+        resolve(stdout)
+      }
+    })
+  })

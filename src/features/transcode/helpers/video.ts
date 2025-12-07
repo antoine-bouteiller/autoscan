@@ -27,7 +27,7 @@ export const processVideoStreams = (
         mediaTitle
       )
     } else {
-      command.push(`-map 0:v:${index}`)
+      command.push(`-map`, `0:v:${index}`)
       countVideoStreamToKeep++
     }
   }
