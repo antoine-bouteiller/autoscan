@@ -27,10 +27,10 @@ export const spawnPromise = (
     })
 
     child.on('close', (code: null | number) => {
-      if (code !== 0) {
-        reject(new Error(stderr || `Command failed with exit code ${code}`))
-      } else {
+      if (code === 0) {
         resolve(stdout)
+      } else {
+        reject(new Error(stderr || `Command failed with exit code ${code}`))
       }
     })
   })
