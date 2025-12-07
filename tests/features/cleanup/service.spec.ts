@@ -13,7 +13,7 @@ import {
   mockQueueResponseWithMissingFields,
   mockQueueResponseWithNoEligibleFiles,
   mockQueueResponseWithStalledWarning,
-} from '../../ressources/fixtures/queue.fixtures'
+} from '../../resources/fixtures/queue.fixtures'
 
 const { cleanupAll } = await import('@/features/cleanup/service')
 

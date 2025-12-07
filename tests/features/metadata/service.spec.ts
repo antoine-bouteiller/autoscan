@@ -9,7 +9,7 @@ import {
   mockPlexEpisode,
   mockPlexMovie,
   mockPlexMovieResponse,
-} from '../../ressources/fixtures/plex.fixtures'
+} from '../../resources/fixtures/plex.fixtures'
 
 const {
   buildMediaTitle,

@@ -9,7 +9,7 @@ import {
   mockAudioStreams,
   mockAudioStreamSelected,
   mockNonAudioStreams,
-} from '../../ressources/fixtures/media.fixtures'
+} from '../../resources/fixtures/media.fixtures'
 
 const { handleUpdateLanguage } = await import('@/features/language/service')
 
