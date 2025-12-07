@@ -1,7 +1,7 @@
 import { ArkErrors } from 'arktype'
 import { join } from 'node:path'
 
-import { getOriginalLanguage } from '@/features/metadata/service'
+import { getMediaLanguage } from '@/features/metadata/service'
 import { transcodeFile } from '@/features/transcode/service'
 import { handleError } from '@/utils/error_handler'
 
@@ -25,7 +25,7 @@ export const radarrWebhook = async (request: Request) => {
   if (eventType === 'Download') {
     const file = join(data.movie.folderPath, data.movieFile.relativePath)
     const mediaTitle = data.movie.title
-    const originalLanguage = await getOriginalLanguage(data.movie.tmdbId, 'movie')
+    const { originalLanguage } = await getMediaLanguage(data.movie.tmdbId, 'movie')
 
     transcodeFile(file, mediaTitle, originalLanguage, 'movie')
   }

@@ -11,8 +11,12 @@ import {
   mockPlexMovieResponse,
 } from '../../ressources/fixtures/plex.fixtures'
 
-const { buildMediaTitle, extractTmdbIdFromPath, getCompleteMediaDetails, getOriginalLanguage } =
-  await import('@/features/metadata/service')
+const {
+  buildMediaTitle,
+  extractTmdbIdFromPath,
+  getCompleteMediaDetails,
+  getMediaLanguage: getOriginalLanguage,
+} = await import('@/features/metadata/service')
 
 describe('MetadataService', () => {
   beforeAll(() => {
@@ -87,17 +91,17 @@ describe('MetadataService', () => {
     test('should return language from database cache if available', async () => {
       mockGetTmdbMedia.mockClear() // Clear previous calls from other tests
 
-      const result = await getOriginalLanguage(123, 'movie')
+      const { originalLanguage } = await getOriginalLanguage(123, 'movie')
 
-      expect(result).toBe('fr')
+      expect(originalLanguage).toBe('fr')
       // TMDB should not be called since we have cached data
       expect(mockGetTmdbMedia).not.toHaveBeenCalled()
     })
 
     test('should fetch from TMDB and persist if not in cache', async () => {
-      const result = await getOriginalLanguage(456, 'show')
+      const { originalLanguage } = await getOriginalLanguage(456, 'show')
 
-      expect(result).toBe('es')
+      expect(originalLanguage).toBe('es')
       expect(mockGetTmdbMedia).toHaveBeenCalled()
 
       // Verify it was persisted to database
@@ -117,9 +121,9 @@ describe('MetadataService', () => {
     test('should return en as fallback if TMDB fails', async () => {
       mockGetTmdbMedia.mockResolvedValueOnce(undefined)
 
-      const result = await getOriginalLanguage(789, 'movie')
+      const { originalLanguage } = await getOriginalLanguage(789, 'movie')
 
-      expect(result).toBe('en')
+      expect(originalLanguage).toBe('en')
     })
   })
 

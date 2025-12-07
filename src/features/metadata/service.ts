@@ -17,18 +17,21 @@ export const buildMediaTitle = (
   title?: string
 ): string => [grandparentTitle, parentTitle, title].filter(Boolean).join(' - ')
 
-export const getOriginalLanguage = async (
+export const getMediaLanguage = async (
   tmdbId: number,
   mediaType: MediaType
-): Promise<ISOCode1> => {
+): Promise<{ originalLanguage: ISOCode1; preferredLanguage: ISOCode1 }> => {
   const cachedMedia = await getMediaFromDb(tmdbId, mediaType)
   if (cachedMedia) {
-    return cachedMedia.originalLanguage
+    return {
+      originalLanguage: cachedMedia.originalLanguage,
+      preferredLanguage: cachedMedia.preferredLanguage,
+    }
   }
 
   const tmdbData = await getTmdbMedia(tmdbId, mediaType)
   if (!tmdbData) {
-    return 'en'
+    return { originalLanguage: 'en', preferredLanguage: 'en' }
   }
 
   // TMDB returns ISO 639-1 (2-character) codes
@@ -37,7 +40,10 @@ export const getOriginalLanguage = async (
 
   await createdOrUpdatedMedia(tmdbId, mediaType, title, language)
 
-  return language
+  return {
+    originalLanguage: language,
+    preferredLanguage: language,
+  }
 }
 
 export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
@@ -61,7 +67,7 @@ export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
 
   const mediaType: MediaType = plexMedia.type === 'episode' ? 'show' : plexMedia.type
 
-  const originalLanguage = await getOriginalLanguage(tmdbId, mediaType)
+  const { originalLanguage, preferredLanguage } = await getMediaLanguage(tmdbId, mediaType)
 
   const plexMetadata = await getPlexMetadata(Number(plexMedia.ratingKey))
   const part = plexMetadata?.Media[0]?.Part[0]
@@ -76,6 +82,7 @@ export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
     mediaType,
     originalLanguage,
     partsId: part.id,
+    preferredLanguage,
     streams: part.Stream,
     tmdbId,
   }

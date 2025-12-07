@@ -6,27 +6,27 @@ import { normalizeToIso1 } from '@/utils/iso_codes'
 
 interface UpdateLanguageParams {
   mediaTitle: string
-  originalLanguage: ISOCode1
   partsId: number
+  preferredLanguage: ISOCode1
   streams: PlexMediaStream[]
 }
 
 export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
-  const { mediaTitle, originalLanguage, partsId, streams } = params
+  const { mediaTitle, partsId, preferredLanguage, streams } = params
 
   const audioStream = streams.find(
     (stream: PlexMediaStream) =>
-      stream.streamType === 2 && normalizeToIso1(stream.languageCode) === originalLanguage
+      stream.streamType === 2 && normalizeToIso1(stream.languageCode) === preferredLanguage
   )
 
   if (!audioStream) {
-    logger.warn(`No ${originalLanguage} audio stream found`, 'Language', mediaTitle)
+    logger.warn(`No ${preferredLanguage} audio stream found`, 'Language', mediaTitle)
     return
   }
 
   if (!audioStream.selected) {
-    logger.info(`Setting audio in ${originalLanguage}`, 'Language', mediaTitle)
+    logger.info(`Setting audio in ${preferredLanguage}`, 'Language', mediaTitle)
 
-    await updateStream(partsId, originalLanguage === 'fr' ? 0 : audioStream.id, 'audio')
+    await updateStream(partsId, preferredLanguage === 'fr' ? 0 : audioStream.id, 'audio')
   }
 }

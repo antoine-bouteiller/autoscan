@@ -1,7 +1,7 @@
 import { ArkErrors } from 'arktype'
 import { join } from 'node:path'
 
-import { getOriginalLanguage } from '@/features/metadata/service'
+import { getMediaLanguage } from '@/features/metadata/service'
 import { transcodeFile } from '@/features/transcode/service'
 import { handleError } from '@/utils/error_handler'
 
@@ -25,7 +25,7 @@ export const sonarrWebhook = async (request: Request) => {
   if (eventType === 'Download') {
     const file = join(data.series.path, data.episodeFile.relativePath)
     const mediaTitle = `${data.series.title} ${data.episodes[0]?.title}`
-    const originalLanguage = await getOriginalLanguage(data.series.tmdbId, 'show')
+    const { originalLanguage } = await getMediaLanguage(data.series.tmdbId, 'show')
 
     transcodeFile(file, mediaTitle, originalLanguage, 'show')
   }
