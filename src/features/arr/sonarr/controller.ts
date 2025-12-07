@@ -1,8 +1,8 @@
 import { ArkErrors } from 'arktype'
 import { join } from 'node:path'
 
-import { getMediaLanguage } from '@/features/metadata/service'
-import { transcodeFile } from '@/features/transcode/service'
+import { getMediaLanguage } from '@/features/metadata'
+import { transcodeFile } from '@/features/transcode'
 import { handleError } from '@/utils/error_handler'
 
 import { sonarrValidator } from './validator'

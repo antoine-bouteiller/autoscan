@@ -1,8 +1,9 @@
 import { ArkErrors } from 'arktype'
 import { mkdirSync } from 'node:fs'
 
-import { ffprobeOutputValidator } from '@/features/transcode/validator'
 import { spawnPromise } from '@/utils/exec_promisify'
+
+import { ffprobeOutputValidator } from './validator'
 
 export const executeFfmpeg = (id: number, input: string, output: string, command: string[]) => {
   const path = input.split('/')

@@ -8,7 +8,7 @@ import {
   createdOrUpdatedMedia,
   getMediaByIdAndType,
   getMediaByTypeWithPagination,
-} from '@/features/media/service'
+} from '@/features/media'
 
 describe('MediaService', () => {
   afterEach(async () => {

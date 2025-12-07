@@ -14,12 +14,9 @@
     "@grammyjs/hydrate": "^1.6.0",
     "arkenv": "^0.7.6",
     "arktype": "^2.1.28",
-    "cloudflare": "^5.2.0",
     "croner": "^9.1.0",
     "drizzle-orm": "^0.45.0",
-    "grammy": "^1.38.4",
-    "ky": "^1.14.0",
-    "tslog": "^4.10.2"
+    "grammy": "^1.38.4"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",

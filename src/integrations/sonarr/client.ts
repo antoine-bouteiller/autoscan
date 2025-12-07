@@ -1,35 +1,41 @@
-import ky from 'ky'
-
-import type { QueueResponse } from '@/features/cleanup/types'
-
 import env from '@/config/env'
+import { type QueueResponse, queueResponseValidator } from '@/features/cleanup'
+import { httpClient } from '@/utils/http_client'
 
-const sonarrClient = ky.create({
+import { seriesValidator } from './validators'
+
+const sonarrClient = httpClient({
+  baseUrl: `${env.SONARR_API_URL}/api/v3`,
   headers: {
     'X-Api-Key': env.SONARR_API_KEY,
   },
-  prefixUrl: `${env.SONARR_API_URL}/api/v3`,
-  throwHttpErrors: false,
 })
 
-export const getQueue = (): Promise<QueueResponse | undefined> =>
-  sonarrClient.get<QueueResponse | undefined>('queue').json()
+export const getQueue = async (): Promise<QueueResponse | undefined> => {
+  try {
+    return await sonarrClient.get('queue', {
+      validator: queueResponseValidator,
+    })
+  } catch {
+    return undefined
+  }
+}
 
 export const removeQueueItem = async (
   itemId: number,
   options: { blocklist: boolean; removeFromClient: boolean }
 ): Promise<void> => {
   await sonarrClient.delete(`queue/${itemId}`, {
-    searchParams: {
-      blocklist: options.blocklist.toString(),
-      removeFromClient: options.removeFromClient.toString(),
+    params: {
+      blocklist: options.blocklist,
+      removeFromClient: options.removeFromClient,
     },
   })
 }
 
 export const refreshSeries = async (seriesId: number): Promise<void> => {
   await sonarrClient.post('command', {
-    json: {
+    body: {
       name: 'RefreshSeries',
       seriesId,
     },
@@ -38,7 +44,7 @@ export const refreshSeries = async (seriesId: number): Promise<void> => {
 
 export const renameSeries = async (seriesId: number): Promise<void> => {
   await sonarrClient.post('command', {
-    json: {
+    body: {
       name: 'RenameSeries',
       seriesIds: [seriesId],
     },
@@ -46,7 +52,13 @@ export const renameSeries = async (seriesId: number): Promise<void> => {
 }
 
 export const getSeriesByPath = async (filePath: string): Promise<number | undefined> => {
-  const response = await sonarrClient.get('series').json<{ id: number; path: string }[]>()
-  const series = response.find((s) => filePath.startsWith(s.path))
-  return series?.id
+  try {
+    const series = await sonarrClient.get('series', {
+      validator: seriesValidator.array(),
+    })
+    const result = series.find((s) => filePath.startsWith(s.path))
+    return result?.id
+  } catch {
+    return undefined
+  }
 }

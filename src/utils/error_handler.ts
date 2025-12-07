@@ -1,13 +1,10 @@
 import { ArkErrors } from 'arktype'
-import { CloudflareError } from 'cloudflare'
 
 import { logger } from '@/config/logger'
 
 export const handleError = (error: unknown, ...context: string[]) => {
   if (error instanceof ArkErrors) {
     logger.error(error.summary, ...context)
-  } else if (error instanceof CloudflareError && 'errors' in error && Array.isArray(error.errors)) {
-    logger.error(error.errors.map((error) => error.message).join(', '), ...context)
   } else if (error instanceof Error) {
     const { cause, message } = error
     const fullMessage =

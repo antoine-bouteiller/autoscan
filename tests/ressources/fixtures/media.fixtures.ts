@@ -1,4 +1,4 @@
-import type { PlexMediaStream } from '@/integrations/plex/client'
+import type { PlexMediaStream } from '@/integrations/plex'
 
 export const mockAudioStreams: PlexMediaStream[] = [
   {

@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
 
-import type { PlexMediaStream } from '@/integrations/plex/client'
+import type { PlexMediaStream } from '@/integrations/plex'
 
 import { mockUpdateStream } from '../../mocks'
 import {

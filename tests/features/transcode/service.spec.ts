@@ -2,9 +2,9 @@ import { describe, expect, test } from 'bun:test'
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import type { FFprobeStream } from '@/features/transcode/validator'
+import type { FFprobeStream } from '@/integrations/ffmpeg/validator.js'
 
-import { transcodeFile, transcodeQueue } from '@/features/transcode/service'
+import { transcodeFile, transcodeQueue } from '@/features/transcode'
 import { ffprobe } from '@/integrations/ffmpeg/client.js'
 
 import { setupTestContext, videosPath } from '../../config.js'

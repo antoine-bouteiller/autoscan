@@ -1,27 +1,37 @@
-import type { RecordResponse } from 'cloudflare/resources/dns'
-
-import Cloudflare from 'cloudflare'
-import ky from 'ky'
-
 import env from '@/config/env'
+import { httpClient } from '@/utils/http_client'
 
-interface IpifyResponse {
-  ip: string
-}
+import {
+  type DnsRecord,
+  type DnsRecordsResponse,
+  dnsRecordsResponseValidator,
+  ipifyResponseValidator,
+  zonesResponseValidator,
+} from './validators'
 
-const cloudflare = new Cloudflare({
-  apiToken: env.CLOUDFLARE_TOKEN,
+const ipifyClient = httpClient({
+  baseUrl: 'https://api.ipify.org',
+})
+
+const cloudflareClient = httpClient({
+  baseUrl: 'https://api.cloudflare.com/client/v4',
+  headers: {
+    Authorization: `Bearer ${env.CLOUDFLARE_TOKEN}`,
+  },
 })
 
 export const getPublicIP = async () => {
-  const data = await ky<IpifyResponse>('https://api.ipify.org?format=json').json()
-
-  return data.ip
+  const response = await ipifyClient.get('', {
+    params: { format: 'json' },
+    validator: ipifyResponseValidator,
+  })
+  return response.ip
 }
 
 export const getZoneId = async (zoneName: string): Promise<string> => {
-  const zonesResp = await cloudflare.zones.list({
-    name: zoneName,
+  const zonesResp = await cloudflareClient.get('zones', {
+    params: { name: zoneName },
+    validator: zonesResponseValidator,
   })
 
   const [zone] = zonesResp.result
@@ -33,19 +43,19 @@ export const getZoneId = async (zoneName: string): Promise<string> => {
   return zone.id
 }
 
-export const getARecord = (recordName: string, zoneId: string) =>
-  cloudflare.dns.records.list({
-    name: { exact: recordName },
-    type: 'A',
-    zone_id: zoneId,
+export const getARecord = (recordName: string, zoneId: string): Promise<DnsRecordsResponse> =>
+  cloudflareClient.get(`zones/${zoneId}/dns_records`, {
+    params: { name: recordName, type: 'A' },
+    validator: dnsRecordsResponseValidator,
   })
 
-export const updateDnsRecord = async (record: RecordResponse, ip: string, zoneId: string) => {
-  await cloudflare.dns.records.update(record.id, {
-    content: ip,
-    name: record.name,
-    ttl: record.ttl,
-    type: record.type,
-    zone_id: zoneId,
+export const updateDnsRecord = async (record: DnsRecord, ip: string, zoneId: string) => {
+  await cloudflareClient.patch(`zones/${zoneId}/dns_records/${record.id}`, {
+    body: {
+      content: ip,
+      name: record.name,
+      ttl: record.ttl,
+      type: record.type,
+    },
   })
 }

@@ -1,6 +1,6 @@
 import { logger } from '@/config/logger'
-import { getCompleteMediaDetails } from '@/features/metadata/service'
-import { getSectionMedia, getSections } from '@/integrations/plex/client'
+import { getCompleteMediaDetails } from '@/features/metadata'
+import { getSectionMedia, getSections } from '@/integrations/plex'
 import { handleError, tryCatch } from '@/utils/error_handler'
 
 import { transcodeFile, transcodeQueue } from './service'
@@ -18,7 +18,7 @@ export const runTranscodeProcess = async () => {
     logger.info('Starting transcode scan...')
     const sections = await getSections()
 
-    for (const section of sections) {
+    for (const section of sections ?? []) {
       const medias = (await tryCatch(getSectionMedia, section.key, section.type)) ?? []
 
       for (const media of medias) {

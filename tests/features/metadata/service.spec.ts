@@ -129,7 +129,7 @@ describe('MetadataService', () => {
 
   describe('getCompleteMediaDetails', () => {
     test('should get complete details for a movie', async () => {
-      mockGetPlexMetadata.mockResolvedValue(mockPlexMovieResponse.MediaContainer.Metadata[0])
+      mockGetPlexMetadata.mockResolvedValue(mockPlexMovieResponse.MediaContainer.Metadata?.[0])
 
       const result = await getCompleteMediaDetails(mockPlexMovie)
 

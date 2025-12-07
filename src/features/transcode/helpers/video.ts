@@ -1,4 +1,4 @@
-import type { FFprobeStream } from '@/features/transcode/validator'
+import type { FFprobeStream } from '@/integrations/ffmpeg/validator'
 
 import { logger } from '@/config/logger'
 

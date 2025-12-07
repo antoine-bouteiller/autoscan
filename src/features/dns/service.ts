@@ -1,10 +1,5 @@
 import env from '@/config/env'
-import {
-  getARecord,
-  getPublicIP,
-  getZoneId,
-  updateDnsRecord,
-} from '@/integrations/cloudflare/client'
+import { getARecord, getPublicIP, getZoneId, updateDnsRecord } from '@/integrations/cloudflare'
 import { tryCatch } from '@/utils/error_handler'
 
 const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]

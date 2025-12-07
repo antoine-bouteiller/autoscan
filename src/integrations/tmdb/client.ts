@@ -1,36 +1,25 @@
-import ky from 'ky'
-
-import type { MediaType } from '@/integrations/plex/client'
-import type { ISOCode1 } from '@/types/iso_codes'
+import type { MediaType } from '@/integrations/plex'
 
 import env from '@/config/env'
+import { httpClient } from '@/utils/http_client'
 
-// Types
-export interface TmdbResponse {
-  languages: string[]
-  name: string
-  original_language: ISOCode1
-  title: string
-}
+import { type TmdbResponse, tmdbResponseValidator } from './validators'
 
-const tmdbClient = ky.create({
+const tmdbClient = httpClient({
+  baseUrl: env.TMDB_API_URL,
   headers: {
     Authorization: `Bearer ${env.TMDB_API_TOKEN}`,
   },
-  prefixUrl: env.TMDB_API_URL,
-  throwHttpErrors: false,
 })
 
 export const getTmdbMedia = async (
   tmdbId: number,
-  type: MediaType
+  mediaType: MediaType
 ): Promise<TmdbResponse | undefined> => {
-  const endpoint = type === 'movie' ? `movie/${tmdbId}` : `tv/${tmdbId}`
-  const response = await tmdbClient<TmdbResponse>(endpoint)
-
-  if (!response.ok) {
-    return
+  try {
+    const endpoint = mediaType === 'movie' ? `movie/${tmdbId}` : `tv/${tmdbId}`
+    return await tmdbClient.get(endpoint, { validator: tmdbResponseValidator })
+  } catch {
+    return undefined
   }
-
-  return response.json()
 }

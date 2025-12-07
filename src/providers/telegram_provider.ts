@@ -2,11 +2,9 @@ import { conversations, createConversation } from '@grammyjs/conversations'
 import { hydrate } from '@grammyjs/hydrate'
 import { Bot } from 'grammy'
 
-import type { TelegramContext } from '@/features/telegram/types'
-
 import env from '@/config/env'
 import { logger } from '@/config/logger'
-import { selectPreferedLanguage } from '@/features/telegram/controller'
+import { selectPreferedLanguage, type TelegramContext } from '@/features/telegram'
 import { handleError } from '@/utils/error_handler'
 
 class TelegramProvider {

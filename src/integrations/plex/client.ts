@@ -1,62 +1,24 @@
-import ky from 'ky'
-
-import type { ISOCode2T } from '@/types/iso_codes'
-
 import env from '@/config/env'
+import { httpClient } from '@/utils/http_client'
+
+import { type PlexMedia, plexResponseValidator } from './validators'
 
 // Types
 export type MediaType = 'movie' | 'show'
 
-export interface PlexMedia {
-  grandparentTitle?: string
-  key: string
-  librarySectionID: number
-  Media: {
-    Part: {
-      file: string
-      id: number
-      Stream: PlexMediaStream[]
-    }[]
-  }[]
-  parentTitle?: string
-  primaryExtraKey: string
-  ratingKey: string
-  title: string
-  type: 'episode' | 'movie'
-  year: number
-}
-
-export interface PlexMediaStream {
-  id: number
-  languageCode: ISOCode2T
-  selected: boolean
-  streamType: number
-  title?: string
-}
-
-export interface PlexReponse {
-  MediaContainer: {
-    Directory: {
-      key: number
-      title: string
-      type: MediaType
-    }[]
-    Metadata: PlexMedia[]
-  }
-}
-
-const plexClient = ky.create({
+const plexClient = httpClient({
+  baseUrl: env.PLEX_URL,
   headers: {
     Accept: 'application/json',
     'X-Plex-Token': env.PLEX_TOKEN,
   },
-  prefixUrl: env.PLEX_URL,
-  throwHttpErrors: false,
 })
 
 export const getPlexMetadata = async (ratingKey: number) => {
-  const response = await plexClient<PlexReponse>(`library/metadata/${ratingKey}`).json()
-  return response.MediaContainer.Metadata[0]
+  const response = await plexClient.get(`library/metadata/${ratingKey}`, {
+    validator: plexResponseValidator,
+  })
+  return response.MediaContainer.Metadata?.[0]
 }
 
 export const getBasicMediaInfo = (plexMedia: PlexMedia) => {
@@ -72,21 +34,24 @@ export const getBasicMediaInfo = (plexMedia: PlexMedia) => {
 
 export const getSectionMedia = async (id: number, sectionType: 'movie' | 'show') => {
   const type = sectionType === 'show' ? 4 : 1
-  const response = await plexClient<PlexReponse>(`library/sections/${id}/all?type=${type}`).json()
+  const response = await plexClient.get(`library/sections/${id}/all`, {
+    params: { type },
+    validator: plexResponseValidator,
+  })
 
   return response.MediaContainer.Metadata
 }
 
 export const getSections = async () => {
-  const response = await plexClient<PlexReponse>(`library/sections`).json()
+  const response = await plexClient.get(`library/sections`, {
+    validator: plexResponseValidator,
+  })
   return response.MediaContainer.Directory
 }
 
 export const refreshSection = async (id: number, filePath: string) => {
-  await plexClient(`library/sections/${id}/refresh`, {
-    searchParams: {
-      path: filePath,
-    },
+  await plexClient.get(`library/sections/${id}/refresh`, {
+    params: { path: filePath },
   })
 }
 
@@ -95,7 +60,10 @@ export const updateStream = async (
   streamId: number,
   type: 'audio' | 'subtitle'
 ) => {
-  await plexClient.put(`library/parts/${partsId}?${type}StreamID=${streamId}`, {
-    searchParams: { allParts: 1 },
+  await plexClient.put(`library/parts/${partsId}`, {
+    params: {
+      [`${type}StreamID`]: streamId,
+      allParts: 1,
+    },
   })
 }

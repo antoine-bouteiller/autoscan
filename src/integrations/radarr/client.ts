@@ -1,35 +1,41 @@
-import ky from 'ky'
-
-import type { QueueResponse } from '@/features/cleanup/types'
-
 import env from '@/config/env'
+import { type QueueResponse, queueResponseValidator } from '@/features/cleanup'
+import { httpClient } from '@/utils/http_client'
 
-const radarrClient = ky.create({
+import { movieValidator } from './validators'
+
+const radarrClient = httpClient({
+  baseUrl: `${env.RADARR_API_URL}/api/v3`,
   headers: {
     'X-Api-Key': env.RADARR_API_KEY,
   },
-  prefixUrl: `${env.RADARR_API_URL}/api/v3`,
-  throwHttpErrors: false,
 })
 
-export const getQueue = (): Promise<QueueResponse | undefined> =>
-  radarrClient.get<QueueResponse | undefined>('queue').json()
+export const getQueue = async (): Promise<QueueResponse | undefined> => {
+  try {
+    return await radarrClient.get('queue', {
+      validator: queueResponseValidator,
+    })
+  } catch {
+    return undefined
+  }
+}
 
 export const removeQueueItem = async (
   itemId: number,
   options: { blocklist: boolean; removeFromClient: boolean }
 ): Promise<void> => {
   await radarrClient.delete(`queue/${itemId}`, {
-    searchParams: {
-      blocklist: options.blocklist.toString(),
-      removeFromClient: options.removeFromClient.toString(),
+    params: {
+      blocklist: options.blocklist,
+      removeFromClient: options.removeFromClient,
     },
   })
 }
 
 export const refreshMovie = async (movieId: number): Promise<void> => {
   await radarrClient.post('command', {
-    json: {
+    body: {
       movieId,
       name: 'RefreshMovie',
     },
@@ -38,7 +44,7 @@ export const refreshMovie = async (movieId: number): Promise<void> => {
 
 export const renameMovie = async (movieId: number): Promise<void> => {
   await radarrClient.post('command', {
-    json: {
+    body: {
       files: [],
       movieId,
       name: 'RenameMovie',
@@ -47,7 +53,13 @@ export const renameMovie = async (movieId: number): Promise<void> => {
 }
 
 export const getMovieByPath = async (filePath: string): Promise<number | undefined> => {
-  const response = await radarrClient.get('movie').json<{ id: number; path: string }[]>()
-  const movie = response.find((m) => filePath.startsWith(m.path))
-  return movie?.id
+  try {
+    const movies = await radarrClient.get('movie', {
+      validator: movieValidator.array(),
+    })
+    const movie = movies.find((m) => filePath.startsWith(m.path))
+    return movie?.id
+  } catch {
+    return undefined
+  }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { FFprobeStream } from '@/features/transcode/validator'
+import type { FFprobeStream } from '@/integrations/ffmpeg/validator'
 
 import { processVideoStreams } from '@/features/transcode/helpers/video'
 
