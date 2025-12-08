@@ -21,7 +21,9 @@ export type HttpError<E = unknown> =
   | { message: string; type: 'parse' }
   | { status: number; statusText: string; type: 'http' }
 
-type RequestResponse<T, E = unknown> = { data: T; ok: true } | { error: HttpError<E>; ok: false }
+type RequestResponse<T, E = unknown> =
+  | { data: Type<T>['infer']; ok: true }
+  | { error: HttpError<Type<E>['infer']>; ok: false }
 
 export const httpClient = <E = unknown>(options: HttpClientOptions<E> = {}) => {
   const { baseUrl = '', errorValidator, headers: defaultHeaders = {} } = options
@@ -83,7 +85,7 @@ export const httpClient = <E = unknown>(options: HttpClientOptions<E> = {}) => {
             return { error: { errors: result, type: 'validation' }, ok: false }
           }
           return {
-            error: { body: result as E, status: response.status, type: 'api' },
+            error: { body: result, status: response.status, type: 'api' },
             ok: false,
           }
         } catch {
@@ -116,10 +118,10 @@ export const httpClient = <E = unknown>(options: HttpClientOptions<E> = {}) => {
       if (result instanceof ArkErrors) {
         return { error: { errors: result, type: 'validation' }, ok: false }
       }
-      return { data: result as T, ok: true }
+      return { data: result, ok: true }
     }
 
-    return { data: undefined as T, ok: true }
+    return { data: undefined as Type<T>['infer'], ok: true }
   }
 
   return {

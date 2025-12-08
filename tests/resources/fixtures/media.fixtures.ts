@@ -1,6 +1,6 @@
 import type { PlexMediaStream } from '@/integrations/plex'
 
-export const mockAudioStreams: PlexMediaStream[] = [
+export const mockAudioStreams = [
   {
     id: 1,
     languageCode: 'fra',
@@ -13,36 +13,36 @@ export const mockAudioStreams: PlexMediaStream[] = [
     selected: true,
     streamType: 2,
   },
-]
+] as const satisfies PlexMediaStream[]
 
-export const mockAudioStreamSelected: PlexMediaStream[] = [
+export const mockAudioStreamSelected = [
   {
     id: 1,
     languageCode: 'eng',
     selected: true,
     streamType: 2,
   },
-]
+] as const satisfies PlexMediaStream[]
 
-export const mockAudioStreamNotMatching: PlexMediaStream[] = [
+export const mockAudioStreamNotMatching = [
   {
     id: 1,
     languageCode: 'eng',
     selected: false,
     streamType: 2,
   },
-]
+] as const satisfies PlexMediaStream[]
 
-export const mockAudioStreamFrench: PlexMediaStream[] = [
+export const mockAudioStreamFrench = [
   {
     id: 1,
     languageCode: 'fra',
     selected: false,
     streamType: 2,
   },
-]
+] as const satisfies PlexMediaStream[]
 
-export const mockNonAudioStreams: PlexMediaStream[] = [
+export const mockNonAudioStreams = [
   {
     id: 1,
     languageCode: 'eng',
@@ -55,4 +55,4 @@ export const mockNonAudioStreams: PlexMediaStream[] = [
     selected: false,
     streamType: 3,
   },
-]
+] as const satisfies PlexMediaStream[]

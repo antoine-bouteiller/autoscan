@@ -82,7 +82,7 @@ export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
     originalLanguage,
     partsId: part.id,
     preferredLanguage,
-    streams: part.Stream,
+    streams: part.Stream ?? [],
     tmdbId,
   }
 }

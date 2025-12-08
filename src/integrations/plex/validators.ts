@@ -1,26 +1,28 @@
+import { ISO1, ISO2T } from '@/types/iso_codes'
 import { type } from 'arktype'
 
-export const plexMediaStreamValidator = type({
+const streamValidator = type({
   id: 'number',
-  languageCode: 'string',
-  selected: 'boolean',
-  streamType: 'number',
+  'languageCode?': type.enumerated(...ISO2T),
+  'languageTag?': type.enumerated(...ISO1),
+  selected: 'boolean = false',
+  streamType: '1 | 2 | 3',
   'title?': 'string',
 })
 
 export const plexMediaValidator = type({
   'grandparentTitle?': 'string',
   key: 'string',
-  librarySectionID: 'number',
+  'librarySectionID?': 'number',
   Media: type({
     Part: type({
       file: 'string',
       id: 'number',
-      Stream: plexMediaStreamValidator.array(),
+      'Stream?': streamValidator.array(),
     }).array(),
   }).array(),
   'parentTitle?': 'string',
-  primaryExtraKey: 'string',
+  'primaryExtraKey?': 'string',
   ratingKey: 'string',
   title: 'string',
   type: "'episode' | 'movie'",
@@ -28,7 +30,7 @@ export const plexMediaValidator = type({
 })
 
 export const plexDirectoryValidator = type({
-  key: 'number',
+  key: 'string.integer.parse',
   title: 'string',
   type: "'movie' | 'show'",
 })
@@ -40,6 +42,6 @@ export const plexResponseValidator = type({
   }),
 })
 
-export type PlexMediaStream = typeof plexMediaStreamValidator.infer
+export type PlexMediaStream = typeof streamValidator.infer
 export type PlexMedia = typeof plexMediaValidator.infer
 export type PlexReponse = typeof plexResponseValidator.infer
