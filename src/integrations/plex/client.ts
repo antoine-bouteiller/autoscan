@@ -1,5 +1,5 @@
 import env from '@/config/env'
-import { handleHttpError } from '@/utils/error_handler'
+import { formatHttpError, handleHttpError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import { type PlexMedia, plexResponseValidator } from './validators'
@@ -47,8 +47,7 @@ export const getSectionMedia = async (id: number, sectionType: 'movie' | 'show')
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Plex')
-    return undefined
+    throw new Error(formatHttpError(result.error))
   }
 
   return result.data.MediaContainer.Metadata

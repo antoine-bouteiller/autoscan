@@ -1,10 +1,9 @@
-import { ISO1, ISO2T } from '@/types/iso_codes'
+import { ISO2T } from '@/types/iso_codes'
 import { type } from 'arktype'
 
 const streamValidator = type({
   id: 'number',
   'languageCode?': type.enumerated(...ISO2T),
-  'languageTag?': type.enumerated(...ISO1),
   selected: 'boolean = false',
   streamType: '1 | 2 | 3',
   'title?': 'string',
