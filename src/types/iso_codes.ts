@@ -1,3 +1,5 @@
+import { inversedEntriesOf } from '@/utils/object'
+
 // ISO 639-1 (2-character codes)
 export const ISO1 = [
   'ar',
@@ -95,6 +97,8 @@ export const iso2BToIso2T = {
   rum: 'ron',
   slo: 'slk',
 } as const
+
+export const iso2TToIso2B = inversedEntriesOf(iso2BToIso2T)
 
 export type ISOCode1 = (typeof ISO1)[number]
 export type ISOCode2T = (typeof ISO2T)[number]

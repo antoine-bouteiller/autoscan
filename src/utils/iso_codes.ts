@@ -4,13 +4,14 @@ import {
   iso2BToIso2T,
   ISO2T,
   iso2ToIso1,
+  iso2TToIso2B,
   type ISOCode1,
   type ISOCode2B,
   type ISOCode2T,
 } from '@/types/iso_codes'
 
 import { isInArray } from './array'
-import { isKeyOf, typedEntriesOf } from './object'
+import { isKeyOf } from './object'
 
 /**
  * Normalize a language code to ISO 639-1 (2-character) format
@@ -68,9 +69,9 @@ export const normalizeToIso2T = (code?: string): ISOCode2T | undefined => {
 export const iso1ToIso2B = (code: ISOCode1): ISOCode2B => {
   const terminologic = iso1ToIso2T[code]
 
-  const bibliographicEntry = typedEntriesOf(iso2BToIso2T).find(
-    ([, iso2t]) => iso2t === terminologic
-  )
+  if (isKeyOf(iso2TToIso2B, terminologic)) {
+    return iso2TToIso2B[terminologic]
+  }
 
-  return bibliographicEntry ? bibliographicEntry[0] : (terminologic as ISOCode2B)
+  return terminologic
 }

@@ -19,9 +19,9 @@ export const formatHttpError = <E>(
       return `Validation error: ${error.errors.summary}`
     }
     case 'api': {
-      return apiFormatter
-        ? apiFormatter(error.body)
-        : `API error (${error.status}): ${JSON.stringify(error.body)}`
+      const body = typeof error.body === 'string' ? error.body : JSON.stringify(error.body)
+
+      return apiFormatter ? apiFormatter(error.body) : `API error (${error.status}): ${body}`
     }
     case 'http': {
       return `HTTP ${error.status}: ${error.statusText}`

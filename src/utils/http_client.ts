@@ -1,18 +1,6 @@
-import { ArkErrors, type Type } from 'arktype'
+import { ArkErrors, type, type Type } from 'arktype'
 
-interface HttpClientOptions<E = unknown> {
-  baseUrl?: `https://${string}/` | URL
-  errorValidator?: Type<E>
-  headers?: Record<string, string>
-}
-
-interface RequestOptions<T = void> {
-  body?: unknown
-  headers?: Record<string, string>
-  method?: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
-  params?: Record<string, boolean | number | string>
-  validator?: Type<T>
-}
+// --- 1. Fixed Types (Replaced void with undefined) ---
 
 export type HttpError<E = unknown> =
   | { body: E; status: number; type: 'api' }
@@ -21,31 +9,95 @@ export type HttpError<E = unknown> =
   | { message: string; type: 'parse' }
   | { status: number; statusText: string; type: 'http' }
 
-type RequestResponse<T, E = unknown> =
+export type RequestResponse<T, E = unknown> =
   | { data: Type<T>['infer']; ok: true }
   | { error: HttpError<Type<E>['infer']>; ok: false }
 
-export const httpClient = <E = unknown>(options: HttpClientOptions<E> = {}) => {
-  const { baseUrl = '', errorValidator, headers: defaultHeaders = {} } = options
+// FIX 1: Default T to 'undefined', not 'void'
+interface RequestOptions<T = undefined> {
+  body?: unknown
+  headers?: Record<string, string>
+  method?: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
+  params?: Record<string, boolean | number | string>
+  validator?: Type<T>
+}
+
+interface BaseOptions {
+  baseUrl?: `https://${string}/` | URL
+  headers?: Record<string, string>
+}
+
+interface OptionsWithValidator<E> extends BaseOptions {
+  errorValidator: Type<E>
+}
+
+interface OptionsDefault extends BaseOptions {
+  errorValidator?: never
+}
+
+// --- 2. Explicit Client Interface ---
+
+export interface HttpClient<E> {
+  get: <T = unknown>(
+    endpoint: string,
+    options?: Omit<RequestOptions<T>, 'body' | 'method'>
+  ) => Promise<RequestResponse<T, E>>
+
+  // FIX 2: Explicitly return RequestResponse<undefined, E> for non-body methods
+  post: (
+    endpoint: string,
+    options?: Omit<RequestOptions, 'method'>
+  ) => Promise<RequestResponse<undefined, E>>
+
+  put: (
+    endpoint: string,
+    options?: Omit<RequestOptions, 'method'>
+  ) => Promise<RequestResponse<undefined, E>>
+
+  patch: (
+    endpoint: string,
+    options?: Omit<RequestOptions, 'method'>
+  ) => Promise<RequestResponse<undefined, E>>
+
+  delete: (
+    endpoint: string,
+    options?: Omit<RequestOptions, 'method'>
+  ) => Promise<RequestResponse<undefined, E>>
+}
+
+// --- 3. Implementation ---
+
+export function httpClient(options?: OptionsDefault): HttpClient<unknown>
+export function httpClient<E>(options: OptionsWithValidator<E>): HttpClient<E>
+
+export function httpClient<E = unknown>(
+  options: OptionsDefault | OptionsWithValidator<E> = {}
+): HttpClient<E> {
+  const { baseUrl = '', headers: defaultHeaders = {} } = options
+
+  // FIX 3: Use 'any' to appease the strict linter (oxc/eslint)
+  // We know this is safe because of the Overloads above.
+  const errorValidator =
+    'errorValidator' in options && options.errorValidator
+      ? options.errorValidator
+      : (type('object') as unknown as Type<E>)
 
   const buildUrl = (endpoint: string, params?: Record<string, boolean | number | string>) => {
     const url = new URL(endpoint, baseUrl || undefined)
-
     if (params) {
       for (const [key, value] of Object.entries(params)) {
         url.searchParams.set(key, String(value))
       }
     }
-
     return url
   }
 
+  // FIX 4: Ensure generic default matches interface (T = undefined)
   const request = async <T = undefined>(
     endpoint: string,
     options: RequestOptions<T> = {}
   ): Promise<RequestResponse<T, E>> => {
     const { body, headers = {}, method = 'GET', params, validator } = options
-
     const url = buildUrl(endpoint, params)
 
     const requestHeaders: Record<string, string> = {
@@ -57,7 +109,6 @@ export const httpClient = <E = unknown>(options: HttpClientOptions<E> = {}) => {
       requestHeaders['Content-Type'] = 'application/json'
     }
 
-    // Catch network errors
     let response: Response
     try {
       response = await fetch(url, {
@@ -75,22 +126,20 @@ export const httpClient = <E = unknown>(options: HttpClientOptions<E> = {}) => {
       }
     }
 
-    // Handle non-OK responses
     if (!response.ok) {
-      if (errorValidator) {
-        try {
-          const errorBody = await response.json()
-          const result = errorValidator(errorBody)
-          if (result instanceof ArkErrors) {
-            return { error: { errors: result, type: 'validation' }, ok: false }
-          }
-          return {
-            error: { body: result, status: response.status, type: 'api' },
-            ok: false,
-          }
-        } catch {
-          // JSON parsing failed, fall through to generic HTTP error
+      try {
+        const errorBody = await response.json()
+        const result = errorValidator(errorBody)
+
+        if (result instanceof ArkErrors) {
+          return { error: { errors: result, type: 'validation' }, ok: false }
         }
+        return {
+          error: { body: result, status: response.status, type: 'api' },
+          ok: false,
+        }
+      } catch {
+        // Fallthrough
       }
       return {
         error: {
@@ -102,18 +151,16 @@ export const httpClient = <E = unknown>(options: HttpClientOptions<E> = {}) => {
       }
     }
 
-    // Handle successful responses
     if (validator) {
       let data: unknown
       try {
         data = await response.json()
       } catch {
         return {
-          error: { message: 'Failed to parse response as JSON', type: 'parse' },
+          error: { message: 'Failed to parse JSON', type: 'parse' },
           ok: false,
         }
       }
-
       const result = validator(data)
       if (result instanceof ArkErrors) {
         return { error: { errors: result, type: 'validation' }, ok: false }
@@ -121,27 +168,15 @@ export const httpClient = <E = unknown>(options: HttpClientOptions<E> = {}) => {
       return { data: result, ok: true }
     }
 
+    // FIX 5: Explicitly return undefined, matching T's default
     return { data: undefined as Type<T>['infer'], ok: true }
   }
 
   return {
-    delete: async (endpoint: string, options: Omit<RequestOptions, 'method'> = {}) =>
-      request(endpoint, { ...options, method: 'DELETE' }),
-
-    get: async <T = unknown>(
-      endpoint: string,
-      options: Omit<RequestOptions<T>, 'body' | 'method'> = {}
-    ) => request<T>(endpoint, { ...options, method: 'GET' }),
-
-    patch: async (endpoint: string, options: Omit<RequestOptions, 'method'> = {}) =>
-      request(endpoint, { ...options, method: 'PATCH' }),
-
-    post: async (endpoint: string, options: Omit<RequestOptions, 'method'> = {}) =>
-      request(endpoint, { ...options, method: 'POST' }),
-
-    put: async (endpoint: string, options: Omit<RequestOptions, 'method'> = {}) =>
-      request(endpoint, { ...options, method: 'PUT' }),
+    delete: (endpoint, options) => request(endpoint, { ...options, method: 'DELETE' }),
+    get: (endpoint, options) => request(endpoint, { ...options, method: 'GET' }),
+    patch: (endpoint, options) => request(endpoint, { ...options, method: 'PATCH' }),
+    post: (endpoint, options) => request(endpoint, { ...options, method: 'POST' }),
+    put: (endpoint, options) => request(endpoint, { ...options, method: 'PUT' }),
   }
 }
-
-export type HttpClient = ReturnType<typeof httpClient>
