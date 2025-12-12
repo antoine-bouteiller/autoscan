@@ -1,4 +1,5 @@
 import { ArkErrors, type, type Type } from 'arktype'
+import { logger } from '@/config/logger'
 
 // --- 1. Fixed Types (Replaced void with undefined) ---
 
@@ -141,6 +142,8 @@ export function httpClient<E = unknown>(
       } catch {
         // Fallthrough
       }
+      logger.error(url.toString())
+      logger.error(JSON.stringify(response))
       return {
         error: {
           status: response.status,
