@@ -6,7 +6,7 @@ import { httpClient } from '@/utils/http_client'
 import { seriesValidator } from './validators'
 
 const sonarrClient = httpClient({
-  baseUrl: new URL('/api/v3/', env.SONARR_API_URL),
+  baseUrl: `${env.SONARR_API_URL}/api/v3`,
   headers: {
     'X-Api-Key': env.SONARR_API_KEY,
   },

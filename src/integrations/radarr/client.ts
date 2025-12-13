@@ -6,7 +6,7 @@ import { httpClient } from '@/utils/http_client'
 import { movieValidator } from './validators'
 
 const radarrClient = httpClient({
-  baseUrl: new URL('/api/v3/', env.RADARR_API_URL),
+  baseUrl: `${env.RADARR_API_URL}/api/v3`,
   headers: {
     'X-Api-Key': env.RADARR_API_KEY,
   },

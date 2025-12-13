@@ -1,8 +1,6 @@
 import { ArkErrors, type, type Type } from 'arktype'
 import { logger } from '@/config/logger'
 
-// --- 1. Fixed Types (Replaced void with undefined) ---
-
 export type HttpError<E = unknown> =
   | { body: E; status: number; type: 'api' }
   | { errors: ArkErrors; type: 'validation' }
@@ -14,7 +12,6 @@ export type RequestResponse<T, E = unknown> =
   | { data: Type<T>['infer']; ok: true }
   | { error: HttpError<Type<E>['infer']>; ok: false }
 
-// FIX 1: Default T to 'undefined', not 'void'
 interface RequestOptions<T = undefined> {
   body?: unknown
   headers?: Record<string, string>
@@ -23,20 +20,11 @@ interface RequestOptions<T = undefined> {
   validator?: Type<T>
 }
 
-interface BaseOptions {
-  baseUrl?: `https://${string}/` | URL
+interface Options<E = unknown> {
+  baseUrl?: string
   headers?: Record<string, string>
+  errorValidator?: Type<E>
 }
-
-interface OptionsWithValidator<E> extends BaseOptions {
-  errorValidator: Type<E>
-}
-
-interface OptionsDefault extends BaseOptions {
-  errorValidator?: never
-}
-
-// --- 2. Explicit Client Interface ---
 
 export interface HttpClient<E> {
   get: <T = unknown>(
@@ -44,7 +32,6 @@ export interface HttpClient<E> {
     options?: Omit<RequestOptions<T>, 'body' | 'method'>
   ) => Promise<RequestResponse<T, E>>
 
-  // FIX 2: Explicitly return RequestResponse<undefined, E> for non-body methods
   post: (
     endpoint: string,
     options?: Omit<RequestOptions, 'method'>
@@ -66,25 +53,22 @@ export interface HttpClient<E> {
   ) => Promise<RequestResponse<undefined, E>>
 }
 
-// --- 3. Implementation ---
-
-export function httpClient(options?: OptionsDefault): HttpClient<unknown>
-export function httpClient<E>(options: OptionsWithValidator<E>): HttpClient<E>
-
-export function httpClient<E = unknown>(
-  options: OptionsDefault | OptionsWithValidator<E> = {}
-): HttpClient<E> {
+export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient<E> => {
   const { baseUrl = '', headers: defaultHeaders = {} } = options
 
-  // FIX 3: Use 'any' to appease the strict linter (oxc/eslint)
-  // We know this is safe because of the Overloads above.
   const errorValidator =
     'errorValidator' in options && options.errorValidator
       ? options.errorValidator
       : (type('object') as unknown as Type<E>)
 
   const buildUrl = (endpoint: string, params?: Record<string, boolean | number | string>) => {
-    const url = new URL(endpoint, baseUrl || undefined)
+    const cleanBase = baseUrl ? baseUrl.replace(/\/+$/, '') : ''
+    const cleanEndpoint = endpoint.replace(/^\/+/, '')
+
+    const urlString = cleanBase ? `${cleanBase}/${cleanEndpoint}` : cleanEndpoint
+
+    const url = new URL(urlString)
+
     if (params) {
       for (const [key, value] of Object.entries(params)) {
         url.searchParams.set(key, String(value))
@@ -93,7 +77,6 @@ export function httpClient<E = unknown>(
     return url
   }
 
-  // FIX 4: Ensure generic default matches interface (T = undefined)
   const request = async <T = undefined>(
     endpoint: string,
     options: RequestOptions<T> = {}
@@ -171,7 +154,6 @@ export function httpClient<E = unknown>(
       return { data: result, ok: true }
     }
 
-    // FIX 5: Explicitly return undefined, matching T's default
     return { data: undefined as Type<T>['infer'], ok: true }
   }
 
