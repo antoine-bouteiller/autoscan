@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { and, eq } from 'drizzle-orm'
 
 import { db } from '@/config/db'
@@ -10,6 +10,7 @@ import {
   mockPlexMovie,
   mockPlexMovieResponse,
 } from '../../resources/fixtures/plex.fixtures'
+import { tmdbMovieResponse, tmdbTvShowResponse } from '../../resources/fixtures/tmdb.fixtures'
 
 const {
   buildMediaTitle,
@@ -19,17 +20,7 @@ const {
 } = await import('@/features/metadata/service')
 
 describe('MetadataService', () => {
-  beforeAll(() => {
-    // Mock TMDB API responses - default for both movies and shows
-    mockGetTmdbMedia.mockResolvedValue({
-      name: 'Test Show From TMDB', // TV shows use 'name'
-      original_language: 'es',
-      title: 'Test Movie From TMDB', // Movies use 'title'
-    })
-  })
-
   beforeEach(async () => {
-    // Insert test data
     await db.insert(media).values({
       originalLanguage: 'fr',
       preferredLanguage: 'fr',
@@ -38,8 +29,8 @@ describe('MetadataService', () => {
       type: 'movie',
     })
 
-    // Reset mocks
     mockGetPlexMetadata.mockReset()
+    mockGetTmdbMedia.mockClear()
   })
 
   afterEach(async () => {
@@ -89,17 +80,17 @@ describe('MetadataService', () => {
 
   describe('getOriginalLanguage', () => {
     test('should return language from database cache if available', async () => {
-      mockGetTmdbMedia.mockClear() // Clear previous calls from other tests
+      mockGetTmdbMedia.mockReturnValue(tmdbMovieResponse)
 
       const { originalLanguage } = await getOriginalLanguage(123, 'movie')
 
       expect(originalLanguage).toBe('fr')
-      // TMDB should not be called since we have cached data
       expect(mockGetTmdbMedia).not.toHaveBeenCalled()
     })
 
     test('should fetch from TMDB and persist if not in cache', async () => {
       const { originalLanguage } = await getOriginalLanguage(456, 'show')
+      mockGetTmdbMedia.mockReturnValue(tmdbTvShowResponse)
 
       expect(originalLanguage).toBe('es')
       expect(mockGetTmdbMedia).toHaveBeenCalled()
@@ -119,7 +110,10 @@ describe('MetadataService', () => {
     })
 
     test('should return en as fallback if TMDB fails', async () => {
-      mockGetTmdbMedia.mockResolvedValueOnce(undefined)
+      mockGetTmdbMedia.mockResolvedValueOnce({
+        type: 'movie',
+        data: undefined,
+      })
 
       const { originalLanguage } = await getOriginalLanguage(789, 'movie')
 

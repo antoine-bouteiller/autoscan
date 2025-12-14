@@ -1,7 +1,7 @@
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/features/media'
 import { getPlexMetadata, type MediaType, type PlexMedia } from '@/integrations/plex'
 import { getTmdbMedia } from '@/integrations/tmdb'
-import { iso1ToIso2T, type ISOCode1 } from '@/types/iso_codes'
+import { type ISOCode1 } from '@/types/iso_codes'
 
 export const extractTmdbIdFromPath = (filePath: string): number | undefined => {
   const match = /{tmdb-(.*?)}/g.exec(filePath)
@@ -26,16 +26,13 @@ export const getMediaLanguage = async (
     }
   }
 
-  const tmdbData = await getTmdbMedia(tmdbId, mediaType)
-  if (!tmdbData) {
+  const { data, type } = await getTmdbMedia(tmdbId, mediaType)
+  if (!data) {
     return { originalLanguage: 'en', preferredLanguage: 'en' }
   }
 
-  // TMDB returns ISO 639-1 (2-character) codes
-  const language: ISOCode1 = (
-    tmdbData.original_language in iso1ToIso2T ? tmdbData.original_language : 'en'
-  ) as ISOCode1
-  const title = mediaType === 'movie' ? tmdbData.title : tmdbData.name
+  const title = type === 'movie' ? data.title : data.name
+  const language = data.original_language
 
   await createdOrUpdatedMedia(tmdbId, mediaType, title, language)
 

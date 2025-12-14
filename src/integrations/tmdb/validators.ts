@@ -1,10 +1,25 @@
 import { type } from 'arktype'
+import { ISO1 } from '@/types/iso_codes'
 
-export const tmdbResponseValidator = type({
-  languages: 'string[]',
-  name: 'string',
-  original_language: 'string',
+export const tmdbMovieResponse = type({
+  original_language: type.enumerated(...ISO1),
   title: 'string',
 })
 
-export type TmdbResponse = typeof tmdbResponseValidator.infer
+export const tmdbTvResponse = type({
+  original_language: type.enumerated(...ISO1),
+  name: 'string',
+})
+
+export type TmdbMovie = typeof tmdbMovieResponse.infer
+export type TmdbTV = typeof tmdbTvResponse.infer
+
+export type TmdbMedia =
+  | {
+      type: 'movie'
+      data: TmdbMovie | undefined
+    }
+  | {
+      type: 'tv'
+      data: TmdbTV | undefined
+    }
