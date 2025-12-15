@@ -31,7 +31,8 @@ describe('LanguageService', () => {
         streams: mockAudioStreams,
       })
 
-      expect(mockUpdateStream).toHaveBeenCalledWith(123, 0, 'audio')
+      expect(mockUpdateStream).toHaveBeenCalledWith(123, 1, 'audio')
+      expect(mockUpdateStream).toHaveBeenCalledWith(123, 0, 'subtitle')
     })
 
     test('should not update if audio stream already selected', async () => {
@@ -65,7 +66,8 @@ describe('LanguageService', () => {
       })
 
       // For French, stream ID should be 0
-      expect(mockUpdateStream).toHaveBeenCalledWith(123, 0, 'audio')
+      expect(mockUpdateStream).toHaveBeenCalledWith(123, 1, 'audio')
+      expect(mockUpdateStream).toHaveBeenCalledWith(123, 0, 'subtitle')
     })
 
     test('should use audio stream ID for non-French languages', async () => {

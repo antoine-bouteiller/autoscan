@@ -27,6 +27,10 @@ export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
   if (!audioStream.selected) {
     logger.info(`Setting audio in ${preferredLanguage}`, 'Language', mediaTitle)
 
-    await updateStream(partsId, preferredLanguage === 'fr' ? 0 : audioStream.id, 'audio')
+    await updateStream(partsId, audioStream.id, 'audio')
+
+    if (preferredLanguage === 'fr') {
+      await updateStream(partsId, 0, 'subtitle')
+    }
   }
 }
