@@ -1,36 +1,23 @@
-import { spawn, type SpawnOptionsWithoutStdio } from 'node:child_process'
-
-export const spawnPromise = (
+export const spawnPromise = async (
   command: string,
   args: string[] = [],
-  options: SpawnOptionsWithoutStdio = {}
-): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const child = spawn(command, args, options)
-    let stdout = ''
-    let stderr = ''
-
-    if (child.stdout) {
-      child.stdout.on('data', (data: Buffer) => {
-        stdout += data.toString()
-      })
-    }
-
-    if (child.stderr) {
-      child.stderr.on('data', (data: Buffer) => {
-        stderr += data.toString()
-      })
-    }
-
-    child.on('error', (err: Error) => {
-      reject(new Error(stderr || err.message, { cause: err }))
-    })
-
-    child.on('close', (code: null | number) => {
-      if (code === 0) {
-        resolve(stdout)
-      } else {
-        reject(new Error(stderr || `Command failed with exit code ${code}`))
-      }
-    })
+  options: Omit<Parameters<typeof Bun.spawn>[1], 'stdout' | 'stderr'> = {}
+): Promise<string> => {
+  const proc = Bun.spawn([command, ...args], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+    ...options,
   })
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ])
+
+  if (exitCode !== 0) {
+    throw new Error(stderr || `Command failed with exit code ${exitCode}`)
+  }
+
+  return stdout
+}
