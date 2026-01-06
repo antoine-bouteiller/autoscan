@@ -27,7 +27,7 @@
     "drizzle-kit": "^0.31.8",
     "eslint-plugin-perfectionist": "^5.0.0",
     "lefthook": "^2.0.8",
-    "oxfmt": "^0.22.0",
+    "oxfmt": "^0.23.0",
     "oxlint": "^1.31.0",
     "oxlint-tsgolint": "^0.10.0"
   },
