@@ -1,11 +1,11 @@
 export const spawnPromise = async (
   command: string,
   args: string[] = [],
-  options: Omit<Parameters<typeof Bun.spawn>[1], 'stdout' | 'stderr'> = {}
+  options: Omit<Parameters<typeof Bun.spawn>[1], 'stderr' | 'stdout'> = {}
 ): Promise<string> => {
   const proc = Bun.spawn([command, ...args], {
-    stdout: 'pipe',
     stderr: 'pipe',
+    stdout: 'pipe',
     ...options,
   })
 

@@ -59,6 +59,7 @@ export const mockQueueResponseWithMissingFields: QueueResponse = {
     {
       errorMessage: '',
       id: 4,
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
       status: undefined as never,
       statusMessages: [],
       title: 'Test Movie',
@@ -68,6 +69,7 @@ export const mockQueueResponseWithMissingFields: QueueResponse = {
       id: 5,
       status: 'completed',
       statusMessages: [],
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
       title: undefined as never,
     },
   ],

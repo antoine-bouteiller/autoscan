@@ -1,6 +1,6 @@
 import { mock } from 'bun:test'
 
-mock.module('@/config/env', () => ({
+void mock.module('@/config/env', () => ({
   default: {
     CLOUDFLARE_TOKEN: 'test-token',
     DATABASE_URL: ':memory:',
@@ -22,7 +22,7 @@ export const mockGetSections = mock()
 export const mockRefreshSection = mock()
 export const mockUpdateStream = mock()
 
-mock.module('@/integrations/plex/client', () => ({
+void mock.module('@/integrations/plex/client', () => ({
   getPlexMetadata: mockGetPlexMetadata,
   getSectionMedia: mockGetSectionMedia,
   getSections: mockGetSections,
@@ -32,7 +32,7 @@ mock.module('@/integrations/plex/client', () => ({
 
 export const mockGetTmdbMedia = mock()
 
-mock.module('@/integrations/tmdb/client', () => ({
+void mock.module('@/integrations/tmdb/client', () => ({
   getTmdbMedia: mockGetTmdbMedia,
 }))
 
@@ -41,7 +41,7 @@ export const mockGetZoneId = mock()
 export const mockGetARecord = mock()
 export const mockUpdateDnsRecord = mock()
 
-mock.module('@/integrations/cloudflare/client', () => ({
+void mock.module('@/integrations/cloudflare/client', () => ({
   getARecord: mockGetARecord,
   getPublicIP: mockGetPublicIP,
   getZoneId: mockGetZoneId,
@@ -54,7 +54,7 @@ export const mockRefreshSeries = mock()
 export const mockRenameSeries = mock()
 export const mockGetSeriesByPath = mock()
 
-mock.module('@/integrations/sonarr/client', () => ({
+void mock.module('@/integrations/sonarr/client', () => ({
   getQueue: mockSonarrGetQueue,
   getSeriesByPath: mockGetSeriesByPath,
   refreshSeries: mockRefreshSeries,
@@ -68,7 +68,7 @@ export const mockRefreshMovie = mock()
 export const mockRenameMovie = mock()
 export const mockGetMovieByPath = mock()
 
-mock.module('@/integrations/radarr/client', () => ({
+void mock.module('@/integrations/radarr/client', () => ({
   getMovieByPath: mockGetMovieByPath,
   getQueue: mockRadarrGetQueue,
   refreshMovie: mockRefreshMovie,

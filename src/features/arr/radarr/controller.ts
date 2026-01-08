@@ -27,7 +27,7 @@ export const radarrWebhook = async (request: Request) => {
     const mediaTitle = data.movie.title
     const { originalLanguage } = await getMediaLanguage(data.movie.tmdbId, 'movie')
 
-    transcodeFile(file, mediaTitle, originalLanguage, 'movie')
+    void transcodeFile(file, mediaTitle, originalLanguage, 'movie')
   }
 
   return Response.json({ message: 'ok' })

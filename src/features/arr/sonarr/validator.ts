@@ -1,39 +1,33 @@
 import { type } from 'arktype'
 
-const episodeType = type({
+const episodeValidator = type({
   title: 'string',
 })
 
+const episodeFileValidator = type({
+  relativePath: 'string',
+})
+
+const seriesValidator = type({
+  path: 'string',
+  title: 'string',
+  tmdbId: 'string.numeric.parse | number',
+})
+
 export const sonarrValidator = type({
-  episodeFile: {
-    relativePath: 'string',
-  },
-  episodes: episodeType.array(),
+  episodeFile: episodeFileValidator,
+  episodes: episodeValidator.array(),
   eventType: "'Download'",
-  series: {
-    path: 'string',
-    title: 'string',
-    tmdbId: 'string.numeric.parse',
-  },
+  series: seriesValidator,
 })
   .or({
-    'episodeFile?': {
-      relativePath: 'string',
-    },
+    'episodeFile?': episodeFileValidator,
     eventType: "'EpisodeFileDelete' | 'Rename'",
-    series: {
-      path: 'string',
-      title: 'string',
-      tmdbId: 'string.numeric.parse',
-    },
+    series: seriesValidator,
   })
   .or({
     eventType: "'SeriesDelete'",
-    series: {
-      path: 'string',
-      title: 'string',
-      tmdbId: 'string.numeric.parse',
-    },
+    series: seriesValidator,
   })
   .or({
     eventType: "'Test'",

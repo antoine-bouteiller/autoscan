@@ -1,5 +1,6 @@
-import { ISO2T } from '@/types/iso_codes'
 import { type } from 'arktype'
+
+import { ISO2T } from '@/types/iso_codes'
 
 const streamValidator = type({
   id: 'number',

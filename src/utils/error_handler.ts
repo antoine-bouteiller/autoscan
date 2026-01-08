@@ -1,7 +1,8 @@
 import { ArkErrors } from 'arktype'
 
-import { logger } from '@/config/logger'
 import type { HttpError } from '@/utils/http_client'
+
+import { logger } from '@/config/logger'
 
 // Format HttpError into a readable message
 export const formatHttpError = <E>(
@@ -9,6 +10,14 @@ export const formatHttpError = <E>(
   apiFormatter?: (body: E) => string
 ): string => {
   switch (error.type) {
+    case 'api': {
+      const body = typeof error.body === 'string' ? error.body : JSON.stringify(error.body)
+
+      return apiFormatter ? apiFormatter(error.body) : `API error (${error.status}): ${body}`
+    }
+    case 'http': {
+      return `HTTP ${error.status}: ${error.statusText}`
+    }
     case 'network': {
       return `Network error: ${error.message}`
     }
@@ -17,14 +26,6 @@ export const formatHttpError = <E>(
     }
     case 'validation': {
       return `Validation error: ${error.errors.summary}`
-    }
-    case 'api': {
-      const body = typeof error.body === 'string' ? error.body : JSON.stringify(error.body)
-
-      return apiFormatter ? apiFormatter(error.body) : `API error (${error.status}): ${body}`
-    }
-    case 'http': {
-      return `HTTP ${error.status}: ${error.statusText}`
     }
   }
 }
@@ -36,7 +37,7 @@ export const handleError = (error: unknown, ...context: string[]) => {
     const { cause, message } = error
     const fullMessage =
       cause && typeof cause === 'object' && 'message' in cause
-        ? `${message}: ${cause.message}`
+        ? `${message}: ${String(cause.message)}`
         : message
     logger.error(fullMessage, ...context)
   } else {

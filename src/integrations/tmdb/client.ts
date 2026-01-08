@@ -5,11 +5,11 @@ import { handleHttpError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import {
-  tmdbTvResponse,
   type TmdbMedia,
   type TmdbMovie,
   tmdbMovieResponse,
   type TmdbTV,
+  tmdbTvResponse,
 } from './validators'
 
 const tmdbClient = httpClient({
@@ -23,14 +23,14 @@ export const getTmdbMedia = async (tmdbId: number, mediaType: MediaType): Promis
   if (mediaType === 'movie') {
     const data = await getTmdbMovie(tmdbId)
 
-    return { type: 'movie', data }
+    return { data, type: 'movie' }
   }
 
   const data = await getTmdbTvShow(tmdbId)
 
   return {
-    type: 'tv',
     data,
+    type: 'tv',
   }
 }
 

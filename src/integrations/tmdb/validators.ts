@@ -1,4 +1,5 @@
 import { type } from 'arktype'
+
 import { ISO1 } from '@/types/iso_codes'
 
 export const tmdbMovieResponse = type({
@@ -7,8 +8,8 @@ export const tmdbMovieResponse = type({
 })
 
 export const tmdbTvResponse = type({
-  original_language: type.enumerated(...ISO1),
   name: 'string',
+  original_language: type.enumerated(...ISO1),
 })
 
 export type TmdbMovie = typeof tmdbMovieResponse.infer
@@ -16,10 +17,10 @@ export type TmdbTV = typeof tmdbTvResponse.infer
 
 export type TmdbMedia =
   | {
-      type: 'movie'
       data: TmdbMovie | undefined
+      type: 'movie'
     }
   | {
-      type: 'tv'
       data: TmdbTV | undefined
+      type: 'tv'
     }

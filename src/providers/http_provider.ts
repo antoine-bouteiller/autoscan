@@ -52,14 +52,14 @@ class HttpProvider {
       routes: this.routes,
     })
 
-    logger.info(`Server running at ${this.server.url}`, 'HTTP')
+    logger.info(`Server running at ${this.server.url.toString()}`, 'HTTP')
 
     return this.server
   }
 
   stop(): void {
     if (this.server) {
-      this.server.stop()
+      void this.server.stop()
       logger.info('Server stopped', 'HTTP')
       this.server = undefined
     }

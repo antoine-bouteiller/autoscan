@@ -36,7 +36,7 @@ class TranscodeQueue {
     logger.info(`Added job (${this.queue.length} jobs in queue)`, 'Transcode', job.mediaTitle)
 
     if (!this.isProcessing) {
-      this.processQueue()
+      void this.processQueue()
     }
   }
 
@@ -70,7 +70,7 @@ class TranscodeQueue {
 
       try {
         logger.info(
-          `Processing job with command "${job.command}" (${this.queue.length} jobs remaining)`,
+          `Processing job with command "${job.command.join(' ')}" (${this.queue.length} jobs remaining)`,
           'Transcode',
           job.mediaTitle
         )

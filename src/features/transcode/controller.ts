@@ -10,7 +10,7 @@ export const transcodeAll = (_request: Request) => {
     })
   }
 
-  tryCatch(runTranscodeProcess)
+  void tryCatch(runTranscodeProcess)
 
   return Response.json({ message: 'Transcode process started', status: 'ok' })
 }

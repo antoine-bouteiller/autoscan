@@ -111,8 +111,8 @@ describe('MetadataService', () => {
 
     test('should return en as fallback if TMDB fails', async () => {
       mockGetTmdbMedia.mockResolvedValueOnce({
-        type: 'movie',
         data: undefined,
+        type: 'movie',
       })
 
       const { originalLanguage } = await getOriginalLanguage(789, 'movie')
@@ -169,7 +169,7 @@ describe('MetadataService', () => {
         Media: [],
       }
 
-      await expect(getCompleteMediaDetails(plexMediaNoFile)).rejects.toThrow('No file found')
+      expect(getCompleteMediaDetails(plexMediaNoFile)).rejects.toThrow('No file found')
     })
 
     test('should throw error if no TMDB ID found', async () => {
@@ -188,7 +188,7 @@ describe('MetadataService', () => {
         ],
       }
 
-      await expect(getCompleteMediaDetails(plexMediaNoTmdb)).rejects.toThrow('No tmdbId found')
+      expect(getCompleteMediaDetails(plexMediaNoTmdb)).rejects.toThrow('No tmdbId found')
     })
 
     test('should throw error if no part found in Plex metadata', async () => {
@@ -196,7 +196,7 @@ describe('MetadataService', () => {
         Media: [],
       })
 
-      await expect(getCompleteMediaDetails(mockPlexMovie)).rejects.toThrow(
+      expect(getCompleteMediaDetails(mockPlexMovie)).rejects.toThrow(
         'No part found in Plex metadata'
       )
     })

@@ -20,6 +20,7 @@ export const selectPreferedLanguage = async (
     reply_markup: new InlineKeyboard().text('🎞️ Movie', 'movie').text('📺 TV Show', 'show'),
   })
   const { callbackQuery: mediaTypeQuery } = await conversation.waitFor('callback_query:data')
+  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
   const mediaType = mediaTypeQuery.data as MediaType
 
   const media = await conversation.external(() => getMediaByTypeWithPagination(mediaType, 0, 100))

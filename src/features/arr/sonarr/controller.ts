@@ -27,7 +27,7 @@ export const sonarrWebhook = async (request: Request) => {
     const mediaTitle = `${data.series.title} ${data.episodes[0]?.title}`
     const { originalLanguage } = await getMediaLanguage(data.series.tmdbId, 'show')
 
-    transcodeFile(file, mediaTitle, originalLanguage, 'show')
+    void transcodeFile(file, mediaTitle, originalLanguage, 'show')
   }
 
   return Response.json({ message: 'ok' })

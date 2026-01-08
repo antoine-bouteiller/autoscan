@@ -1,4 +1,5 @@
 import { ArkErrors, type, type Type } from 'arktype'
+
 import { logger } from '@/config/logger'
 
 export type HttpError<E = unknown> =
@@ -22,15 +23,25 @@ interface RequestOptions<T = undefined> {
 
 interface Options<E = unknown> {
   baseUrl?: string
-  headers?: Record<string, string>
   errorValidator?: Type<E>
+  headers?: Record<string, string>
 }
 
 export interface HttpClient<E> {
+  delete: (
+    endpoint: string,
+    options?: Omit<RequestOptions, 'method'>
+  ) => Promise<RequestResponse<undefined, E>>
+
   get: <T = unknown>(
     endpoint: string,
     options?: Omit<RequestOptions<T>, 'body' | 'method'>
   ) => Promise<RequestResponse<T, E>>
+
+  patch: (
+    endpoint: string,
+    options?: Omit<RequestOptions, 'method'>
+  ) => Promise<RequestResponse<undefined, E>>
 
   post: (
     endpoint: string,
@@ -38,16 +49,6 @@ export interface HttpClient<E> {
   ) => Promise<RequestResponse<undefined, E>>
 
   put: (
-    endpoint: string,
-    options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined, E>>
-
-  patch: (
-    endpoint: string,
-    options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined, E>>
-
-  delete: (
     endpoint: string,
     options?: Omit<RequestOptions, 'method'>
   ) => Promise<RequestResponse<undefined, E>>
@@ -59,7 +60,8 @@ export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient<E>
   const errorValidator =
     'errorValidator' in options && options.errorValidator
       ? options.errorValidator
-      : (type('object') as unknown as Type<E>)
+      : // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+        (type('object') as unknown as Type<E>)
 
   const buildUrl = (endpoint: string, params?: Record<string, boolean | number | string>) => {
     const cleanBase = baseUrl ? baseUrl.replace(/\/+$/, '') : ''
@@ -154,6 +156,7 @@ export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient<E>
       return { data: result, ok: true }
     }
 
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
     return { data: undefined as Type<T>['infer'], ok: true }
   }
 
