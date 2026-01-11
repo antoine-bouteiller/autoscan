@@ -1,6 +1,7 @@
 import type { FFprobeStream } from '@/integrations/ffmpeg/validator'
 
 import { logger } from '@/config/logger'
+import { MediaError } from '@/errors'
 import { type ISOCode1 } from '@/types/iso_codes'
 import { iso1ToIso2B } from '@/utils/iso_codes'
 
@@ -80,7 +81,7 @@ export const processAudioStreams = (
   mediaTitle: string
 ): { command: string[]; shouldExecute: boolean } => {
   if (audioStreams.length === 0) {
-    throw new Error(`(${mediaTitle}) No audio streams found for language ${originalLanguage}`)
+    throw new MediaError('audio_stream_not_found', mediaTitle, { language: originalLanguage })
   }
 
   const command: string[] = []
@@ -114,9 +115,7 @@ export const processAudioStreams = (
   }
 
   if (countAudioStreamToKeep === 0) {
-    throw new Error(
-      `(${mediaTitle}) No audio tracks would be kept after processing. Blocking transcode.`
-    )
+    throw new MediaError('no_streams_kept', mediaTitle)
   }
 
   if (countAudioStreamToKeep !== audioStreams.length) {

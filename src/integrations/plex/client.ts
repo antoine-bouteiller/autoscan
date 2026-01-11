@@ -1,5 +1,6 @@
 import env from '@/config/env'
-import { formatHttpError, handleHttpError } from '@/utils/error_handler'
+import { IntegrationError } from '@/errors'
+import { handleError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import { type PlexMedia, plexResponseValidator } from './validators'
@@ -21,7 +22,7 @@ export const getPlexMetadata = async (ratingKey: number) => {
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Plex')
+    handleError(new IntegrationError('Plex', 'http_error', result.error))
     return undefined
   }
 
@@ -47,7 +48,7 @@ export const getSectionMedia = async (id: number, sectionType: 'movie' | 'show')
   })
 
   if (!result.ok) {
-    throw new Error(formatHttpError(result.error))
+    throw new IntegrationError('Plex', 'http_error', result.error)
   }
 
   return result.data.MediaContainer.Metadata
@@ -59,7 +60,7 @@ export const getSections = async () => {
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Plex')
+    handleError(new IntegrationError('Plex', 'http_error', result.error))
     return undefined
   }
 
@@ -72,7 +73,7 @@ export const refreshSection = async (id: number, filePath: string) => {
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Plex')
+    handleError(new IntegrationError('Plex', 'http_error', result.error))
   }
 }
 
@@ -89,6 +90,6 @@ export const updateStream = async (
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Plex')
+    handleError(new IntegrationError('Plex', 'http_error', result.error))
   }
 }

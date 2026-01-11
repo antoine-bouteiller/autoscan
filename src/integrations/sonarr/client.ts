@@ -1,6 +1,7 @@
 import env from '@/config/env'
+import { IntegrationError } from '@/errors'
 import { type QueueResponse, queueResponseValidator } from '@/features/cleanup'
-import { handleHttpError } from '@/utils/error_handler'
+import { handleError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import { seriesValidator } from './validators'
@@ -18,7 +19,7 @@ export const getQueue = async (): Promise<QueueResponse | undefined> => {
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Sonarr')
+    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
     return undefined
   }
 
@@ -37,7 +38,7 @@ export const removeQueueItem = async (
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Sonarr')
+    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
   }
 }
 
@@ -50,7 +51,7 @@ export const refreshSeries = async (seriesId: number): Promise<void> => {
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Sonarr')
+    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
   }
 }
 
@@ -63,7 +64,7 @@ export const renameSeries = async (seriesId: number): Promise<void> => {
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Sonarr')
+    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
   }
 }
 
@@ -73,7 +74,7 @@ export const getSeriesByPath = async (filePath: string): Promise<number | undefi
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Sonarr')
+    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
     return undefined
   }
 

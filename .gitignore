@@ -1,10 +1,7 @@
 node_modules
-build
-transcode_cache
-generated
-prisma/client
 .env
 autoscan.db
-tmp
 index
+
+# bun
 *.bun-build

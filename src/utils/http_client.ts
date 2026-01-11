@@ -1,17 +1,18 @@
 import { ArkErrors, type, type Type } from 'arktype'
 
 import { logger } from '@/config/logger'
+import {
+  ApiError,
+  type HttpError,
+  HttpStatusError,
+  NetworkError,
+  ParseError,
+  ValidationError,
+} from '@/errors'
 
-export type HttpError<E = unknown> =
-  | { body: E; status: number; type: 'api' }
-  | { errors: ArkErrors; type: 'validation' }
-  | { message: string; type: 'network' }
-  | { message: string; type: 'parse' }
-  | { status: number; statusText: string; type: 'http' }
-
-export type RequestResponse<T, E = unknown> =
+export type RequestResponse<T> =
   | { data: Type<T>['infer']; ok: true }
-  | { error: HttpError<Type<E>['infer']>; ok: false }
+  | { error: HttpError; ok: false }
 
 interface RequestOptions<T = undefined> {
   body?: unknown
@@ -27,34 +28,34 @@ interface Options<E = unknown> {
   headers?: Record<string, string>
 }
 
-export interface HttpClient<E> {
+export interface HttpClient {
   delete: (
     endpoint: string,
     options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined, E>>
+  ) => Promise<RequestResponse<undefined>>
 
   get: <T = unknown>(
     endpoint: string,
     options?: Omit<RequestOptions<T>, 'body' | 'method'>
-  ) => Promise<RequestResponse<T, E>>
+  ) => Promise<RequestResponse<T>>
 
   patch: (
     endpoint: string,
     options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined, E>>
+  ) => Promise<RequestResponse<undefined>>
 
   post: (
     endpoint: string,
     options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined, E>>
+  ) => Promise<RequestResponse<undefined>>
 
   put: (
     endpoint: string,
     options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined, E>>
+  ) => Promise<RequestResponse<undefined>>
 }
 
-export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient<E> => {
+export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient => {
   const { baseUrl = '', headers: defaultHeaders = {} } = options
 
   const errorValidator =
@@ -82,7 +83,7 @@ export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient<E>
   const request = async <T = undefined>(
     endpoint: string,
     options: RequestOptions<T> = {}
-  ): Promise<RequestResponse<T, E>> => {
+  ): Promise<RequestResponse<T>> => {
     const { body, headers = {}, method = 'GET', params, validator } = options
     const url = buildUrl(endpoint, params)
 
@@ -104,10 +105,7 @@ export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient<E>
       })
     } catch (error) {
       return {
-        error: {
-          message: error instanceof Error ? error.message : 'Unknown network error',
-          type: 'network',
-        },
+        error: new NetworkError(error instanceof Error ? error.message : 'Unknown network error'),
         ok: false,
       }
     }
@@ -118,10 +116,10 @@ export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient<E>
         const result = errorValidator(errorBody)
 
         if (result instanceof ArkErrors) {
-          return { error: { errors: result, type: 'validation' }, ok: false }
+          return { error: new ValidationError(result), ok: false }
         }
         return {
-          error: { body: result, status: response.status, type: 'api' },
+          error: new ApiError(response.status, result),
           ok: false,
         }
       } catch {
@@ -130,11 +128,7 @@ export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient<E>
       logger.error(url.toString())
       logger.error(JSON.stringify(response))
       return {
-        error: {
-          status: response.status,
-          statusText: response.statusText,
-          type: 'http',
-        },
+        error: new HttpStatusError(response.status, response.statusText),
         ok: false,
       }
     }
@@ -145,13 +139,13 @@ export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient<E>
         data = await response.json()
       } catch {
         return {
-          error: { message: 'Failed to parse JSON', type: 'parse' },
+          error: new ParseError('Failed to parse JSON'),
           ok: false,
         }
       }
       const result = validator(data)
       if (result instanceof ArkErrors) {
-        return { error: { errors: result, type: 'validation' }, ok: false }
+        return { error: new ValidationError(result), ok: false }
       }
       return { data: result, ok: true }
     }

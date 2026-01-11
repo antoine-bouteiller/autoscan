@@ -1,7 +1,8 @@
 import type { MediaType } from '@/integrations/plex'
 
 import env from '@/config/env'
-import { handleHttpError } from '@/utils/error_handler'
+import { IntegrationError } from '@/errors'
+import { handleError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import {
@@ -40,7 +41,7 @@ export const getTmdbTvShow = async (tmdbId: number): Promise<TmdbTV | undefined>
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'TMDB')
+    handleError(new IntegrationError('TMDB', 'http_error', result.error))
     return undefined
   }
 
@@ -53,7 +54,7 @@ export const getTmdbMovie = async (tmdbId: number): Promise<TmdbMovie | undefine
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'TMDB')
+    handleError(new IntegrationError('TMDB', 'http_error', result.error))
     return undefined
   }
 
