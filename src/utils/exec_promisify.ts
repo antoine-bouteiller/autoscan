@@ -1,3 +1,5 @@
+import { CommandError } from '@/errors'
+
 export const spawnPromise = async (
   command: string,
   args: string[] = [],
@@ -16,7 +18,11 @@ export const spawnPromise = async (
   ])
 
   if (exitCode !== 0) {
-    throw new Error(stderr || `Command failed with exit code ${exitCode}`)
+    throw new CommandError('execution_failed', {
+      command: `${command} ${args.join(' ')}`,
+      exitCode,
+      stderr,
+    })
   }
 
   return stdout

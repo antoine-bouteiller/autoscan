@@ -1,6 +1,7 @@
 import type { FFprobeStream } from '@/integrations/ffmpeg/validator'
 
 import { logger } from '@/config/logger'
+import { MediaError } from '@/errors'
 
 export const processVideoStreams = (
   videoStreams: FFprobeStream[],
@@ -32,8 +33,8 @@ export const processVideoStreams = (
     }
   }
 
-  if (videoStreams.length === 0) {
-    throw new Error(`(${mediaTitle}) No video streams found`)
+  if (countVideoStreamToKeep === 0) {
+    throw new MediaError('video_stream_not_found', mediaTitle)
   }
 
   if (countVideoStreamToKeep !== videoStreams.length) {

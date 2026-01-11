@@ -1,6 +1,7 @@
 import type { ISOCode1 } from '@/types/iso_codes'
 
 import { logger } from '@/config/logger'
+import { MediaError } from '@/errors'
 import { executeFfmpeg, ffprobe } from '@/integrations/ffmpeg/client'
 import { handleError, tryCatch } from '@/utils/error_handler'
 
@@ -77,7 +78,7 @@ class TranscodeQueue {
 
         const fileName = job.file.slice(0, job.file.lastIndexOf('.')).split('/').pop()
         if (!fileName) {
-          throw new Error(`(Transcode)(${job.mediaTitle}) File name not initialized`)
+          throw new MediaError('file_name_invalid', job.mediaTitle)
         }
 
         for (const subtitle of job.subtitlesToExtract) {
@@ -131,7 +132,7 @@ export const getTranscodeCommand = async (
   const fileName = file.slice(0, file.lastIndexOf('.')).split('/').pop()
 
   if (!fileName) {
-    throw new Error(`(Transcode)(${mediaTitle}) File name not initialized`)
+    throw new MediaError('file_name_invalid', mediaTitle)
   }
 
   const command: string[] = ['-c', 'copy']

@@ -1,5 +1,6 @@
 import env from '@/config/env'
-import { formatHttpError, handleHttpError } from '@/utils/error_handler'
+import { ApiError, IntegrationError } from '@/errors'
+import { handleError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import {
@@ -25,6 +26,12 @@ const cloudflareClient = httpClient({
 
 const formatCloudflareError = (body: ErrorResponse) => body.errors.map((e) => e.message).join(', ')
 
+const isCloudflareApiError = (error: unknown): error is ApiError<ErrorResponse> =>
+  error instanceof ApiError &&
+  typeof error.context.body === 'object' &&
+  error.context.body !== null &&
+  'errors' in error.context.body
+
 export const getPublicIP = async () => {
   const result = await ipifyClient.get('', {
     params: { format: 'json' },
@@ -32,7 +39,7 @@ export const getPublicIP = async () => {
   })
 
   if (!result.ok) {
-    throw new Error(`(Cloudflare) ${formatHttpError(result.error)}`)
+    throw new IntegrationError('Cloudflare', 'http_error', result.error)
   }
 
   return result.data.ip
@@ -45,13 +52,18 @@ export const getZoneId = async (zoneName: string): Promise<string> => {
   })
 
   if (!result.ok) {
-    throw new Error(`(Cloudflare) ${formatHttpError(result.error, formatCloudflareError)}`)
+    const { error } = result
+    if (isCloudflareApiError(error)) {
+      const formattedMessage = formatCloudflareError(error.context.body)
+      throw new IntegrationError('Cloudflare', 'http_error', formattedMessage)
+    }
+    throw new IntegrationError('Cloudflare', 'http_error', error)
   }
 
   const [zone] = result.data.result
 
   if (!zone) {
-    throw new Error(`(Cloudflare) Zone not found`)
+    throw new IntegrationError('Cloudflare', 'not_found', 'Zone not found')
   }
 
   return zone.id
@@ -64,7 +76,13 @@ export const getARecord = async (recordName: string, zoneId: string) => {
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Cloudflare', formatCloudflareError)
+    const { error } = result
+    if (isCloudflareApiError(error)) {
+      const formattedMessage = formatCloudflareError(error.context.body)
+      handleError(new IntegrationError('Cloudflare', 'http_error', formattedMessage))
+    } else {
+      handleError(new IntegrationError('Cloudflare', 'http_error', error))
+    }
     return undefined
   }
 
@@ -82,6 +100,12 @@ export const updateDnsRecord = async (record: DnsRecord, ip: string, zoneId: str
   })
 
   if (!result.ok) {
-    handleHttpError(result.error, 'Cloudflare', formatCloudflareError)
+    const { error } = result
+    if (isCloudflareApiError(error)) {
+      const formattedMessage = formatCloudflareError(error.context.body)
+      handleError(new IntegrationError('Cloudflare', 'http_error', formattedMessage))
+    } else {
+      handleError(new IntegrationError('Cloudflare', 'http_error', error))
+    }
   }
 }

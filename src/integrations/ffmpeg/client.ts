@@ -1,6 +1,7 @@
 import { ArkErrors } from 'arktype'
 import { mkdirSync } from 'node:fs'
 
+import { CommandError } from '@/errors'
 import { spawnPromise } from '@/utils/exec_promisify'
 
 import { ffprobeOutputValidator } from './validator'
@@ -37,7 +38,10 @@ export const ffprobe = async (input: string) => {
   const parsedOutput = ffprobeOutputValidator(JSON.parse(output))
 
   if (parsedOutput instanceof ArkErrors) {
-    throw new TypeError(`(ffprobe) output validation failed: ${parsedOutput.summary}`)
+    throw new CommandError('validation_failed', {
+      command: 'ffprobe',
+      stderr: parsedOutput.summary,
+    })
   }
 
   return parsedOutput.streams
