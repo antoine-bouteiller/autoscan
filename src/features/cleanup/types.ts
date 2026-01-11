@@ -5,7 +5,7 @@ export const queueItemValidator = type({
   id: 'number',
   status: 'string',
   'statusMessages?': type({
-    messages: 'string',
+    messages: 'string | object',
     title: 'string',
   }).array(),
   title: 'string',

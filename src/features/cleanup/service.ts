@@ -36,6 +36,7 @@ const removeStalledDownloads = async (
       const itemId = item.id
       const noEligibleFiles = item.statusMessages
         ?.flatMap((message) => message.messages)
+        .filter((message) => typeof message === 'string')
         .some(
           (message) =>
             message.includes('No files found are eligible for import') ||
