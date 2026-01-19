@@ -12,7 +12,6 @@
   "dependencies": {
     "@grammyjs/conversations": "^2.1.1",
     "@grammyjs/hydrate": "^1.6.0",
-    "arkenv": "^0.9.0",
     "arktype": "^2.1.29",
     "croner": "^9.1.0",
     "drizzle-orm": "^0.45.1",

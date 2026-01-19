@@ -1,7 +1,7 @@
-import arkenv from 'arkenv'
+import { type } from 'arktype'
 import { join } from 'node:path'
 
-const env = arkenv({
+const env = type({
   CLOUDFLARE_TOKEN: 'string',
   DOMAIN: 'string',
   PLEX_TOKEN: 'string',
@@ -14,7 +14,7 @@ const env = arkenv({
   TELEGRAM_TOKEN: 'string',
   TMDB_API_TOKEN: 'string',
   TMDB_API_URL: 'string.url',
-})
+}).assert(process.env)
 
 export default {
   ...env,

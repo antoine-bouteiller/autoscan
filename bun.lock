@@ -7,7 +7,6 @@
       "dependencies": {
         "@grammyjs/conversations": "^2.1.1",
         "@grammyjs/hydrate": "^1.6.0",
-        "arkenv": "^0.9.0",
         "arktype": "^2.1.29",
         "croner": "^9.1.0",
         "drizzle-orm": "^0.45.1",
@@ -262,8 +261,6 @@
     "ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 
     "argparse": ["argparse@2.0.1", "", {}, "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="],
-
-    "arkenv": ["arkenv@0.9.0", "", { "peerDependencies": { "arktype": "^2.1.22" }, "optionalPeers": ["arktype"] }, "sha512-yW0pHHQN2k3O6BhYjl4ntQlFwLf4XPOY2QZH2SqIOtaxSaUly5VP7yCAEo+DNz943YG8tB/1cTcLkegfmR2KKA=="],
 
     "arkregex": ["arkregex@0.0.5", "", { "dependencies": { "@ark/util": "0.56.0" } }, "sha512-ncYjBdLlh5/QnVsAA8De16Tc9EqmYM7y/WU9j+236KcyYNUXogpz3sC4ATIZYzzLxwI+0sEOaQLEmLmRleaEXw=="],
 
