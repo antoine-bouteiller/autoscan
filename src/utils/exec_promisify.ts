@@ -11,11 +11,7 @@ export const spawnPromise = async (
     ...options,
   })
 
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ])
+  const [stdout, stderr, exitCode] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited])
 
   if (exitCode !== 0) {
     throw new CommandError('execution_failed', {

@@ -9,10 +9,7 @@ import type { ConfigureLanguageContext, ConfigureLanguageConversation } from './
 
 import { createMenu } from './service'
 
-export const selectPreferedLanguage = async (
-  conversation: ConfigureLanguageConversation,
-  ctx: ConfigureLanguageContext
-) => {
+export const selectPreferedLanguage = async (conversation: ConfigureLanguageConversation, ctx: ConfigureLanguageContext) => {
   if (ctx.message?.chat.id !== env.TELEGRAM_CHAT_ID) {
     return ctx.reply('Unauthorized')
   }

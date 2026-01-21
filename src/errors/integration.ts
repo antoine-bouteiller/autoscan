@@ -1,5 +1,6 @@
-import { BaseError } from './base'
 import type { HttpError } from './http'
+
+import { BaseError } from './base'
 
 type IntegrationErrorCode = 'http_error' | 'invalid_response' | 'not_found'
 

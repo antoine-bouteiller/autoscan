@@ -47,10 +47,7 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "media_tmdb_id_type_pk": {
-          "columns": [
-            "tmdb_id",
-            "type"
-          ],
+          "columns": ["tmdb_id", "type"],
           "name": "media_tmdb_id_type_pk"
         }
       },

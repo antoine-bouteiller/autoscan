@@ -63,12 +63,7 @@ export const createMenu = ({
 
   menu.dynamic(() =>
     currentMenu.reduce(
-      (range, entry) =>
-        range
-          .text(entry.title, () =>
-            handleMediaSelection(menuConversation, entry, message, mediaType)
-          )
-          .row(),
+      (range, entry) => range.text(entry.title, () => handleMediaSelection(menuConversation, entry, message, mediaType)).row(),
       new ConversationMenuRange<ConfigureLanguageContext>()
     )
   )

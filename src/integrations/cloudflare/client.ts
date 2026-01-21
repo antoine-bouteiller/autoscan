@@ -27,10 +27,7 @@ const cloudflareClient = httpClient({
 const formatCloudflareError = (body: ErrorResponse) => body.errors.map((e) => e.message).join(', ')
 
 const isCloudflareApiError = (error: unknown): error is ApiError<ErrorResponse> =>
-  error instanceof ApiError &&
-  typeof error.context.body === 'object' &&
-  error.context.body !== null &&
-  'errors' in error.context.body
+  error instanceof ApiError && typeof error.context.body === 'object' && error.context.body !== null && 'errors' in error.context.body
 
 export const getPublicIP = async () => {
   const result = await ipifyClient.get('', {

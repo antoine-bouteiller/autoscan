@@ -6,15 +6,9 @@ import type { ISOCode1 } from '@/types/iso_codes'
 import { db } from '@/config/db'
 import { media as mediaTable } from '@/database/schema'
 
-export const countMediaByType = (type: MediaType) =>
-  db.select({ count: count() }).from(mediaTable).where(eq(mediaTable.type, type))
+export const countMediaByType = (type: MediaType) => db.select({ count: count() }).from(mediaTable).where(eq(mediaTable.type, type))
 
-export const createdOrUpdatedMedia = (
-  tmdbId: number,
-  type: MediaType,
-  title: string,
-  originalLanguage: ISOCode1
-) =>
+export const createdOrUpdatedMedia = (tmdbId: number, type: MediaType, title: string, originalLanguage: ISOCode1) =>
   db
     .insert(mediaTable)
     .values({

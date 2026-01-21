@@ -12,10 +12,7 @@ const strikeCounts = new Map<number, number>()
 
 interface QueueService {
   getQueue: () => Promise<QueueResponse | undefined>
-  removeQueueItem: (
-    id: number,
-    options: { blocklist: boolean; removeFromClient: boolean }
-  ) => Promise<void>
+  removeQueueItem: (id: number, options: { blocklist: boolean; removeFromClient: boolean }) => Promise<void>
 }
 
 export const cleanupAll = async (): Promise<void> => {
@@ -23,10 +20,7 @@ export const cleanupAll = async (): Promise<void> => {
   await tryCatch(removeStalledDownloads, radarrService, 'Radarr')
 }
 
-const removeStalledDownloads = async (
-  service: QueueService,
-  serviceName: string
-): Promise<void> => {
+const removeStalledDownloads = async (service: QueueService, serviceName: string): Promise<void> => {
   const queue = await service.getQueue()
 
   const promises = []
@@ -43,16 +37,9 @@ const removeStalledDownloads = async (
             message.includes('Caution: Found potentially dangerous file with extension:')
         )
 
-      if (
-        item.status === 'warning' &&
-        item.errorMessage === 'The download is stalled with no connections'
-      ) {
+      if (item.status === 'warning' && item.errorMessage === 'The download is stalled with no connections') {
         strikeCounts.set(itemId, (strikeCounts.get(itemId) ?? 0) + 1)
-        logger.info(
-          `Item ${item.title} has ${strikeCounts.get(itemId)} strikes`,
-          `Cleanup`,
-          serviceName
-        )
+        logger.info(`Item ${item.title} has ${strikeCounts.get(itemId)} strikes`, `Cleanup`, serviceName)
       }
 
       if (noEligibleFiles || (strikeCounts.get(itemId) ?? 0) >= STRIKE_COUNT) {
@@ -65,11 +52,7 @@ const removeStalledDownloads = async (
         )
       }
     } else {
-      logger.warn(
-        `Skipping item due to missing or invalid keys: ${JSON.stringify(item)}`,
-        `Cleanup`,
-        serviceName
-      )
+      logger.warn(`Skipping item due to missing or invalid keys: ${JSON.stringify(item)}`, `Cleanup`, serviceName)
     }
   }
 

@@ -1,18 +1,9 @@
 import { ArkErrors, type, type Type } from 'arktype'
 
 import { logger } from '@/config/logger'
-import {
-  ApiError,
-  type HttpError,
-  HttpStatusError,
-  NetworkError,
-  ParseError,
-  ValidationError,
-} from '@/errors'
+import { ApiError, type HttpError, HttpStatusError, NetworkError, ParseError, ValidationError } from '@/errors'
 
-export type RequestResponse<T> =
-  | { data: Type<T>['infer']; ok: true }
-  | { error: HttpError; ok: false }
+export type RequestResponse<T> = { data: Type<T>['infer']; ok: true } | { error: HttpError; ok: false }
 
 interface RequestOptions<T = undefined> {
   body?: unknown
@@ -29,30 +20,15 @@ interface Options<E = unknown> {
 }
 
 export interface HttpClient {
-  delete: (
-    endpoint: string,
-    options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined>>
+  delete: (endpoint: string, options?: Omit<RequestOptions, 'method'>) => Promise<RequestResponse<undefined>>
 
-  get: <T = unknown>(
-    endpoint: string,
-    options?: Omit<RequestOptions<T>, 'body' | 'method'>
-  ) => Promise<RequestResponse<T>>
+  get: <T = unknown>(endpoint: string, options?: Omit<RequestOptions<T>, 'body' | 'method'>) => Promise<RequestResponse<T>>
 
-  patch: (
-    endpoint: string,
-    options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined>>
+  patch: (endpoint: string, options?: Omit<RequestOptions, 'method'>) => Promise<RequestResponse<undefined>>
 
-  post: (
-    endpoint: string,
-    options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined>>
+  post: (endpoint: string, options?: Omit<RequestOptions, 'method'>) => Promise<RequestResponse<undefined>>
 
-  put: (
-    endpoint: string,
-    options?: Omit<RequestOptions, 'method'>
-  ) => Promise<RequestResponse<undefined>>
+  put: (endpoint: string, options?: Omit<RequestOptions, 'method'>) => Promise<RequestResponse<undefined>>
 }
 
 export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient => {
@@ -80,10 +56,7 @@ export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient =>
     return url
   }
 
-  const request = async <T = undefined>(
-    endpoint: string,
-    options: RequestOptions<T> = {}
-  ): Promise<RequestResponse<T>> => {
+  const request = async <T = undefined>(endpoint: string, options: RequestOptions<T> = {}): Promise<RequestResponse<T>> => {
     const { body, headers = {}, method = 'GET', params, validator } = options
     const url = buildUrl(endpoint, params)
 

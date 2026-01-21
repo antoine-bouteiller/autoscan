@@ -30,10 +30,7 @@ const getCriterias = (originalLanguage: ISOCode1) => {
   return criterias
 }
 
-const findAudioStreamByCriteria = (
-  audioStreams: FFprobeStream[],
-  languageCriteria: Criteria[]
-): number => {
+const findAudioStreamByCriteria = (audioStreams: FFprobeStream[], languageCriteria: Criteria[]): number => {
   for (const condition of languageCriteria) {
     const streamIndex = audioStreams.findIndex(isStreamWanted(condition))
     if (streamIndex !== -1) {
@@ -58,11 +55,7 @@ const processAudioStream = (
   if (!codec || !wantedAudioEncodings.includes(codec)) {
     commands.push(`-c:a:${streamIndex}`, 'aac')
     needsTranscode = true
-    logger.warn(
-      `${languageCriteria[0]?.language} audio stream 0:a:${streamIndex} is ${codec}, converting to aac.`,
-      'Audio',
-      mediaTitle
-    )
+    logger.warn(`${languageCriteria[0]?.language} audio stream 0:a:${streamIndex} is ${codec}, converting to aac.`, 'Audio', mediaTitle)
   }
 
   if (stream?.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und') {
@@ -98,13 +91,7 @@ export const processAudioStreams = (
       if (!stream) {
         continue
       }
-      const result = processAudioStream(
-        stream,
-        audioStreamIndex,
-        languageCriteria,
-        originalLanguage,
-        mediaTitle
-      )
+      const result = processAudioStream(stream, audioStreamIndex, languageCriteria, originalLanguage, mediaTitle)
       command.push(...result.commands)
       countAudioStreamToKeep++
 

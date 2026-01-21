@@ -17,11 +17,7 @@ export class MediaError extends BaseError {
     mediaTitle: string
   }
 
-  constructor(
-    code: MediaErrorCode,
-    mediaTitle: string,
-    extra?: { filePath?: string; language?: string }
-  ) {
+  constructor(code: MediaErrorCode, mediaTitle: string, extra?: { filePath?: string; language?: string }) {
     super()
     this.code = code
     this.context = {

@@ -20,10 +20,8 @@ export const isStreamWanted = (criteria: Criteria) => (stream: FFprobeStream) =>
 
   return (
     stream.tags?.language === criteria.language &&
-    (!criteria.exclude?.length ||
-      !criteria.exclude.some((term) => stream.tags?.title?.toLowerCase().includes(term))) &&
-    (!criteria.wantedEncodings?.length ||
-      (stream.codec_name && criteria.wantedEncodings.includes(stream.codec_name.toLowerCase())))
+    (!criteria.exclude?.length || !criteria.exclude.some((term) => stream.tags?.title?.toLowerCase().includes(term))) &&
+    (!criteria.wantedEncodings?.length || (stream.codec_name && criteria.wantedEncodings.includes(stream.codec_name.toLowerCase())))
   )
 }
 

@@ -1,8 +1,6 @@
-export const isKeyOf = <T extends object>(obj: T, value: unknown): value is keyof T =>
-  typeof value === 'string' && value in obj
+export const isKeyOf = <T extends object>(obj: T, value: unknown): value is keyof T => typeof value === 'string' && value in obj
 
-export const isValueOf = <T extends object>(obj: T, value: unknown): value is T[keyof T] =>
-  Object.values(obj).includes(value)
+export const isValueOf = <T extends object>(obj: T, value: unknown): value is T[keyof T] => Object.values(obj).includes(value)
 
 // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
 export const typedKeyOf = <T extends object>(obj: T) => Object.keys(obj) as (keyof T)[]

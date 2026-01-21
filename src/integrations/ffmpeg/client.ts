@@ -12,16 +12,7 @@ export const executeFfmpeg = (id: number, input: string, output: string, command
 
   mkdirSync(`${path.join('/')}/transcode/${id}`, { recursive: true })
 
-  return spawnPromise('ffmpeg', [
-    '-hide_banner',
-    '-loglevel',
-    'error',
-    '-y',
-    '-i',
-    input,
-    ...command,
-    `${path.join('/')}/transcode/${id}/${output}`,
-  ])
+  return spawnPromise('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', input, ...command, `${path.join('/')}/transcode/${id}/${output}`])
 }
 
 export const ffprobe = async (input: string) => {
@@ -47,7 +38,6 @@ export const ffprobe = async (input: string) => {
   return parsedOutput.streams
 }
 
-const ffmpeg = (...command: string[]) =>
-  spawnPromise('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...command])
+const ffmpeg = (...command: string[]) => spawnPromise('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...command])
 
 export default ffmpeg

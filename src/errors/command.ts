@@ -10,10 +10,7 @@ export class CommandError extends BaseError {
     stderr?: string
   }
 
-  constructor(
-    code: CommandErrorCode,
-    details: { command?: string; exitCode?: number; stderr?: string }
-  ) {
+  constructor(code: CommandErrorCode, details: { command?: string; exitCode?: number; stderr?: string }) {
     super()
     this.code = code
     this.context = details

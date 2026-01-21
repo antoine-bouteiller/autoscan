@@ -26,10 +26,7 @@ export const getQueue = async (): Promise<QueueResponse | undefined> => {
   return result.data
 }
 
-export const removeQueueItem = async (
-  itemId: number,
-  options: { blocklist: boolean; removeFromClient: boolean }
-): Promise<void> => {
+export const removeQueueItem = async (itemId: number, options: { blocklist: boolean; removeFromClient: boolean }): Promise<void> => {
   const result = await radarrClient.delete(`queue/${itemId}`, {
     params: {
       blocklist: options.blocklist,

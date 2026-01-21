@@ -5,11 +5,7 @@ import { db } from '@/config/db'
 import { media } from '@/database/schema'
 
 import { mockGetPlexMetadata, mockGetTmdbMedia } from '../../mocks'
-import {
-  mockPlexEpisode,
-  mockPlexMovie,
-  mockPlexMovieResponse,
-} from '../../resources/fixtures/plex.fixtures'
+import { mockPlexEpisode, mockPlexMovie, mockPlexMovieResponse } from '../../resources/fixtures/plex.fixtures'
 import { tmdbMovieResponse, tmdbTvShowResponse } from '../../resources/fixtures/tmdb.fixtures'
 
 const {
@@ -196,9 +192,7 @@ describe('MetadataService', () => {
         Media: [],
       })
 
-      expect(getCompleteMediaDetails(mockPlexMovie)).rejects.toThrow(
-        'No part found in Plex metadata'
-      )
+      expect(getCompleteMediaDetails(mockPlexMovie)).rejects.toThrow('No part found in Plex metadata')
     })
   })
 })

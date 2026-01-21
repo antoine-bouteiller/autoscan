@@ -35,11 +35,7 @@ const criterias: Criteria[][] = [
   ],
 ]
 
-export const processSubtitleStreams = async (
-  subtitleStreams: FFprobeStream[],
-  originalLanguage: ISOCode1,
-  mediaTitle: string
-) => {
+export const processSubtitleStreams = async (subtitleStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
   const subtitlesToKeep: { index: number; language: ISOCode1 }[] = []
   if (originalLanguage === 'fr' || subtitleStreams.length === 0) {
     return []

@@ -77,11 +77,7 @@ export const refreshSection = async (id: number, filePath: string) => {
   }
 }
 
-export const updateStream = async (
-  partsId: number,
-  streamId: number,
-  type: 'audio' | 'subtitle'
-) => {
+export const updateStream = async (partsId: number, streamId: number, type: 'audio' | 'subtitle') => {
   const result = await plexClient.put(`library/parts/${partsId}`, {
     params: {
       [`${type}StreamID`]: streamId,

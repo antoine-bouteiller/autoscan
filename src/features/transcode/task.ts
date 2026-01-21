@@ -27,12 +27,7 @@ export const runTranscodeProcess = async () => {
         if (!details) {
           continue
         }
-        await transcodeFile(
-          details.file,
-          details.mediaTitle,
-          details.originalLanguage,
-          details.mediaType
-        )
+        await transcodeFile(details.file, details.mediaTitle, details.originalLanguage, details.mediaType)
       }
     }
 

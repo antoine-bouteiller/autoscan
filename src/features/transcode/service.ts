@@ -70,11 +70,7 @@ class TranscodeQueue {
       this.currentJob = job
 
       try {
-        logger.info(
-          `Processing job with command "${job.command.join(' ')}" (${this.queue.length} jobs remaining)`,
-          'Transcode',
-          job.mediaTitle
-        )
+        logger.info(`Processing job with command "${job.command.join(' ')}" (${this.queue.length} jobs remaining)`, 'Transcode', job.mediaTitle)
 
         const fileName = job.file.slice(0, job.file.lastIndexOf('.')).split('/').pop()
         if (!fileName) {
@@ -117,11 +113,7 @@ class TranscodeQueue {
 export const transcodeQueue = new TranscodeQueue()
 
 // Command Builder
-export const getTranscodeCommand = async (
-  file: string,
-  mediaTitle: string,
-  originalLanguage: ISOCode1
-) => {
+export const getTranscodeCommand = async (file: string, mediaTitle: string, originalLanguage: ISOCode1) => {
   const streams = await ffprobe(file)
 
   const videoStreams = streams.filter((stream) => stream.codec_type === 'video')
@@ -150,11 +142,7 @@ export const getTranscodeCommand = async (
     shouldExecute = true
   }
 
-  const subtitlesToExtract = await processSubtitleStreams(
-    subtitleStreams,
-    originalLanguage,
-    mediaTitle
-  )
+  const subtitlesToExtract = await processSubtitleStreams(subtitleStreams, originalLanguage, mediaTitle)
   if (subtitlesToExtract.length > 0) {
     shouldExecute = true
   }
@@ -169,12 +157,7 @@ export const getTranscodeCommand = async (
 }
 
 // Main Export
-export const transcodeFile = async (
-  file: string,
-  mediaTitle: string,
-  originalLanguage: ISOCode1,
-  mediaType: 'movie' | 'show'
-) => {
+export const transcodeFile = async (file: string, mediaTitle: string, originalLanguage: ISOCode1, mediaType: 'movie' | 'show') => {
   const transcodeComands = await tryCatch(getTranscodeCommand, file, mediaTitle, originalLanguage)
 
   if (transcodeComands) {

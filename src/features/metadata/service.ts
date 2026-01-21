@@ -9,11 +9,8 @@ export const extractTmdbIdFromPath = (filePath: string): number | undefined => {
   return match ? Number(match[1]) : undefined
 }
 
-export const buildMediaTitle = (
-  grandparentTitle?: string,
-  parentTitle?: string,
-  title?: string
-): string => [grandparentTitle, parentTitle, title].filter(Boolean).join(' - ')
+export const buildMediaTitle = (grandparentTitle?: string, parentTitle?: string, title?: string): string =>
+  [grandparentTitle, parentTitle, title].filter(Boolean).join(' - ')
 
 export const getMediaLanguage = async (
   tmdbId: number,
@@ -44,11 +41,7 @@ export const getMediaLanguage = async (
 }
 
 export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
-  const mediaTitle = buildMediaTitle(
-    plexMedia.grandparentTitle,
-    plexMedia.parentTitle,
-    plexMedia.title
-  )
+  const mediaTitle = buildMediaTitle(plexMedia.grandparentTitle, plexMedia.parentTitle, plexMedia.title)
 
   const file = plexMedia.Media[0]?.Part[0]?.file
 

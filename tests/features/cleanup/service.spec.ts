@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
-import {
-  mockRadarrGetQueue,
-  mockRadarrRemoveQueueItem,
-  mockSonarrGetQueue,
-  mockSonarrRemoveQueueItem,
-} from '../../mocks'
+import { mockRadarrGetQueue, mockRadarrRemoveQueueItem, mockSonarrGetQueue, mockSonarrRemoveQueueItem } from '../../mocks'
 import {
   mockQueueResponseEmpty,
   mockQueueResponseNormal,

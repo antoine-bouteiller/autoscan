@@ -5,13 +5,7 @@ import { IntegrationError } from '@/errors'
 import { handleError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
-import {
-  type TmdbMedia,
-  type TmdbMovie,
-  tmdbMovieResponse,
-  type TmdbTV,
-  tmdbTvResponse,
-} from './validators'
+import { type TmdbMedia, type TmdbMovie, tmdbMovieResponse, type TmdbTV, tmdbTvResponse } from './validators'
 
 const tmdbClient = httpClient({
   baseUrl: env.TMDB_API_URL,

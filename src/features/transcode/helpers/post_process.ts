@@ -67,11 +67,7 @@ export const handlePostTranscode = async ({
       const movieId = await getMovieByPath(filePath)
 
       if (!movieId) {
-        logger.warn(
-          `Could not find movie in Radarr for path: ${filePath}`,
-          'postTranscode',
-          mediaTitle
-        )
+        logger.warn(`Could not find movie in Radarr for path: ${filePath}`, 'postTranscode', mediaTitle)
         return
       }
 
@@ -81,11 +77,7 @@ export const handlePostTranscode = async ({
       const seriesId = await getSeriesByPath(filePath)
 
       if (!seriesId) {
-        logger.warn(
-          `Could not find series in Sonarr for path: ${filePath}`,
-          'postTranscode',
-          mediaTitle
-        )
+        logger.warn(`Could not find series in Sonarr for path: ${filePath}`, 'postTranscode', mediaTitle)
         return
       }
 
@@ -93,11 +85,7 @@ export const handlePostTranscode = async ({
       await renameSeries(seriesId)
     }
 
-    await Promise.all(
-      (sections ?? [])
-        .filter((section) => section.type === mediaType)
-        .map((section) => refreshSection(section.key, fileDirectory))
-    )
+    await Promise.all((sections ?? []).filter((section) => section.type === mediaType).map((section) => refreshSection(section.key, fileDirectory)))
   } catch (error) {
     handleError(error, 'postTranscode', mediaTitle)
   }
