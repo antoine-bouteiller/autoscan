@@ -7,8 +7,7 @@
           "run": "onType",
           "disableNestedConfig": false,
           "fixKind": "safe_fix",
-          "typeAware": true,
-          "unusedDisableDirectives": "deny"
+          "typeAware": false
         }
       }
     },
@@ -62,9 +61,10 @@
       "prettier": {
         "allowed": false
       },
-      "language_servers": ["!eslint", "!typescript-language-server", "vtsls", "..."],
+      "language_servers": ["vtsls", "oxfmt", "oxlint"],
       "code_actions_on_format": {
-        "source.fixAll.oxc": true
+        "source.fixAll.oxc": true,
+        "source.fixAll.eslint": false
       },
       "formatter": [
         {

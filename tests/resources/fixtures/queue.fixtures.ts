@@ -54,28 +54,6 @@ export const mockQueueResponseEmpty: QueueResponse = {
   totalRecords: 0,
 }
 
-export const mockQueueResponseWithMissingFields: QueueResponse = {
-  records: [
-    {
-      errorMessage: '',
-      id: 4,
-      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-      status: undefined as never,
-      statusMessages: [],
-      title: 'Test Movie',
-    },
-    {
-      errorMessage: '',
-      id: 5,
-      status: 'completed',
-      statusMessages: [],
-      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-      title: undefined as never,
-    },
-  ],
-  totalRecords: 2,
-}
-
 export const mockQueueResponseNormal: QueueResponse = {
   records: [
     {

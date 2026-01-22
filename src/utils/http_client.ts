@@ -1,137 +1,104 @@
-import { ArkErrors, type, type Type } from 'arktype'
+import { ArkErrors, type Type } from 'arktype'
 
 import { logger } from '@/config/logger'
 import { ApiError, type HttpError, HttpStatusError, NetworkError, ParseError, ValidationError } from '@/errors'
 
-export type RequestResponse<T> = { data: Type<T>['infer']; ok: true } | { error: HttpError; ok: false }
+export type RequestResponse<T> = { ok: true; data: T } | { ok: false; error: HttpError }
 
-interface RequestOptions<T = undefined> {
+type InferType<T> = Type<T>['infer']
+
+interface RequestOptions<T> {
   body?: unknown
   headers?: Record<string, string>
-  method?: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
-  params?: Record<string, boolean | number | string>
+  params?: Record<string, string | number | boolean>
   validator?: Type<T>
 }
 
-interface Options<E = unknown> {
+interface Options {
   baseUrl?: string
-  errorValidator?: Type<E>
   headers?: Record<string, string>
 }
 
-export interface HttpClient {
-  delete: (endpoint: string, options?: Omit<RequestOptions, 'method'>) => Promise<RequestResponse<undefined>>
-
-  get: <T = unknown>(endpoint: string, options?: Omit<RequestOptions<T>, 'body' | 'method'>) => Promise<RequestResponse<T>>
-
-  patch: (endpoint: string, options?: Omit<RequestOptions, 'method'>) => Promise<RequestResponse<undefined>>
-
-  post: (endpoint: string, options?: Omit<RequestOptions, 'method'>) => Promise<RequestResponse<undefined>>
-
-  put: (endpoint: string, options?: Omit<RequestOptions, 'method'>) => Promise<RequestResponse<undefined>>
-}
-
-export const httpClient = <E = unknown>(options: Options<E> = {}): HttpClient => {
-  const { baseUrl = '', headers: defaultHeaders = {} } = options
-
-  const errorValidator =
-    'errorValidator' in options && options.errorValidator
-      ? options.errorValidator
-      : // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-        (type('object') as unknown as Type<E>)
-
-  const buildUrl = (endpoint: string, params?: Record<string, boolean | number | string>) => {
-    const cleanBase = baseUrl ? baseUrl.replace(/\/+$/, '') : ''
+export const httpClient = ({ baseUrl = '', headers: globalHeaders = {} }: Options = {}) => {
+  const createUrl = (endpoint: string, params?: RequestOptions<unknown>['params']) => {
+    const cleanBase = baseUrl.replace(/\/+$/, '')
     const cleanEndpoint = endpoint.replace(/^\/+/, '')
+    const fullPath = cleanBase ? `${cleanBase}/${cleanEndpoint}` : cleanEndpoint
 
-    const urlString = cleanBase ? `${cleanBase}/${cleanEndpoint}` : cleanEndpoint
-
-    const url = new URL(urlString)
+    const url = new URL(fullPath)
 
     if (params) {
+      const searchParams = new URLSearchParams()
       for (const [key, value] of Object.entries(params)) {
-        url.searchParams.set(key, String(value))
+        searchParams.append(key, String(value))
       }
+      url.search = searchParams.toString()
     }
+
     return url
   }
 
-  const request = async <T = undefined>(endpoint: string, options: RequestOptions<T> = {}): Promise<RequestResponse<T>> => {
-    const { body, headers = {}, method = 'GET', params, validator } = options
-    const url = buildUrl(endpoint, params)
+  const request = async <TResponse = undefined>(
+    method: string,
+    endpoint: string,
+    options: RequestOptions<TResponse> = {}
+  ): Promise<RequestResponse<InferType<TResponse>>> => {
+    const { body, headers = {}, params, validator } = options
 
-    const requestHeaders: Record<string, string> = {
-      ...defaultHeaders,
-      ...headers,
-    }
-
-    if (body) {
-      requestHeaders['Content-Type'] = 'application/json'
-    }
+    const url = createUrl(endpoint, params)
 
     let response: Response
     try {
       response = await fetch(url, {
-        body: body ? JSON.stringify(body) : undefined,
-        headers: requestHeaders,
         method,
+        headers: {
+          ...globalHeaders,
+          ...headers,
+        },
+        body: body ? JSON.stringify(body) : undefined,
       })
     } catch (error) {
       return {
-        error: new NetworkError(error instanceof Error ? error.message : 'Unknown network error'),
         ok: false,
+        error: new NetworkError(error instanceof Error ? error.message : 'Unknown network error'),
       }
     }
 
     if (!response.ok) {
+      let errorData
       try {
-        const errorBody = await response.json()
-        const result = errorValidator(errorBody)
-
-        if (result instanceof ArkErrors) {
-          return { error: new ValidationError(result), ok: false }
-        }
-        return {
-          error: new ApiError(response.status, result),
-          ok: false,
-        }
+        errorData = await response.json()
       } catch {
-        // Fallthrough
+        return { ok: false, error: new ApiError(response.status, errorData) }
       }
-      logger.error(url.toString())
-      logger.error(JSON.stringify(response))
-      return {
-        error: new HttpStatusError(response.status, response.statusText),
-        ok: false,
-      }
+
+      logger.error(`HTTP ${response.status} ${url.toString()}`)
+      return { ok: false, error: new HttpStatusError(response.status, response.statusText) }
     }
 
-    if (validator) {
-      let data: unknown
-      try {
-        data = await response.json()
-      } catch {
-        return {
-          error: new ParseError('Failed to parse JSON'),
-          ok: false,
-        }
-      }
-      const result = validator(data)
-      if (result instanceof ArkErrors) {
-        return { error: new ValidationError(result), ok: false }
-      }
-      return { data: result, ok: true }
+    if (!validator) {
+      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+      return { ok: true, data: undefined as InferType<TResponse> }
     }
 
-    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-    return { data: undefined as Type<T>['infer'], ok: true }
+    const json = await response.json().catch(() => undefined)
+    if (json === null) {
+      return { ok: false, error: new ParseError('Failed to parse JSON') }
+    }
+
+    const result = validator(json)
+    if (result instanceof ArkErrors) {
+      return { ok: false, error: new ValidationError(result) }
+    }
+
+    return { ok: true, data: result }
   }
 
   return {
-    delete: (endpoint, options) => request(endpoint, { ...options, method: 'DELETE' }),
-    get: (endpoint, options) => request(endpoint, { ...options, method: 'GET' }),
-    patch: (endpoint, options) => request(endpoint, { ...options, method: 'PATCH' }),
-    post: (endpoint, options) => request(endpoint, { ...options, method: 'POST' }),
-    put: (endpoint, options) => request(endpoint, { ...options, method: 'PUT' }),
+    delete: (url: string, opts?: Omit<RequestOptions<undefined>, 'body'>) => request('DELETE', url, opts),
+    get: <T>(url: string, opts?: Omit<RequestOptions<T>, 'body'>) => request<T>('GET', url, opts),
+    patch: (url: string, opts?: RequestOptions<undefined>) => request('PATCH', url, opts),
+    post: (url: string, opts?: RequestOptions<undefined>) => request('POST', url, opts),
+    put: (url: string, opts?: RequestOptions<undefined>) => request('PUT', url, opts),
   }
 }

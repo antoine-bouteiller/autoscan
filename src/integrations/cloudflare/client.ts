@@ -1,16 +1,10 @@
 import env from '@/config/env'
-import { ApiError, IntegrationError } from '@/errors'
+import { IntegrationError } from '@/errors'
 import { handleError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
-import {
-  type DnsRecord,
-  dnsRecordsResponseValidator,
-  type ErrorResponse,
-  errorValidator,
-  ipifyResponseValidator,
-  zonesResponseValidator,
-} from './validators'
+import { formatCloudflareError, isCloudflareApiError } from './utils'
+import { type DnsRecord, dnsRecordsResponseValidator, ipifyResponseValidator, zonesResponseValidator } from './validators'
 
 const ipifyClient = httpClient({
   baseUrl: 'https://api.ipify.org/',
@@ -18,16 +12,10 @@ const ipifyClient = httpClient({
 
 const cloudflareClient = httpClient({
   baseUrl: 'https://api.cloudflare.com/client/v4/',
-  errorValidator: errorValidator,
   headers: {
     Authorization: `Bearer ${env.CLOUDFLARE_TOKEN}`,
   },
 })
-
-const formatCloudflareError = (body: ErrorResponse) => body.errors.map((e) => e.message).join(', ')
-
-const isCloudflareApiError = (error: unknown): error is ApiError<ErrorResponse> =>
-  error instanceof ApiError && typeof error.context.body === 'object' && error.context.body !== null && 'errors' in error.context.body
 
 export const getPublicIP = async () => {
   const result = await ipifyClient.get('', {

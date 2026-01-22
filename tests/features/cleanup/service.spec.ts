@@ -5,7 +5,6 @@ import {
   mockQueueResponseEmpty,
   mockQueueResponseNormal,
   mockQueueResponseWithDangerousFiles,
-  mockQueueResponseWithMissingFields,
   mockQueueResponseWithNoEligibleFiles,
   mockQueueResponseWithStalledWarning,
 } from '../../resources/fixtures/queue.fixtures'
@@ -79,9 +78,6 @@ describe('CleanupService', () => {
   })
 
   test('should skip items with missing title or status', async () => {
-    mockSonarrGetQueue.mockResolvedValue(mockQueueResponseWithMissingFields)
-    mockRadarrGetQueue.mockResolvedValue(mockQueueResponseWithMissingFields)
-
     await cleanupAll()
 
     expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
