@@ -3,7 +3,7 @@ import { join } from 'node:path'
 
 import { getMediaLanguage } from '@/features/metadata'
 import { transcodeFile } from '@/features/transcode'
-import { handleError } from '@/utils/error_handler'
+import { logError } from '@/utils/error_handler'
 
 import { radarrValidator } from './validator'
 
@@ -12,7 +12,7 @@ export const radarrWebhook = async (request: Request) => {
   const data = radarrValidator(body)
 
   if (data instanceof ArkErrors) {
-    handleError(data, 'Radarr')
+    logError(data, 'Radarr')
     return Response.json({ message: 'invalid request' }, { status: 400 })
   }
 

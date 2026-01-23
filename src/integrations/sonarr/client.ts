@@ -1,7 +1,6 @@
 import env from '@/config/env'
-import { IntegrationError } from '@/errors'
 import { type QueueResponse, queueResponseValidator } from '@/features/cleanup'
-import { handleError } from '@/utils/error_handler'
+import { logError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import { seriesValidator } from './validators'
@@ -11,6 +10,7 @@ const sonarrClient = httpClient({
   headers: {
     'X-Api-Key': env.SONARR_API_KEY,
   },
+  serviceName: 'Sonarr',
 })
 
 export const getQueue = async (): Promise<QueueResponse | undefined> => {
@@ -19,7 +19,7 @@ export const getQueue = async (): Promise<QueueResponse | undefined> => {
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
+    logError(result.error)
     return undefined
   }
 
@@ -35,7 +35,7 @@ export const removeQueueItem = async (itemId: number, options: { blocklist: bool
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
+    logError(result.error)
   }
 }
 
@@ -48,7 +48,7 @@ export const refreshSeries = async (seriesId: number): Promise<void> => {
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
+    logError(result.error)
   }
 }
 
@@ -61,7 +61,7 @@ export const renameSeries = async (seriesId: number): Promise<void> => {
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
+    logError(result.error)
   }
 }
 
@@ -71,7 +71,7 @@ export const getSeriesByPath = async (filePath: string): Promise<number | undefi
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Sonarr', 'http_error', result.error))
+    logError(result.error)
     return undefined
   }
 

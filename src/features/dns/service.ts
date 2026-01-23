@@ -1,5 +1,4 @@
 import env from '@/config/env'
-import { DnsError } from '@/errors'
 import { getARecord, getPublicIP, getZoneId, updateDnsRecord } from '@/integrations/cloudflare'
 import { tryCatch } from '@/utils/error_handler'
 
@@ -22,7 +21,7 @@ export const handleUpdateIp = async (recordName: string) => {
   const [record] = data.result
 
   if (!record) {
-    throw new DnsError('record_not_found', { recordType: 'A' })
+    throw new Error('(Cloudflare) Record not found for domain')
   }
 
   const currentIp = await getPublicIP()

@@ -3,7 +3,7 @@ import { join } from 'node:path'
 
 import { getMediaLanguage } from '@/features/metadata'
 import { transcodeFile } from '@/features/transcode'
-import { handleError } from '@/utils/error_handler'
+import { logError } from '@/utils/error_handler'
 
 import { sonarrValidator } from './validator'
 
@@ -12,7 +12,7 @@ export const sonarrWebhook = async (request: Request) => {
   const data = sonarrValidator(body)
 
   if (data instanceof ArkErrors) {
-    handleError(data, 'Sonarr')
+    logError(data, 'Sonarr')
     return Response.json({ message: 'invalid request' }, { status: 400 })
   }
 

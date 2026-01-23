@@ -6,7 +6,7 @@ import { ffprobe } from '@/integrations/ffmpeg/client'
 import { getSections, refreshSection } from '@/integrations/plex'
 import { getMovieByPath, refreshMovie, renameMovie } from '@/integrations/radarr'
 import { getSeriesByPath, refreshSeries, renameSeries } from '@/integrations/sonarr'
-import { handleError } from '@/utils/error_handler'
+import { logError } from '@/utils/error_handler'
 
 export const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<void> => {
   const paths = file.split('/')
@@ -87,6 +87,6 @@ export const handlePostTranscode = async ({
 
     await Promise.all((sections ?? []).filter((section) => section.type === mediaType).map((section) => refreshSection(section.key, fileDirectory)))
   } catch (error) {
-    handleError(error, 'postTranscode', mediaTitle)
+    logError(error, 'postTranscode', mediaTitle)
   }
 }

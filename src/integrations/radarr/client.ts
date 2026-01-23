@@ -1,7 +1,6 @@
 import env from '@/config/env'
-import { IntegrationError } from '@/errors'
 import { type QueueResponse, queueResponseValidator } from '@/features/cleanup'
-import { handleError } from '@/utils/error_handler'
+import { logError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import { movieValidator } from './validators'
@@ -11,6 +10,7 @@ const radarrClient = httpClient({
   headers: {
     'X-Api-Key': env.RADARR_API_KEY,
   },
+  serviceName: 'Radarr',
 })
 
 export const getQueue = async (): Promise<QueueResponse | undefined> => {
@@ -19,7 +19,7 @@ export const getQueue = async (): Promise<QueueResponse | undefined> => {
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Radarr', 'http_error', result.error))
+    logError(result.error)
     return undefined
   }
 
@@ -35,7 +35,7 @@ export const removeQueueItem = async (itemId: number, options: { blocklist: bool
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Radarr', 'http_error', result.error))
+    logError(result.error)
   }
 }
 
@@ -48,7 +48,7 @@ export const refreshMovie = async (movieId: number): Promise<void> => {
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Radarr', 'http_error', result.error))
+    logError(result.error)
   }
 }
 
@@ -62,7 +62,7 @@ export const renameMovie = async (movieId: number): Promise<void> => {
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Radarr', 'http_error', result.error))
+    logError(result.error)
   }
 }
 
@@ -72,7 +72,7 @@ export const getMovieByPath = async (filePath: string): Promise<number | undefin
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('Radarr', 'http_error', result.error))
+    logError(result.error)
     return undefined
   }
 

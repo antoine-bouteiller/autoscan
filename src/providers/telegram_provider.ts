@@ -5,7 +5,7 @@ import { Bot } from 'grammy'
 import env from '@/config/env'
 import { logger } from '@/config/logger'
 import { selectPreferedLanguage, type TelegramContext } from '@/features/telegram'
-import { handleError } from '@/utils/error_handler'
+import { logError } from '@/utils/error_handler'
 
 class TelegramProvider {
   private bot: Bot<TelegramContext> | undefined = undefined
@@ -36,7 +36,7 @@ class TelegramProvider {
     bot.use(conversations())
 
     bot.catch((error) => {
-      handleError(error, 'Telegram')
+      logError(error, 'Telegram')
       return error.ctx.reply('An error occurred')
     })
 

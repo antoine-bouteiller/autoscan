@@ -29,6 +29,14 @@ export const zonesResponseValidator = type({
   success: 'boolean',
 })
 
+export const cloudflareErrorResponse = type({
+  errors: type({
+    code: 'number',
+    message: 'string',
+  }).array(),
+  success: 'boolean',
+})
+
 export type DnsRecord = typeof dnsRecordValidator.infer
 export type DnsRecordsResponse = typeof dnsRecordsResponseValidator.infer
 export type Zone = typeof zoneValidator.infer

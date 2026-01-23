@@ -1,7 +1,7 @@
 import { Cron, type CronOptions } from 'croner'
 
 import { logger } from '@/config/logger'
-import { handleError, tryCatch } from '@/utils/error_handler'
+import { logError, tryCatch } from '@/utils/error_handler'
 
 interface JobConfig {
   handler: () => Promise<void> | void
@@ -40,7 +40,7 @@ class SchedulerProvider {
 
       return job
     } catch (error) {
-      handleError(error, 'Scheduler')
+      logError(error, 'Scheduler')
     }
   }
 

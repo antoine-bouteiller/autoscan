@@ -1,4 +1,4 @@
-import { CommandError } from '@/errors'
+import { CommandExecutionError } from '@/errors'
 
 export const spawnPromise = async (
   command: string,
@@ -14,11 +14,7 @@ export const spawnPromise = async (
   const [stdout, stderr, exitCode] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited])
 
   if (exitCode !== 0) {
-    throw new CommandError('execution_failed', {
-      command: `${command} ${args.join(' ')}`,
-      exitCode,
-      stderr,
-    })
+    throw new CommandExecutionError(`${command} ${args.join(' ')}`, exitCode, stderr)
   }
 
   return stdout

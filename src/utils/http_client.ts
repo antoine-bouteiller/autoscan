@@ -1,9 +1,8 @@
 import { ArkErrors, type Type } from 'arktype'
 
-import { logger } from '@/config/logger'
-import { ApiError, type HttpError, HttpStatusError, NetworkError, ParseError, ValidationError } from '@/errors'
+import { HttpError, type HttpErrorFormatter, NetworkError, ValidationError } from '@/errors'
 
-export type RequestResponse<T> = { ok: true; data: T } | { ok: false; error: HttpError }
+export type RequestResponse<T> = { ok: true; data: T } | { ok: false; error: HttpError | NetworkError | ValidationError }
 
 type InferType<T> = Type<T>['infer']
 
@@ -16,10 +15,12 @@ interface RequestOptions<T> {
 
 interface Options {
   baseUrl?: string
+  errorFormatter?: HttpErrorFormatter
   headers?: Record<string, string>
+  serviceName: string
 }
 
-export const httpClient = ({ baseUrl = '', headers: globalHeaders = {} }: Options = {}) => {
+export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeaders = {}, serviceName }: Options) => {
   const createUrl = (endpoint: string, params?: RequestOptions<unknown>['params']) => {
     const cleanBase = baseUrl.replace(/\/+$/, '')
     const cleanEndpoint = endpoint.replace(/^\/+/, '')
@@ -60,20 +61,19 @@ export const httpClient = ({ baseUrl = '', headers: globalHeaders = {} }: Option
     } catch (error) {
       return {
         ok: false,
-        error: new NetworkError(error instanceof Error ? error.message : 'Unknown network error'),
+        error: new NetworkError(serviceName, error instanceof Error ? error.message : 'Unknown network error'),
       }
     }
 
     if (!response.ok) {
-      let errorData
+      let errorData: unknown = response.statusText
       try {
         errorData = await response.json()
       } catch {
-        return { ok: false, error: new ApiError(response.status, errorData) }
+        // Keep statusText as errorData
       }
 
-      logger.error(`HTTP ${response.status} ${url.toString()}`)
-      return { ok: false, error: new HttpStatusError(response.status, response.statusText) }
+      return { ok: false, error: new HttpError(serviceName, response.status, errorData, errorFormatter) }
     }
 
     if (!validator) {
@@ -82,9 +82,6 @@ export const httpClient = ({ baseUrl = '', headers: globalHeaders = {} }: Option
     }
 
     const json = await response.json().catch(() => undefined)
-    if (json === null) {
-      return { ok: false, error: new ParseError('Failed to parse JSON') }
-    }
 
     const result = validator(json)
     if (result instanceof ArkErrors) {

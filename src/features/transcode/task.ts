@@ -1,7 +1,7 @@
 import { logger } from '@/config/logger'
 import { getCompleteMediaDetails } from '@/features/metadata'
 import { getSectionMedia, getSections } from '@/integrations/plex'
-import { handleError, tryCatch } from '@/utils/error_handler'
+import { logError, tryCatch } from '@/utils/error_handler'
 
 import { transcodeFile, transcodeQueue } from './service'
 
@@ -33,7 +33,7 @@ export const runTranscodeProcess = async () => {
 
     logger.info('Transcode scan finished')
   } catch (error) {
-    handleError(error)
+    logError(error)
   } finally {
     isScanning = false
   }

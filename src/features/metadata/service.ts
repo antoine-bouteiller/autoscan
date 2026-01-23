@@ -1,8 +1,9 @@
-import { MediaError } from '@/errors'
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/features/media'
 import { getPlexMetadata, type MediaType, type PlexMedia } from '@/integrations/plex'
 import { getTmdbMedia } from '@/integrations/tmdb'
 import { type ISOCode1 } from '@/types/iso_codes'
+
+import { FileNotFoundError, PartNotFoundError, TmdbIdNotFoundError } from './errors'
 
 export const extractTmdbIdFromPath = (filePath: string): number | undefined => {
   const match = /{tmdb-(.*?)}/g.exec(filePath)
@@ -46,13 +47,13 @@ export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
   const file = plexMedia.Media[0]?.Part[0]?.file
 
   if (!file) {
-    throw new MediaError('file_not_found', mediaTitle)
+    throw new FileNotFoundError(mediaTitle)
   }
 
   const tmdbId = extractTmdbIdFromPath(file)
 
   if (!tmdbId) {
-    throw new MediaError('tmdb_id_not_found', mediaTitle, { filePath: file })
+    throw new TmdbIdNotFoundError(mediaTitle, file)
   }
 
   const mediaType: MediaType = plexMedia.type === 'episode' ? 'show' : plexMedia.type
@@ -63,7 +64,7 @@ export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
   const part = plexMetadata?.Media[0]?.Part[0]
 
   if (!part) {
-    throw new MediaError('part_not_found', mediaTitle)
+    throw new PartNotFoundError(mediaTitle)
   }
 
   return {

@@ -1,8 +1,7 @@
 import type { MediaType } from '@/integrations/plex'
 
 import env from '@/config/env'
-import { IntegrationError } from '@/errors'
-import { handleError } from '@/utils/error_handler'
+import { logError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import { type TmdbMedia, type TmdbMovie, tmdbMovieResponse, type TmdbTV, tmdbTvResponse } from './validators'
@@ -12,6 +11,7 @@ const tmdbClient = httpClient({
   headers: {
     Authorization: `Bearer ${env.TMDB_API_TOKEN}`,
   },
+  serviceName: 'TMDB',
 })
 
 export const getTmdbMedia = async (tmdbId: number, mediaType: MediaType): Promise<TmdbMedia> => {
@@ -35,7 +35,7 @@ export const getTmdbTvShow = async (tmdbId: number): Promise<TmdbTV | undefined>
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('TMDB', 'http_error', result.error))
+    logError(result.error)
     return undefined
   }
 
@@ -48,7 +48,7 @@ export const getTmdbMovie = async (tmdbId: number): Promise<TmdbMovie | undefine
   })
 
   if (!result.ok) {
-    handleError(new IntegrationError('TMDB', 'http_error', result.error))
+    logError(result.error)
     return undefined
   }
 

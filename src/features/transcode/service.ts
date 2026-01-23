@@ -1,10 +1,10 @@
 import type { ISOCode1 } from '@/types/iso_codes'
 
 import { logger } from '@/config/logger'
-import { MediaError } from '@/errors'
 import { executeFfmpeg, ffprobe } from '@/integrations/ffmpeg/client'
-import { handleError, tryCatch } from '@/utils/error_handler'
+import { logError, tryCatch } from '@/utils/error_handler'
 
+import { FileNameInvalidError } from './errors'
 import { processAudioStreams } from './helpers/audio'
 import { handlePostTranscode } from './helpers/post_process'
 import { processSubtitleStreams } from './helpers/subtitle'
@@ -74,7 +74,7 @@ class TranscodeQueue {
 
         const fileName = job.file.slice(0, job.file.lastIndexOf('.')).split('/').pop()
         if (!fileName) {
-          throw new MediaError('file_name_invalid', job.mediaTitle)
+          throw new FileNameInvalidError(job.mediaTitle)
         }
 
         for (const subtitle of job.subtitlesToExtract) {
@@ -100,7 +100,7 @@ class TranscodeQueue {
           mediaType: job.mediaType,
         })
       } catch (error) {
-        handleError(error, 'Queue')
+        logError(error, 'Queue')
       } finally {
         this.currentJob = undefined
       }
@@ -124,7 +124,7 @@ export const getTranscodeCommand = async (file: string, mediaTitle: string, orig
   const fileName = file.slice(0, file.lastIndexOf('.')).split('/').pop()
 
   if (!fileName) {
-    throw new MediaError('file_name_invalid', mediaTitle)
+    throw new FileNameInvalidError(mediaTitle)
   }
 
   const command: string[] = ['-c', 'copy']

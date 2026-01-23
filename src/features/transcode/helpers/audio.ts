@@ -1,10 +1,10 @@
 import type { FFprobeStream } from '@/integrations/ffmpeg/validator'
 
 import { logger } from '@/config/logger'
-import { MediaError } from '@/errors'
 import { type ISOCode1 } from '@/types/iso_codes'
 import { iso1ToIso2B } from '@/utils/iso_codes'
 
+import { AudioStreamNotFoundError, NoStreamsKeptError } from '../errors'
 import { type Criteria, isStreamWanted } from './utils'
 
 const wantedAudioEncodings = ['aac', 'ac3', 'eac3']
@@ -74,7 +74,7 @@ export const processAudioStreams = (
   mediaTitle: string
 ): { command: string[]; shouldExecute: boolean } => {
   if (audioStreams.length === 0) {
-    throw new MediaError('audio_stream_not_found', mediaTitle, { language: originalLanguage })
+    throw new AudioStreamNotFoundError(mediaTitle, originalLanguage)
   }
 
   const command: string[] = []
@@ -102,7 +102,7 @@ export const processAudioStreams = (
   }
 
   if (countAudioStreamToKeep === 0) {
-    throw new MediaError('no_streams_kept', mediaTitle)
+    throw new NoStreamsKeptError(mediaTitle)
   }
 
   if (countAudioStreamToKeep !== audioStreams.length) {
