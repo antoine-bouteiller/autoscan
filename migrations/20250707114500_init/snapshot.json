@@ -1,0 +1,60 @@
+{
+  "dialect": "sqlite",
+  "id": "27b5d3a9-19b0-44e0-901c-a2e446df230b",
+  "prevIds": ["00000000-0000-0000-0000-000000000000"],
+  "version": "7",
+  "ddl": [
+    {
+      "name": "media",
+      "entityType": "tables"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tmdb_id",
+      "table": "media",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "original_language",
+      "table": "media",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "title",
+      "table": "media",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "type",
+      "table": "media",
+      "entityType": "columns"
+    },
+    {
+      "columns": ["tmdb_id", "type"],
+      "nameExplicit": false,
+      "name": "media_tmdb_id_type_pk",
+      "table": "media",
+      "entityType": "pks"
+    }
+  ],
+  "renames": []
+}

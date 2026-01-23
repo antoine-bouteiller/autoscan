@@ -14,20 +14,20 @@
     "@grammyjs/hydrate": "^1.6.0",
     "arktype": "^2.1.29",
     "croner": "^9.1.0",
-    "drizzle-orm": "^0.45.1",
-    "grammy": "^1.39.2"
+    "drizzle-orm": "^1.0.0-beta.12-a5629fb",
+    "grammy": "^1.39.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
     "@commitlint/config-conventional": "^20.3.1",
     "@tsconfig/bun": "^1.0.10",
-    "@types/bun": "^1.3.5",
-    "@typescript/native-preview": "^7.0.0-dev.20260111.1",
-    "drizzle-kit": "^0.31.8",
-    "lefthook": "^2.0.13",
+    "@types/bun": "^1.3.6",
+    "@typescript/native-preview": "^7.0.0-dev.20260122.4",
+    "drizzle-kit": "^1.0.0-beta.12-a5629fb",
+    "lefthook": "^2.0.15",
     "oxfmt": "^0.26.0",
-    "oxlint": "^1.38.0",
-    "oxlint-tsgolint": "^0.11.0"
+    "oxlint": "^1.41.0",
+    "oxlint-tsgolint": "^0.11.1"
   },
   "commitlint": {
     "extends": [

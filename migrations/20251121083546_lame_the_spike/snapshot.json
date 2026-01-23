@@ -1,0 +1,70 @@
+{
+  "dialect": "sqlite",
+  "id": "0797f8a2-646b-4278-b6f5-ef7d52009628",
+  "prevIds": ["83fb3a44-6497-4f1a-b68d-e9aa360be13a"],
+  "version": "7",
+  "ddl": [
+    {
+      "name": "media",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "original_language",
+      "table": "media",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "preferred_language",
+      "table": "media",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "title",
+      "table": "media",
+      "entityType": "columns"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tmdb_id",
+      "table": "media",
+      "entityType": "columns"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "type",
+      "table": "media",
+      "entityType": "columns"
+    },
+    {
+      "columns": ["tmdb_id", "type"],
+      "nameExplicit": false,
+      "name": "media_tmdb_id_type_pk",
+      "table": "media",
+      "entityType": "pks"
+    }
+  ],
+  "renames": ["\"media\".\"wanted_language\"->\"media\".\"preferred_language\""]
+}
