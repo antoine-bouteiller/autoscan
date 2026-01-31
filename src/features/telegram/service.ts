@@ -3,7 +3,7 @@ import type { MessageXFragment } from '@grammyjs/hydrate/out/data/message'
 import { ConversationMenuRange } from '@grammyjs/conversations'
 import { and, eq } from 'drizzle-orm'
 
-import type { MediaType } from '@/integrations/plex'
+import type { MediaType } from '@/integrations/plex/client'
 
 import { db } from '@/config/db'
 import { media, type Media } from '@/database/schema'

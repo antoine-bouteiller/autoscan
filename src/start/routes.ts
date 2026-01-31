@@ -1,5 +1,6 @@
-import { radarrWebhook, sonarrWebhook } from '@/features/arr'
-import { transcodeAll } from '@/features/transcode'
+import { radarrWebhook } from '@/features/arr/radarr/controller'
+import { sonarrWebhook } from '@/features/arr/sonarr/controller'
+import { transcodeAll } from '@/features/transcode/controller'
 import { getHttpProvider } from '@/providers/http_provider'
 
 getHttpProvider().registerRoutes({

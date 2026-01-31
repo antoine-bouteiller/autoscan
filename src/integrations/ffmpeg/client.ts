@@ -1,7 +1,7 @@
 import { ArkErrors } from 'arktype'
 import { mkdirSync } from 'node:fs'
 
-import { ValidationError } from '@/errors'
+import { ValidationError } from '@/errors/validation'
 import { spawnPromise } from '@/utils/exec_promisify'
 
 import { ffprobeOutputValidator } from './validator'

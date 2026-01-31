@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm'
 
 import { db } from '@/config/db'
 import { media, type Media } from '@/database/schema'
-import { countMediaByType, createdOrUpdatedMedia, getMediaByIdAndType, getMediaByTypeWithPagination } from '@/features/media'
+import { countMediaByType, createdOrUpdatedMedia, getMediaByIdAndType, getMediaByTypeWithPagination } from '@/features/media/service'
 
 describe('MediaService', () => {
   afterEach(async () => {

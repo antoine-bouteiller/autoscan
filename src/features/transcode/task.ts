@@ -1,6 +1,6 @@
 import { logger } from '@/config/logger'
-import { getCompleteMediaDetails } from '@/features/metadata'
-import { getSectionMedia, getSections } from '@/integrations/plex'
+import { getCompleteMediaDetails } from '@/features/metadata/service'
+import { getSectionMedia, getSections } from '@/integrations/plex/client'
 import { logError, tryCatch } from '@/utils/error_handler'
 
 import { transcodeFile, transcodeQueue } from './service'

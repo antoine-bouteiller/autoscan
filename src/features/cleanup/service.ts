@@ -1,6 +1,6 @@
 import { logger } from '@/config/logger'
-import * as radarrService from '@/integrations/radarr'
-import * as sonarrService from '@/integrations/sonarr'
+import * as radarrService from '@/integrations/radarr/client'
+import * as sonarrService from '@/integrations/sonarr/client'
 import { tryCatch } from '@/utils/error_handler'
 
 import type { QueueResponse } from './types'

@@ -1,4 +1,4 @@
-import { CommandExecutionError } from '@/errors'
+import { CommandExecutionError } from '@/errors/command'
 
 export const spawnPromise = async (
   command: string,

@@ -1,5 +1,5 @@
 import env from '@/config/env'
-import { type QueueResponse, queueResponseValidator } from '@/features/cleanup'
+import { type QueueResponse, queueResponseValidator } from '@/features/cleanup/types'
 import { logError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 

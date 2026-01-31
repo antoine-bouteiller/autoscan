@@ -1,4 +1,4 @@
-import type { MediaType } from '@/integrations/plex'
+import type { MediaType } from '@/integrations/plex/client'
 
 import env from '@/config/env'
 import { logError } from '@/utils/error_handler'

@@ -1,9 +1,9 @@
 import { InlineKeyboard } from 'grammy'
 
-import type { MediaType } from '@/integrations/plex'
+import type { MediaType } from '@/integrations/plex/client'
 
 import env from '@/config/env'
-import { getMediaByTypeWithPagination } from '@/features/media'
+import { getMediaByTypeWithPagination } from '@/features/media/service'
 
 import type { ConfigureLanguageContext, ConfigureLanguageConversation } from './types'
 

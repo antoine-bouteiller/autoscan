@@ -1,6 +1,8 @@
 import { ArkErrors, type Type } from 'arktype'
 
-import { HttpError, type HttpErrorFormatter, NetworkError, ValidationError } from '@/errors'
+import { HttpError, type HttpErrorFormatter } from '@/errors/http'
+import { NetworkError } from '@/errors/network'
+import { ValidationError } from '@/errors/validation'
 
 export type RequestResponse<T> = { ok: true; data: T } | { ok: false; error: HttpError | NetworkError | ValidationError }
 

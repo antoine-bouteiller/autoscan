@@ -1,6 +1,7 @@
 import { ArkErrors } from 'arktype'
 
-import { AppError, type HttpErrorFormatter } from '@/errors'
+import { AppError } from '@/errors/base'
+import { type HttpErrorFormatter } from '@/errors/http'
 
 import { cloudflareErrorResponse } from './validators'
 

@@ -1,4 +1,4 @@
-import { AppError } from '@/errors'
+import { AppError } from '@/errors/base'
 
 export class FileNotFoundError extends AppError {
   constructor(public readonly mediaTitle: string) {

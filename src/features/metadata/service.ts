@@ -1,6 +1,7 @@
-import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/features/media'
-import { getPlexMetadata, type MediaType, type PlexMedia } from '@/integrations/plex'
-import { getTmdbMedia } from '@/integrations/tmdb'
+import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/features/media/service'
+import { getPlexMetadata, type MediaType } from '@/integrations/plex/client'
+import { type PlexMedia } from '@/integrations/plex/validators'
+import { getTmdbMedia } from '@/integrations/tmdb/client'
 import { type ISOCode1 } from '@/types/iso_codes'
 
 import { FileNotFoundError, PartNotFoundError, TmdbIdNotFoundError } from './errors'

@@ -1,7 +1,8 @@
 import type { ISOCode1 } from '@/types/iso_codes'
 
 import { logger } from '@/config/logger'
-import { type PlexMediaStream, updateStream } from '@/integrations/plex'
+import { updateStream } from '@/integrations/plex/client'
+import { type PlexMediaStream } from '@/integrations/plex/validators'
 import { normalizeToIso1 } from '@/utils/iso_codes'
 
 interface UpdateLanguageParams {

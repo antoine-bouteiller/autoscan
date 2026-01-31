@@ -1,6 +1,6 @@
 import { and, asc, count, eq } from 'drizzle-orm'
 
-import type { MediaType } from '@/integrations/plex'
+import type { MediaType } from '@/integrations/plex/client'
 import type { ISOCode1 } from '@/types/iso_codes'
 
 import { db } from '@/config/db'

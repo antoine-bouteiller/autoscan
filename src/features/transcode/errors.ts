@@ -1,4 +1,4 @@
-import { AppError } from '@/errors'
+import { AppError } from '@/errors/base'
 
 export class AudioStreamNotFoundError extends AppError {
   constructor(

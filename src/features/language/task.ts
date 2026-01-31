@@ -1,5 +1,5 @@
-import { getCompleteMediaDetails } from '@/features/metadata'
-import { getSectionMedia, getSections } from '@/integrations/plex'
+import { getCompleteMediaDetails } from '@/features/metadata/service'
+import { getSectionMedia, getSections } from '@/integrations/plex/client'
 import { tryCatch } from '@/utils/error_handler'
 
 import { handleUpdateLanguage } from './service'

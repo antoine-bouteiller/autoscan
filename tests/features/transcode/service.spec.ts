@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import type { FFprobeStream } from '@/integrations/ffmpeg/validator.js'
 
-import { transcodeFile, transcodeQueue } from '@/features/transcode'
+import { transcodeFile, transcodeQueue } from '@/features/transcode/service.js'
 import { ffprobe } from '@/integrations/ffmpeg/client.js'
 
 import { setupTestContext, videosPath } from '../../config.js'
