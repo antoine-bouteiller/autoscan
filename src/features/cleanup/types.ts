@@ -19,3 +19,8 @@ export const queueResponseValidator = type({
 
 export type QueueItem = typeof queueItemValidator.infer
 export type QueueResponse = typeof queueResponseValidator.infer
+
+export interface QueueService {
+  getQueue: () => Promise<QueueResponse | undefined>
+  removeQueueItem: (id: number, options: { blocklist: boolean; removeFromClient: boolean }) => Promise<void>
+}

@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { ValidationError } from '@/errors/validation'
 import { spawnPromise } from '@/utils/exec_promisify'
 
-import { ffprobeOutputValidator } from './validator'
+import { ffprobeOutputValidator } from './validators'
 
 export const executeFfmpeg = (id: number, input: string, output: string, command: string[]) => {
   const path = input.split('/')

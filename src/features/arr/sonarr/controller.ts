@@ -5,7 +5,7 @@ import { getMediaLanguage } from '@/features/metadata/service'
 import { transcodeFile } from '@/features/transcode/service'
 import { logError } from '@/utils/error_handler'
 
-import { sonarrValidator } from './validator'
+import { sonarrValidator } from './validators'
 
 export const sonarrWebhook = async (request: Request) => {
   const body = await request.json()

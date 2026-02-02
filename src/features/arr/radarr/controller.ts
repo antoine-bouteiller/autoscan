@@ -5,7 +5,7 @@ import { getMediaLanguage } from '@/features/metadata/service'
 import { transcodeFile } from '@/features/transcode/service'
 import { logError } from '@/utils/error_handler'
 
-import { radarrValidator } from './validator'
+import { radarrValidator } from './validators'
 
 export const radarrWebhook = async (request: Request) => {
   const body = await request.json()

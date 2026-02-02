@@ -4,23 +4,14 @@ import { logger } from '@/config/logger'
 import { executeFfmpeg, ffprobe } from '@/integrations/ffmpeg/client'
 import { logError, tryCatch } from '@/utils/error_handler'
 
+import type { TranscodeJob } from './types'
+
 import { FileNameInvalidError } from './errors'
 import { processAudioStreams } from './helpers/audio'
 import { handlePostTranscode } from './helpers/post_process'
 import { processSubtitleStreams } from './helpers/subtitle'
 import { simpleHash } from './helpers/utils'
 import { processVideoStreams } from './helpers/video'
-
-// Types
-export interface TranscodeJob {
-  command: string[]
-  file: string
-  id: number
-  mediaTitle: string
-  mediaType: 'movie' | 'show'
-  originalLanguage: ISOCode1
-  subtitlesToExtract: { index: number; language: ISOCode1 }[]
-}
 
 // Queue Management
 class TranscodeQueue {

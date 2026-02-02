@@ -1,21 +1,13 @@
-import type { ISOCode1 } from '@/types/iso_codes'
-
 import { logger } from '@/config/logger'
 import { updateStream } from '@/integrations/plex/client'
-import { type PlexMediaStream } from '@/integrations/plex/validators'
 import { normalizeToIso1 } from '@/utils/iso_codes'
 
-interface UpdateLanguageParams {
-  mediaTitle: string
-  partsId: number
-  preferredLanguage: ISOCode1
-  streams: PlexMediaStream[]
-}
+import type { UpdateLanguageParams } from './types'
 
 export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
   const { mediaTitle, partsId, preferredLanguage, streams } = params
 
-  const audioStream = streams.find((stream: PlexMediaStream) => stream.streamType === 2 && normalizeToIso1(stream.languageCode) === preferredLanguage)
+  const audioStream = streams.find((stream) => stream.streamType === 2 && normalizeToIso1(stream.languageCode) === preferredLanguage)
 
   if (!audioStream) {
     logger.warn(`No ${preferredLanguage} audio stream found`, 'Language', mediaTitle)

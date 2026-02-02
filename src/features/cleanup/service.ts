@@ -3,17 +3,12 @@ import * as radarrService from '@/integrations/radarr/client'
 import * as sonarrService from '@/integrations/sonarr/client'
 import { tryCatch } from '@/utils/error_handler'
 
-import type { QueueResponse } from './types'
+import type { QueueService } from './types'
 
 const STRIKE_COUNT = 5
 
 // Initialize the strike count dictionary
 const strikeCounts = new Map<number, number>()
-
-interface QueueService {
-  getQueue: () => Promise<QueueResponse | undefined>
-  removeQueueItem: (id: number, options: { blocklist: boolean; removeFromClient: boolean }) => Promise<void>
-}
 
 export const cleanupAll = async (): Promise<void> => {
   await tryCatch(removeStalledDownloads, sonarrService, 'Sonarr')
