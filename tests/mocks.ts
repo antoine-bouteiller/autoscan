@@ -82,4 +82,4 @@ export const mockRadarrClient = {
   renameMovie: mockRenameMovie,
 }
 
-export { type MediaType } from '@/integrations/plex/client'
+export { type MediaType } from '@/integrations/plex.service'

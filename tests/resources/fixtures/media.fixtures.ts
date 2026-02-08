@@ -1,4 +1,4 @@
-import type { PlexMediaStream } from '@/integrations/plex/validators'
+import type { PlexMediaStream } from '@/validators/plex.validator'
 
 export const mockAudioStreams = [
   {
