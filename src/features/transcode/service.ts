@@ -1,7 +1,8 @@
+import type { FfmpegClient } from '@/integrations/ffmpeg/client'
 import type { ISOCode1 } from '@/types/iso_codes'
 
 import { logger } from '@/config/logger'
-import { executeFfmpeg, ffprobe } from '@/integrations/ffmpeg/client'
+import { container, TOKENS } from '@/core/bootstrap'
 import { logError, tryCatch } from '@/utils/error_handler'
 
 import type { TranscodeJob } from './types'
@@ -68,10 +69,12 @@ class TranscodeQueue {
           throw new FileNameInvalidError(job.mediaTitle)
         }
 
+        const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+
         for (const subtitle of job.subtitlesToExtract) {
           logger.info(`Extracting subtitle in ${subtitle.language}`, 'Transcode', job.mediaTitle)
 
-          await executeFfmpeg(job.id, job.file, `${fileName}.${subtitle.language}.srt`, [
+          await ffmpegClient.executeFfmpeg(job.id, job.file, `${fileName}.${subtitle.language}.srt`, [
             `-map`,
             `0:s:${subtitle.index}`,
             `-c:s:${subtitle.index}`,
@@ -81,7 +84,7 @@ class TranscodeQueue {
 
         const newFileName = `${fileName}.mp4`
         logger.info(`Executing transcode`, 'Transcode', job.mediaTitle)
-        await executeFfmpeg(job.id, job.file, newFileName, job.command)
+        await ffmpegClient.executeFfmpeg(job.id, job.file, newFileName, job.command)
         logger.info(`Transcoded successfully`, 'Transcode', job.mediaTitle)
 
         await handlePostTranscode({
@@ -105,7 +108,8 @@ export const transcodeQueue = new TranscodeQueue()
 
 // Command Builder
 export const getTranscodeCommand = async (file: string, mediaTitle: string, originalLanguage: ISOCode1) => {
-  const streams = await ffprobe(file)
+  const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+  const streams = await ffmpegClient.ffprobe(file)
 
   const videoStreams = streams.filter((stream) => stream.codec_type === 'video')
   const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')

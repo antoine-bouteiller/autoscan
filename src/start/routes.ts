@@ -1,9 +1,11 @@
+import type { HttpProvider } from '@/providers/http_provider'
+
+import { container, TOKENS } from '@/core/bootstrap'
 import { radarrWebhook } from '@/features/arr/radarr/controller'
 import { sonarrWebhook } from '@/features/arr/sonarr/controller'
 import { transcodeAll } from '@/features/transcode/controller'
-import { getHttpProvider } from '@/providers/http_provider'
 
-getHttpProvider().registerRoutes({
+container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER).registerRoutes({
   '/radarr': {
     POST: (request: Request) => radarrWebhook(request),
   },

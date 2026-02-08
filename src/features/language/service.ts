@@ -1,5 +1,7 @@
+import type { PlexClient } from '@/integrations/plex/client'
+
 import { logger } from '@/config/logger'
-import { updateStream } from '@/integrations/plex/client'
+import { container, TOKENS } from '@/core/bootstrap'
 import { normalizeToIso1 } from '@/utils/iso_codes'
 
 import type { UpdateLanguageParams } from './types'
@@ -17,10 +19,12 @@ export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
   if (!audioStream.selected) {
     logger.info(`Setting audio in ${preferredLanguage}`, 'Language', mediaTitle)
 
-    await updateStream(partsId, audioStream.id, 'audio')
+    const plexClient = container.resolve<PlexClient>(TOKENS.PLEX_CLIENT)
+
+    await plexClient.updateStream(partsId, audioStream.id, 'audio')
 
     if (preferredLanguage === 'fr') {
-      await updateStream(partsId, 0, 'subtitle')
+      await plexClient.updateStream(partsId, 0, 'subtitle')
     }
   }
 }

@@ -1,14 +1,19 @@
+import type { Middleware } from '@/core/middleware/types'
+
 import { logger } from '@/config/logger'
+import { compose } from '@/core/middleware/compose'
 import { logError } from '@/utils/error_handler'
+
+type RouteHandler = (request: Request) => Promise<Response> | Response
 
 type RouteConfig = Record<
   string,
   {
-    DELETE?: (request: Request) => Promise<Response> | Response
-    GET?: (request: Request) => Promise<Response> | Response
-    PATCH?: (request: Request) => Promise<Response> | Response
-    POST?: (request: Request) => Promise<Response> | Response
-    PUT?: (request: Request) => Promise<Response> | Response
+    DELETE?: RouteHandler
+    GET?: RouteHandler
+    PATCH?: RouteHandler
+    POST?: RouteHandler
+    PUT?: RouteHandler
   }
 >
 
@@ -17,7 +22,8 @@ interface HttpProviderOptions {
   port?: number
 }
 
-class HttpProvider {
+export class HttpProvider {
+  private readonly middlewares: Middleware[] = []
   private readonly options: HttpProviderOptions
   private routes: RouteConfig = {}
   private server: ReturnType<typeof Bun.serve> | undefined = undefined
@@ -30,6 +36,11 @@ class HttpProvider {
     }
   }
 
+  use(middleware: Middleware): this {
+    this.middlewares.push(middleware)
+    return this
+  }
+
   registerRoutes(routes: RouteConfig): void {
     this.routes = routes
   }
@@ -40,6 +51,8 @@ class HttpProvider {
       return this.server
     }
 
+    const wrappedRoutes = this.wrapRoutesWithMiddleware()
+
     this.server = Bun.serve({
       error(error) {
         logError(error)
@@ -49,7 +62,7 @@ class HttpProvider {
       },
       hostname: this.options.hostname,
       port: this.options.port,
-      routes: this.routes,
+      routes: wrappedRoutes,
     })
 
     logger.info(`Server running at ${this.server.url.toString()}`, 'HTTP')
@@ -64,11 +77,29 @@ class HttpProvider {
       this.server = undefined
     }
   }
-}
 
-let httpProvider: HttpProvider | undefined
+  private wrapRoutesWithMiddleware(): RouteConfig {
+    if (this.middlewares.length === 0) {
+      return this.routes
+    }
 
-export const getHttpProvider = (): HttpProvider => {
-  httpProvider ??= new HttpProvider({ port: 3030 })
-  return httpProvider
+    const pipeline = compose(this.middlewares)
+    const wrappedRoutes: RouteConfig = {}
+
+    for (const [path, methods] of Object.entries(this.routes)) {
+      wrappedRoutes[path] = {}
+      for (const [method, handler] of Object.entries(methods)) {
+        if (handler) {
+          // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+          const methodKey = method as keyof (typeof wrappedRoutes)[string]
+          wrappedRoutes[path][methodKey] = (request: Request) => {
+            const ctx = { request, state: {} }
+            return pipeline(ctx, async () => handler(request))
+          }
+        }
+      }
+    }
+
+    return wrappedRoutes
+  }
 }

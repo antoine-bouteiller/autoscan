@@ -1,10 +1,12 @@
+import type { SchedulerProvider } from '@/providers/scheduler_provider'
+
+import { container, TOKENS } from '@/core/bootstrap'
 import { runCleanupProcess } from '@/features/cleanup/task'
 import { dynDns } from '@/features/dns/service'
 import { updatePlexSelectedLanguages } from '@/features/language/task'
 import { runTranscodeProcess } from '@/features/transcode/task'
-import { getSchedulerProvider } from '@/providers/scheduler_provider'
 
-getSchedulerProvider().registerMany([
+container.resolve<SchedulerProvider>(TOKENS.SCHEDULER_PROVIDER).registerMany([
   {
     handler: runCleanupProcess,
     name: 'Cleanup',

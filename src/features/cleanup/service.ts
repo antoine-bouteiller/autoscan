@@ -1,6 +1,8 @@
+import type { RadarrClient } from '@/integrations/radarr/client'
+import type { SonarrClient } from '@/integrations/sonarr/client'
+
 import { logger } from '@/config/logger'
-import * as radarrService from '@/integrations/radarr/client'
-import * as sonarrService from '@/integrations/sonarr/client'
+import { container, TOKENS } from '@/core/bootstrap'
 import { tryCatch } from '@/utils/error_handler'
 
 import type { QueueService } from './types'
@@ -11,8 +13,11 @@ const STRIKE_COUNT = 5
 const strikeCounts = new Map<number, number>()
 
 export const cleanupAll = async (): Promise<void> => {
-  await tryCatch(removeStalledDownloads, sonarrService, 'Sonarr')
-  await tryCatch(removeStalledDownloads, radarrService, 'Radarr')
+  const sonarrClient = container.resolve<SonarrClient>(TOKENS.SONARR_CLIENT)
+  const radarrClient = container.resolve<RadarrClient>(TOKENS.RADARR_CLIENT)
+
+  await tryCatch(removeStalledDownloads, sonarrClient, 'Sonarr')
+  await tryCatch(removeStalledDownloads, radarrClient, 'Radarr')
 }
 
 const removeStalledDownloads = async (service: QueueService, serviceName: string): Promise<void> => {

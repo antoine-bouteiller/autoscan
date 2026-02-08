@@ -1,7 +1,9 @@
+import type { TmdbClient } from '@/integrations/tmdb/client'
+
+import { container, TOKENS } from '@/core/bootstrap'
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/features/media/service'
-import { getPlexMetadata, type MediaType } from '@/integrations/plex/client'
+import { type MediaType, type PlexClient } from '@/integrations/plex/client'
 import { type PlexMedia } from '@/integrations/plex/validators'
-import { getTmdbMedia } from '@/integrations/tmdb/client'
 import { type ISOCode1 } from '@/types/iso_codes'
 
 import { FileNotFoundError, PartNotFoundError, TmdbIdNotFoundError } from './errors'
@@ -26,7 +28,8 @@ export const getMediaLanguage = async (
     }
   }
 
-  const { data, type } = await getTmdbMedia(tmdbId, mediaType)
+  const tmdbClient = container.resolve<TmdbClient>(TOKENS.TMDB_CLIENT)
+  const { data, type } = await tmdbClient.getTmdbMedia(tmdbId, mediaType)
   if (!data) {
     return { originalLanguage: 'en', preferredLanguage: 'en' }
   }
@@ -61,7 +64,8 @@ export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
 
   const { originalLanguage, preferredLanguage } = await getMediaLanguage(tmdbId, mediaType)
 
-  const plexMetadata = await getPlexMetadata(Number(plexMedia.ratingKey))
+  const plexClient = container.resolve<PlexClient>(TOKENS.PLEX_CLIENT)
+  const plexMetadata = await plexClient.getPlexMetadata(Number(plexMedia.ratingKey))
   const part = plexMetadata?.Media[0]?.Part[0]
 
   if (!part) {

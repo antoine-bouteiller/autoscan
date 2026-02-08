@@ -2,10 +2,11 @@ import { describe, expect, test } from 'bun:test'
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
+import type { FfmpegClient } from '@/integrations/ffmpeg/client.js'
 import type { FFprobeStream } from '@/integrations/ffmpeg/validators.js'
 
+import { container, TOKENS } from '@/core/bootstrap'
 import { transcodeFile, transcodeQueue } from '@/features/transcode/service.js'
-import { ffprobe } from '@/integrations/ffmpeg/client.js'
 
 import { setupTestContext, videosPath } from '../../config.js'
 
@@ -108,7 +109,8 @@ describe('Transcode', () => {
         expect(existsSync(join(testDir, filename))).toBe(false)
       }
 
-      const streams = await ffprobe(join(testDir, outputFileName))
+      const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+      const streams = await ffmpegClient.ffprobe(join(testDir, outputFileName))
 
       for (const stream of outputStreams) {
         expect(streams[stream.index]?.codec_type).toBe(stream.codecType)

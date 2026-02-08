@@ -1,6 +1,8 @@
+import type { PlexClient } from '@/integrations/plex/client'
+
 import { logger } from '@/config/logger'
+import { container, TOKENS } from '@/core/bootstrap'
 import { getCompleteMediaDetails } from '@/features/metadata/service'
-import { getSectionMedia, getSections } from '@/integrations/plex/client'
 import { logError, tryCatch } from '@/utils/error_handler'
 
 import { transcodeFile, transcodeQueue } from './service'
@@ -16,10 +18,11 @@ export const runTranscodeProcess = async () => {
   isScanning = true
   try {
     logger.info('Starting transcode scan...')
-    const sections = await getSections()
+    const plexClient = container.resolve<PlexClient>(TOKENS.PLEX_CLIENT)
+    const sections = await plexClient.getSections()
 
     for (const section of sections ?? []) {
-      const medias = (await tryCatch(getSectionMedia, section.key, section.type)) ?? []
+      const medias = (await tryCatch(plexClient.getSectionMedia.bind(plexClient), section.key, section.type)) ?? []
 
       for (const media of medias) {
         const details = await tryCatch(getCompleteMediaDetails, media)

@@ -2,10 +2,11 @@ import { describe, expect, test } from 'bun:test'
 import { copyFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import type { FfmpegClient } from '@/integrations/ffmpeg/client'
 import type { ISOCode1 } from '@/types/iso_codes'
 
+import { container, TOKENS } from '@/core/bootstrap'
 import { processAudioStreams } from '@/features/transcode/helpers/audio'
-import { ffprobe } from '@/integrations/ffmpeg/client'
 
 import { setupTestContext, videosPath } from '../../../config.js'
 
@@ -59,7 +60,8 @@ describe('Clean audio', () => {
 
       copyFileSync(join(videosPath, file), join(testDir, file))
 
-      const streams = await ffprobe(join(testDir, file))
+      const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+      const streams = await ffmpegClient.ffprobe(join(testDir, file))
       const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
 
       const result = processAudioStreams(audioStreams, language, 'test')

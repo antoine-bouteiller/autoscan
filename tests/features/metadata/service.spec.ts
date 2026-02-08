@@ -2,8 +2,10 @@ import { afterAll, afterEach, beforeEach, describe, expect, test } from 'bun:tes
 import { and, eq } from 'drizzle-orm'
 
 import { db } from '@/config/db'
+import { container } from '@/core/container'
 import { media } from '@/database/schema'
 
+import '../../config'
 import { mockGetPlexMetadata, mockGetTmdbMedia } from '../../mocks'
 import { mockPlexEpisode, mockPlexMovie, mockPlexMovieResponse } from '../../resources/fixtures/plex.fixtures'
 import { tmdbMovieResponse, tmdbTvShowResponse } from '../../resources/fixtures/tmdb.fixtures'
@@ -17,6 +19,8 @@ const {
 
 describe('MetadataService', () => {
   beforeEach(async () => {
+    container.reset()
+
     await db.insert(media).values({
       originalLanguage: 'fr',
       preferredLanguage: 'fr',

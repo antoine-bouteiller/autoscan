@@ -1,81 +1,91 @@
-import env from '@/config/env'
 import { type QueueResponse, queueResponseValidator } from '@/features/cleanup/types'
 import { logError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 
 import { movieValidator } from './validators'
 
-const radarrClient = httpClient({
-  baseUrl: `${env.RADARR_API_URL}/api/v3`,
-  headers: {
-    'X-Api-Key': env.RADARR_API_KEY,
-  },
-  serviceName: 'Radarr',
-})
-
-export const getQueue = async (): Promise<QueueResponse | undefined> => {
-  const result = await radarrClient.get('queue', {
-    validator: queueResponseValidator,
-  })
-
-  if (!result.ok) {
-    logError(result.error)
-    return undefined
-  }
-
-  return result.data
+interface RadarrClientConfig {
+  apiKey: string
+  apiUrl: string
 }
 
-export const removeQueueItem = async (itemId: number, options: { blocklist: boolean; removeFromClient: boolean }): Promise<void> => {
-  const result = await radarrClient.delete(`queue/${itemId}`, {
-    params: {
-      blocklist: options.blocklist,
-      removeFromClient: options.removeFromClient,
-    },
-  })
+export class RadarrClient {
+  private readonly client: ReturnType<typeof httpClient>
 
-  if (!result.ok) {
-    logError(result.error)
-  }
-}
-
-export const refreshMovie = async (movieId: number): Promise<void> => {
-  const result = await radarrClient.post('command', {
-    body: {
-      movieId,
-      name: 'RefreshMovie',
-    },
-  })
-
-  if (!result.ok) {
-    logError(result.error)
-  }
-}
-
-export const renameMovie = async (movieId: number): Promise<void> => {
-  const result = await radarrClient.post('command', {
-    body: {
-      files: [],
-      movieId,
-      name: 'RenameMovie',
-    },
-  })
-
-  if (!result.ok) {
-    logError(result.error)
-  }
-}
-
-export const getMovieByPath = async (filePath: string): Promise<number | undefined> => {
-  const result = await radarrClient.get('movie', {
-    validator: movieValidator.array(),
-  })
-
-  if (!result.ok) {
-    logError(result.error)
-    return undefined
+  constructor(config: RadarrClientConfig) {
+    this.client = httpClient({
+      baseUrl: `${config.apiUrl}/api/v3`,
+      headers: {
+        'X-Api-Key': config.apiKey,
+      },
+      serviceName: 'Radarr',
+    })
   }
 
-  const movie = result.data.find((m) => filePath.startsWith(m.path))
-  return movie?.id
+  async getQueue(): Promise<QueueResponse | undefined> {
+    const result = await this.client.get('queue', {
+      validator: queueResponseValidator,
+    })
+
+    if (!result.ok) {
+      logError(result.error)
+      return undefined
+    }
+
+    return result.data
+  }
+
+  async removeQueueItem(itemId: number, options: { blocklist: boolean; removeFromClient: boolean }): Promise<void> {
+    const result = await this.client.delete(`queue/${itemId}`, {
+      params: {
+        blocklist: options.blocklist,
+        removeFromClient: options.removeFromClient,
+      },
+    })
+
+    if (!result.ok) {
+      logError(result.error)
+    }
+  }
+
+  async refreshMovie(movieId: number): Promise<void> {
+    const result = await this.client.post('command', {
+      body: {
+        movieId,
+        name: 'RefreshMovie',
+      },
+    })
+
+    if (!result.ok) {
+      logError(result.error)
+    }
+  }
+
+  async renameMovie(movieId: number): Promise<void> {
+    const result = await this.client.post('command', {
+      body: {
+        files: [],
+        movieId,
+        name: 'RenameMovie',
+      },
+    })
+
+    if (!result.ok) {
+      logError(result.error)
+    }
+  }
+
+  async getMovieByPath(filePath: string): Promise<number | undefined> {
+    const result = await this.client.get('movie', {
+      validator: movieValidator.array(),
+    })
+
+    if (!result.ok) {
+      logError(result.error)
+      return undefined
+    }
+
+    const movie = result.data.find((m) => filePath.startsWith(m.path))
+    return movie?.id
+  }
 }

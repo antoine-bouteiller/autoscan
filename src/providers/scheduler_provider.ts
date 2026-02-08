@@ -10,7 +10,7 @@ interface JobConfig {
   pattern: string
 }
 
-class SchedulerProvider {
+export class SchedulerProvider {
   private readonly jobs = new Map<string, Cron>()
 
   register(config: JobConfig): Cron | undefined {
@@ -56,11 +56,4 @@ class SchedulerProvider {
     }
     logger.info('All cron jobs stopped', 'Scheduler')
   }
-}
-
-let schedulerProvider: SchedulerProvider | undefined
-
-export const getSchedulerProvider = (): SchedulerProvider => {
-  schedulerProvider ??= new SchedulerProvider()
-  return schedulerProvider
 }

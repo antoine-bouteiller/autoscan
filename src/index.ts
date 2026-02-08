@@ -1,13 +1,18 @@
+import type { HttpProvider } from '@/providers/http_provider'
+import type { SchedulerProvider } from '@/providers/scheduler_provider'
+import type { TelegramProvider } from '@/providers/telegram_provider'
+
 import { logger } from '@/config/logger'
-import { getHttpProvider } from '@/providers/http_provider'
-import { getSchedulerProvider } from '@/providers/scheduler_provider'
-import { getTelegramProvider } from '@/providers/telegram_provider'
+import { container, TOKENS } from '@/core/bootstrap'
+import { errorHandlerMiddleware } from '@/core/middleware/error_handler'
 import '@/start/routes'
 import '@/start/scheduler'
 
-const httpProvider = getHttpProvider()
-const schedulerProvider = getSchedulerProvider()
-const telegramProvider = getTelegramProvider()
+const httpProvider = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
+const schedulerProvider = container.resolve<SchedulerProvider>(TOKENS.SCHEDULER_PROVIDER)
+const telegramProvider = container.resolve<TelegramProvider>(TOKENS.TELEGRAM_PROVIDER)
+
+httpProvider.use(errorHandlerMiddleware)
 
 httpProvider.start()
 

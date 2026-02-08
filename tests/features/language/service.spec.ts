@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
 
 import type { PlexMediaStream } from '@/integrations/plex/validators'
 
+import '../../config'
 import { mockUpdateStream } from '../../mocks'
 import {
   mockAudioStreamFrench,

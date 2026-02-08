@@ -11,6 +11,6 @@ export class HttpError extends AppError {
     public readonly body: unknown,
     formatter: HttpErrorFormatter = defaultFormatter
   ) {
-    super(`(${serviceName}) API error (${status}): ${formatter(body)}`)
+    super(`(${serviceName}) API error (${status}): ${formatter(body)}`, 502, 'UPSTREAM_ERROR')
   }
 }

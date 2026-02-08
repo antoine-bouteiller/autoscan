@@ -1,11 +1,13 @@
 import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import type { FfmpegClient } from '@/integrations/ffmpeg/client'
+import type { PlexClient } from '@/integrations/plex/client'
+import type { RadarrClient } from '@/integrations/radarr/client'
+import type { SonarrClient } from '@/integrations/sonarr/client'
+
 import { logger } from '@/config/logger'
-import { ffprobe } from '@/integrations/ffmpeg/client'
-import { getSections, refreshSection } from '@/integrations/plex/client'
-import { getMovieByPath, refreshMovie, renameMovie } from '@/integrations/radarr/client'
-import { getSeriesByPath, refreshSeries, renameSeries } from '@/integrations/sonarr/client'
+import { container, TOKENS } from '@/core/bootstrap'
 import { logError } from '@/utils/error_handler'
 
 export const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<void> => {
@@ -29,7 +31,8 @@ export const cleanUp = async (id: number, file: string, mediaTitle: string): Pro
     return
   }
 
-  const streams = await ffprobe(join(transcodePath, videoFile))
+  const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+  const streams = await ffmpegClient.ffprobe(join(transcodePath, videoFile))
 
   const videoStreams = streams.filter((stream) => stream.codec_type === 'video')
   const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
@@ -60,32 +63,37 @@ export const handlePostTranscode = async ({
   try {
     await cleanUp(id, filePath, mediaTitle)
 
-    const sections = await getSections()
+    const plexClient = container.resolve<PlexClient>(TOKENS.PLEX_CLIENT)
+    const sections = await plexClient.getSections()
     const fileDirectory = resolve(filePath, '..')
 
     if (mediaType === 'movie') {
-      const movieId = await getMovieByPath(filePath)
+      const radarrClient = container.resolve<RadarrClient>(TOKENS.RADARR_CLIENT)
+      const movieId = await radarrClient.getMovieByPath(filePath)
 
       if (!movieId) {
         logger.warn(`Could not find movie in Radarr for path: ${filePath}`, 'postTranscode', mediaTitle)
         return
       }
 
-      await refreshMovie(movieId)
-      await renameMovie(movieId)
+      await radarrClient.refreshMovie(movieId)
+      await radarrClient.renameMovie(movieId)
     } else {
-      const seriesId = await getSeriesByPath(filePath)
+      const sonarrClient = container.resolve<SonarrClient>(TOKENS.SONARR_CLIENT)
+      const seriesId = await sonarrClient.getSeriesByPath(filePath)
 
       if (!seriesId) {
         logger.warn(`Could not find series in Sonarr for path: ${filePath}`, 'postTranscode', mediaTitle)
         return
       }
 
-      await refreshSeries(seriesId)
-      await renameSeries(seriesId)
+      await sonarrClient.refreshSeries(seriesId)
+      await sonarrClient.renameSeries(seriesId)
     }
 
-    await Promise.all((sections ?? []).filter((section) => section.type === mediaType).map((section) => refreshSection(section.key, fileDirectory)))
+    await Promise.all(
+      (sections ?? []).filter((section) => section.type === mediaType).map((section) => plexClient.refreshSection(section.key, fileDirectory))
+    )
   } catch (error) {
     logError(error, 'postTranscode', mediaTitle)
   }

@@ -1,6 +1,7 @@
 import { ArkErrors } from 'arktype'
 import { join } from 'node:path'
 
+import { badRequest, success } from '@/core/response'
 import { getMediaLanguage } from '@/features/metadata/service'
 import { transcodeFile } from '@/features/transcode/service'
 import { logError } from '@/utils/error_handler'
@@ -13,13 +14,13 @@ export const radarrWebhook = async (request: Request) => {
 
   if (data instanceof ArkErrors) {
     logError(data, 'Radarr')
-    return Response.json({ message: 'invalid request' }, { status: 400 })
+    return badRequest('invalid request', data.summary)
   }
 
   const { eventType } = data
 
   if (eventType === 'Test') {
-    return Response.json({ message: 'ok' })
+    return success({ message: 'ok' })
   }
 
   if (eventType === 'Download') {
@@ -30,5 +31,5 @@ export const radarrWebhook = async (request: Request) => {
     void transcodeFile(file, mediaTitle, originalLanguage, 'movie')
   }
 
-  return Response.json({ message: 'ok' })
+  return success({ message: 'ok' })
 }

@@ -1,5 +1,7 @@
+import type { CloudflareClient } from '@/integrations/cloudflare/client'
+
 import env from '@/config/env'
-import { getARecord, getPublicIP, getZoneId, updateDnsRecord } from '@/integrations/cloudflare/client'
+import { container, TOKENS } from '@/core/bootstrap'
 import { tryCatch } from '@/utils/error_handler'
 
 const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]
@@ -8,11 +10,13 @@ const ZONE_NAME = env.DOMAIN
 let zoneId = ''
 
 export const handleUpdateIp = async (recordName: string) => {
+  const cloudflareClient = container.resolve<CloudflareClient>(TOKENS.CLOUDFLARE_CLIENT)
+
   if (!zoneId) {
-    zoneId = await getZoneId(ZONE_NAME)
+    zoneId = await cloudflareClient.getZoneId(ZONE_NAME)
   }
 
-  const data = await getARecord(recordName, zoneId)
+  const data = await cloudflareClient.getARecord(recordName, zoneId)
 
   if (!data) {
     return
@@ -24,13 +28,13 @@ export const handleUpdateIp = async (recordName: string) => {
     throw new Error('(Cloudflare) Record not found for domain')
   }
 
-  const currentIp = await getPublicIP()
+  const currentIp = await cloudflareClient.getPublicIP()
 
   if (record.content === currentIp) {
     return
   }
 
-  await updateDnsRecord(record, currentIp, zoneId)
+  await cloudflareClient.updateDnsRecord(record, currentIp, zoneId)
 }
 
 export const dynDns = async () => {
