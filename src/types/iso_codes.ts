@@ -431,7 +431,7 @@ export type ISOCode1 = (typeof ISO1)[number]
 export type ISOCode2T = (typeof ISO2T)[number]
 export type ISOCode2B = (typeof ISO2B)[number] | Exclude<ISOCode2T, (typeof iso2BToIso2T)[keyof typeof iso2BToIso2T]>
 
-export type ISOCode2 = ISOCode2B | ISOCode2T
+type ISOCode2 = ISOCode2B | ISOCode2T
 
 // ISO 639-1 to ISO 639-2/T mapping
 export const iso1ToIso2T: Record<ISOCode1, ISOCode2T> = {

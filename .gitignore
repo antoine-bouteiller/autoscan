@@ -5,3 +5,6 @@ index
 
 # bun
 *.bun-build
+
+# Claude
+settings.local.json

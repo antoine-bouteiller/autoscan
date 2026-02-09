@@ -1,14 +1,17 @@
 import { logger } from '@/config/logger'
+import { AppError } from '@/errors/base'
 import { logError } from '@/utils/error_handler'
+
+type RouteHandler = (request: Request) => Promise<Response> | Response
 
 type RouteConfig = Record<
   string,
   {
-    DELETE?: (request: Request) => Promise<Response> | Response
-    GET?: (request: Request) => Promise<Response> | Response
-    PATCH?: (request: Request) => Promise<Response> | Response
-    POST?: (request: Request) => Promise<Response> | Response
-    PUT?: (request: Request) => Promise<Response> | Response
+    DELETE?: RouteHandler
+    GET?: RouteHandler
+    PATCH?: RouteHandler
+    POST?: RouteHandler
+    PUT?: RouteHandler
   }
 >
 
@@ -17,7 +20,7 @@ interface HttpProviderOptions {
   port?: number
 }
 
-class HttpProvider {
+export class HttpProvider {
   private readonly options: HttpProviderOptions
   private routes: RouteConfig = {}
   private server: ReturnType<typeof Bun.serve> | undefined = undefined
@@ -43,9 +46,22 @@ class HttpProvider {
     this.server = Bun.serve({
       error(error) {
         logError(error)
-        return new Response('Internal Server Error', {
-          status: 500,
-        })
+
+        if (error instanceof AppError) {
+          return error.toResponse()
+        }
+
+        return Response.json(
+          {
+            error: {
+              code: 'INTERNAL_ERROR',
+              message: 'An unexpected error occurred',
+            },
+            meta: { timestamp: new Date().toISOString() },
+            success: false,
+          },
+          { status: 500 }
+        )
       },
       hostname: this.options.hostname,
       port: this.options.port,
@@ -64,11 +80,4 @@ class HttpProvider {
       this.server = undefined
     }
   }
-}
-
-let httpProvider: HttpProvider | undefined
-
-export const getHttpProvider = (): HttpProvider => {
-  httpProvider ??= new HttpProvider({ port: 3030 })
-  return httpProvider
 }

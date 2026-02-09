@@ -1,4 +1,4 @@
-import { ISO1, iso1ToIso2T, iso2BToIso2T, ISO2T, iso2ToIso1, iso2TToIso2B, type ISOCode1, type ISOCode2B, type ISOCode2T } from '@/types/iso_codes'
+import { ISO1, iso1ToIso2T, iso2ToIso1, iso2TToIso2B, type ISOCode1, type ISOCode2B } from '@/types/iso_codes'
 
 import { isInArray } from './array'
 import { isKeyOf } from './object'
@@ -20,32 +20,6 @@ export const normalizeToIso1 = (code?: string): ISOCode1 | undefined => {
 
   if (isKeyOf(iso2ToIso1, lowerCode)) {
     return iso2ToIso1[lowerCode]
-  }
-
-  return undefined
-}
-
-/**
- * Normalize a language code to ISO 639-2/T (3-character terminologic) format
- * Accepts ISO 639-1, ISO 639-2/B, or ISO 639-2/T codes
- */
-export const normalizeToIso2T = (code?: string): ISOCode2T | undefined => {
-  if (!code) {
-    return undefined
-  }
-
-  const lowerCode = code.toLowerCase()
-
-  if (isInArray(ISO1, lowerCode)) {
-    return iso1ToIso2T[lowerCode]
-  }
-
-  if (isKeyOf(iso2BToIso2T, lowerCode)) {
-    return iso2BToIso2T[lowerCode]
-  }
-
-  if (isInArray(ISO2T, lowerCode)) {
-    return lowerCode
   }
 
   return undefined

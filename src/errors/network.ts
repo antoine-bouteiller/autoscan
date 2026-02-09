@@ -5,6 +5,6 @@ export class NetworkError extends AppError {
     public readonly serviceName: string,
     public readonly originalMessage: string
   ) {
-    super(`(${serviceName}) Network Error: ${originalMessage}`)
+    super(`(${serviceName}) Network Error: ${originalMessage}`, 503, 'SERVICE_UNAVAILABLE')
   }
 }

@@ -4,7 +4,7 @@ import { HttpError, type HttpErrorFormatter } from '@/errors/http'
 import { NetworkError } from '@/errors/network'
 import { ValidationError } from '@/errors/validation'
 
-export type RequestResponse<T> = { ok: true; data: T } | { ok: false; error: HttpError | NetworkError | ValidationError }
+type RequestResponse<T> = { ok: true; data: T } | { ok: false; error: HttpError | NetworkError | ValidationError }
 
 type InferType<T> = Type<T>['infer']
 

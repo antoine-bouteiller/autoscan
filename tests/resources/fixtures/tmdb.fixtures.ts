@@ -1,4 +1,4 @@
-import type { TmdbMedia } from '@/integrations/tmdb/validators'
+import type { TmdbMedia } from '@/validators/tmdb.validator'
 
 export const tmdbTvShowResponse = {
   data: {
@@ -6,12 +6,4 @@ export const tmdbTvShowResponse = {
     original_language: 'es',
   },
   type: 'tv',
-} satisfies TmdbMedia
-
-export const tmdbMovieResponse = {
-  data: {
-    original_language: 'es',
-    title: 'Test Movie From TMDB',
-  },
-  type: 'movie',
 } satisfies TmdbMedia

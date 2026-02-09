@@ -4,11 +4,11 @@ import { Bot } from 'grammy'
 
 import env from '@/config/env'
 import { logger } from '@/config/logger'
-import { selectPreferedLanguage } from '@/features/telegram/controller'
-import { type TelegramContext } from '@/features/telegram/types'
+import { selectPreferedLanguage } from '@/controllers/telegram.controller'
+import { type TelegramContext } from '@/types/telegram'
 import { logError } from '@/utils/error_handler'
 
-class TelegramProvider {
+export class TelegramProvider {
   private bot: Bot<TelegramContext> | undefined = undefined
 
   start(): void {
@@ -48,11 +48,4 @@ class TelegramProvider {
 
     return bot
   }
-}
-
-let telegramProvider: TelegramProvider | undefined
-
-export const getTelegramProvider = (): TelegramProvider => {
-  telegramProvider ??= new TelegramProvider()
-  return telegramProvider
 }
