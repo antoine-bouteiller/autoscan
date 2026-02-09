@@ -1,6 +1,6 @@
 [test]
 coverageReporter=lcov
 root = "tests"
-preload = ["./tests/mocks.ts", "./tests/config.ts"]
+preload = ["./tests/config.ts"]
 coverageSkipTestFiles = true
 coveragePathIgnorePatterns = ["**/integrations/**"]

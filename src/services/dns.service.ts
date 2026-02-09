@@ -1,7 +1,7 @@
 import type { CloudflareClient } from '@/integrations/cloudflare.service'
 
 import env from '@/config/env'
-import { container, TOKENS } from '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 import { tryCatch } from '@/utils/error_handler'
 
 const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]

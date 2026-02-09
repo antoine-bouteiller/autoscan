@@ -3,7 +3,7 @@ import type { SonarrClient } from '@/integrations/sonarr.service'
 import type { QueueService } from '@/types/cleanup'
 
 import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 import { tryCatch } from '@/utils/error_handler'
 
 const STRIKE_COUNT = 5

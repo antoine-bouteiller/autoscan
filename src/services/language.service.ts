@@ -2,7 +2,7 @@ import type { PlexClient } from '@/integrations/plex.service'
 import type { UpdateLanguageParams } from '@/types/language'
 
 import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 import { normalizeToIso1 } from '@/utils/iso_codes'
 
 export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {

@@ -1,6 +1,6 @@
 import type { PlexClient } from '@/integrations/plex.service'
 
-import { container, TOKENS } from '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 import { handleUpdateLanguage } from '@/services/language.service'
 import { getCompleteMediaDetails } from '@/services/metadata.service'
 import { tryCatch } from '@/utils/error_handler'

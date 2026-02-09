@@ -3,7 +3,7 @@ import type { ISOCode1 } from '@/types/iso_codes'
 import type { TranscodeJob } from '@/types/transcode'
 
 import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 import { FileNameInvalidError } from '@/errors/transcode'
 import { logError, tryCatch } from '@/utils/error_handler'
 

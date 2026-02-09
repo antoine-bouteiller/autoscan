@@ -7,7 +7,7 @@ import type { RadarrClient } from '@/integrations/radarr.service'
 import type { SonarrClient } from '@/integrations/sonarr.service'
 
 import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 import { logError } from '@/utils/error_handler'
 
 export const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<void> => {

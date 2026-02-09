@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
+import { container, TOKENS } from '@/core/container'
+
 import '../config'
-import { mockRadarrGetQueue, mockRadarrRemoveQueueItem, mockSonarrGetQueue, mockSonarrRemoveQueueItem } from '../mocks'
+import type { TestRadarrClient, TestSonarrClient } from '../mocks'
+
 import {
   mockQueueResponseEmpty,
   mockQueueResponseNormal,
@@ -13,85 +16,91 @@ import {
 const { cleanupAll } = await import('@/services/cleanup.service')
 
 describe('CleanupService', () => {
+  let testSonarrClient: TestSonarrClient
+  let testRadarrClient: TestRadarrClient
+
   beforeEach(() => {
-    mockSonarrGetQueue.mockReset()
-    mockSonarrRemoveQueueItem.mockReset()
-    mockRadarrGetQueue.mockReset()
-    mockRadarrRemoveQueueItem.mockReset()
+    testSonarrClient = container.resolve<TestSonarrClient>(TOKENS.SONARR_CLIENT)
+    testRadarrClient = container.resolve<TestRadarrClient>(TOKENS.RADARR_CLIENT)
+
+    testSonarrClient.getQueue.mockReset()
+    testSonarrClient.removeQueueItem.mockReset()
+    testRadarrClient.getQueue.mockReset()
+    testRadarrClient.removeQueueItem.mockReset()
   })
 
   test('should remove items with no eligible files', async () => {
-    mockSonarrGetQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
-    mockRadarrGetQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
-    mockSonarrRemoveQueueItem.mockResolvedValue(undefined)
-    mockRadarrRemoveQueueItem.mockResolvedValue(undefined)
+    testSonarrClient.getQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
+    testRadarrClient.getQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
+    testSonarrClient.removeQueueItem.mockResolvedValue(undefined)
+    testRadarrClient.removeQueueItem.mockResolvedValue(undefined)
 
     await cleanupAll()
 
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledWith(1, {
+    expect(testSonarrClient.removeQueueItem).toHaveBeenCalledTimes(1)
+    expect(testRadarrClient.removeQueueItem).toHaveBeenCalledTimes(1)
+    expect(testSonarrClient.removeQueueItem).toHaveBeenCalledWith(1, {
       blocklist: true,
       removeFromClient: true,
     })
   })
 
   test('should remove items with dangerous file extensions', async () => {
-    mockSonarrGetQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
-    mockRadarrGetQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
-    mockSonarrRemoveQueueItem.mockResolvedValue(undefined)
-    mockRadarrRemoveQueueItem.mockResolvedValue(undefined)
+    testSonarrClient.getQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
+    testRadarrClient.getQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
+    testSonarrClient.removeQueueItem.mockResolvedValue(undefined)
+    testRadarrClient.removeQueueItem.mockResolvedValue(undefined)
 
     await cleanupAll()
 
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
+    expect(testSonarrClient.removeQueueItem).toHaveBeenCalledTimes(1)
+    expect(testRadarrClient.removeQueueItem).toHaveBeenCalledTimes(1)
   })
 
   test('should not remove items with stalled warning on first strike', async () => {
-    mockSonarrGetQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
-    mockRadarrGetQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
+    testSonarrClient.getQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
+    testRadarrClient.getQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
 
     await cleanupAll()
 
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    expect(testSonarrClient.removeQueueItem).not.toHaveBeenCalled()
+    expect(testRadarrClient.removeQueueItem).not.toHaveBeenCalled()
   })
 
   test('should handle empty queue', async () => {
-    mockSonarrGetQueue.mockResolvedValue(mockQueueResponseEmpty)
-    mockRadarrGetQueue.mockResolvedValue(mockQueueResponseEmpty)
+    testSonarrClient.getQueue.mockResolvedValue(mockQueueResponseEmpty)
+    testRadarrClient.getQueue.mockResolvedValue(mockQueueResponseEmpty)
 
     await cleanupAll()
 
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    expect(testSonarrClient.removeQueueItem).not.toHaveBeenCalled()
+    expect(testRadarrClient.removeQueueItem).not.toHaveBeenCalled()
   })
 
   test('should handle undefined queue response', async () => {
-    mockSonarrGetQueue.mockResolvedValue({})
-    mockRadarrGetQueue.mockResolvedValue({})
+    testSonarrClient.getQueue.mockResolvedValue({})
+    testRadarrClient.getQueue.mockResolvedValue({})
 
     await cleanupAll()
 
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    expect(testSonarrClient.removeQueueItem).not.toHaveBeenCalled()
+    expect(testRadarrClient.removeQueueItem).not.toHaveBeenCalled()
   })
 
   test('should skip items with missing title or status', async () => {
     await cleanupAll()
 
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    expect(testSonarrClient.removeQueueItem).not.toHaveBeenCalled()
+    expect(testRadarrClient.removeQueueItem).not.toHaveBeenCalled()
   })
 
   test('should handle normal completed items without errors', async () => {
-    mockSonarrGetQueue.mockResolvedValue(mockQueueResponseNormal)
-    mockRadarrGetQueue.mockResolvedValue(mockQueueResponseNormal)
+    testSonarrClient.getQueue.mockResolvedValue(mockQueueResponseNormal)
+    testRadarrClient.getQueue.mockResolvedValue(mockQueueResponseNormal)
 
     await cleanupAll()
 
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    expect(testSonarrClient.removeQueueItem).not.toHaveBeenCalled()
+    expect(testRadarrClient.removeQueueItem).not.toHaveBeenCalled()
   })
 })

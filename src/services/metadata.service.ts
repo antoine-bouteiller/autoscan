@@ -1,6 +1,6 @@
 import type { TmdbClient } from '@/integrations/tmdb.service'
 
-import { container, TOKENS } from '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 import { FileNotFoundError, PartNotFoundError, TmdbIdNotFoundError } from '@/errors/metadata'
 import { type MediaType, type PlexClient } from '@/integrations/plex.service'
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/repositories/media.repository'

@@ -1,85 +1,47 @@
 import { mock } from 'bun:test'
 
-void mock.module('@/config/env', () => ({
-  default: {
-    CLOUDFLARE_TOKEN: 'test-token',
-    DATABASE_URL: ':memory:',
-    DOMAIN: 'example.com',
-    PLEX_TOKEN: 'test-plex-token',
-    PLEX_URL: 'http://plex.test',
-    RADARR_API_KEY: 'test-radarr-key',
-    RADARR_API_URL: 'http://radarr.test',
-    SONARR_API_KEY: 'test-sonarr-key',
-    SONARR_API_URL: 'http://sonarr.test',
-    TMDB_API_TOKEN: 'test-tmdb-token',
-    TMDB_API_URL: 'http://tmdb.test',
-  },
-}))
+import { container, TOKENS } from '@/core/container'
 
-export const mockGetPlexMetadata = mock()
-export const mockGetSectionMedia = mock()
-export const mockGetSections = mock()
-export const mockRefreshSection = mock()
-export const mockUpdateStream = mock()
-export const mockGetBasicMediaInfo = mock()
-
-export const mockPlexClient = {
-  getBasicMediaInfo: mockGetBasicMediaInfo,
-  getPlexMetadata: mockGetPlexMetadata,
-  getSectionMedia: mockGetSectionMedia,
-  getSections: mockGetSections,
-  refreshSection: mockRefreshSection,
-  updateStream: mockUpdateStream,
+export class TestPlexClient {
+  getPlexMetadata = mock()
+  getSectionMedia = mock()
+  getSections = mock()
+  refreshSection = mock(() => Promise.resolve())
+  updateStream = mock(() => Promise.resolve())
+  getBasicMediaInfo = mock(() => ({ file: '/path/to/file.mkv', ratingKey: 1, type: 'movie' }))
 }
 
-export const mockGetTmdbMedia = mock()
-export const mockGetTmdbMovie = mock()
-export const mockGetTmdbTvShow = mock()
-
-export const mockTmdbClient = {
-  getTmdbMedia: mockGetTmdbMedia,
-  getTmdbMovie: mockGetTmdbMovie,
-  getTmdbTvShow: mockGetTmdbTvShow,
+export class TestTmdbClient {
+  getTmdbMedia = mock()
+  getTmdbMovie = mock(() => Promise.resolve({}))
+  getTmdbTvShow = mock(() => Promise.resolve({}))
 }
 
-export const mockGetPublicIP = mock()
-export const mockGetZoneId = mock()
-export const mockGetARecord = mock()
-export const mockUpdateDnsRecord = mock()
-
-export const mockCloudflareClient = {
-  getARecord: mockGetARecord,
-  getPublicIP: mockGetPublicIP,
-  getZoneId: mockGetZoneId,
-  updateDnsRecord: mockUpdateDnsRecord,
+export class TestCloudflareClient {
+  getPublicIP = mock(() => Promise.resolve('1.2.3.4'))
+  getZoneId = mock(() => Promise.resolve('zone-123'))
+  getARecord = mock()
+  updateDnsRecord = mock(() => Promise.resolve())
 }
 
-export const mockSonarrGetQueue = mock()
-export const mockSonarrRemoveQueueItem = mock()
-export const mockRefreshSeries = mock()
-export const mockRenameSeries = mock()
-export const mockGetSeriesByPath = mock()
-
-export const mockSonarrClient = {
-  getQueue: mockSonarrGetQueue,
-  getSeriesByPath: mockGetSeriesByPath,
-  refreshSeries: mockRefreshSeries,
-  removeQueueItem: mockSonarrRemoveQueueItem,
-  renameSeries: mockRenameSeries,
+export class TestSonarrClient {
+  getQueue = mock()
+  getSeriesByPath = mock()
+  refreshSeries = mock(() => Promise.resolve())
+  removeQueueItem = mock(() => Promise.resolve())
+  renameSeries = mock(() => Promise.resolve())
 }
 
-export const mockRadarrGetQueue = mock()
-export const mockRadarrRemoveQueueItem = mock()
-export const mockRefreshMovie = mock()
-export const mockRenameMovie = mock()
-export const mockGetMovieByPath = mock()
-
-export const mockRadarrClient = {
-  getMovieByPath: mockGetMovieByPath,
-  getQueue: mockRadarrGetQueue,
-  refreshMovie: mockRefreshMovie,
-  removeQueueItem: mockRadarrRemoveQueueItem,
-  renameMovie: mockRenameMovie,
+export class TestRadarrClient {
+  getQueue = mock()
+  getMovieByPath = mock()
+  refreshMovie = mock(() => Promise.resolve())
+  removeQueueItem = mock(() => Promise.resolve())
+  renameMovie = mock(() => Promise.resolve())
 }
 
-export { type MediaType } from '@/integrations/plex.service'
+container.register(TOKENS.PLEX_CLIENT, () => new TestPlexClient())
+container.register(TOKENS.TMDB_CLIENT, () => new TestTmdbClient())
+container.register(TOKENS.CLOUDFLARE_CLIENT, () => new TestCloudflareClient())
+container.register(TOKENS.SONARR_CLIENT, () => new TestSonarrClient())
+container.register(TOKENS.RADARR_CLIENT, () => new TestRadarrClient())

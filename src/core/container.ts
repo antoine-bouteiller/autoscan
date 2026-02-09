@@ -1,10 +1,5 @@
 type Factory<T> = () => T
 
-interface ContainerInstance {
-  container: Container
-  TOKENS: typeof TOKENS
-}
-
 class Container {
   private factories = new Map<string, Factory<unknown>>()
   private instances = new Map<string, unknown>()
@@ -49,5 +44,3 @@ export const TOKENS = {
   TELEGRAM_PROVIDER: 'telegramProvider',
   TMDB_CLIENT: 'tmdbClient',
 } as const
-
-export const getContainerInstance = (): ContainerInstance => ({ container, TOKENS })

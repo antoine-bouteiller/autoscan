@@ -1,14 +1,15 @@
-import { afterAll, afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { and, eq } from 'drizzle-orm'
 
 import { db } from '@/config/db'
-import { container } from '@/core/container'
+import { container, TOKENS } from '@/core/container'
 import { media } from '@/database/schema'
 
 import '../config'
-import { mockGetPlexMetadata, mockGetTmdbMedia } from '../mocks'
+import type { TestPlexClient, TestTmdbClient } from '../mocks'
+
 import { mockPlexEpisode, mockPlexMovie, mockPlexMovieResponse } from '../resources/fixtures/plex.fixtures'
-import { tmdbMovieResponse, tmdbTvShowResponse } from '../resources/fixtures/tmdb.fixtures'
+import { tmdbTvShowResponse } from '../resources/fixtures/tmdb.fixtures'
 
 const {
   buildMediaTitle,
@@ -18,8 +19,13 @@ const {
 } = await import('@/services/metadata.service')
 
 describe('MetadataService', () => {
+  let testPlexClient: TestPlexClient
+  let testTmdbClient: TestTmdbClient
+
   beforeEach(async () => {
     container.reset()
+    testPlexClient = container.resolve<TestPlexClient>(TOKENS.PLEX_CLIENT)
+    testTmdbClient = container.resolve<TestTmdbClient>(TOKENS.TMDB_CLIENT)
 
     await db.insert(media).values({
       originalLanguage: 'fr',
@@ -29,17 +35,12 @@ describe('MetadataService', () => {
       type: 'movie',
     })
 
-    mockGetPlexMetadata.mockReset()
-    mockGetTmdbMedia.mockClear()
+    testPlexClient.getPlexMetadata.mockReset()
+    testTmdbClient.getTmdbMedia.mockClear()
   })
 
   afterEach(async () => {
     await db.delete(media)
-  })
-
-  afterAll(() => {
-    mockGetTmdbMedia.mockRestore()
-    mockGetPlexMetadata.mockRestore()
   })
 
   describe('extractTmdbIdFromPath', () => {
@@ -80,22 +81,20 @@ describe('MetadataService', () => {
 
   describe('getOriginalLanguage', () => {
     test('should return language from database cache if available', async () => {
-      mockGetTmdbMedia.mockReturnValue(tmdbMovieResponse)
-
       const { originalLanguage } = await getOriginalLanguage(123, 'movie')
 
       expect(originalLanguage).toBe('fr')
-      expect(mockGetTmdbMedia).not.toHaveBeenCalled()
+      expect(testTmdbClient.getTmdbMedia).not.toHaveBeenCalled()
     })
 
     test('should fetch from TMDB and persist if not in cache', async () => {
+      testTmdbClient.getTmdbMedia.mockResolvedValueOnce(tmdbTvShowResponse)
+
       const { originalLanguage } = await getOriginalLanguage(456, 'show')
-      mockGetTmdbMedia.mockReturnValue(tmdbTvShowResponse)
 
       expect(originalLanguage).toBe('es')
-      expect(mockGetTmdbMedia).toHaveBeenCalled()
+      expect(testTmdbClient.getTmdbMedia).toHaveBeenCalled()
 
-      // Verify it was persisted to database
       const cachedMedia = await db
         .select()
         .from(media)
@@ -110,7 +109,7 @@ describe('MetadataService', () => {
     })
 
     test('should return en as fallback if TMDB fails', async () => {
-      mockGetTmdbMedia.mockResolvedValueOnce({
+      testTmdbClient.getTmdbMedia.mockResolvedValueOnce({
         data: undefined,
         type: 'movie',
       })
@@ -123,7 +122,11 @@ describe('MetadataService', () => {
 
   describe('getCompleteMediaDetails', () => {
     test('should get complete details for a movie', async () => {
-      mockGetPlexMetadata.mockResolvedValue(mockPlexMovieResponse.MediaContainer.Metadata?.[0])
+      testTmdbClient.getTmdbMedia.mockResolvedValueOnce({
+        data: undefined,
+        type: 'movie',
+      })
+      testPlexClient.getPlexMetadata.mockResolvedValue(mockPlexMovieResponse.MediaContainer.Metadata?.[0])
 
       const result = await getCompleteMediaDetails(mockPlexMovie)
 
@@ -139,7 +142,11 @@ describe('MetadataService', () => {
     })
 
     test('should get complete details for an episode', async () => {
-      mockGetPlexMetadata.mockResolvedValue({
+      testTmdbClient.getTmdbMedia.mockResolvedValueOnce({
+        data: undefined,
+        type: 'movie',
+      })
+      testPlexClient.getPlexMetadata.mockResolvedValue({
         Media: [
           {
             Part: [
@@ -192,7 +199,11 @@ describe('MetadataService', () => {
     })
 
     test('should throw error if no part found in Plex metadata', async () => {
-      mockGetPlexMetadata.mockResolvedValue({
+      testTmdbClient.getTmdbMedia.mockResolvedValueOnce({
+        data: undefined,
+        type: 'movie',
+      })
+      testPlexClient.getPlexMetadata.mockResolvedValue({
         Media: [],
       })
 

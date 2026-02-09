@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import type { FfmpegClient } from '@/integrations/ffmpeg.service'
 import type { ISOCode1 } from '@/types/iso_codes'
 
-import { container, TOKENS } from '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 import { processSubtitleStreams } from '@/services/transcode/helpers/subtitle'
 
 import { setupTestContext, videosPath } from '../../../config.js'

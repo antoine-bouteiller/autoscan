@@ -59,5 +59,3 @@ container.register(
 )
 
 container.register(TOKENS.FFMPEG_CLIENT, () => new FfmpegClient())
-
-export { container, TOKENS }

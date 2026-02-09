@@ -2,8 +2,11 @@ import { afterAll, beforeEach, describe, expect, test } from 'bun:test'
 
 import type { PlexMediaStream } from '@/validators/plex.validator'
 
+import { container, TOKENS } from '@/core/container'
+
 import '../config'
-import { mockUpdateStream } from '../mocks'
+import type { TestPlexClient } from '../mocks'
+
 import {
   mockAudioStreamFrench,
   mockAudioStreamNotMatching,
@@ -15,12 +18,16 @@ import {
 const { handleUpdateLanguage } = await import('@/services/language.service')
 
 describe('LanguageService', () => {
+  let testPlexClient: TestPlexClient
+
   beforeEach(() => {
-    mockUpdateStream.mockReset()
+    testPlexClient = container.resolve<TestPlexClient>(TOKENS.PLEX_CLIENT)
+
+    testPlexClient.updateStream.mockReset()
   })
 
   afterAll(() => {
-    mockUpdateStream.mockRestore()
+    testPlexClient.updateStream.mockRestore()
   })
 
   describe('handleUpdateLanguage', () => {
@@ -32,8 +39,8 @@ describe('LanguageService', () => {
         streams: mockAudioStreams,
       })
 
-      expect(mockUpdateStream).toHaveBeenCalledWith(123, 1, 'audio')
-      expect(mockUpdateStream).toHaveBeenCalledWith(123, 0, 'subtitle')
+      expect(testPlexClient.updateStream).toHaveBeenCalledWith(123, 1, 'audio')
+      expect(testPlexClient.updateStream).toHaveBeenCalledWith(123, 0, 'subtitle')
     })
 
     test('should not update if audio stream already selected', async () => {
@@ -44,7 +51,7 @@ describe('LanguageService', () => {
         streams: mockAudioStreamSelected,
       })
 
-      expect(mockUpdateStream).not.toHaveBeenCalled()
+      expect(testPlexClient.updateStream).not.toHaveBeenCalled()
     })
 
     test('should not update if no matching audio stream found', async () => {
@@ -55,7 +62,7 @@ describe('LanguageService', () => {
         streams: mockAudioStreamNotMatching,
       })
 
-      expect(mockUpdateStream).not.toHaveBeenCalled()
+      expect(testPlexClient.updateStream).not.toHaveBeenCalled()
     })
 
     test('should handle fre to fr conversion', async () => {
@@ -67,8 +74,8 @@ describe('LanguageService', () => {
       })
 
       // For French, stream ID should be 0
-      expect(mockUpdateStream).toHaveBeenCalledWith(123, 1, 'audio')
-      expect(mockUpdateStream).toHaveBeenCalledWith(123, 0, 'subtitle')
+      expect(testPlexClient.updateStream).toHaveBeenCalledWith(123, 1, 'audio')
+      expect(testPlexClient.updateStream).toHaveBeenCalledWith(123, 0, 'subtitle')
     })
 
     test('should use audio stream ID for non-French languages', async () => {
@@ -89,7 +96,7 @@ describe('LanguageService', () => {
       })
 
       // For English (non-French), should use the actual stream ID (5)
-      expect(mockUpdateStream).toHaveBeenCalledWith(456, 5, 'audio')
+      expect(testPlexClient.updateStream).toHaveBeenCalledWith(456, 5, 'audio')
     })
 
     test('should ignore non-audio streams', async () => {
@@ -100,7 +107,7 @@ describe('LanguageService', () => {
         streams: mockNonAudioStreams,
       })
 
-      expect(mockUpdateStream).not.toHaveBeenCalled()
+      expect(testPlexClient.updateStream).not.toHaveBeenCalled()
     })
   })
 })

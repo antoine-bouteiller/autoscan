@@ -1,7 +1,7 @@
 import type { PlexClient } from '@/integrations/plex.service'
 
 import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 import { getCompleteMediaDetails } from '@/services/metadata.service'
 import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service'
 import { logError, tryCatch } from '@/utils/error_handler'
