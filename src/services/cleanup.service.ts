@@ -1,5 +1,5 @@
-import type { RadarrClient } from '@/integrations/radarr.service'
-import type { SonarrClient } from '@/integrations/sonarr.service'
+import type { RadarrClient } from '@/integrations/arr/radarr.service'
+import type { SonarrClient } from '@/integrations/arr/sonarr.service'
 import type { QueueService } from '@/types/cleanup'
 
 import { logger } from '@/config/logger'

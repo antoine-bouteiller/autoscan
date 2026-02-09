@@ -1,10 +1,10 @@
 import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import type { RadarrClient } from '@/integrations/arr/radarr.service'
+import type { SonarrClient } from '@/integrations/arr/sonarr.service'
 import type { FfmpegClient } from '@/integrations/ffmpeg.service'
 import type { PlexClient } from '@/integrations/plex.service'
-import type { RadarrClient } from '@/integrations/radarr.service'
-import type { SonarrClient } from '@/integrations/sonarr.service'
 
 import { logger } from '@/config/logger'
 import { container, TOKENS } from '@/core/container'

@@ -36,7 +36,7 @@ services:
   autoscan:
     build: .
     ports:
-      - "3030:3030"
+      - '3030:3030'
     env_file: .env
     volumes:
       - ./resources:/autoscan/resources
@@ -75,12 +75,12 @@ Trigger a full library transcode manually:
 
 ### Scheduled jobs
 
-| Job | Schedule | Description |
-|---|---|---|
-| Cleanup | Every 10 minutes | Removes orphaned media entries |
-| Language Sync | Every 12 hours | Syncs Plex languages from TMDB |
-| Transcode | Every 12 hours | Transcodes pending media files |
-| Dynamic DNS | Every 5 minutes | Updates Cloudflare DNS records |
+| Job           | Schedule         | Description                    |
+| ------------- | ---------------- | ------------------------------ |
+| Cleanup       | Every 10 minutes | Removes orphaned media entries |
+| Language Sync | Every 12 hours   | Syncs Plex languages from TMDB |
+| Transcode     | Every 12 hours   | Transcodes pending media files |
+| Dynamic DNS   | Every 5 minutes  | Updates Cloudflare DNS records |
 
 ## Development
 
