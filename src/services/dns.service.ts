@@ -1,4 +1,4 @@
-import type { CloudflareClient } from '@/integrations/cloudflare.service'
+import type { ICloudflareClient } from '@/integrations/cloudflare.service'
 
 import env from '@/config/env'
 import { container, TOKENS } from '@/core/container'
@@ -10,7 +10,7 @@ const ZONE_NAME = env.DOMAIN
 let zoneId = ''
 
 export const handleUpdateIp = async (recordName: string) => {
-  const cloudflareClient = container.resolve<CloudflareClient>(TOKENS.CLOUDFLARE_CLIENT)
+  const cloudflareClient = container.resolve<ICloudflareClient>(TOKENS.CLOUDFLARE_CLIENT)
 
   if (!zoneId) {
     zoneId = await cloudflareClient.getZoneId(ZONE_NAME)

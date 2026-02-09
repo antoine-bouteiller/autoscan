@@ -6,7 +6,23 @@ import { join } from 'node:path'
 import { container, TOKENS } from '@/core/container'
 import { FfmpegClient } from '@/integrations/ffmpeg.service'
 
-import { TestCloudflareClient, TestPlexClient, TestRadarrClient, TestSonarrClient, TestTmdbClient } from './mocks'
+import { MockCloudflareClient } from './mocks/cloudflare.mock'
+import { MockPlexClient } from './mocks/plex.mock'
+import { MockRadarrClient } from './mocks/radarr.mock'
+import { MockSonarrClient } from './mocks/sonarr.mock'
+import { MockTmdbClient } from './mocks/tmdb.mock'
+
+export { MockCloudflareClient } from './mocks/cloudflare.mock'
+export { MockPlexClient } from './mocks/plex.mock'
+export { MockRadarrClient } from './mocks/radarr.mock'
+export { MockSonarrClient } from './mocks/sonarr.mock'
+export { MockTmdbClient } from './mocks/tmdb.mock'
+
+container.register(TOKENS.PLEX_CLIENT, () => new MockPlexClient())
+container.register(TOKENS.TMDB_CLIENT, () => new MockTmdbClient())
+container.register(TOKENS.CLOUDFLARE_CLIENT, () => new MockCloudflareClient())
+container.register(TOKENS.SONARR_CLIENT, () => new MockSonarrClient())
+container.register(TOKENS.RADARR_CLIENT, () => new MockRadarrClient())
 
 interface TestContext {
   testDir: string
@@ -33,11 +49,11 @@ const testContexts = new Map<string, TestContext>()
 
 export const setupTestContext = function setupTestContext(testId: string) {
   beforeAll(() => {
-    container.register(TOKENS.PLEX_CLIENT, () => new TestPlexClient())
-    container.register(TOKENS.TMDB_CLIENT, () => new TestTmdbClient())
-    container.register(TOKENS.CLOUDFLARE_CLIENT, () => new TestCloudflareClient())
-    container.register(TOKENS.SONARR_CLIENT, () => new TestSonarrClient())
-    container.register(TOKENS.RADARR_CLIENT, () => new TestRadarrClient())
+    container.register(TOKENS.PLEX_CLIENT, () => new MockPlexClient())
+    container.register(TOKENS.TMDB_CLIENT, () => new MockTmdbClient())
+    container.register(TOKENS.CLOUDFLARE_CLIENT, () => new MockCloudflareClient())
+    container.register(TOKENS.SONARR_CLIENT, () => new MockSonarrClient())
+    container.register(TOKENS.RADARR_CLIENT, () => new MockRadarrClient())
     container.register(TOKENS.FFMPEG_CLIENT, () => new FfmpegClient())
   })
 

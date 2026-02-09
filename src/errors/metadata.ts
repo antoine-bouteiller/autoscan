@@ -15,9 +15,3 @@ export class TmdbIdNotFoundError extends AppError {
     super(`[${mediaTitle}] No tmdbId found in path${formattedFilePath}`)
   }
 }
-
-export class PartNotFoundError extends AppError {
-  constructor(public readonly mediaTitle: string) {
-    super(`[${mediaTitle}] No part found in Plex metadata`)
-  }
-}

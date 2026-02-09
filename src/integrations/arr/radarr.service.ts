@@ -1,14 +1,22 @@
+import type { QueueService } from '@/types/cleanup'
+
 import { logError } from '@/utils/error_handler'
 import { movieValidator } from '@/validators/radarr.validator'
 
 import { ArrClient } from './arr.service'
+
+export interface IRadarrClient extends QueueService {
+  refreshMovie(movieId: number): Promise<void>
+  renameMovie(movieId: number): Promise<void>
+  getMovieByPath(filePath: string): Promise<number | undefined>
+}
 
 interface RadarrClientConfig {
   apiKey: string
   apiUrl: string
 }
 
-export class RadarrClient extends ArrClient {
+export class RadarrClient extends ArrClient implements IRadarrClient {
   constructor(config: RadarrClientConfig) {
     super({
       baseUrl: `${config.apiUrl}/api/v3`,

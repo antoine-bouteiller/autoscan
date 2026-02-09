@@ -3,11 +3,18 @@ import { logError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 import { type DnsRecord, dnsRecordsResponseValidator, ipifyResponseValidator, zonesResponseValidator } from '@/validators/cloudflare.validator'
 
+export interface ICloudflareClient {
+  getPublicIP(): Promise<string>
+  getZoneId(zoneName: string): Promise<string>
+  getARecord(recordName: string, zoneId: string): Promise<{ result: DnsRecord[]; success: boolean } | undefined>
+  updateDnsRecord(record: DnsRecord, ip: string, zoneId: string): Promise<void>
+}
+
 interface CloudflareClientConfig {
   token: string
 }
 
-export class CloudflareClient {
+export class CloudflareClient implements ICloudflareClient {
   private readonly cloudflareClient: ReturnType<typeof httpClient>
   private readonly ipifyClient: ReturnType<typeof httpClient>
 

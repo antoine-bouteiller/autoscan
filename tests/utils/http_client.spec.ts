@@ -9,7 +9,7 @@ import { httpClient } from '@/utils/http_client'
 const originalFetch = globalThis.fetch
 
 describe('httpClient', () => {
-  const mockFetch = mock<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>()
+  const mockFetch = mock<typeof fetch>()
 
   beforeEach(() => {
     mockFetch.mockReset()

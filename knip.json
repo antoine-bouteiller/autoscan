@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "tags": ["-lintignore"],
+  "ignoreDependencies": ["@commitlint/cli"],
+  "entry": ["src/index.ts", "tests/**/*.spec.ts", "tests/config.ts"],
+  "project": ["src/**/*.ts", "tests/**/*.ts"],
+  "ignoreFiles": ["tests/**"]
+}

@@ -10,7 +10,7 @@ const streamValidator = type({
   'title?': 'string',
 })
 
-export const plexMediaValidator = type({
+const plexMediaValidator = type({
   'grandparentTitle?': 'string',
   key: 'string',
   'librarySectionID?': 'number',
@@ -29,7 +29,7 @@ export const plexMediaValidator = type({
   year: 'number',
 })
 
-export const plexDirectoryValidator = type({
+const plexDirectoryValidator = type({
   key: 'string.integer.parse',
   title: 'string',
   type: "'movie' | 'show'",
@@ -44,4 +44,3 @@ export const plexResponseValidator = type({
 
 export type PlexMediaStream = typeof streamValidator.infer
 export type PlexMedia = typeof plexMediaValidator.infer
-export type PlexReponse = typeof plexResponseValidator.infer

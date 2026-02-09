@@ -1,11 +1,10 @@
-import type { TmdbClient } from '@/integrations/tmdb.service'
+import type { ITmdbClient } from '@/integrations/tmdb.service'
 
 import { container, TOKENS } from '@/core/container'
-import { FileNotFoundError, PartNotFoundError, TmdbIdNotFoundError } from '@/errors/metadata'
-import { type MediaType, type PlexClient } from '@/integrations/plex.service'
+import { FileNotFoundError, TmdbIdNotFoundError } from '@/errors/metadata'
+import { type IPlexClient, type MediaType } from '@/integrations/plex.service'
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/repositories/media.repository'
 import { type ISOCode1 } from '@/types/iso_codes'
-import { type PlexMedia } from '@/validators/plex.validator'
 
 export const extractTmdbIdFromPath = (filePath: string): number | undefined => {
   const match = /{tmdb-(.*?)}/g.exec(filePath)
@@ -27,7 +26,7 @@ export const getMediaLanguage = async (
     }
   }
 
-  const tmdbClient = container.resolve<TmdbClient>(TOKENS.TMDB_CLIENT)
+  const tmdbClient = container.resolve<ITmdbClient>(TOKENS.TMDB_CLIENT)
   const { data, type } = await tmdbClient.getTmdbMedia(tmdbId, mediaType)
   if (!data) {
     return { originalLanguage: 'en', preferredLanguage: 'en' }
@@ -44,35 +43,29 @@ export const getMediaLanguage = async (
   }
 }
 
-export const getCompleteMediaDetails = async (plexMedia: PlexMedia) => {
-  const mediaTitle = buildMediaTitle(plexMedia.grandparentTitle, plexMedia.parentTitle, plexMedia.title)
+export const getCompleteMediaDetails = async (ratingKey: number) => {
+  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const plexMetadata = await plexClient.getPlexMetadata(ratingKey)
+  const mediaTitle = buildMediaTitle(plexMetadata?.grandparentTitle, plexMetadata?.parentTitle, plexMetadata?.title)
 
-  const file = plexMedia.Media[0]?.Part[0]?.file
+  const part = plexMetadata?.Media[0]?.Part[0]
 
-  if (!file) {
+  if (!plexMetadata || !part?.file) {
     throw new FileNotFoundError(mediaTitle)
   }
 
-  const tmdbId = extractTmdbIdFromPath(file)
+  const tmdbId = extractTmdbIdFromPath(part.file)
 
   if (!tmdbId) {
-    throw new TmdbIdNotFoundError(mediaTitle, file)
+    throw new TmdbIdNotFoundError(mediaTitle, part.file)
   }
 
-  const mediaType: MediaType = plexMedia.type === 'episode' ? 'show' : plexMedia.type
+  const mediaType: MediaType = plexMetadata.type === 'episode' ? 'show' : plexMetadata.type
 
   const { originalLanguage, preferredLanguage } = await getMediaLanguage(tmdbId, mediaType)
 
-  const plexClient = container.resolve<PlexClient>(TOKENS.PLEX_CLIENT)
-  const plexMetadata = await plexClient.getPlexMetadata(Number(plexMedia.ratingKey))
-  const part = plexMetadata?.Media[0]?.Part[0]
-
-  if (!part) {
-    throw new PartNotFoundError(mediaTitle)
-  }
-
   return {
-    file,
+    file: part.file,
     mediaTitle,
     mediaType,
     originalLanguage,

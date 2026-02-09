@@ -1,8 +1,8 @@
 type Factory<T> = () => T
 
 class Container {
-  private factories = new Map<string, Factory<unknown>>()
-  private instances = new Map<string, unknown>()
+  private readonly factories = new Map<string, Factory<unknown>>()
+  private readonly instances = new Map<string, unknown>()
 
   register<T>(token: string, factory: Factory<T>): void {
     this.factories.set(token, factory)

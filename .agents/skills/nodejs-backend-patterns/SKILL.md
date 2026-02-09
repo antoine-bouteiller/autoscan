@@ -563,12 +563,6 @@ export class ValidationError extends AppError {
   }
 }
 
-export class NotFoundError extends AppError {
-  constructor(message: string = 'Resource not found') {
-    super(message, 404)
-  }
-}
-
 export class UnauthorizedError extends AppError {
   constructor(message: string = 'Unauthorized') {
     super(message, 401)

@@ -1,14 +1,22 @@
+import type { QueueService } from '@/types/cleanup'
+
 import { logError } from '@/utils/error_handler'
 import { seriesValidator } from '@/validators/sonarr.validator'
 
 import { ArrClient } from './arr.service'
+
+export interface ISonarrClient extends QueueService {
+  refreshSeries(seriesId: number): Promise<void>
+  renameSeries(seriesId: number): Promise<void>
+  getSeriesByPath(filePath: string): Promise<number | undefined>
+}
 
 interface SonarrClientConfig {
   apiKey: string
   apiUrl: string
 }
 
-export class SonarrClient extends ArrClient {
+export class SonarrClient extends ArrClient implements ISonarrClient {
   constructor(config: SonarrClientConfig) {
     super({
       baseUrl: `${config.apiUrl}/api/v3`,

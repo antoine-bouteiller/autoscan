@@ -4,9 +4,7 @@ export const ipifyResponseValidator = type({
   ip: 'string',
 })
 
-export type IpifyResponse = typeof ipifyResponseValidator.infer
-
-export const dnsRecordValidator = type({
+const dnsRecordValidator = type({
   content: 'string',
   id: 'string',
   name: 'string',
@@ -19,7 +17,7 @@ export const dnsRecordsResponseValidator = type({
   success: 'boolean',
 })
 
-export const zoneValidator = type({
+const zoneValidator = type({
   id: 'string',
   name: 'string',
 })
@@ -38,6 +36,3 @@ export const cloudflareErrorResponse = type({
 })
 
 export type DnsRecord = typeof dnsRecordValidator.infer
-export type DnsRecordsResponse = typeof dnsRecordsResponseValidator.infer
-export type Zone = typeof zoneValidator.infer
-export type ZonesResponse = typeof zonesResponseValidator.infer

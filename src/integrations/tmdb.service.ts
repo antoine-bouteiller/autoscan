@@ -4,12 +4,18 @@ import { logError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 import { type TmdbMedia, type TmdbMovie, tmdbMovieResponse, type TmdbTV, tmdbTvResponse } from '@/validators/tmdb.validator'
 
+export interface ITmdbClient {
+  getTmdbMedia(tmdbId: number, mediaType: MediaType): Promise<TmdbMedia>
+  getTmdbTvShow(tmdbId: number): Promise<TmdbTV | undefined>
+  getTmdbMovie(tmdbId: number): Promise<TmdbMovie | undefined>
+}
+
 interface TmdbClientConfig {
   apiToken: string
   apiUrl: string
 }
 
-export class TmdbClient {
+export class TmdbClient implements ITmdbClient {
   private readonly client: ReturnType<typeof httpClient>
 
   constructor(config: TmdbClientConfig) {

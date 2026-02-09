@@ -1,6 +1,6 @@
 import { type } from 'arktype'
 
-export const queueItemValidator = type({
+const queueItemValidator = type({
   'errorMessage?': 'string',
   id: 'number',
   status: 'string',
@@ -17,7 +17,6 @@ export const queueResponseValidator = type({
   totalRecords: 'number',
 })
 
-export type QueueItem = typeof queueItemValidator.infer
 export type QueueResponse = typeof queueResponseValidator.infer
 
 export interface QueueService {

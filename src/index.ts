@@ -3,6 +3,7 @@ import type { SchedulerProvider } from '@/providers/scheduler_provider'
 import type { TelegramProvider } from '@/providers/telegram_provider'
 
 import { logger } from '@/config/logger'
+import '@/core/bootstrap'
 import { container, TOKENS } from '@/core/container'
 import '@/start/routes'
 import '@/start/scheduler'

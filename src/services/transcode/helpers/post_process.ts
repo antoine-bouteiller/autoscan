@@ -1,16 +1,16 @@
 import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
-import type { RadarrClient } from '@/integrations/arr/radarr.service'
-import type { SonarrClient } from '@/integrations/arr/sonarr.service'
+import type { IRadarrClient } from '@/integrations/arr/radarr.service'
+import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
 import type { FfmpegClient } from '@/integrations/ffmpeg.service'
-import type { PlexClient } from '@/integrations/plex.service'
+import type { IPlexClient } from '@/integrations/plex.service'
 
 import { logger } from '@/config/logger'
 import { container, TOKENS } from '@/core/container'
 import { logError } from '@/utils/error_handler'
 
-export const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<void> => {
+const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<void> => {
   const paths = file.split('/')
 
   paths.pop()
@@ -63,12 +63,12 @@ export const handlePostTranscode = async ({
   try {
     await cleanUp(id, filePath, mediaTitle)
 
-    const plexClient = container.resolve<PlexClient>(TOKENS.PLEX_CLIENT)
+    const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
     const sections = await plexClient.getSections()
     const fileDirectory = resolve(filePath, '..')
 
     if (mediaType === 'movie') {
-      const radarrClient = container.resolve<RadarrClient>(TOKENS.RADARR_CLIENT)
+      const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
       const movieId = await radarrClient.getMovieByPath(filePath)
 
       if (!movieId) {
@@ -79,7 +79,7 @@ export const handlePostTranscode = async ({
       await radarrClient.refreshMovie(movieId)
       await radarrClient.renameMovie(movieId)
     } else {
-      const sonarrClient = container.resolve<SonarrClient>(TOKENS.SONARR_CLIENT)
+      const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
       const seriesId = await sonarrClient.getSeriesByPath(filePath)
 
       if (!seriesId) {

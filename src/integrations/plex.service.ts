@@ -4,12 +4,21 @@ import { type PlexMedia, plexResponseValidator } from '@/validators/plex.validat
 
 export type MediaType = 'movie' | 'show'
 
+export interface IPlexClient {
+  getPlexMetadata(ratingKey: number): Promise<PlexMedia | undefined>
+  getBasicMediaInfo(plexMedia: PlexMedia): { file: string | undefined; ratingKey: string; type: string }
+  getSectionMedia(id: number, sectionType: 'movie' | 'show'): Promise<PlexMedia[]>
+  getSections(): Promise<{ key: number; title: string; type: 'movie' | 'show' }[]>
+  refreshSection(id: number, filePath: string): Promise<void>
+  updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle'): Promise<void>
+}
+
 interface PlexClientConfig {
   token: string
   url: string
 }
 
-export class PlexClient {
+export class PlexClient implements IPlexClient {
   private readonly client: ReturnType<typeof httpClient>
 
   constructor(config: PlexClientConfig) {
@@ -29,8 +38,7 @@ export class PlexClient {
     })
 
     if (!result.ok) {
-      logError(result.error)
-      return undefined
+      throw result.error
     }
 
     return result.data.MediaContainer.Metadata?.[0]
@@ -58,7 +66,7 @@ export class PlexClient {
       throw result.error
     }
 
-    return result.data.MediaContainer.Metadata
+    return result.data.MediaContainer.Metadata ?? []
   }
 
   async getSections() {
@@ -68,10 +76,10 @@ export class PlexClient {
 
     if (!result.ok) {
       logError(result.error)
-      return undefined
+      return []
     }
 
-    return result.data.MediaContainer.Directory
+    return result.data.MediaContainer.Directory ?? []
   }
 
   async refreshSection(id: number, filePath: string) {

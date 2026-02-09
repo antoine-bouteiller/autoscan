@@ -106,7 +106,7 @@ class TranscodeQueue {
 export const transcodeQueue = new TranscodeQueue()
 
 // Command Builder
-export const getTranscodeCommand = async (file: string, mediaTitle: string, originalLanguage: ISOCode1) => {
+const getTranscodeCommand = async (file: string, mediaTitle: string, originalLanguage: ISOCode1) => {
   const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
   const streams = await ffmpegClient.ffprobe(file)
 

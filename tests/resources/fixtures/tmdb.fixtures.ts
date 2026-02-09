@@ -7,11 +7,3 @@ export const tmdbTvShowResponse = {
   },
   type: 'tv',
 } satisfies TmdbMedia
-
-export const tmdbMovieResponse = {
-  data: {
-    original_language: 'es',
-    title: 'Test Movie From TMDB',
-  },
-  type: 'movie',
-} satisfies TmdbMedia
