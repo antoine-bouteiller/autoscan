@@ -1,97 +1,81 @@
-import { cloudflareErrorFormatter, CloudflareZoneNotFoundError } from '@/errors/cloudflare'
-import { logError } from '@/utils/error_handler'
-import { httpClient } from '@/utils/http_client'
-import { type DnsRecord, dnsRecordsResponseValidator, ipifyResponseValidator, zonesResponseValidator } from '@/validators/cloudflare.validator'
+import { FetchHttpClient, HttpClient } from '@effect/platform'
+import { Effect, Redacted } from 'effect'
 
-export interface ICloudflareClient {
-  getPublicIP(): Promise<string>
-  getZoneId(zoneName: string): Promise<string>
-  getARecord(recordName: string, zoneId: string): Promise<{ result: DnsRecord[]; success: boolean } | undefined>
-  updateDnsRecord(record: DnsRecord, ip: string, zoneId: string): Promise<void>
-}
+import { AppConfig } from '@/config/app_config'
+import { makeHttpClient } from '@/config/http_client'
+import { CloudflareZoneNotFoundError, NetworkError } from '@/errors'
+import { DnsRecordsResponse, IpifyResponse, ZonesResponse, type DnsRecord } from '@/schemas/cloudflare'
 
-interface CloudflareClientConfig {
-  token: string
-}
+export class CloudflareClient extends Effect.Service<CloudflareClient>()('CloudflareClient', {
+  accessors: true,
+  dependencies: [AppConfig.Default, FetchHttpClient.layer],
+  effect: Effect.gen(function* () {
+    const config = yield* AppConfig
+    const client = yield* HttpClient.HttpClient
 
-export class CloudflareClient implements ICloudflareClient {
-  private readonly cloudflareClient: ReturnType<typeof httpClient>
-  private readonly ipifyClient: ReturnType<typeof httpClient>
-
-  constructor(config: CloudflareClientConfig) {
-    this.ipifyClient = httpClient({
-      baseUrl: 'https://api.ipify.org/',
-      serviceName: 'ipify',
+    const ipify = makeHttpClient(client, 'https://api.ipify.org/')
+    const cf = makeHttpClient(client, 'https://api.cloudflare.com/client/v4/', {
+      Authorization: `Bearer ${Redacted.value(config.CLOUDFLARE_TOKEN)}`,
     })
 
-    this.cloudflareClient = httpClient({
-      baseUrl: 'https://api.cloudflare.com/client/v4/',
-      errorFormatter: cloudflareErrorFormatter,
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-      },
-      serviceName: 'Cloudflare',
-    })
-  }
+    const getPublicIP = Effect.fn('CloudflareClient.getPublicIP')(() =>
+      ipify.get('', IpifyResponse, { format: 'json' }).pipe(
+        Effect.map((data) => data.ip),
+        Effect.mapError(mapHttpError('ipify'))
+      )
+    )
 
-  async getPublicIP() {
-    const result = await this.ipifyClient.get('', {
-      params: { format: 'json' },
-      validator: ipifyResponseValidator,
-    })
+    const getZoneId = Effect.fn('CloudflareClient.getZoneId')((zoneName: string) =>
+      cf.get('zones', ZonesResponse, { name: zoneName }).pipe(
+        Effect.mapError(mapHttpError('Cloudflare')),
+        Effect.flatMap((data) => {
+          const [zone] = data.result
+          if (!zone) {
+            return Effect.fail(
+              new CloudflareZoneNotFoundError({
+                message: `(Cloudflare) Zone not found: ${zoneName}`,
+                zoneName,
+              })
+            )
+          }
+          return Effect.succeed(zone.id)
+        })
+      )
+    )
 
-    if (!result.ok) {
-      throw result.error
+    const getARecord = Effect.fn('CloudflareClient.getARecord')((recordName: string, zoneId: string) =>
+      cf
+        .get(`zones/${zoneId}/dns_records`, DnsRecordsResponse, { name: recordName, type: 'A' })
+        .pipe(Effect.catchAll((error) => Effect.logError(`(Cloudflare) ${String(error)}`).pipe(Effect.as(undefined))))
+    )
+
+    const updateDnsRecord = Effect.fn('CloudflareClient.updateDnsRecord')((record: DnsRecord, ip: string, zoneId: string) =>
+      cf
+        .patch(`zones/${zoneId}/dns_records/${record.id}`, {
+          content: ip,
+          name: record.name,
+          ttl: record.ttl,
+          type: record.type,
+        })
+        .pipe(
+          Effect.catchAll((error) =>
+            Effect.logError(`(Cloudflare) ${error instanceof Error ? error.message : JSON.stringify(error)}`).pipe(Effect.asVoid)
+          )
+        )
+    )
+
+    return {
+      getARecord,
+      getPublicIP,
+      getZoneId,
+      updateDnsRecord,
     }
+  }),
+}) {}
 
-    return result.data.ip
-  }
-
-  async getZoneId(zoneName: string): Promise<string> {
-    const result = await this.cloudflareClient.get('zones', {
-      params: { name: zoneName },
-      validator: zonesResponseValidator,
-    })
-
-    if (!result.ok) {
-      throw result.error
-    }
-
-    const [zone] = result.data.result
-
-    if (!zone) {
-      throw new CloudflareZoneNotFoundError(zoneName)
-    }
-
-    return zone.id
-  }
-
-  async getARecord(recordName: string, zoneId: string) {
-    const result = await this.cloudflareClient.get(`zones/${zoneId}/dns_records`, {
-      params: { name: recordName, type: 'A' },
-      validator: dnsRecordsResponseValidator,
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-      return undefined
-    }
-
-    return result.data
-  }
-
-  async updateDnsRecord(record: DnsRecord, ip: string, zoneId: string) {
-    const result = await this.cloudflareClient.patch(`zones/${zoneId}/dns_records/${record.id}`, {
-      body: {
-        content: ip,
-        name: record.name,
-        ttl: record.ttl,
-        type: record.type,
-      },
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-    }
-  }
-}
+const mapHttpError = (serviceName: string) => (error: unknown) =>
+  new NetworkError({
+    message: `(${serviceName}) Network Error: ${String(error)}`,
+    originalMessage: String(error),
+    serviceName,
+  })

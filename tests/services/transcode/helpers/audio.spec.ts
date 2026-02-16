@@ -1,10 +1,10 @@
 import { copyFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe, expect } from '@effect/vitest'
+import { Effect } from 'effect'
 
-import { container, TOKENS } from '@/core/container'
-import type { FfmpegClient } from '@/integrations/ffmpeg.service'
+import { FfmpegClient } from '@/integrations/ffmpeg.service'
 import { processAudioStreams } from '@/services/transcode/helpers/audio'
 import type { ISOCode1 } from '@/types/iso_codes'
 
@@ -51,15 +51,17 @@ const dataset: TestCase[] = [
 ]
 
 describe('Clean audio', () => {
-  testWithTestDir.for(dataset)('$title', async ({ expectedCommand, file, language }, { testDir }) => {
+  testWithTestDir.for(dataset)('$title', ({ expectedCommand, file, language }, { testDir }) => {
     copyFileSync(join(videosPath, file), join(testDir, file))
 
-    const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-    const streams = await ffmpegClient.ffprobe(join(testDir, file))
-    const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
-
-    const result = processAudioStreams(audioStreams, language, 'test')
-
-    expect(result.command).toEqual(expectedCommand)
+    return Effect.runPromise(
+      Effect.gen(function* () {
+        const ffmpeg = yield* FfmpegClient
+        const streams = yield* ffmpeg.ffprobe(join(testDir, file))
+        const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
+        const result = yield* processAudioStreams([...audioStreams], language, 'test')
+        expect(result.command).toEqual(expectedCommand)
+      }).pipe(Effect.provide(FfmpegClient.Default))
+    )
   })
 })

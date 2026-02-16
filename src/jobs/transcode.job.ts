@@ -1,47 +1,17 @@
-import type { IPlexClient } from '@/integrations/plex.service'
+import { Effect } from 'effect'
 
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import { getCompleteMediaDetails } from '@/services/metadata.service'
-import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service'
-import { logError, tryCatch } from '@/utils/error_handler'
+import { MetadataService } from '@/services/metadata.service'
+import { TranscodeService } from '@/services/transcode/transcode.service'
 
-let isScanning = false
+export const runTranscodeProcess = Effect.gen(function* () {
+  const metadataService = yield* MetadataService
+  const transcodeService = yield* TranscodeService
 
-export const runTranscodeProcess = async () => {
-  if (isScanning) {
-    logger.warn('Transcode scan is already running, skipping...')
-    return
-  }
+  yield* Effect.logInfo('Starting transcode scan...').pipe(Effect.annotateLogs({ context: 'Transcode' }))
 
-  isScanning = true
-  try {
-    logger.info('Starting transcode scan...')
-    const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
-    const sections = await plexClient.getSections()
+  yield* metadataService.forEachMedia((details) =>
+    transcodeService.transcodeFile(details.file, details.mediaTitle, details.originalLanguage, details.mediaType).pipe(Effect.asVoid)
+  )
 
-    for (const section of sections ?? []) {
-      const medias = (await tryCatch(plexClient.getSectionMedia.bind(plexClient), section.key, section.type)) ?? []
-
-      for (const media of medias) {
-        const details = await tryCatch(getCompleteMediaDetails, Number(media.ratingKey))
-
-        if (!details) {
-          continue
-        }
-        await transcodeFile(details.file, details.mediaTitle, details.originalLanguage, details.mediaType)
-      }
-    }
-
-    logger.info('Transcode scan finished')
-  } catch (error) {
-    logError(error)
-  } finally {
-    isScanning = false
-  }
-}
-
-export const getTranscodingStatus = () => {
-  const queueStatus = transcodeQueue.getStatus()
-  return isScanning || queueStatus.isProcessing
-}
+  yield* Effect.logInfo('Transcode scan finished').pipe(Effect.annotateLogs({ context: 'Transcode' }))
+})

@@ -3,5 +3,6 @@
   "tags": ["-lintignore"],
   "ignoreDependencies": ["@commitlint/cli", "@vitest/coverage-v8"],
   "entry": ["src/index.ts", "tests/**/*.spec.ts"],
-  "project": ["src/**/*.ts", "tests/**/*.ts"]
+  "project": ["src/**/*.ts", "tests/**/*.ts"],
+  "ignoreFiles": ["tests/**"]
 }

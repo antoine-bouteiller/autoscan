@@ -1,99 +1,108 @@
 import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import type { IRadarrClient } from '@/integrations/arr/radarr.service'
-import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
+import { Effect } from 'effect'
+
+import type { RadarrClient } from '@/integrations/arr/radarr.service'
+import type { SonarrClient } from '@/integrations/arr/sonarr.service'
 import type { FfmpegClient } from '@/integrations/ffmpeg.service'
-import type { IPlexClient } from '@/integrations/plex.service'
-import { logError } from '@/utils/error_handler'
+import type { PlexClient } from '@/integrations/plex.service'
 
-const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promise<void> => {
-  const paths = inputFile.split('/')
-
-  paths.pop()
-
-  const transcodePath = `${paths.join('/')}/transcode/${id}`
-
-  if (!existsSync(transcodePath)) {
-    return
-  }
-
-  const outputFiles = readdirSync(transcodePath)
-
-  const videoFile = outputFiles.find((outputFile) => outputFile.endsWith('.mp4'))
-
-  if (!videoFile) {
-    logger.error(`No mp4 video file found`, 'postTranscode', mediaTitle)
-    rmSync(transcodePath, { recursive: true })
-    return
-  }
-
-  const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-  const streams = await ffmpegClient.ffprobe(join(transcodePath, videoFile))
-
-  const videoStreams = streams.filter((stream) => stream.codec_type === 'video')
-  const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
-
-  if (videoStreams.length === 0 || audioStreams.length === 0) {
-    logger.error(`No audio or video stream found on transcoded file`, 'postTranscode', mediaTitle)
-  } else {
-    rmSync(inputFile)
-    for (const outputFile of outputFiles) {
-      copyFileSync(join(transcodePath, outputFile), `${paths.join('/')}/${outputFile}`)
-    }
-  }
-
-  rmSync(transcodePath, { recursive: true })
+interface TranscodeServices {
+  ffmpegClient: FfmpegClient
+  plexClient: PlexClient
+  radarrClient: RadarrClient
+  sonarrClient: SonarrClient
 }
 
-export const handlePostTranscode = async ({
-  filePath,
-  id,
-  mediaTitle,
-  mediaType,
-}: {
-  filePath: string
-  id: number
-  mediaTitle: string
-  mediaType: 'movie' | 'show'
-}): Promise<void> => {
-  try {
-    await cleanUp(id, filePath, mediaTitle)
+const cleanUp = (id: number, file: string, mediaTitle: string, ffmpegClient: TranscodeServices['ffmpegClient']) =>
+  Effect.gen(function* () {
+    const paths = file.split('/')
+    paths.pop()
 
-    const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
-    const sections = await plexClient.getSections()
+    const transcodePath = `${paths.join('/')}/transcode/${id}`
+
+    if (!existsSync(transcodePath)) {
+      return
+    }
+
+    const files = readdirSync(transcodePath)
+    const videoFile = files.find((f) => f.endsWith('.mp4'))
+
+    if (!videoFile) {
+      yield* Effect.logError(`No mp4 video file found`).pipe(Effect.annotateLogs({ context: 'postTranscode', media: mediaTitle }))
+      rmSync(transcodePath, { recursive: true })
+      return
+    }
+
+    const streams = yield* ffmpegClient.ffprobe(join(transcodePath, videoFile))
+
+    const videoStreams = streams.filter((stream) => stream.codec_type === 'video')
+    const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
+
+    if (videoStreams.length === 0 || audioStreams.length === 0) {
+      yield* Effect.logError(`No audio or video stream found on transcoded file`).pipe(
+        Effect.annotateLogs({ context: 'postTranscode', media: mediaTitle })
+      )
+    } else {
+      rmSync(file)
+      for (const f of files) {
+        copyFileSync(join(transcodePath, f), `${paths.join('/')}/${f}`)
+      }
+    }
+
+    rmSync(transcodePath, { recursive: true })
+  })
+
+export const handlePostTranscode = (
+  {
+    filePath,
+    id,
+    mediaTitle,
+    mediaType,
+  }: {
+    filePath: string
+    id: number
+    mediaTitle: string
+    mediaType: 'movie' | 'show'
+  },
+  services: TranscodeServices
+) =>
+  Effect.gen(function* () {
+    yield* cleanUp(id, filePath, mediaTitle, services.ffmpegClient)
+
+    const sections = yield* services.plexClient.getSections()
     const fileDirectory = resolve(filePath, '..')
 
     if (mediaType === 'movie') {
-      const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
-      const movieId = await radarrClient.getMovieByPath(filePath)
+      const movieId = yield* services.radarrClient.getMovieByPath(filePath)
 
       if (!movieId) {
-        logger.warn(`Could not find movie in Radarr for path: ${filePath}`, 'postTranscode', mediaTitle)
+        yield* Effect.logWarning(`Could not find movie in Radarr for path: ${filePath}`).pipe(
+          Effect.annotateLogs({ context: 'postTranscode', media: mediaTitle })
+        )
         return
       }
 
-      await radarrClient.refreshMovie(movieId)
-      await radarrClient.renameMovie(movieId)
+      yield* services.radarrClient.refreshMovie(movieId)
+      yield* services.radarrClient.renameMovie(movieId)
     } else {
-      const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
-      const seriesId = await sonarrClient.getSeriesByPath(filePath)
+      const seriesId = yield* services.sonarrClient.getSeriesByPath(filePath)
 
       if (!seriesId) {
-        logger.warn(`Could not find series in Sonarr for path: ${filePath}`, 'postTranscode', mediaTitle)
+        yield* Effect.logWarning(`Could not find series in Sonarr for path: ${filePath}`).pipe(
+          Effect.annotateLogs({ context: 'postTranscode', media: mediaTitle })
+        )
         return
       }
 
-      await sonarrClient.refreshSeries(seriesId)
-      await sonarrClient.renameSeries(seriesId)
+      yield* services.sonarrClient.refreshSeries(seriesId)
+      yield* services.sonarrClient.renameSeries(seriesId)
     }
 
-    await Promise.all(
-      (sections ?? []).filter((section) => section.type === mediaType).map((section) => plexClient.refreshSection(section.key, fileDirectory))
-    )
-  } catch (error) {
-    logError(error, 'postTranscode', mediaTitle)
-  }
-}
+    const mediaSections = sections.filter((section) => section.type === mediaType)
+
+    for (const section of mediaSections) {
+      yield* services.plexClient.refreshSection(section.key, fileDirectory)
+    }
+  }).pipe(Effect.catchAll((error) => Effect.logError(String(error)).pipe(Effect.annotateLogs({ context: 'postTranscode', media: mediaTitle }))))

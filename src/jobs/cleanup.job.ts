@@ -1,5 +1,8 @@
-import { cleanupAll } from '@/services/cleanup.service'
+import { Effect } from 'effect'
 
-export const runCleanupProcess = async () => {
-  await cleanupAll()
-}
+import { CleanupService } from '@/services/cleanup.service'
+
+export const runCleanupProcess = Effect.gen(function* () {
+  const cleanupService = yield* CleanupService
+  yield* cleanupService.cleanupAll()
+})

@@ -1,107 +1,71 @@
-import { logError } from '@/utils/error_handler'
-import { httpClient } from '@/utils/http_client'
-import { type PlexMedia, plexResponseValidator } from '@/validators/plex.validator'
+import { FetchHttpClient, HttpClient } from '@effect/platform'
+import { Effect, Redacted } from 'effect'
+
+import { AppConfig } from '@/config/app_config'
+import { makeHttpClient } from '@/config/http_client'
+import { PlexResponse, type PlexMedia } from '@/schemas/plex'
 
 export type MediaType = 'movie' | 'show'
 
-export interface IPlexClient {
-  getPlexMetadata(ratingKey: number): Promise<PlexMedia | undefined>
-  getBasicMediaInfo(plexMedia: PlexMedia): { file: string | undefined; ratingKey: string; type: string }
-  getSectionMedia(id: number, sectionType: 'movie' | 'show'): Promise<PlexMedia[]>
-  getSections(): Promise<{ key: number; title: string; type: 'movie' | 'show' }[]>
-  refreshSection(id: number, filePath: string): Promise<void>
-  updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle'): Promise<void>
-}
+export class PlexClient extends Effect.Service<PlexClient>()('PlexClient', {
+  accessors: true,
+  dependencies: [AppConfig.Default, FetchHttpClient.layer],
+  effect: Effect.gen(function* () {
+    const config = yield* AppConfig
+    const client = yield* HttpClient.HttpClient
 
-interface PlexClientConfig {
-  token: string
-  url: string
-}
-
-export class PlexClient implements IPlexClient {
-  private readonly client: ReturnType<typeof httpClient>
-
-  constructor(config: PlexClientConfig) {
-    this.client = httpClient({
-      baseUrl: config.url,
-      headers: {
-        Accept: 'application/json',
-        'X-Plex-Token': config.token,
-      },
-      serviceName: 'Plex',
-    })
-  }
-
-  async getPlexMetadata(ratingKey: number) {
-    const result = await this.client.get(`library/metadata/${ratingKey}`, {
-      validator: plexResponseValidator,
+    const api = makeHttpClient(client, config.PLEX_URL, {
+      Accept: 'application/json',
+      'X-Plex-Token': Redacted.value(config.PLEX_TOKEN),
     })
 
-    if (!result.ok) {
-      throw result.error
-    }
+    const getPlexMetadata = Effect.fn('PlexClient.getPlexMetadata')((ratingKey: number) =>
+      api.get(`library/metadata/${ratingKey}`, PlexResponse).pipe(
+        Effect.map((data) => data.MediaContainer.Metadata?.[0]),
+        Effect.catchAll(() => Effect.void)
+      )
+    )
 
-    return result.data.MediaContainer.Metadata?.[0]
-  }
+    const getSectionMedia = Effect.fn('PlexClient.getSectionMedia')((id: number, sectionType: MediaType) => {
+      const type = sectionType === 'show' ? 4 : 1
+      return api.get(`library/sections/${id}/all`, PlexResponse, { type: String(type) }).pipe(
+        Effect.map((data) => data.MediaContainer.Metadata ?? []),
+        Effect.catchAll(() => Effect.succeed([] as PlexMedia[]))
+      )
+    })
 
-  getBasicMediaInfo(plexMedia: PlexMedia) {
-    const file = plexMedia.Media[0]?.Part[0]?.file
-    const type = plexMedia.type === 'episode' ? 'show' : plexMedia.type
+    const getSections = Effect.fn('PlexClient.getSections')(() =>
+      api.get('library/sections', PlexResponse).pipe(
+        Effect.map((data) => data.MediaContainer.Directory ?? []),
+        Effect.catchAll((error) =>
+          Effect.logError(`(Plex) ${String(error)}`).pipe(Effect.as([] as { key: number; title: string; type: MediaType }[]))
+        )
+      )
+    )
+
+    const refreshSection = Effect.fn('PlexClient.refreshSection')((id: number, filePath: string) =>
+      api
+        .getVoid(`library/sections/${id}/refresh`, { path: filePath })
+        .pipe(Effect.catchAll((error) => Effect.logError(`(Plex) ${String(error)}`).pipe(Effect.asVoid)))
+    )
+
+    const updateStream = Effect.fn('PlexClient.updateStream')((partsId: number, streamId: number, type: 'audio' | 'subtitle') =>
+      api
+        .put(`library/parts/${partsId}`, { [`${type}StreamID`]: String(streamId), allParts: '1' })
+        .pipe(Effect.catchAll((error) => Effect.logError(`(Plex) ${String(error)}`).pipe(Effect.asVoid)))
+    )
 
     return {
-      file,
-      ratingKey: plexMedia.ratingKey,
-      type,
+      getBasicMediaInfo: (plexMedia: PlexMedia) => ({
+        file: plexMedia.Media[0]?.Part[0]?.file,
+        ratingKey: plexMedia.ratingKey,
+        type: plexMedia.type === 'episode' ? 'show' : plexMedia.type,
+      }),
+      getPlexMetadata,
+      getSectionMedia,
+      getSections,
+      refreshSection,
+      updateStream,
     }
-  }
-
-  async getSectionMedia(id: number, sectionType: 'movie' | 'show') {
-    const type = sectionType === 'show' ? 4 : 1
-    const result = await this.client.get(`library/sections/${id}/all`, {
-      params: { type },
-      validator: plexResponseValidator,
-    })
-
-    if (!result.ok) {
-      throw result.error
-    }
-
-    return result.data.MediaContainer.Metadata ?? []
-  }
-
-  async getSections() {
-    const result = await this.client.get(`library/sections`, {
-      validator: plexResponseValidator,
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-      return []
-    }
-
-    return result.data.MediaContainer.Directory ?? []
-  }
-
-  async refreshSection(id: number, filePath: string) {
-    const result = await this.client.get(`library/sections/${id}/refresh`, {
-      params: { path: filePath },
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-    }
-  }
-
-  async updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle') {
-    const result = await this.client.put(`library/parts/${partsId}`, {
-      params: {
-        [`${type}StreamID`]: streamId,
-        allParts: 1,
-      },
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-    }
-  }
-}
+  }),
+}) {}

@@ -1,28 +1,18 @@
+import { Effect, Layer } from 'effect'
 import { vi } from 'vitest'
 
-import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
+import { SonarrClient } from '@/integrations/arr/sonarr.service'
 
-export const mockSonarrQueue = vi.fn<ISonarrClient['getQueue']>()
-export const mockSonarrRemoveQueueItem = vi.fn<ISonarrClient['removeQueueItem']>()
+export const mockSonarrQueue = vi.fn<InstanceType<typeof SonarrClient>['getQueue']>(() => Effect.succeed(undefined))
+export const mockSonarrRemoveQueueItem = vi.fn<InstanceType<typeof SonarrClient>['removeQueueItem']>(() => Effect.void)
 
-export class MockSonarrClient implements ISonarrClient {
-  async getQueue() {
-    return mockSonarrQueue()
-  }
-
-  async getSeriesByPath(_filePath: string) {
-    return undefined
-  }
-
-  async refreshSeries(_seriesId: number) {
-    return
-  }
-
-  async removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }) {
-    void mockSonarrRemoveQueueItem(id, options)
-  }
-
-  async renameSeries(_seriesId: number) {
-    return
-  }
-}
+export const MockSonarrLayer = Layer.succeed(
+  SonarrClient,
+  SonarrClient.make({
+    getQueue: () => mockSonarrQueue(),
+    removeQueueItem: (id: number, options: { blocklist: boolean; removeFromClient: boolean }) => mockSonarrRemoveQueueItem(id, options),
+    getSeriesByPath: () => Effect.succeed(undefined),
+    refreshSeries: () => Effect.void,
+    renameSeries: () => Effect.void,
+  })
+)

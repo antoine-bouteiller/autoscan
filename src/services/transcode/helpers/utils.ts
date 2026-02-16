@@ -1,4 +1,4 @@
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
+import type { FfprobeStream } from '@/schemas/ffmpeg'
 
 import { type ISOCode1 } from '@/types/iso_codes'
 
@@ -13,7 +13,7 @@ export type Criteria =
       wantedEncodings?: string[]
     }
 
-export const isStreamWanted = (criteria: Criteria) => (stream: FFprobeStream) => {
+export const isStreamWanted = (criteria: Criteria) => (stream: FfprobeStream) => {
   if (criteria.language === 'und') {
     return stream.tags?.language === undefined
   }

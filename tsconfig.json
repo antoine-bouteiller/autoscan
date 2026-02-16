@@ -3,13 +3,14 @@
   "extends": "@tsconfig/bun/tsconfig.json",
   "include": ["./"],
   "compilerOptions": {
-    "outDir": "./build",
-    "rootDir": ".",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": true,
+    "outDir": "./build",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "plugins": [{ "name": "@effect/language-service" }],
+    "rootDir": "."
   }
 }

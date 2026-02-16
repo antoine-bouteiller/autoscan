@@ -1,4 +1,4 @@
-import type { TmdbMedia } from '@/validators/tmdb.validator'
+import type { TmdbMedia } from '@/schemas/tmdb'
 
 export const tmdbTvShowResponse = {
   data: {

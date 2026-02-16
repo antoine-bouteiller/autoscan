@@ -1,39 +1,30 @@
+import { Effect, Layer } from 'effect'
 import { vi } from 'vitest'
 
-import type { IPlexClient } from '@/integrations/plex.service'
-import type { PlexMedia } from '@/validators/plex.validator'
+import { PlexClient } from '@/integrations/plex.service'
 
 import { plexMetadata } from '../resources/fixtures/plex.fixtures'
 
 export const updateStreamMock = vi.fn()
 
-export class MockPlexClient implements IPlexClient {
-  async getPlexMetadata(ratingKey: number) {
-    return plexMetadata[ratingKey]
-  }
-
-  getBasicMediaInfo(plexMedia: PlexMedia) {
-    const part = plexMedia.Media?.[0]?.Part?.[0]
-    return {
-      file: part?.file,
-      ratingKey: plexMedia.ratingKey,
-      type: plexMedia.type === 'episode' ? ('show' as const) : plexMedia.type,
-    }
-  }
-
-  async getSectionMedia(_id: number, _sectionType: 'movie' | 'show') {
-    return []
-  }
-
-  async getSections() {
-    return []
-  }
-
-  async refreshSection(_id: number, _filePath: string) {
-    return
-  }
-
-  async updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle') {
-    updateStreamMock(partsId, streamId, type)
-  }
-}
+export const MockPlexLayer = Layer.succeed(
+  PlexClient,
+  PlexClient.make({
+    getPlexMetadata: (ratingKey: number) => Effect.succeed(plexMetadata[ratingKey]),
+    getBasicMediaInfo: (plexMedia) => {
+      const part = plexMedia.Media?.[0]?.Part?.[0]
+      return {
+        file: part?.file,
+        ratingKey: plexMedia.ratingKey,
+        type: plexMedia.type === 'episode' ? ('show' as const) : plexMedia.type,
+      }
+    },
+    getSectionMedia: () => Effect.succeed([]),
+    getSections: () => Effect.succeed([]),
+    refreshSection: () => Effect.void,
+    updateStream: (partsId: number, streamId: number, type: 'audio' | 'subtitle') => {
+      updateStreamMock(partsId, streamId, type)
+      return Effect.void
+    },
+  })
+)

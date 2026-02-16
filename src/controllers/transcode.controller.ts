@@ -1,13 +1,18 @@
-import { error, success } from '@/core/response'
-import { getTranscodingStatus, runTranscodeProcess } from '@/jobs/transcode.job'
-import { tryCatch } from '@/utils/error_handler'
+import { HttpServerResponse } from '@effect/platform'
+import { Effect } from 'effect'
 
-export const transcodeAll = (_request: Request) => {
-  if (getTranscodingStatus()) {
-    return error('ALREADY_RUNNING', 'Transcode process is already running', 409)
+import { runTranscodeProcess } from '@/jobs/transcode.job'
+import { TranscodeService } from '@/services/transcode/transcode.service'
+
+export const transcodeAll = Effect.gen(function* () {
+  const transcodeService = yield* TranscodeService
+  const status = yield* transcodeService.getStatus()
+
+  if (status.isProcessing) {
+    return yield* HttpServerResponse.json({ error: 'ALREADY_RUNNING', message: 'Transcode process is already running' }, { status: 409 })
   }
 
-  void tryCatch(runTranscodeProcess)
+  yield* Effect.fork(runTranscodeProcess)
 
-  return success({ message: 'Transcode process started', status: 'ok' })
-}
+  return yield* HttpServerResponse.json({ message: 'Transcode process started', status: 'ok' })
+})

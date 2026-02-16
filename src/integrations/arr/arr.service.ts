@@ -1,49 +1,30 @@
-import { type QueueResponse, queueResponseValidator } from '@/types/cleanup'
-import { logError } from '@/utils/error_handler'
-import { httpClient } from '@/utils/http_client'
+import { HttpClient } from '@effect/platform'
+import { Effect, Redacted } from 'effect'
 
-interface ArrClientConfig {
-  apiKey: string
-  baseUrl: string
-  serviceName: string
-}
+import { makeHttpClient } from '@/config/http_client'
+import { QueueResponse } from '@/schemas/queue'
 
-export class ArrClient {
-  readonly client: ReturnType<typeof httpClient>
+export const makeArrClient = (baseUrl: string, apiKey: Redacted.Redacted, serviceName: string) =>
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
 
-  constructor(config: ArrClientConfig) {
-    this.client = httpClient({
-      baseUrl: config.baseUrl,
-      headers: {
-        'X-Api-Key': config.apiKey,
-      },
-      serviceName: config.serviceName,
-    })
-  }
-
-  async getQueue(): Promise<QueueResponse | undefined> {
-    const result = await this.client.get('queue', {
-      validator: queueResponseValidator,
+    const api = makeHttpClient(client, `${baseUrl}/api/v3`, {
+      'X-Api-Key': Redacted.value(apiKey),
     })
 
-    if (!result.ok) {
-      logError(result.error)
-      return undefined
+    return {
+      ...api,
+      getQueue: () =>
+        api
+          .get('queue', QueueResponse)
+          .pipe(Effect.catchAll((error) => Effect.logError(`(${serviceName}) ${String(error)}`).pipe(Effect.as(undefined)))),
+
+      removeQueueItem: (itemId: number, options: { blocklist: boolean; removeFromClient: boolean }) =>
+        api
+          .del(`queue/${itemId}`, {
+            blocklist: String(options.blocklist),
+            removeFromClient: String(options.removeFromClient),
+          })
+          .pipe(Effect.catchAll((error) => Effect.logError(`(${serviceName}) ${String(error)}`).pipe(Effect.as(undefined)))),
     }
-
-    return result.data
-  }
-
-  async removeQueueItem(itemId: number, options: { blocklist: boolean; removeFromClient: boolean }): Promise<void> {
-    const result = await this.client.delete(`queue/${itemId}`, {
-      params: {
-        blocklist: options.blocklist,
-        removeFromClient: options.removeFromClient,
-      },
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-    }
-  }
-}
+  })

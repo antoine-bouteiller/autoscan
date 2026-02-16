@@ -1,48 +1,61 @@
-import type { ICloudflareClient } from '@/integrations/cloudflare.service'
+import { Effect, Ref } from 'effect'
 
-import env from '@/config/env'
-import { container, TOKENS } from '@/core/container'
-import { tryCatch } from '@/utils/error_handler'
+import { AppConfig } from '@/config/app_config'
+import { CloudflareRecordNotFoundError } from '@/errors'
+import { CloudflareClient } from '@/integrations/cloudflare.service'
 
-const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]
-const ZONE_NAME = env.DOMAIN
+export class DnsService extends Effect.Service<DnsService>()('DnsService', {
+  accessors: true,
+  dependencies: [AppConfig.Default, CloudflareClient.Default],
+  effect: Effect.gen(function* () {
+    const config = yield* AppConfig
+    const cloudflare = yield* CloudflareClient
+    const zoneIdRef = yield* Ref.make('')
 
-let zoneId = ''
+    const domainsToUpdate = [config.DOMAIN, `*.${config.DOMAIN}`]
 
-export const handleUpdateIp = async (recordName: string) => {
-  const cloudflareClient = container.resolve<ICloudflareClient>(TOKENS.CLOUDFLARE_CLIENT)
+    const handleUpdateIp = Effect.fn('DnsService.handleUpdateIp')(function* (recordName: string) {
+      let zoneId = yield* Ref.get(zoneIdRef)
+      if (!zoneId) {
+        zoneId = yield* cloudflare.getZoneId(config.DOMAIN)
+        yield* Ref.set(zoneIdRef, zoneId)
+      }
 
-  if (!zoneId) {
-    zoneId = await cloudflareClient.getZoneId(ZONE_NAME)
-  }
+      const data = yield* cloudflare.getARecord(recordName, zoneId)
+      if (!data) {
+        return
+      }
 
-  const data = await cloudflareClient.getARecord(recordName, zoneId)
+      const [record] = data.result
+      if (!record) {
+        return yield* new CloudflareRecordNotFoundError({
+          message: `(Cloudflare) Record not found for domain ${recordName}`,
+          recordName,
+        })
+      }
 
-  if (!data) {
-    return
-  }
+      const currentIp = yield* cloudflare.getPublicIP()
+      if (record.content === currentIp) {
+        return
+      }
 
-  const [record] = data.result
+      yield* cloudflare.updateDnsRecord(record, currentIp, zoneId)
+    })
 
-  if (!record) {
-    throw new Error('(Cloudflare) Record not found for domain')
-  }
+    const dynDns = Effect.fn('DnsService.dynDns')(function* () {
+      for (const recordName of domainsToUpdate) {
+        yield* handleUpdateIp(recordName).pipe(Effect.catchAll((e) => Effect.logError(String(e))))
+      }
+    })
 
-  const currentIp = await cloudflareClient.getPublicIP()
+    const resetZoneIdCache = Effect.fn('DnsService.resetZoneIdCache')(function* () {
+      yield* Ref.set(zoneIdRef, '')
+    })
 
-  if (record.content === currentIp) {
-    return
-  }
-
-  await cloudflareClient.updateDnsRecord(record, currentIp, zoneId)
-}
-
-export const dynDns = async () => {
-  for (const recordName of DOMAINES_TO_UPDATE) {
-    await tryCatch(handleUpdateIp, recordName)
-  }
-}
-
-export const resetZoneIdCache = () => {
-  zoneId = ''
-}
+    return {
+      dynDns,
+      handleUpdateIp,
+      resetZoneIdCache,
+    }
+  }),
+}) {}

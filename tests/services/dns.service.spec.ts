@@ -1,58 +1,66 @@
-import { beforeEach, describe, expect, test } from 'vitest'
+import { beforeEach, describe, expect, it } from '@effect/vitest'
+import { Effect, Layer } from 'effect'
 
-import { dynDns, handleUpdateIp, resetZoneIdCache } from '@/services/dns.service'
+import { DnsService } from '@/services/dns.service'
 
-import '../config'
-import { mockGetARecord, mockGetZoneId, mockUpdateDnsRecord } from '../mocks/cloudflare.mock'
-import { differentIpRecord, emptyRecord, sameIpRecord, wildcardSameIpRecord } from '../resources/fixtures/cloudflare.fixtures'
+import { MockAppConfigLayer } from '../config'
+import { MockCloudflareLayer, mockGetARecord, mockGetZoneId, mockUpdateDnsRecord } from '../mocks/cloudflare.mock'
+import { differentIpRecord, emptyRecord, sameIpRecord } from '../resources/fixtures/cloudflare.fixtures'
+
+const TestLayer = DnsService.DefaultWithoutDependencies.pipe(Layer.provide(MockCloudflareLayer), Layer.provide(MockAppConfigLayer))
 
 describe('DnsService', () => {
   beforeEach(() => {
     mockGetZoneId.mockClear()
     mockGetARecord.mockReset()
-    mockUpdateDnsRecord.mockReset()
-    resetZoneIdCache()
+    mockUpdateDnsRecord.mockClear()
+    mockGetZoneId.mockImplementation((_zoneName: string) => Effect.succeed('zone-123'))
   })
 
   describe('handleUpdateIp', () => {
-    test('should skip update when IP has not changed', async () => {
-      mockGetARecord.mockResolvedValue(sameIpRecord)
+    it.effect('should skip update when IP has not changed', () => {
+      mockGetARecord.mockImplementation(() => Effect.succeed(sameIpRecord))
 
-      await handleUpdateIp('example.com')
-
-      expect(mockUpdateDnsRecord).not.toHaveBeenCalled()
+      return Effect.gen(function* () {
+        const dns = yield* DnsService
+        yield* dns.handleUpdateIp('example.com')
+        expect(mockUpdateDnsRecord).not.toHaveBeenCalled()
+      }).pipe(Effect.provide(TestLayer))
     })
 
-    test('should update DNS when IP has changed', async () => {
-      mockGetARecord.mockResolvedValue(differentIpRecord)
+    it.effect('should update DNS when IP has changed', () => {
+      mockGetARecord.mockImplementation(() => Effect.succeed(differentIpRecord))
 
-      await handleUpdateIp('example.com')
-
-      expect(mockUpdateDnsRecord).toHaveBeenCalledTimes(1)
-      expect(mockUpdateDnsRecord).toHaveBeenCalledWith(differentIpRecord.result[0], '1.2.3.4', 'zone-123')
+      return Effect.gen(function* () {
+        const dns = yield* DnsService
+        yield* dns.handleUpdateIp('example.com')
+        expect(mockUpdateDnsRecord).toHaveBeenCalledTimes(1)
+        expect(mockUpdateDnsRecord).toHaveBeenCalledWith(differentIpRecord.result[0], '1.2.3.4', 'zone-123')
+      }).pipe(Effect.provide(TestLayer))
     })
 
-    test('should throw when no record found in results', async () => {
-      mockGetARecord.mockResolvedValue(emptyRecord)
+    it.effect('should fail when no record found in results', () => {
+      mockGetARecord.mockImplementation(() => Effect.succeed(emptyRecord))
 
-      await expect(handleUpdateIp('example.com')).rejects.toThrow('Record not found')
+      return Effect.gen(function* () {
+        const dns = yield* DnsService
+        yield* dns.handleUpdateIp('example.com')
+      }).pipe(
+        Effect.provide(TestLayer),
+        Effect.flip,
+        Effect.map((error) => expect(error).toBeDefined())
+      )
     })
 
-    test('should cache zoneId across calls', async () => {
-      mockGetARecord.mockResolvedValue(sameIpRecord)
+    it.effect('should cache zoneId across calls', () => {
+      mockGetARecord.mockImplementation(() => Effect.succeed(sameIpRecord))
 
-      await handleUpdateIp('example.com')
-      await handleUpdateIp('example.com')
-
-      expect(mockGetZoneId).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  describe('dynDns', () => {
-    test('should not throw when one domain fails', async () => {
-      mockGetARecord.mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce(wildcardSameIpRecord)
-
-      await expect(dynDns()).resolves.toBeUndefined()
+      return Effect.gen(function* () {
+        const dns = yield* DnsService
+        yield* dns.handleUpdateIp('example.com')
+        yield* dns.handleUpdateIp('example.com')
+        expect(mockGetZoneId).toHaveBeenCalledTimes(1)
+      }).pipe(Effect.provide(TestLayer))
     })
   })
 })

@@ -1,34 +1,29 @@
-import { ArkErrors } from 'arktype'
+import { HttpServerRequest, HttpServerResponse } from '@effect/platform'
+import { Effect } from 'effect'
 import { join } from 'node:path'
 
-import { badRequest, success } from '@/core/response'
-import { getMediaLanguage } from '@/services/metadata.service'
-import { transcodeFile } from '@/services/transcode/transcode.service'
-import { logError } from '@/utils/error_handler'
-import { sonarrValidator } from '@/validators/sonarr.validator'
+import { SonarrWebhook } from '@/schemas/sonarr'
+import { MetadataService } from '@/services/metadata.service'
+import { TranscodeService } from '@/services/transcode/transcode.service'
 
-export const sonarrWebhook = async (request: Request) => {
-  const body = await request.json()
-  const data = sonarrValidator(body)
-
-  if (data instanceof ArkErrors) {
-    logError(data, 'Sonarr')
-    return badRequest('invalid request', data.summary)
-  }
-
-  const { eventType } = data
+export const sonarrWebhook = Effect.gen(function* () {
+  const body = yield* HttpServerRequest.schemaBodyJson(SonarrWebhook)
+  const { eventType } = body
 
   if (eventType === 'Test') {
-    return success({ message: 'ok' })
+    return yield* HttpServerResponse.json({ message: 'ok' })
   }
 
   if (eventType === 'Download') {
-    const file = join(data.series.path, data.episodeFile.relativePath)
-    const mediaTitle = `${data.series.title} ${data.episodes[0]?.title}`
-    const { originalLanguage } = await getMediaLanguage(data.series.tmdbId, 'show')
+    const file = join(body.series.path, body.episodeFile.relativePath)
+    const mediaTitle = `${body.series.title} ${body.episodes[0]?.title}`
 
-    void transcodeFile(file, mediaTitle, originalLanguage, 'show')
+    const metadataService = yield* MetadataService
+    const transcodeService = yield* TranscodeService
+
+    const { originalLanguage } = yield* metadataService.getMediaLanguage(body.series.tmdbId, 'show')
+    yield* Effect.fork(transcodeService.transcodeFile(file, mediaTitle, originalLanguage, 'show'))
   }
 
-  return success({ message: 'ok' })
-}
+  return yield* HttpServerResponse.json({ message: 'ok' })
+}).pipe(Effect.catchTag('ParseError', (error) => HttpServerResponse.json({ error: 'invalid request', details: error.message }, { status: 400 })))

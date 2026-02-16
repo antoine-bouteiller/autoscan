@@ -1,10 +1,10 @@
 import { copyFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe, expect } from '@effect/vitest'
+import { Effect } from 'effect'
 
-import { container, TOKENS } from '@/core/container'
-import type { FfmpegClient } from '@/integrations/ffmpeg.service'
+import { FfmpegClient } from '@/integrations/ffmpeg.service'
 import { processSubtitleStreams } from '@/services/transcode/helpers/subtitle'
 import type { ISOCode1 } from '@/types/iso_codes'
 
@@ -45,15 +45,17 @@ const dataset: TestCase[] = [
 ]
 
 describe('Extract subtitles', () => {
-  testWithTestDir.for(dataset)('$title', async ({ file, originalLanguage, streamToKeep }, { testDir }) => {
+  testWithTestDir.for(dataset)('$title', ({ file, originalLanguage, streamToKeep }, { testDir }) => {
     copyFileSync(join(videosPath, file), join(testDir, file))
 
-    const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-    const streams = await ffmpegClient.ffprobe(join(testDir, file))
-    const subtitleStreams = streams.filter((stream) => stream.codec_type === 'subtitle')
-
-    const streamsKepts = await processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
-
-    expect(streamsKepts.length).toBe(streamToKeep.length)
+    return Effect.runPromise(
+      Effect.gen(function* () {
+        const ffmpeg = yield* FfmpegClient
+        const streams = yield* ffmpeg.ffprobe(join(testDir, file))
+        const subtitleStreams = streams.filter((stream) => stream.codec_type === 'subtitle')
+        const streamsKepts = processSubtitleStreams([...subtitleStreams], originalLanguage, 'test')
+        expect(streamsKepts.length).toBe(streamToKeep.length)
+      }).pipe(Effect.provide(FfmpegClient.Default))
+    )
   })
 })

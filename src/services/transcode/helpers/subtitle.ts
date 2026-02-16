@@ -1,6 +1,4 @@
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
-
-import { logger } from '@/config/logger'
+import type { FfprobeStream } from '@/schemas/ffmpeg'
 import { type ISOCode1 } from '@/types/iso_codes'
 
 import { type Criteria, isStreamWanted } from './utils'
@@ -35,7 +33,7 @@ const criterias: Criteria[][] = [
   ],
 ]
 
-export const processSubtitleStreams = async (subtitleStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
+export const processSubtitleStreams = (subtitleStreams: FfprobeStream[], originalLanguage: ISOCode1, _mediaTitle: string) => {
   const subtitlesToKeep: { index: number; language: ISOCode1 }[] = []
   if (originalLanguage === 'fr' || subtitleStreams.length === 0) {
     return []
@@ -49,18 +47,14 @@ export const processSubtitleStreams = async (subtitleStreams: FFprobeStream[], o
       if (subtitleStreamToKeep !== -1) {
         const stream = subtitleStreams[subtitleStreamToKeep]
 
-        subtitlesToKeep.push({
-          index: subtitleStreamToKeep,
-          language: stream?.tags?.language ?? 'en',
-        })
+        const language = stream?.tags?.language ?? 'en'
+        subtitlesToKeep.push({ index: subtitleStreamToKeep, language: language as ISOCode1 })
 
         subtitleStreamToKeep = -1
         break
       }
     }
   }
-
-  logger.info(`Subtitle extracted`, 'Subtitle', mediaTitle)
 
   return subtitlesToKeep
 }

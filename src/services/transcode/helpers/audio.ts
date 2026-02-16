@@ -1,7 +1,8 @@
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
+import { Effect } from 'effect'
 
-import { logger } from '@/config/logger'
-import { AudioStreamNotFoundError, NoStreamsKeptError } from '@/errors/transcode'
+import type { FfprobeStream } from '@/schemas/ffmpeg'
+
+import { AudioStreamNotFoundError, NoStreamsKeptError } from '@/errors'
 import { type ISOCode1 } from '@/types/iso_codes'
 import { iso1ToIso2B } from '@/utils/iso_codes'
 
@@ -30,7 +31,7 @@ const getCriterias = (originalLanguage: ISOCode1) => {
   return criterias
 }
 
-const findAudioStreamByCriteria = (audioStreams: FFprobeStream[], languageCriteria: Criteria[]): number => {
+const findAudioStreamByCriteria = (audioStreams: FfprobeStream[], languageCriteria: Criteria[]): number => {
   for (const condition of languageCriteria) {
     const streamIndex = audioStreams.findIndex(isStreamWanted(condition))
     if (streamIndex !== -1) {
@@ -41,11 +42,9 @@ const findAudioStreamByCriteria = (audioStreams: FFprobeStream[], languageCriter
 }
 
 const processAudioStream = (
-  stream: FFprobeStream,
+  stream: FfprobeStream,
   streamIndex: number,
-  languageCriteria: Criteria[],
-  originalLanguage: ISOCode1,
-  mediaTitle: string
+  originalLanguage: ISOCode1
 ): { commands: string[]; needsTranscode: boolean } => {
   const commands: string[] = [`-map`, `0:a:${streamIndex}`]
   let needsTranscode = false
@@ -55,11 +54,9 @@ const processAudioStream = (
   if (!codec || !wantedAudioEncodings.includes(codec)) {
     commands.push(`-c:a:${streamIndex}`, 'aac')
     needsTranscode = true
-    logger.warn(`${languageCriteria[0]?.language} audio stream 0:a:${streamIndex} is ${codec}, converting to aac.`, 'Audio', mediaTitle)
   }
 
   if (stream?.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und') {
-    // Convert to ISO 639-2/B (bibliographic) format for ffmpeg metadata
     const iso2BCode = iso1ToIso2B(originalLanguage)
     commands.push(`-metadata:s:a:${streamIndex}`, `language=${iso2BCode}`)
     needsTranscode = true
@@ -69,45 +66,53 @@ const processAudioStream = (
 }
 
 export const processAudioStreams = (
-  audioStreams: FFprobeStream[],
+  audioStreams: FfprobeStream[],
   originalLanguage: ISOCode1,
   mediaTitle: string
-): { command: string[]; shouldExecute: boolean } => {
-  if (audioStreams.length === 0) {
-    throw new AudioStreamNotFoundError(mediaTitle, originalLanguage)
-  }
+): Effect.Effect<{ command: string[]; shouldExecute: boolean }, AudioStreamNotFoundError | NoStreamsKeptError> =>
+  Effect.gen(function* () {
+    if (audioStreams.length === 0) {
+      return yield* new AudioStreamNotFoundError({
+        language: originalLanguage,
+        mediaTitle,
+        message: `(${mediaTitle}) No audio streams found for language ${originalLanguage}`,
+      })
+    }
 
-  const command: string[] = []
-  let shouldExecute = false
-  let countAudioStreamToKeep = 0
+    const command: string[] = []
+    let shouldExecute = false
+    let countAudioStreamToKeep = 0
 
-  const criterias = getCriterias(originalLanguage)
+    const criterias = getCriterias(originalLanguage)
 
-  for (const languageCriteria of criterias) {
-    const audioStreamIndex = findAudioStreamByCriteria(audioStreams, languageCriteria)
+    for (const languageCriteria of criterias) {
+      const audioStreamIndex = findAudioStreamByCriteria(audioStreams, languageCriteria)
 
-    if (audioStreamIndex >= 0) {
-      const stream = audioStreams[audioStreamIndex]
-      if (!stream) {
-        continue
-      }
-      const result = processAudioStream(stream, audioStreamIndex, languageCriteria, originalLanguage, mediaTitle)
-      command.push(...result.commands)
-      countAudioStreamToKeep++
+      if (audioStreamIndex >= 0) {
+        const stream = audioStreams[audioStreamIndex]
+        if (!stream) {
+          continue
+        }
+        const result = processAudioStream(stream, audioStreamIndex, originalLanguage)
+        command.push(...result.commands)
+        countAudioStreamToKeep++
 
-      if (result.needsTranscode) {
-        shouldExecute = true
+        if (result.needsTranscode) {
+          shouldExecute = true
+        }
       }
     }
-  }
 
-  if (countAudioStreamToKeep === 0) {
-    throw new NoStreamsKeptError(mediaTitle)
-  }
+    if (countAudioStreamToKeep === 0) {
+      return yield* new NoStreamsKeptError({
+        mediaTitle,
+        message: `(${mediaTitle}) No audio tracks would be kept after processing`,
+      })
+    }
 
-  if (countAudioStreamToKeep !== audioStreams.length) {
-    shouldExecute = true
-  }
+    if (countAudioStreamToKeep !== audioStreams.length) {
+      shouldExecute = true
+    }
 
-  return { command, shouldExecute }
-}
+    return { command, shouldExecute }
+  })

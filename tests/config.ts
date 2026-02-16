@@ -1,18 +1,21 @@
+import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { randomUUIDv7 } from 'bun'
-import { it } from 'vitest'
+import { it } from '@effect/vitest'
 
-export { MockCloudflareClient } from './mocks/cloudflare.mock'
-export { MockPlexClient } from './mocks/plex.mock'
-export { MockRadarrClient } from './mocks/radarr.mock'
-export { MockSonarrClient } from './mocks/sonarr.mock'
-export { MockTmdbClient } from './mocks/tmdb.mock'
+export { MockAppConfigLayer } from './mocks/app_config.mock'
+export { MockCloudflareLayer, mockGetARecord, mockGetZoneId, mockUpdateDnsRecord } from './mocks/cloudflare.mock'
+export { MockPlexLayer, updateStreamMock } from './mocks/plex.mock'
+export { MockRadarrLayer, mockRadarrQueue, mockRadarrRemoveQueueItem } from './mocks/radarr.mock'
+export { MockSonarrLayer, mockSonarrQueue, mockSonarrRemoveQueueItem } from './mocks/sonarr.mock'
+export { MockTmdbLayer } from './mocks/tmdb.mock'
+
+export const videosPath = join(import.meta.dirname, 'resources/videos')
 
 export const testWithTestDir = it.extend<{ testDir: string }>({
   testDir: async ({ expect }, use) => {
-    const testDir = join(import.meta.dirname, randomUUIDv7())
+    const testDir = join(import.meta.dirname, randomUUID())
     mkdirSync(testDir, { recursive: true })
     expect(existsSync(testDir)).toBe(true)
     try {
@@ -22,4 +25,3 @@ export const testWithTestDir = it.extend<{ testDir: string }>({
     }
   },
 })
-export const videosPath = join(import.meta.dirname, 'resources/videos')

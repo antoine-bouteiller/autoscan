@@ -1,29 +1,19 @@
-import type { HttpProvider } from '@/providers/http_provider'
-import type { SchedulerProvider } from '@/providers/scheduler_provider'
-import type { TelegramProvider } from '@/providers/telegram_provider'
+import { BunRuntime } from '@effect/platform-bun'
+import { Layer } from 'effect'
 
-import { logger } from '@/config/logger'
-import '@/core/bootstrap'
-import { container, TOKENS } from '@/core/container'
-import '@/start/routes'
-import '@/start/scheduler'
+import { LoggerLayer } from '@/config/logger'
+import { HttpServerLive } from '@/providers/http_provider'
 
-const httpProvider = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
-const schedulerProvider = container.resolve<SchedulerProvider>(TOKENS.SCHEDULER_PROVIDER)
-const telegramProvider = container.resolve<TelegramProvider>(TOKENS.TELEGRAM_PROVIDER)
+import { AppConfig } from './config/app_config'
+import { SchedulerService } from './providers/scheduler_provider'
+import { TelegramService } from './providers/telegram_provider'
+import { MetadataService } from './services/metadata.service'
+import { TranscodeService } from './services/transcode/transcode.service'
 
-httpProvider.start()
+const ServicesLive = Layer.mergeAll(MetadataService.Default, TranscodeService.Default, LoggerLayer.pipe(Layer.provide(AppConfig.Default)))
 
-if (process.env.NODE_ENV !== 'development') {
-  telegramProvider.start()
-}
+const EntryPointsLive = Layer.mergeAll(HttpServerLive, SchedulerService.Default, TelegramService.Default)
 
-process.on('SIGINT', async () => {
-  logger.info('Shutting down gracefully...')
+const AppLive = EntryPointsLive.pipe(Layer.provide(ServicesLive))
 
-  httpProvider.stop()
-  schedulerProvider.stopAll()
-  await telegramProvider.stop()
-
-  process.exit(0)
-})
+BunRuntime.runMain(Layer.launch(AppLive))

@@ -1,71 +1,48 @@
+import { FetchHttpClient, HttpClient } from '@effect/platform'
+import { Effect, Redacted } from 'effect'
+
 import type { MediaType } from '@/integrations/plex.service'
 
-import { logError } from '@/utils/error_handler'
-import { httpClient } from '@/utils/http_client'
-import { type TmdbMedia, type TmdbMovie, tmdbMovieResponse, type TmdbTV, tmdbTvResponse } from '@/validators/tmdb.validator'
+import { AppConfig } from '@/config/app_config'
+import { makeHttpClient } from '@/config/http_client'
+import { type TmdbMedia, type TmdbMovie, TmdbMovieResponse, type TmdbTV, TmdbTvResponse } from '@/schemas/tmdb'
 
-export interface ITmdbClient {
-  getTmdbMedia(tmdbId: number, mediaType: MediaType): Promise<TmdbMedia>
-  getTmdbTvShow(tmdbId: number): Promise<TmdbTV | undefined>
-  getTmdbMovie(tmdbId: number): Promise<TmdbMovie | undefined>
-}
+export class TmdbClient extends Effect.Service<TmdbClient>()('TmdbClient', {
+  accessors: true,
+  dependencies: [AppConfig.Default, FetchHttpClient.layer],
+  effect: Effect.gen(function* () {
+    const config = yield* AppConfig
+    const client = yield* HttpClient.HttpClient
 
-interface TmdbClientConfig {
-  apiToken: string
-  apiUrl: string
-}
-
-export class TmdbClient implements ITmdbClient {
-  private readonly client: ReturnType<typeof httpClient>
-
-  constructor(config: TmdbClientConfig) {
-    this.client = httpClient({
-      baseUrl: config.apiUrl,
-      headers: {
-        Authorization: `Bearer ${config.apiToken}`,
-      },
-      serviceName: 'TMDB',
+    const api = makeHttpClient(client, config.TMDB_API_URL, {
+      Authorization: `Bearer ${Redacted.value(config.TMDB_API_TOKEN)}`,
     })
-  }
 
-  async getTmdbMedia(tmdbId: number, mediaType: MediaType): Promise<TmdbMedia> {
-    if (mediaType === 'movie') {
-      const data = await this.getTmdbMovie(tmdbId)
+    const getTmdbMovie = Effect.fn('TmdbClient.getTmdbMovie')(
+      (tmdbId: number): Effect.Effect<TmdbMovie | undefined> =>
+        api
+          .get(`movie/${tmdbId}`, TmdbMovieResponse)
+          .pipe(Effect.catchAll((error) => Effect.logError(`(TMDB) ${String(error)}`).pipe(Effect.as(undefined))))
+    )
 
-      return { data, type: 'movie' }
-    }
+    const getTmdbTvShow = Effect.fn('TmdbClient.getTmdbTvShow')(
+      (tmdbId: number): Effect.Effect<TmdbTV | undefined> =>
+        api
+          .get(`tv/${tmdbId}`, TmdbTvResponse)
+          .pipe(Effect.catchAll((error) => Effect.logError(`(TMDB) ${String(error)}`).pipe(Effect.as(undefined))))
+    )
 
-    const data = await this.getTmdbTvShow(tmdbId)
+    const getTmdbMedia = Effect.fn('TmdbClient.getTmdbMedia')((tmdbId: number, mediaType: MediaType): Effect.Effect<TmdbMedia> => {
+      if (mediaType === 'movie') {
+        return getTmdbMovie(tmdbId).pipe(Effect.map((data) => ({ data, type: 'movie' as const })))
+      }
+      return getTmdbTvShow(tmdbId).pipe(Effect.map((data) => ({ data, type: 'tv' as const })))
+    })
 
     return {
-      data,
-      type: 'tv',
+      getTmdbMedia,
+      getTmdbMovie,
+      getTmdbTvShow,
     }
-  }
-
-  async getTmdbTvShow(tmdbId: number): Promise<TmdbTV | undefined> {
-    const result = await this.client.get(`tv/${tmdbId}`, {
-      validator: tmdbTvResponse,
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-      return undefined
-    }
-
-    return result.data
-  }
-
-  async getTmdbMovie(tmdbId: number): Promise<TmdbMovie | undefined> {
-    const result = await this.client.get(`movie/${tmdbId}`, {
-      validator: tmdbMovieResponse,
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-      return undefined
-    }
-
-    return result.data
-  }
-}
+  }),
+}) {}

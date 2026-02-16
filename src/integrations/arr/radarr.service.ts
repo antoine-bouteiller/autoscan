@@ -1,68 +1,49 @@
-import type { QueueService } from '@/types/cleanup'
+import { FetchHttpClient } from '@effect/platform'
+import { Effect, Schema } from 'effect'
 
-import { logError } from '@/utils/error_handler'
-import { movieValidator } from '@/validators/radarr.validator'
+import { AppConfig } from '@/config/app_config'
+import { Movie } from '@/schemas/radarr'
 
-import { ArrClient } from './arr.service'
+import { makeArrClient } from './arr.service'
 
-export interface IRadarrClient extends QueueService {
-  refreshMovie(movieId: number): Promise<void>
-  renameMovie(movieId: number): Promise<void>
-  getMovieByPath(filePath: string): Promise<number | undefined>
-}
+export class RadarrClient extends Effect.Service<RadarrClient>()('RadarrClient', {
+  accessors: true,
+  dependencies: [AppConfig.Default, FetchHttpClient.layer],
+  effect: Effect.gen(function* () {
+    const config = yield* AppConfig
+    const arr = yield* makeArrClient(config.RADARR_API_URL, config.RADARR_API_KEY, 'Radarr')
 
-interface RadarrClientConfig {
-  apiKey: string
-  apiUrl: string
-}
+    const getQueue = Effect.fn('RadarrClient.getQueue')(() => arr.getQueue())
 
-export class RadarrClient extends ArrClient implements IRadarrClient {
-  constructor(config: RadarrClientConfig) {
-    super({
-      baseUrl: `${config.apiUrl}/api/v3`,
-      apiKey: config.apiKey,
-      serviceName: 'Radarr',
-    })
-  }
+    const removeQueueItem = Effect.fn('RadarrClient.removeQueueItem')((id: number, options: { blocklist: boolean; removeFromClient: boolean }) =>
+      arr.removeQueueItem(id, options)
+    )
 
-  async refreshMovie(movieId: number): Promise<void> {
-    const result = await this.client.post('command', {
-      body: {
-        movieId,
-        name: 'RefreshMovie',
-      },
-    })
+    const refreshMovie = Effect.fn('RadarrClient.refreshMovie')((movieId: number) =>
+      arr
+        .post('command', { movieId, name: 'RefreshMovie' })
+        .pipe(Effect.catchAll((error) => Effect.logError(`(Radarr) ${error instanceof Error ? error.message : JSON.stringify(error)}`)))
+    )
 
-    if (!result.ok) {
-      logError(result.error)
+    const renameMovie = Effect.fn('RadarrClient.renameMovie')((movieId: number) =>
+      arr
+        .post('command', { files: [], movieId, name: 'RenameMovie' })
+        .pipe(Effect.catchAll((error) => Effect.logError(`(Radarr) ${error instanceof Error ? error.message : JSON.stringify(error)}`)))
+    )
+
+    const getMovieByPath = Effect.fn('RadarrClient.getMovieByPath')((filePath: string) =>
+      arr.get('movie', Schema.Array(Movie)).pipe(
+        Effect.map((movies) => movies.find((m) => filePath.startsWith(m.path))?.id),
+        Effect.catchAll((error) => Effect.logError(`(Radarr) ${String(error)}`).pipe(Effect.as(undefined)))
+      )
+    )
+
+    return {
+      getMovieByPath,
+      getQueue,
+      refreshMovie,
+      removeQueueItem,
+      renameMovie,
     }
-  }
-
-  async renameMovie(movieId: number): Promise<void> {
-    const result = await this.client.post('command', {
-      body: {
-        files: [],
-        movieId,
-        name: 'RenameMovie',
-      },
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-    }
-  }
-
-  async getMovieByPath(filePath: string): Promise<number | undefined> {
-    const result = await this.client.get('movie', {
-      validator: movieValidator.array(),
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-      return undefined
-    }
-
-    const movie = result.data.find((m) => filePath.startsWith(m.path))
-    return movie?.id
-  }
-}
+  }),
+}) {}

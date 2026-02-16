@@ -1,34 +1,29 @@
-import { ArkErrors } from 'arktype'
+import { HttpServerRequest, HttpServerResponse } from '@effect/platform'
+import { Effect } from 'effect'
 import { join } from 'node:path'
 
-import { badRequest, success } from '@/core/response'
-import { getMediaLanguage } from '@/services/metadata.service'
-import { transcodeFile } from '@/services/transcode/transcode.service'
-import { logError } from '@/utils/error_handler'
-import { radarrValidator } from '@/validators/radarr.validator'
+import { RadarrWebhook } from '@/schemas/radarr'
+import { MetadataService } from '@/services/metadata.service'
+import { TranscodeService } from '@/services/transcode/transcode.service'
 
-export const radarrWebhook = async (request: Request) => {
-  const body = await request.json()
-  const data = radarrValidator(body)
-
-  if (data instanceof ArkErrors) {
-    logError(data, 'Radarr')
-    return badRequest('invalid request', data.summary)
-  }
-
-  const { eventType } = data
+export const radarrWebhook = Effect.gen(function* () {
+  const body = yield* HttpServerRequest.schemaBodyJson(RadarrWebhook)
+  const { eventType } = body
 
   if (eventType === 'Test') {
-    return success({ message: 'ok' })
+    return yield* HttpServerResponse.json({ message: 'ok' })
   }
 
   if (eventType === 'Download') {
-    const file = join(data.movie.folderPath, data.movieFile.relativePath)
-    const mediaTitle = data.movie.title
-    const { originalLanguage } = await getMediaLanguage(data.movie.tmdbId, 'movie')
+    const file = join(body.movie.folderPath, body.movieFile.relativePath)
+    const mediaTitle = body.movie.title
 
-    void transcodeFile(file, mediaTitle, originalLanguage, 'movie')
+    const metadataService = yield* MetadataService
+    const transcodeService = yield* TranscodeService
+
+    const { originalLanguage } = yield* metadataService.getMediaLanguage(body.movie.tmdbId, 'movie')
+    yield* Effect.fork(transcodeService.transcodeFile(file, mediaTitle, originalLanguage, 'movie'))
   }
 
-  return success({ message: 'ok' })
-}
+  return yield* HttpServerResponse.json({ message: 'ok' })
+}).pipe(Effect.catchTag('ParseError', (error) => HttpServerResponse.json({ error: 'invalid request', details: error.message }, { status: 400 })))

@@ -1,50 +1,59 @@
-import { ArkErrors } from 'arktype'
+import { Effect, Schema } from 'effect'
 import { mkdirSync } from 'node:fs'
 
-import { ValidationError } from '@/errors/validation'
-import { spawnPromise } from '@/utils/exec_promisify'
-import { ffprobeOutputValidator } from '@/validators/ffmpeg.validator'
+import { ValidationError } from '@/errors'
+import { FfprobeOutput } from '@/schemas/ffmpeg'
+import { spawn } from '@/utils/spawn'
 
-export class FfmpegClient {
-  executeFfmpeg(id: number, input: string, output: string, command: string[]) {
-    const path = input.split('/')
-    path.pop()
+export class FfmpegClient extends Effect.Service<FfmpegClient>()('FfmpegClient', {
+  accessors: true,
+  sync: () => {
+    const executeFfmpeg = Effect.fn('FfmpegClient.executeFfmpeg')(function* (id: number, input: string, output: string, command: string[]) {
+      const path = input.split('/')
+      path.pop()
 
-    mkdirSync(`${path.join('/')}/transcode/${id}`, { recursive: true })
+      yield* Effect.sync(() => {
+        mkdirSync(`${path.join('/')}/transcode/${id}`, { recursive: true })
+      })
 
-    return spawnPromise('ffmpeg', [
-      '-hide_banner',
-      '-loglevel',
-      'error',
-      '-y',
-      '-i',
-      input,
-      ...command,
-      `${path.join('/')}/transcode/${id}/${output}`,
-    ])
-  }
+      return yield* spawn('ffmpeg', [
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-y',
+        '-i',
+        input,
+        ...command,
+        `${path.join('/')}/transcode/${id}/${output}`,
+      ])
+    })
 
-  async ffprobe(input: string) {
-    const output = await spawnPromise('ffprobe', [
-      '-loglevel',
-      'error',
-      '-show_entries',
-      'stream=index,codec_name,codec_type,channels,sample_rate:stream_tags=language',
-      '-print_format',
-      'json',
-      input,
-    ])
+    const ffprobe = Effect.fn('FfmpegClient.ffprobe')(function* (input: string) {
+      const output = yield* spawn('ffprobe', [
+        '-loglevel',
+        'error',
+        '-show_entries',
+        'stream=index,codec_name,codec_type,channels,sample_rate:stream_tags=language',
+        '-print_format',
+        'json',
+        input,
+      ])
 
-    const parsedOutput = ffprobeOutputValidator(JSON.parse(output))
+      const parsed = yield* Schema.decodeUnknown(Schema.parseJson(FfprobeOutput))(output).pipe(
+        Effect.mapError((e) => new ValidationError({ errors: String(e), message: `Validation error: ${String(e)}` }))
+      )
 
-    if (parsedOutput instanceof ArkErrors) {
-      throw new ValidationError(parsedOutput)
+      return parsed.streams
+    })
+
+    const execute = Effect.fn('FfmpegClient.execute')(function* (...command: string[]) {
+      return yield* spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...command])
+    })
+
+    return {
+      execute,
+      executeFfmpeg,
+      ffprobe,
     }
-
-    return parsedOutput.streams
-  }
-
-  execute(...command: string[]) {
-    return spawnPromise('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...command])
-  }
-}
+  },
+}) {}

@@ -1,67 +1,49 @@
-import type { QueueService } from '@/types/cleanup'
+import { FetchHttpClient } from '@effect/platform'
+import { Effect, Schema } from 'effect'
 
-import { logError } from '@/utils/error_handler'
-import { seriesValidator } from '@/validators/sonarr.validator'
+import { AppConfig } from '@/config/app_config'
+import { Series } from '@/schemas/sonarr'
 
-import { ArrClient } from './arr.service'
+import { makeArrClient } from './arr.service'
 
-export interface ISonarrClient extends QueueService {
-  refreshSeries(seriesId: number): Promise<void>
-  renameSeries(seriesId: number): Promise<void>
-  getSeriesByPath(filePath: string): Promise<number | undefined>
-}
+export class SonarrClient extends Effect.Service<SonarrClient>()('SonarrClient', {
+  accessors: true,
+  dependencies: [AppConfig.Default, FetchHttpClient.layer],
+  effect: Effect.gen(function* () {
+    const config = yield* AppConfig
+    const arr = yield* makeArrClient(config.SONARR_API_URL, config.SONARR_API_KEY, 'Sonarr')
 
-interface SonarrClientConfig {
-  apiKey: string
-  apiUrl: string
-}
+    const getQueue = Effect.fn('SonarrClient.getQueue')(() => arr.getQueue())
 
-export class SonarrClient extends ArrClient implements ISonarrClient {
-  constructor(config: SonarrClientConfig) {
-    super({
-      baseUrl: `${config.apiUrl}/api/v3`,
-      apiKey: config.apiKey,
-      serviceName: 'Radarr',
-    })
-  }
+    const removeQueueItem = Effect.fn('SonarrClient.removeQueueItem')((id: number, options: { blocklist: boolean; removeFromClient: boolean }) =>
+      arr.removeQueueItem(id, options)
+    )
 
-  async refreshSeries(seriesId: number): Promise<void> {
-    const result = await this.client.post('command', {
-      body: {
-        name: 'RefreshSeries',
-        seriesId,
-      },
-    })
+    const refreshSeries = Effect.fn('SonarrClient.refreshSeries')((seriesId: number) =>
+      arr
+        .post('command', { name: 'RefreshSeries', seriesId })
+        .pipe(Effect.catchAll((error) => Effect.logError(`(Sonarr) ${error instanceof Error ? error.message : JSON.stringify(error)}`)))
+    )
 
-    if (!result.ok) {
-      logError(result.error)
+    const renameSeries = Effect.fn('SonarrClient.renameSeries')((seriesId: number) =>
+      arr
+        .post('command', { name: 'RenameSeries', seriesIds: [seriesId] })
+        .pipe(Effect.catchAll((error) => Effect.logError(`(Sonarr) ${error instanceof Error ? error.message : JSON.stringify(error)}`)))
+    )
+
+    const getSeriesByPath = Effect.fn('SonarrClient.getSeriesByPath')((filePath: string) =>
+      arr.get('series', Schema.Array(Series)).pipe(
+        Effect.map((seriesList) => seriesList.find((s) => filePath.startsWith(s.path))?.id),
+        Effect.catchAll((error) => Effect.logError(`(Sonarr) ${String(error)}`).pipe(Effect.as(undefined)))
+      )
+    )
+
+    return {
+      getQueue,
+      getSeriesByPath,
+      refreshSeries,
+      removeQueueItem,
+      renameSeries,
     }
-  }
-
-  async renameSeries(seriesId: number): Promise<void> {
-    const result = await this.client.post('command', {
-      body: {
-        name: 'RenameSeries',
-        seriesIds: [seriesId],
-      },
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-    }
-  }
-
-  async getSeriesByPath(filePath: string): Promise<number | undefined> {
-    const result = await this.client.get('series', {
-      validator: seriesValidator.array(),
-    })
-
-    if (!result.ok) {
-      logError(result.error)
-      return undefined
-    }
-
-    const series = result.data.find((s) => filePath.startsWith(s.path))
-    return series?.id
-  }
-}
+  }),
+}) {}

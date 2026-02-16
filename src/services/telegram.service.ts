@@ -2,20 +2,24 @@ import type { MessageXFragment } from '@grammyjs/hydrate/out/data/message'
 
 import { ConversationMenuRange } from '@grammyjs/conversations'
 import { and, eq } from 'drizzle-orm'
+import { Effect, type ManagedRuntime } from 'effect'
 
 import type { MediaType } from '@/integrations/plex.service'
 import type { ConfigureLanguageContext, ConfigureLanguageConversation } from '@/types/telegram'
 
-import { db } from '@/config/db'
+import { DatabaseService } from '@/config/database'
 import { media, type Media } from '@/database/schema'
 import { iso1ToIso2T } from '@/types/iso_codes'
 import { normalizeToIso1 } from '@/utils/iso_codes'
+
+export type AppRuntime = ManagedRuntime.ManagedRuntime<DatabaseService, never>
 
 const handleMediaSelection = async (
   menuConversation: ConfigureLanguageConversation,
   entry: Media,
   message: MessageXFragment,
-  mediaType: MediaType
+  mediaType: MediaType,
+  runtime: AppRuntime
 ) => {
   await message.editText(`Wich language do you want to set for ${entry.title} ?`)
 
@@ -25,12 +29,17 @@ const handleMediaSelection = async (
   })
 
   await menuConversation.external(() =>
-    db
-      .update(media)
-      .set({
-        preferredLanguage: normalizeToIso1(language),
+    runtime.runPromise(
+      Effect.gen(function* () {
+        const db = yield* DatabaseService
+        yield* Effect.promise(() =>
+          db
+            .update(media)
+            .set({ preferredLanguage: normalizeToIso1(language) })
+            .where(and(eq(media.tmdbId, entry.tmdbId), eq(media.type, mediaType)))
+        )
       })
-      .where(and(eq(media.tmdbId, entry.tmdbId), eq(media.type, mediaType)))
+    )
   )
 
   await message.editText(`Language of ${entry.title} updated to ${language}`)
@@ -44,15 +53,16 @@ export const createMenu = ({
   menuMedia,
   message,
   page,
+  runtime,
 }: {
   mediaType: MediaType
   menuConversation: ConfigureLanguageConversation
   menuMedia: Media[]
   message: MessageXFragment
   page: number
+  runtime: AppRuntime
 }): ReturnType<typeof menuConversation.menu> => {
   const currentMenu = menuMedia.slice(0, 10)
-
   const nextMenu = menuMedia.slice(10)
 
   const menuId = `menu-${page}`
@@ -62,7 +72,7 @@ export const createMenu = ({
 
   menu.dynamic(() =>
     currentMenu.reduce(
-      (range, entry) => range.text(entry.title, () => handleMediaSelection(menuConversation, entry, message, mediaType)).row(),
+      (range, entry) => range.text(entry.title, () => handleMediaSelection(menuConversation, entry, message, mediaType, runtime)).row(),
       new ConversationMenuRange<ConfigureLanguageContext>()
     )
   )
@@ -80,6 +90,7 @@ export const createMenu = ({
         menuMedia: nextMenu,
         message,
         page: page + 1,
+        runtime,
       })
     )
   }

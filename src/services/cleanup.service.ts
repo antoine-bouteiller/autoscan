@@ -1,28 +1,22 @@
-import type { IRadarrClient } from '@/integrations/arr/radarr.service'
-import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
-import type { QueueService } from '@/types/cleanup'
+import { Effect } from 'effect'
 
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import { tryCatch } from '@/utils/error_handler'
+import type { QueueResponse } from '@/schemas/queue'
+
+import { RadarrClient } from '@/integrations/arr/radarr.service'
+import { SonarrClient } from '@/integrations/arr/sonarr.service'
 
 const STRIKE_COUNT = 5
-
-// Initialize the strike count dictionary
 const strikeCounts = new Map<number, number>()
 
-export const cleanupAll = async (): Promise<void> => {
-  const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
-  const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
-
-  await tryCatch(removeStalledDownloads, sonarrClient, 'Sonarr')
-  await tryCatch(removeStalledDownloads, radarrClient, 'Radarr')
+interface QueueService {
+  getQueue: () => Effect.Effect<QueueResponse | undefined>
+  removeQueueItem: (id: number, options: { blocklist: boolean; removeFromClient: boolean }) => Effect.Effect<void>
 }
 
-const removeStalledDownloads = async (service: QueueService, serviceName: string): Promise<void> => {
-  const queue = await service.getQueue()
+const removeStalledDownloads = Effect.fn('CleanupService.removeStalledDownloads')(function* (service: QueueService, serviceName: string) {
+  const queue = yield* service.getQueue()
 
-  const promises = []
+  const effects: Effect.Effect<void>[] = []
 
   for (const item of queue?.records ?? []) {
     if (item.title && item.status) {
@@ -38,12 +32,14 @@ const removeStalledDownloads = async (service: QueueService, serviceName: string
 
       if (item.status === 'warning' && item.errorMessage === 'The download is stalled with no connections') {
         strikeCounts.set(itemId, (strikeCounts.get(itemId) ?? 0) + 1)
-        logger.info(`Item ${item.title} has ${strikeCounts.get(itemId)} strikes`, `Cleanup`, serviceName)
+        yield* Effect.logInfo(`Item ${item.title} has ${strikeCounts.get(itemId)} strikes`).pipe(
+          Effect.annotateLogs({ context: 'Cleanup', service: serviceName })
+        )
       }
 
       if (noEligibleFiles || (strikeCounts.get(itemId) ?? 0) >= STRIKE_COUNT) {
-        logger.info(`Removing download: ${item.title}`, `Cleanup`, serviceName)
-        promises.push(
+        yield* Effect.logInfo(`Removing download: ${item.title}`).pipe(Effect.annotateLogs({ context: 'Cleanup', service: serviceName }))
+        effects.push(
           service.removeQueueItem(itemId, {
             blocklist: true,
             removeFromClient: true,
@@ -51,9 +47,30 @@ const removeStalledDownloads = async (service: QueueService, serviceName: string
         )
       }
     } else {
-      logger.warn(`Skipping item due to missing or invalid keys: ${JSON.stringify(item)}`, `Cleanup`, serviceName)
+      yield* Effect.logWarning('Skipping item due to missing or invalid keys').pipe(
+        Effect.annotateLogs({ item }),
+        Effect.annotateLogs({ context: 'Cleanup', service: serviceName })
+      )
     }
   }
 
-  await Promise.all(promises)
-}
+  yield* Effect.all(effects, { concurrency: 'unbounded' })
+})
+
+export class CleanupService extends Effect.Service<CleanupService>()('CleanupService', {
+  accessors: true,
+  dependencies: [SonarrClient.Default, RadarrClient.Default],
+  effect: Effect.gen(function* () {
+    const sonarr = yield* SonarrClient
+    const radarr = yield* RadarrClient
+
+    const cleanupAll = Effect.fn('CleanupService.cleanupAll')(function* () {
+      yield* removeStalledDownloads(sonarr, 'Sonarr')
+      yield* removeStalledDownloads(radarr, 'Radarr')
+    })
+
+    return {
+      cleanupAll,
+    }
+  }),
+}) {}

@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, test } from 'vitest'
+import { beforeEach, describe, expect, it } from '@effect/vitest'
+import { Effect, Layer } from 'effect'
 
-import '../config'
-import { mockRadarrQueue, mockRadarrRemoveQueueItem } from '../mocks/radarr.mock'
-import { mockSonarrQueue, mockSonarrRemoveQueueItem } from '../mocks/sonarr.mock'
+import { CleanupService } from '@/services/cleanup.service'
+
+import { MockRadarrLayer, mockRadarrQueue, mockRadarrRemoveQueueItem } from '../mocks/radarr.mock'
+import { MockSonarrLayer, mockSonarrQueue, mockSonarrRemoveQueueItem } from '../mocks/sonarr.mock'
 import {
   mockQueueResponseEmpty,
   mockQueueResponseNormal,
@@ -11,7 +13,7 @@ import {
   mockQueueResponseWithStalledWarning,
 } from '../resources/fixtures/queue.fixtures'
 
-const { cleanupAll } = await import('@/services/cleanup.service')
+const TestLayer = CleanupService.DefaultWithoutDependencies.pipe(Layer.provide(Layer.mergeAll(MockSonarrLayer, MockRadarrLayer)))
 
 describe('CleanupService', () => {
   beforeEach(() => {
@@ -21,74 +23,79 @@ describe('CleanupService', () => {
     mockRadarrRemoveQueueItem.mockReset()
   })
 
-  test('should remove items with no eligible files', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
+  it.effect('should remove items with no eligible files', () => {
+    mockSonarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseWithNoEligibleFiles))
+    mockRadarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseWithNoEligibleFiles))
 
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledWith(1, {
-      blocklist: true,
-      removeFromClient: true,
-    })
+    return Effect.gen(function* () {
+      const cleanup = yield* CleanupService
+      yield* cleanup.cleanupAll()
+      expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
+      expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
+      expect(mockSonarrRemoveQueueItem).toHaveBeenCalledWith(1, {
+        blocklist: true,
+        removeFromClient: true,
+      })
+    }).pipe(Effect.provide(TestLayer))
   })
 
-  test('should remove items with dangerous file extensions', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
+  it.effect('should remove items with dangerous file extensions', () => {
+    mockSonarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseWithDangerousFiles))
+    mockRadarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseWithDangerousFiles))
 
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
+    return Effect.gen(function* () {
+      const cleanup = yield* CleanupService
+      yield* cleanup.cleanupAll()
+      expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
+      expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
+    }).pipe(Effect.provide(TestLayer))
   })
 
-  test('should not remove items with stalled warning on first strike', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
+  it.effect('should not remove items with stalled warning on first strike', () => {
+    mockSonarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseWithStalledWarning))
+    mockRadarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseWithStalledWarning))
 
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    return Effect.gen(function* () {
+      const cleanup = yield* CleanupService
+      yield* cleanup.cleanupAll()
+      expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
+      expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    }).pipe(Effect.provide(TestLayer))
   })
 
-  test('should handle empty queue', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseEmpty)
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseEmpty)
+  it.effect('should handle empty queue', () => {
+    mockSonarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseEmpty))
+    mockRadarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseEmpty))
 
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    return Effect.gen(function* () {
+      const cleanup = yield* CleanupService
+      yield* cleanup.cleanupAll()
+      expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
+      expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    }).pipe(Effect.provide(TestLayer))
   })
 
-  test('should handle undefined queue response', async () => {
-    mockSonarrQueue.mockResolvedValue({ records: [], totalRecords: 0 })
-    mockRadarrQueue.mockResolvedValue({ records: [], totalRecords: 0 })
+  it.effect('should handle undefined queue response', () => {
+    mockSonarrQueue.mockImplementation(() => Effect.succeed({ records: [], totalRecords: 0 }))
+    mockRadarrQueue.mockImplementation(() => Effect.succeed({ records: [], totalRecords: 0 }))
 
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    return Effect.gen(function* () {
+      const cleanup = yield* CleanupService
+      yield* cleanup.cleanupAll()
+      expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
+      expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    }).pipe(Effect.provide(TestLayer))
   })
 
-  test('should skip items with missing title or status', async () => {
-    await cleanupAll()
+  it.effect('should handle normal completed items without errors', () => {
+    mockSonarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseNormal))
+    mockRadarrQueue.mockImplementation(() => Effect.succeed(mockQueueResponseNormal))
 
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
-  })
-
-  test('should handle normal completed items without errors', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseNormal)
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseNormal)
-
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    return Effect.gen(function* () {
+      const cleanup = yield* CleanupService
+      yield* cleanup.cleanupAll()
+      expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
+      expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    }).pipe(Effect.provide(TestLayer))
   })
 })

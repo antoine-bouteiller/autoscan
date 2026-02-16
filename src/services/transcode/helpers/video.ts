@@ -1,34 +1,40 @@
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
+import { Effect } from 'effect'
 
-import { logger } from '@/config/logger'
-import { VideoStreamNotFoundError } from '@/errors/transcode'
+import type { FfprobeStream } from '@/schemas/ffmpeg'
 
-export const processVideoStreams = (videoStreams: FFprobeStream[], mediaTitle: string): { command: string[]; shouldExecute: boolean } => {
-  const command: string[] = []
-  let shouldExecute = false
+import { VideoStreamNotFoundError } from '@/errors'
 
-  if (videoStreams.length === 0) {
-    return { command, shouldExecute }
-  }
+export const processVideoStreams = (
+  videoStreams: FfprobeStream[],
+  mediaTitle: string
+): Effect.Effect<{ command: string[]; shouldExecute: boolean }, VideoStreamNotFoundError> =>
+  Effect.gen(function* () {
+    const command: string[] = []
+    let shouldExecute = false
 
-  let countVideoStreamToKeep = 0
-
-  for (const [index, stream] of videoStreams.entries()) {
-    if (stream.codec_name?.toLowerCase() === 'mjpeg' || stream.codec_name?.toLowerCase() === 'png' || stream.codec_name?.toLowerCase() === 'gif') {
-      logger.warn(`Video stream 0:v:${index} is ${stream.codec_name.toLowerCase()} removing.`, 'Video', mediaTitle)
-    } else {
-      command.push(`-map`, `0:v:${index}`)
-      countVideoStreamToKeep++
+    if (videoStreams.length === 0) {
+      return { command, shouldExecute }
     }
-  }
 
-  if (countVideoStreamToKeep === 0) {
-    throw new VideoStreamNotFoundError(mediaTitle)
-  }
+    let countVideoStreamToKeep = 0
 
-  if (countVideoStreamToKeep !== videoStreams.length) {
-    shouldExecute = true
-  }
+    for (const [index, stream] of videoStreams.entries()) {
+      const codec = stream.codec_name?.toLowerCase()
+      if (codec === 'mjpeg' || codec === 'png' || codec === 'gif') {
+        continue
+      } else {
+        command.push(`-map`, `0:v:${index}`)
+        countVideoStreamToKeep++
+      }
+    }
 
-  return { command, shouldExecute }
-}
+    if (countVideoStreamToKeep === 0) {
+      return yield* new VideoStreamNotFoundError({ mediaTitle, message: `(${mediaTitle}) No video streams found` })
+    }
+
+    if (countVideoStreamToKeep !== videoStreams.length) {
+      shouldExecute = true
+    }
+
+    return { command, shouldExecute }
+  })

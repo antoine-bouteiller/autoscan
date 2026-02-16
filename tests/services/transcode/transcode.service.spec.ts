@@ -1,27 +1,21 @@
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe, expect } from '@effect/vitest'
+import { Effect, Layer, Schedule } from 'effect'
 
-import { container, TOKENS } from '@/core/container'
-import type { FfmpegClient } from '@/integrations/ffmpeg.service.js'
-import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service.js'
-import type { FFprobeStream } from '@/validators/ffmpeg.validator.js'
+import { FfmpegClient } from '@/integrations/ffmpeg.service'
+import type { FfprobeStream } from '@/schemas/ffmpeg'
+import { TranscodeService } from '@/services/transcode/transcode.service'
 
-import { testWithTestDir, videosPath } from '../../config.js'
+import { testWithTestDir, videosPath } from '../../config'
+import { MockPlexLayer } from '../../mocks/plex.mock'
+import { MockRadarrLayer } from '../../mocks/radarr.mock'
+import { MockSonarrLayer } from '../../mocks/sonarr.mock'
 
-const waitForQueueCompletion = async (): Promise<void> =>
-  new Promise((resolve) => {
-    const checkQueue = () => {
-      const status = transcodeQueue.getStatus()
-      if (!status.isProcessing && status.queueLength === 0) {
-        resolve()
-      } else {
-        setTimeout(checkQueue, 100)
-      }
-    }
-    checkQueue()
-  })
+const TestLayer = TranscodeService.DefaultWithoutDependencies.pipe(
+  Layer.provide(Layer.mergeAll(FfmpegClient.Default, MockPlexLayer, MockRadarrLayer, MockSonarrLayer))
+)
 
 interface FileDataset {
   filename: string
@@ -29,7 +23,7 @@ interface FileDataset {
     codecName: string
     codecType: string
     index: number
-    language?: NonNullable<FFprobeStream['tags']>['language']
+    language?: NonNullable<FfprobeStream['tags']>['language']
   }[]
   shouldExecute: boolean
   title: string
@@ -81,37 +75,48 @@ const dataset: FileDataset[] = [
 ]
 
 describe('Transcode', () => {
-  testWithTestDir.for(dataset)('$title', async ({ filename, outputStreams, shouldExecute }, { testDir }) => {
+  testWithTestDir.for(dataset)('$title', ({ filename, outputStreams, shouldExecute }, { testDir }) => {
     copyFileSync(join(videosPath, filename), join(testDir, filename))
 
-    const executed = await transcodeFile(join(testDir, filename), 'test', 'en', 'movie')
+    return Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* TranscodeService
+        const executed = yield* service.transcodeFile(join(testDir, filename), 'test', 'en', 'movie')
 
-    expect(executed).toBe(shouldExecute)
+        expect(executed).toBe(shouldExecute)
 
-    if (!executed) {
-      expect(existsSync(join(testDir, filename))).toBe(true)
-      return
-    }
+        if (!executed) {
+          expect(existsSync(join(testDir, filename))).toBe(true)
+          return
+        }
 
-    await waitForQueueCompletion()
+        yield* service.getStatus().pipe(
+          Effect.filterOrFail(
+            (status) => !status.isProcessing && status.queueLength === 0,
+            () => 'queue not empty'
+          ),
+          Effect.retry(Schedule.spaced('100 millis'))
+        )
 
-    const outputFileName = filename.replace('.mkv', '.mp4')
-    expect(existsSync(join(testDir, outputFileName))).toBe(true)
-    expect(existsSync(join(testDir, outputFileName.replace('.mp4', '.en.srt')))).toBe(true)
+        const outputFileName = filename.replace('.mkv', '.mp4')
+        expect(existsSync(join(testDir, outputFileName))).toBe(true)
+        expect(existsSync(join(testDir, outputFileName.replace('.mp4', '.en.srt')))).toBe(true)
 
-    if (outputFileName !== filename) {
-      expect(existsSync(join(testDir, filename))).toBe(false)
-    }
+        if (outputFileName !== filename) {
+          expect(existsSync(join(testDir, filename))).toBe(false)
+        }
 
-    const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-    const streams = await ffmpegClient.ffprobe(join(testDir, outputFileName))
+        const ffmpeg = yield* FfmpegClient
+        const streams = yield* ffmpeg.ffprobe(join(testDir, outputFileName))
 
-    for (const stream of outputStreams) {
-      expect(streams[stream.index]?.codec_type).toBe(stream.codecType)
-      expect(streams[stream.index]?.codec_name).toBe(stream.codecName)
-      if (stream.language) {
-        expect(streams[stream.index]?.tags?.language).toBe(stream.language)
-      }
-    }
+        for (const stream of outputStreams) {
+          expect(streams[stream.index]?.codec_type).toBe(stream.codecType)
+          expect(streams[stream.index]?.codec_name).toBe(stream.codecName)
+          if (stream.language) {
+            expect(streams[stream.index]?.tags?.language).toBe(stream.language)
+          }
+        }
+      }).pipe(Effect.provide(Layer.mergeAll(TestLayer, FfmpegClient.Default)))
+    )
   })
 })

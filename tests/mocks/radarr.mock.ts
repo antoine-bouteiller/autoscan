@@ -1,28 +1,18 @@
+import { Effect, Layer } from 'effect'
 import { vi } from 'vitest'
 
-import type { IRadarrClient } from '@/integrations/arr/radarr.service'
+import { RadarrClient } from '@/integrations/arr/radarr.service'
 
-export const mockRadarrQueue = vi.fn<IRadarrClient['getQueue']>()
-export const mockRadarrRemoveQueueItem = vi.fn<IRadarrClient['removeQueueItem']>()
+export const mockRadarrQueue = vi.fn<InstanceType<typeof RadarrClient>['getQueue']>(() => Effect.succeed(undefined))
+export const mockRadarrRemoveQueueItem = vi.fn<InstanceType<typeof RadarrClient>['removeQueueItem']>(() => Effect.void)
 
-export class MockRadarrClient implements IRadarrClient {
-  async getQueue() {
-    return mockRadarrQueue()
-  }
-
-  async getMovieByPath(_filePath: string) {
-    return undefined
-  }
-
-  async refreshMovie(_movieId: number) {
-    return
-  }
-
-  async removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }) {
-    void mockRadarrRemoveQueueItem(id, options)
-  }
-
-  async renameMovie(_movieId: number) {
-    return
-  }
-}
+export const MockRadarrLayer = Layer.succeed(
+  RadarrClient,
+  RadarrClient.make({
+    getQueue: () => mockRadarrQueue(),
+    removeQueueItem: (id: number, options: { blocklist: boolean; removeFromClient: boolean }) => mockRadarrRemoveQueueItem(id, options),
+    getMovieByPath: () => Effect.succeed(undefined),
+    refreshMovie: () => Effect.void,
+    renameMovie: () => Effect.void,
+  })
+)

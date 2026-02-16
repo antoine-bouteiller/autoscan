@@ -1,5 +1,4 @@
 import { fileURLToPath } from 'node:url'
-
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
@@ -10,7 +9,7 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.spec.ts'],
-    setupFiles: ['./tests/setup.ts'],
+    setupFiles: ['./tests/config.ts'],
     coverage: {
       provider: 'istanbul',
       reporter: ['lcov'],

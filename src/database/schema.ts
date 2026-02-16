@@ -1,5 +1,6 @@
 import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
+import { mediaType } from '@/schemas/plex'
 import { ISO1 } from '@/types/iso_codes'
 
 export const media = sqliteTable(
@@ -9,7 +10,7 @@ export const media = sqliteTable(
     preferredLanguage: text('preferred_language', { enum: ISO1 }).notNull(),
     title: text().notNull(),
     tmdbId: integer('tmdb_id').notNull(),
-    type: text().notNull(),
+    type: text({ enum: mediaType }).notNull(),
   },
   (table) => [
     primaryKey({

@@ -1,83 +1,19 @@
-import { logger } from '@/config/logger'
-import { AppError } from '@/errors/base'
-import { logError } from '@/utils/error_handler'
+import { HttpMiddleware, HttpRouter, HttpServer, HttpServerResponse } from '@effect/platform'
+import { BunHttpServer } from '@effect/platform-bun'
+import { Effect, Layer } from 'effect'
 
-type RouteHandler = (request: Request) => Promise<Response> | Response
+import { radarrWebhook } from '@/controllers/radarr.controller'
+import { sonarrWebhook } from '@/controllers/sonarr.controller'
+import { transcodeAll } from '@/controllers/transcode.controller'
 
-type RouteConfig = Record<
-  string,
-  {
-    DELETE?: RouteHandler
-    GET?: RouteHandler
-    PATCH?: RouteHandler
-    POST?: RouteHandler
-    PUT?: RouteHandler
-  }
->
+const router = HttpRouter.empty.pipe(
+  HttpRouter.post('/radarr', radarrWebhook),
+  HttpRouter.post('/sonarr', sonarrWebhook),
+  HttpRouter.post('/transcode/all', transcodeAll),
+  HttpRouter.get('/health', Effect.succeed(HttpServerResponse.text('ok')))
+)
 
-interface HttpProviderOptions {
-  hostname?: string
-  port?: number
-}
-
-export class HttpProvider {
-  private readonly options: HttpProviderOptions
-  private routes: RouteConfig = {}
-  private server: ReturnType<typeof Bun.serve> | undefined = undefined
-
-  constructor(options: HttpProviderOptions) {
-    this.options = {
-      hostname: '0.0.0.0',
-      port: 3030,
-      ...options,
-    }
-  }
-
-  registerRoutes(routes: RouteConfig): void {
-    this.routes = routes
-  }
-
-  start(): ReturnType<typeof Bun.serve> {
-    if (this.server) {
-      logger.warn('server is already running', 'HTTP')
-      return this.server
-    }
-
-    this.server = Bun.serve({
-      error(error) {
-        logError(error)
-
-        if (error instanceof AppError) {
-          return error.toResponse()
-        }
-
-        return Response.json(
-          {
-            error: {
-              code: 'INTERNAL_ERROR',
-              message: 'An unexpected error occurred',
-            },
-            meta: { timestamp: new Date().toISOString() },
-            success: false,
-          },
-          { status: 500 }
-        )
-      },
-      hostname: this.options.hostname,
-      port: this.options.port,
-      routes: this.routes,
-    })
-
-    logger.info(`Server running at ${this.server.url.toString()}`, 'HTTP')
-
-    return this.server
-  }
-
-  stop(): void {
-    if (this.server) {
-      void this.server.stop()
-      logger.info('Server stopped', 'HTTP')
-      this.server = undefined
-    }
-  }
-}
+export const HttpServerLive = router.pipe(
+  HttpServer.serve(HttpMiddleware.logger),
+  Layer.provide(BunHttpServer.layer({ hostname: '0.0.0.0', port: 3030 }))
+)

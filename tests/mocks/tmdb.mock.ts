@@ -1,26 +1,26 @@
-import type { ITmdbClient } from '@/integrations/tmdb.service'
-import type { TmdbMedia, TmdbMovie, TmdbTV } from '@/validators/tmdb.validator'
+import { Effect, Layer } from 'effect'
 
-export class MockTmdbClient implements ITmdbClient {
-  mediaMap = new Map<string, TmdbMedia>()
-  callCount = 0
+import type { TmdbMedia } from '@/schemas/tmdb'
 
-  async getTmdbMedia(tmdbId: number, mediaType: 'movie' | 'show'): Promise<TmdbMedia> {
-    this.callCount++
-    const key = `${tmdbId}-${mediaType}`
-    return this.mediaMap.get(key) ?? { data: undefined, type: 'movie' }
-  }
+import { TmdbClient } from '@/integrations/tmdb.service'
 
-  async getTmdbMovie(_tmdbId: number): Promise<TmdbMovie | undefined> {
-    return undefined
-  }
+export const tmdbMediaMap = new Map<string, TmdbMedia>()
+export let tmdbCallCount = 0
 
-  async getTmdbTvShow(_tmdbId: number): Promise<TmdbTV | undefined> {
-    return undefined
-  }
-
-  reset() {
-    this.mediaMap.clear()
-    this.callCount = 0
-  }
+export const resetTmdbMock = () => {
+  tmdbMediaMap.clear()
+  tmdbCallCount = 0
 }
+
+export const MockTmdbLayer = Layer.succeed(
+  TmdbClient,
+  TmdbClient.make({
+    getTmdbMedia: (tmdbId: number, mediaType: 'movie' | 'show') => {
+      tmdbCallCount++
+      const key = `${tmdbId}-${mediaType}`
+      return Effect.succeed(tmdbMediaMap.get(key) ?? { data: undefined, type: 'movie' as const })
+    },
+    getTmdbMovie: () => Effect.succeed(undefined),
+    getTmdbTvShow: () => Effect.succeed(undefined),
+  })
+)
