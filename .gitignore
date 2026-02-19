@@ -2,6 +2,7 @@ node_modules
 .env
 autoscan.db
 index
+coverage
 
 # bun
 *.bun-build

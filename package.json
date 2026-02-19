@@ -8,30 +8,35 @@
     "typecheck": "tsgo --noEmit",
     "dev": "NODE_ENV=development bun --watch src/index.ts",
     "build": "bun build ./src/index.ts --outfile ./index --compile",
-    "knip": "knip"
+    "knip": "knip",
+    "test": "bun --bun vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@grammyjs/conversations": "^2.1.1",
     "@grammyjs/hydrate": "^1.6.0",
     "arktype": "^2.1.29",
-    "croner": "^10.0.0",
-    "drizzle-orm": "^1.0.0-beta.12-a5629fb",
-    "grammy": "^1.39.3"
+    "croner": "^10.0.1",
+    "drizzle-orm": "^1.0.0-beta.9-e89174b",
+    "grammy": "^1.40.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.3.1",
-    "@commitlint/config-conventional": "^20.3.1",
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
     "@tsconfig/bun": "^1.0.10",
-    "@types/bun": "^1.3.6",
-    "@types/node": "^25.2.2",
-    "@typescript/native-preview": "^7.0.0-dev.20260122.4",
-    "drizzle-kit": "^1.0.0-beta.12-a5629fb",
-    "knip": "^5.83.1",
-    "lefthook": "^2.0.15",
+    "@types/bun": "^1.3.9",
+    "@types/node": "^25.3.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260219.1",
+    "@vitest/coverage-istanbul": "^4.0.18",
+    "drizzle-kit": "^1.0.0-beta.9-e89174b",
+    "knip": "^5.84.1",
+    "lefthook": "^2.1.1",
     "oxfmt": "^0.33.0",
-    "oxlint": "^1.41.0",
+    "oxlint": "^1.48.0",
     "oxlint-tsgolint": "^0.14.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "commitlint": {
     "extends": [

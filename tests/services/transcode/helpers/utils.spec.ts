@@ -1,8 +1,7 @@
-import { describe, expect, test } from 'bun:test'
-
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
+import { describe, expect, test } from 'vitest'
 
 import { type Criteria, isStreamWanted, simpleHash } from '@/services/transcode/helpers/utils'
+import type { FFprobeStream } from '@/validators/ffmpeg.validator'
 
 const makeStream = (overrides: Partial<FFprobeStream> = {}): FFprobeStream => ({
   codec_type: 'audio',

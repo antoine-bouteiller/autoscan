@@ -1,14 +1,14 @@
-import { describe, expect, test } from 'bun:test'
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import type { FfmpegClient } from '@/integrations/ffmpeg.service.js'
-import type { FFprobeStream } from '@/validators/ffmpeg.validator.js'
+import { describe, expect } from 'vitest'
 
 import { container, TOKENS } from '@/core/container'
+import type { FfmpegClient } from '@/integrations/ffmpeg.service.js'
 import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service.js'
+import type { FFprobeStream } from '@/validators/ffmpeg.validator.js'
 
-import { setupTestContext, videosPath } from '../../config.js'
+import { testWithTestDir, videosPath } from '../../config.js'
 
 const waitForQueueCompletion = async (): Promise<void> =>
   new Promise((resolve) => {
@@ -81,44 +81,37 @@ const dataset: FileDataset[] = [
 ]
 
 describe('Transcode', () => {
-  for (const testCase of dataset) {
-    const getContext = setupTestContext(testCase.title)
+  testWithTestDir.for(dataset)('$title', async ({ filename, outputStreams, shouldExecute }, { testDir }) => {
+    copyFileSync(join(videosPath, filename), join(testDir, filename))
 
-    test(testCase.title, async () => {
-      const { testDir } = getContext()
-      const { filename, outputStreams, shouldExecute } = testCase
+    const executed = await transcodeFile(join(testDir, filename), 'test', 'en', 'movie')
 
-      copyFileSync(join(videosPath, filename), join(testDir, filename))
+    expect(executed).toBe(shouldExecute)
 
-      const executed = await transcodeFile(join(testDir, filename), 'test', 'en', 'movie')
+    if (!executed) {
+      expect(existsSync(join(testDir, filename))).toBe(true)
+      return
+    }
 
-      expect(executed).toBe(shouldExecute)
+    await waitForQueueCompletion()
 
-      if (!executed) {
-        expect(existsSync(join(testDir, filename))).toBe(true)
-        return
+    const outputFileName = filename.replace('.mkv', '.mp4')
+    expect(existsSync(join(testDir, outputFileName))).toBe(true)
+    expect(existsSync(join(testDir, outputFileName.replace('.mp4', '.en.srt')))).toBe(true)
+
+    if (outputFileName !== filename) {
+      expect(existsSync(join(testDir, filename))).toBe(false)
+    }
+
+    const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+    const streams = await ffmpegClient.ffprobe(join(testDir, outputFileName))
+
+    for (const stream of outputStreams) {
+      expect(streams[stream.index]?.codec_type).toBe(stream.codecType)
+      expect(streams[stream.index]?.codec_name).toBe(stream.codecName)
+      if (stream.language) {
+        expect(streams[stream.index]?.tags?.language).toBe(stream.language)
       }
-
-      await waitForQueueCompletion()
-
-      const outputFileName = filename.replace('.mkv', '.mp4')
-      expect(existsSync(join(testDir, outputFileName))).toBe(true)
-      expect(existsSync(join(testDir, outputFileName.replace('.mp4', '.en.srt')))).toBe(true)
-
-      if (outputFileName !== filename) {
-        expect(existsSync(join(testDir, filename))).toBe(false)
-      }
-
-      const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-      const streams = await ffmpegClient.ffprobe(join(testDir, outputFileName))
-
-      for (const stream of outputStreams) {
-        expect(streams[stream.index]?.codec_type).toBe(stream.codecType)
-        expect(streams[stream.index]?.codec_name).toBe(stream.codecName)
-        if (stream.language) {
-          expect(streams[stream.index]?.tags?.language).toBe(stream.language)
-        }
-      }
-    })
-  }
+    }
+  })
 })

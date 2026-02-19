@@ -1,9 +1,9 @@
-import { mock } from 'bun:test'
+import { vi } from 'vitest'
 
 import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
 
-export const mockSonarrQueue = mock<ISonarrClient['getQueue']>()
-export const mockSonarrRemoveQueueItem = mock<ISonarrClient['removeQueueItem']>()
+export const mockSonarrQueue = vi.fn<ISonarrClient['getQueue']>()
+export const mockSonarrRemoveQueueItem = vi.fn<ISonarrClient['removeQueueItem']>()
 
 export class MockSonarrClient implements ISonarrClient {
   async getQueue() {

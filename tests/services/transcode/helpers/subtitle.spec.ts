@@ -1,14 +1,14 @@
-import { describe, expect, test } from 'bun:test'
 import { copyFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import type { FfmpegClient } from '@/integrations/ffmpeg.service'
-import type { ISOCode1 } from '@/types/iso_codes'
+import { describe, expect } from 'vitest'
 
 import { container, TOKENS } from '@/core/container'
+import type { FfmpegClient } from '@/integrations/ffmpeg.service'
 import { processSubtitleStreams } from '@/services/transcode/helpers/subtitle'
+import type { ISOCode1 } from '@/types/iso_codes'
 
-import { setupTestContext, videosPath } from '../../../config.js'
+import { testWithTestDir, videosPath } from '../../../config.js'
 
 interface TestCase {
   file: string
@@ -45,22 +45,15 @@ const dataset: TestCase[] = [
 ]
 
 describe('Extract subtitles', () => {
-  for (const testCase of dataset) {
-    const getContext = setupTestContext(testCase.title)
+  testWithTestDir.for(dataset)('$title', async ({ file, originalLanguage, streamToKeep }, { testDir }) => {
+    copyFileSync(join(videosPath, file), join(testDir, file))
 
-    test(testCase.title, async () => {
-      const { testDir } = getContext()
-      const { file, originalLanguage, streamToKeep } = testCase
+    const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+    const streams = await ffmpegClient.ffprobe(join(testDir, file))
+    const subtitleStreams = streams.filter((stream) => stream.codec_type === 'subtitle')
 
-      copyFileSync(join(videosPath, file), join(testDir, file))
+    const streamsKepts = await processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
 
-      const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-      const streams = await ffmpegClient.ffprobe(join(testDir, file))
-      const subtitleStreams = streams.filter((stream) => stream.codec_type === 'subtitle')
-
-      const streamsKepts = await processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
-
-      expect(streamsKepts.length).toBe(streamToKeep.length)
-    })
-  }
+    expect(streamsKepts.length).toBe(streamToKeep.length)
+  })
 })

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'vitest'
 
 import { dynDns, handleUpdateIp, resetZoneIdCache } from '@/services/dns.service'
 
@@ -35,7 +35,7 @@ describe('DnsService', () => {
     test('should throw when no record found in results', async () => {
       mockGetARecord.mockResolvedValue(emptyRecord)
 
-      expect(handleUpdateIp('example.com')).rejects.toThrow('Record not found')
+      await expect(handleUpdateIp('example.com')).rejects.toThrow('Record not found')
     })
 
     test('should cache zoneId across calls', async () => {
@@ -52,7 +52,7 @@ describe('DnsService', () => {
     test('should not throw when one domain fails', async () => {
       mockGetARecord.mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce(wildcardSameIpRecord)
 
-      expect(dynDns()).resolves.toBeUndefined()
+      await expect(dynDns()).resolves.toBeUndefined()
     })
   })
 })

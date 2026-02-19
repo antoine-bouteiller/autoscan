@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { and, eq } from 'drizzle-orm'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
 import { db } from '@/config/db'
 import { container, TOKENS } from '@/core/container'
@@ -7,7 +7,6 @@ import { media } from '@/database/schema'
 
 import '../config'
 import type { MockTmdbClient } from '../mocks/tmdb.mock'
-
 import { tmdbTvShowResponse } from '../resources/fixtures/tmdb.fixtures'
 
 const {
@@ -139,11 +138,11 @@ describe('MetadataService', () => {
     })
 
     test('should throw error if no file found', async () => {
-      expect(getCompleteMediaDetails(345)).rejects.toThrow('No file found')
+      await expect(getCompleteMediaDetails(345)).rejects.toThrow('No file found')
     })
 
     test('should throw error if no TMDB ID found', async () => {
-      expect(getCompleteMediaDetails(567)).rejects.toThrow('No tmdbId found')
+      await expect(getCompleteMediaDetails(567)).rejects.toThrow('No tmdbId found')
     })
   })
 })

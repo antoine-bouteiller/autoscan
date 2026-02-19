@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { HttpError } from '@/errors/http'
 import { NetworkError } from '@/errors/network'
@@ -9,7 +9,7 @@ import { httpClient } from '@/utils/http_client'
 const originalFetch = globalThis.fetch
 
 describe('httpClient', () => {
-  const mockFetch = mock<typeof fetch>()
+  const mockFetch = vi.fn<typeof fetch>()
 
   beforeEach(() => {
     mockFetch.mockReset()

@@ -1,9 +1,9 @@
-import { mock } from 'bun:test'
+import { vi } from 'vitest'
 
 import type { IRadarrClient } from '@/integrations/arr/radarr.service'
 
-export const mockRadarrQueue = mock<IRadarrClient['getQueue']>()
-export const mockRadarrRemoveQueueItem = mock<IRadarrClient['removeQueueItem']>()
+export const mockRadarrQueue = vi.fn<IRadarrClient['getQueue']>()
+export const mockRadarrRemoveQueueItem = vi.fn<IRadarrClient['removeQueueItem']>()
 
 export class MockRadarrClient implements IRadarrClient {
   async getQueue() {

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'vitest'
 
 import { inversedEntriesOf, isKeyOf, isValueOf, typedEntriesOf, typedKeyOf } from '@/utils/object'
 

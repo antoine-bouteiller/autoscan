@@ -1,11 +1,11 @@
-import { mock } from 'bun:test'
+import { vi } from 'vitest'
 
 import type { IPlexClient } from '@/integrations/plex.service'
 import type { PlexMedia } from '@/validators/plex.validator'
 
 import { plexMetadata } from '../resources/fixtures/plex.fixtures'
 
-export const updateStreamMock = mock()
+export const updateStreamMock = vi.fn()
 
 export class MockPlexClient implements IPlexClient {
   async getPlexMetadata(ratingKey: number) {

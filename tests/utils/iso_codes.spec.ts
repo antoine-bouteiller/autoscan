@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'vitest'
 
 import { iso1ToIso2B, normalizeToIso1 } from '@/utils/iso_codes'
 

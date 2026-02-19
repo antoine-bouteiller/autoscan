@@ -1,10 +1,10 @@
-import { mock } from 'bun:test'
+import { vi } from 'vitest'
 
 import type { ICloudflareClient } from '@/integrations/cloudflare.service'
 
-export const mockGetZoneId = mock<ICloudflareClient['getZoneId']>(() => Promise.resolve('zone-123'))
-export const mockGetARecord = mock<ICloudflareClient['getARecord']>()
-export const mockUpdateDnsRecord = mock<ICloudflareClient['updateDnsRecord']>()
+export const mockGetZoneId = vi.fn<ICloudflareClient['getZoneId']>(() => Promise.resolve('zone-123'))
+export const mockGetARecord = vi.fn<ICloudflareClient['getARecord']>()
+export const mockUpdateDnsRecord = vi.fn<ICloudflareClient['updateDnsRecord']>()
 
 export class MockCloudflareClient implements ICloudflareClient {
   async getPublicIP() {

@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, test } from 'bun:test'
 import { and, eq } from 'drizzle-orm'
+import { afterEach, describe, expect, test } from 'vitest'
 
 import { db } from '@/config/db'
 import { media, type Media } from '@/database/schema'
