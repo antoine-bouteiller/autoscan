@@ -1,5 +1,6 @@
-import { type } from 'arktype'
 import { join } from 'node:path'
+
+import { type } from 'arktype'
 
 const env = type({
   CLOUDFLARE_TOKEN: 'string',
@@ -18,5 +19,5 @@ const env = type({
 
 export default {
   ...env,
-  DATABASE_URL: join(__dirname, '../../resources/autoscan.db'),
+  DATABASE_URL: process.env['DATABASE_URL'] ?? join(__dirname, '../../resources/autoscan.db'),
 }

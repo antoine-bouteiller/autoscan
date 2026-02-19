@@ -7,7 +7,7 @@
           "run": "onType",
           "disableNestedConfig": false,
           "fixKind": "safe_fix",
-          "typeAware": false
+          "typeAware": true
         }
       }
     },
