@@ -1,11 +1,7 @@
 import { AppError } from './base'
 
 export class CommandExecutionError extends AppError {
-  constructor(
-    public readonly command?: string,
-    public readonly exitCode?: number,
-    public readonly stderr?: string
-  ) {
+  constructor(command?: string, exitCode?: number, stderr?: string) {
     const parts = ['Command execution failed']
     if (command) {
       parts.push(`command: ${command}`)

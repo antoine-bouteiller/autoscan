@@ -1,10 +1,10 @@
 import { AppError } from './base'
 
 export class NetworkError extends AppError {
-  constructor(
-    public readonly serviceName: string,
-    public readonly originalMessage: string
-  ) {
+  public readonly originalMessage: string
+
+  constructor(serviceName: string, originalMessage: string) {
     super(`(${serviceName}) Network Error: ${originalMessage}`, 503, 'SERVICE_UNAVAILABLE')
+    this.originalMessage = originalMessage
   }
 }

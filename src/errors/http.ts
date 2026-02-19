@@ -5,12 +5,11 @@ export type HttpErrorFormatter = (body: unknown) => string
 const defaultFormatter: HttpErrorFormatter = (body) => (typeof body === 'string' ? body : JSON.stringify(body))
 
 export class HttpError extends AppError {
-  constructor(
-    public readonly serviceName: string,
-    public readonly status: number,
-    public readonly body: unknown,
-    formatter: HttpErrorFormatter = defaultFormatter
-  ) {
+  public readonly status: number
+
+  constructor(serviceName: string, status: number, body: unknown, formatter: HttpErrorFormatter = defaultFormatter) {
     super(`(${serviceName}) API error (${status}): ${formatter(body)}`, 502, 'UPSTREAM_ERROR')
+
+    this.status = status
   }
 }

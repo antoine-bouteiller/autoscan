@@ -1,17 +1,16 @@
 import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import { logger } from '@/config/logger'
+import { container, TOKENS } from '@/core/container'
 import type { IRadarrClient } from '@/integrations/arr/radarr.service'
 import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
 import type { FfmpegClient } from '@/integrations/ffmpeg.service'
 import type { IPlexClient } from '@/integrations/plex.service'
-
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
 import { logError } from '@/utils/error_handler'
 
-const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<void> => {
-  const paths = file.split('/')
+const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promise<void> => {
+  const paths = inputFile.split('/')
 
   paths.pop()
 
@@ -21,9 +20,9 @@ const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<vo
     return
   }
 
-  const files = readdirSync(transcodePath)
+  const outputFiles = readdirSync(transcodePath)
 
-  const videoFile = files.find((file) => file.endsWith('.mp4'))
+  const videoFile = outputFiles.find((outputFile) => outputFile.endsWith('.mp4'))
 
   if (!videoFile) {
     logger.error(`No mp4 video file found`, 'postTranscode', mediaTitle)
@@ -40,9 +39,9 @@ const cleanUp = async (id: number, file: string, mediaTitle: string): Promise<vo
   if (videoStreams.length === 0 || audioStreams.length === 0) {
     logger.error(`No audio or video stream found on transcoded file`, 'postTranscode', mediaTitle)
   } else {
-    rmSync(file)
-    for (const file of files) {
-      copyFileSync(join(transcodePath, file), `${paths.join('/')}/${file}`)
+    rmSync(inputFile)
+    for (const outputFile of outputFiles) {
+      copyFileSync(join(transcodePath, outputFile), `${paths.join('/')}/${outputFile}`)
     }
   }
 

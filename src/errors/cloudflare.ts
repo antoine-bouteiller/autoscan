@@ -5,7 +5,7 @@ import { type HttpErrorFormatter } from '@/errors/http'
 import { cloudflareErrorResponse } from '@/validators/cloudflare.validator'
 
 export class CloudflareZoneNotFoundError extends AppError {
-  constructor(public readonly zoneName: string) {
+  constructor(zoneName: string) {
     super(`(Cloudflare) Zone not found: ${zoneName}`)
   }
 }
