@@ -11,7 +11,7 @@ class Container {
   resolve<T>(token: string): T {
     const cached = this.instances.get(token)
     if (cached) {
-      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+      // oxlint-disable-next-line no-unsafe-type-assertion
       return cached as T
     }
 
@@ -20,7 +20,7 @@ class Container {
       throw new Error(`No factory registered for token: ${token}`)
     }
 
-    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+    // oxlint-disable-next-line no-unsafe-type-assertion
     const instance = factory() as T
     this.instances.set(token, instance)
     return instance

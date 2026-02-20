@@ -15,7 +15,7 @@ describe('httpClient', () => {
 
   beforeEach(() => {
     mockFetch.mockReset()
-    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+    // oxlint-disable-next-line no-unsafe-type-assertion
     globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
