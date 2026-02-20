@@ -1,23 +1,27 @@
-import { type } from 'arktype'
+import * as v from 'valibot'
 
-const queueItemValidator = type({
-  'errorMessage?': 'string',
-  id: 'number',
-  status: 'string',
-  'statusMessages?': type({
-    messages: 'string | object',
-    title: 'string',
-  }).array(),
-  title: 'string',
-  'trackedDownloadStatus?': 'string',
+const queueItemValidator = v.object({
+  errorMessage: v.optional(v.string()),
+  id: v.number(),
+  status: v.string(),
+  statusMessages: v.optional(
+    v.array(
+      v.object({
+        messages: v.union([v.string(), v.record(v.string(), v.unknown())]),
+        title: v.string(),
+      })
+    )
+  ),
+  title: v.string(),
+  trackedDownloadStatus: v.optional(v.string()),
 })
 
-export const queueResponseValidator = type({
-  records: queueItemValidator.array(),
-  totalRecords: 'number',
+export const queueResponseValidator = v.object({
+  records: v.array(queueItemValidator),
+  totalRecords: v.number(),
 })
 
-export type QueueResponse = typeof queueResponseValidator.infer
+export type QueueResponse = v.InferOutput<typeof queueResponseValidator>
 
 export interface QueueService {
   getQueue: () => Promise<QueueResponse | undefined>

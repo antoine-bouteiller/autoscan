@@ -1,4 +1,4 @@
-import { ArkErrors, type Type } from 'arktype'
+import * as v from 'valibot'
 
 import { HttpError, type HttpErrorFormatter } from '@/errors/http'
 import { NetworkError } from '@/errors/network'
@@ -6,13 +6,15 @@ import { ValidationError } from '@/errors/validation'
 
 type RequestResponse<T> = { ok: true; data: T } | { ok: false; error: HttpError | NetworkError | ValidationError }
 
-type InferType<T> = Type<T>['infer']
+type AnySchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>
+type OutputFromSchema<TSchema> = [TSchema] extends [undefined] ? undefined : TSchema extends AnySchema ? v.InferOutput<TSchema> : undefined
+type RequestParams = Record<string, string | number | boolean>
 
-interface RequestOptions<T> {
+interface RequestOptions<TSchema extends AnySchema | undefined = undefined> {
   body?: unknown
   headers?: Record<string, string>
-  params?: Record<string, string | number | boolean>
-  validator?: Type<T>
+  params?: RequestParams
+  validator?: TSchema
 }
 
 interface Options {
@@ -23,7 +25,7 @@ interface Options {
 }
 
 export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeaders = {}, serviceName }: Options) => {
-  const createUrl = (endpoint: string, params?: RequestOptions<unknown>['params']) => {
+  const createUrl = (endpoint: string, params?: RequestParams) => {
     const cleanBase = baseUrl.replace(/\/+$/, '')
     const cleanEndpoint = endpoint.replace(/^\/+/, '')
     const fullPath = cleanBase ? `${cleanBase}/${cleanEndpoint}` : cleanEndpoint
@@ -41,11 +43,11 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     return url
   }
 
-  const request = async <TResponse = undefined>(
+  const request = async <TSchema extends AnySchema | undefined = undefined>(
     method: string,
     endpoint: string,
-    options: RequestOptions<TResponse> = {}
-  ): Promise<RequestResponse<InferType<TResponse>>> => {
+    options: RequestOptions<TSchema> = {}
+  ): Promise<RequestResponse<OutputFromSchema<TSchema>>> => {
     const { body, headers = {}, params, validator } = options
 
     const url = createUrl(endpoint, params)
@@ -80,24 +82,26 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
 
     if (!validator) {
       // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-      return { ok: true, data: undefined as InferType<TResponse> }
+      return { ok: true, data: undefined as OutputFromSchema<TSchema> }
     }
 
     const json = await response.json().catch(() => undefined)
 
-    const result = validator(json)
-    if (result instanceof ArkErrors) {
-      return { ok: false, error: new ValidationError(result) }
+    const result = v.safeParse(validator, json)
+    if (!result.success) {
+      return { ok: false, error: new ValidationError(result.issues) }
     }
 
-    return { ok: true, data: result }
+    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
+    return { ok: true, data: result.output as OutputFromSchema<TSchema> }
   }
 
   return {
-    delete: (url: string, opts?: Omit<RequestOptions<undefined>, 'body'>) => request('DELETE', url, opts),
-    get: <T>(url: string, opts?: Omit<RequestOptions<T>, 'body'>) => request<T>('GET', url, opts),
-    patch: (url: string, opts?: RequestOptions<undefined>) => request('PATCH', url, opts),
-    post: (url: string, opts?: RequestOptions<undefined>) => request('POST', url, opts),
-    put: (url: string, opts?: RequestOptions<undefined>) => request('PUT', url, opts),
+    delete: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: Omit<RequestOptions<TSchema>, 'body'>) =>
+      request('DELETE', url, opts),
+    get: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: Omit<RequestOptions<TSchema>, 'body'>) => request('GET', url, opts),
+    patch: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: RequestOptions<TSchema>) => request('PATCH', url, opts),
+    post: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: RequestOptions<TSchema>) => request('POST', url, opts),
+    put: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: RequestOptions<TSchema>) => request('PUT', url, opts),
   }
 }

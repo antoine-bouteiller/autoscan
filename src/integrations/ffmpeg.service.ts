@@ -1,5 +1,6 @@
-import { ArkErrors } from 'arktype'
 import { mkdirSync } from 'node:fs'
+
+import * as v from 'valibot'
 
 import { ValidationError } from '@/errors/validation'
 import { spawnPromise } from '@/utils/exec_promisify'
@@ -35,13 +36,13 @@ export class FfmpegClient {
       input,
     ])
 
-    const parsedOutput = ffprobeOutputValidator(JSON.parse(output))
+    const parsedOutput = v.safeParse(ffprobeOutputValidator, JSON.parse(output))
 
-    if (parsedOutput instanceof ArkErrors) {
-      throw new ValidationError(parsedOutput)
+    if (!parsedOutput.success) {
+      throw new ValidationError(parsedOutput.issues)
     }
 
-    return parsedOutput.streams
+    return parsedOutput.output.streams
   }
 
   execute(...command: string[]) {

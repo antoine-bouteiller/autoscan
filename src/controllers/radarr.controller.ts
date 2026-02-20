@@ -1,5 +1,6 @@
-import { ArkErrors } from 'arktype'
 import { join } from 'node:path'
+
+import * as v from 'valibot'
 
 import { badRequest, success } from '@/core/response'
 import { getMediaLanguage } from '@/services/metadata.service'
@@ -9,23 +10,23 @@ import { radarrValidator } from '@/validators/radarr.validator'
 
 export const radarrWebhook = async (request: Request) => {
   const body = await request.json()
-  const data = radarrValidator(body)
+  const parsed = v.safeParse(radarrValidator, body)
 
-  if (data instanceof ArkErrors) {
-    logError(data, 'Radarr')
-    return badRequest('invalid request', data.summary)
+  if (!parsed.success) {
+    logError(parsed.issues, 'Radarr')
+    return badRequest('invalid request', v.flatten(parsed.issues))
   }
 
-  const { eventType } = data
+  const { eventType } = parsed.output
 
   if (eventType === 'Test') {
     return success({ message: 'ok' })
   }
 
   if (eventType === 'Download') {
-    const file = join(data.movie.folderPath, data.movieFile.relativePath)
-    const mediaTitle = data.movie.title
-    const { originalLanguage } = await getMediaLanguage(data.movie.tmdbId, 'movie')
+    const file = join(parsed.output.movie.folderPath, parsed.output.movieFile.relativePath)
+    const mediaTitle = parsed.output.movie.title
+    const { originalLanguage } = await getMediaLanguage(parsed.output.movie.tmdbId, 'movie')
 
     void transcodeFile(file, mediaTitle, originalLanguage, 'movie')
   }

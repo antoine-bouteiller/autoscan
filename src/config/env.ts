@@ -1,21 +1,41 @@
 import { join } from 'node:path'
 
-import { type } from 'arktype'
+import * as v from 'valibot'
 
-const env = type({
-  CLOUDFLARE_TOKEN: 'string',
-  DOMAIN: 'string',
-  PLEX_TOKEN: 'string',
-  PLEX_URL: 'string.url',
-  RADARR_API_KEY: 'string',
-  RADARR_API_URL: 'string.url',
-  SONARR_API_KEY: 'string',
-  SONARR_API_URL: 'string.url',
-  TELEGRAM_CHAT_ID: 'string.numeric.parse',
-  TELEGRAM_TOKEN: 'string',
-  TMDB_API_TOKEN: 'string',
-  TMDB_API_URL: 'string.url',
-}).assert(process.env)
+const numberFromString = v.pipe(
+  v.string(),
+  v.transform((value) => Number(value)),
+  v.check((value) => Number.isFinite(value), 'Expected numeric string')
+)
+
+const urlString = v.pipe(
+  v.string(),
+  v.check((value) => {
+    try {
+      const url = new URL(value)
+      return Boolean(url)
+    } catch {
+      return false
+    }
+  }, 'Expected URL')
+)
+
+const envSchema = v.object({
+  CLOUDFLARE_TOKEN: v.string(),
+  DOMAIN: v.string(),
+  PLEX_TOKEN: v.string(),
+  PLEX_URL: urlString,
+  RADARR_API_KEY: v.string(),
+  RADARR_API_URL: urlString,
+  SONARR_API_KEY: v.string(),
+  SONARR_API_URL: urlString,
+  TELEGRAM_CHAT_ID: numberFromString,
+  TELEGRAM_TOKEN: v.string(),
+  TMDB_API_TOKEN: v.string(),
+  TMDB_API_URL: urlString,
+})
+
+const env = v.parse(envSchema, process.env)
 
 export default {
   ...env,

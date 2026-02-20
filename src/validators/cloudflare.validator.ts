@@ -1,38 +1,40 @@
-import { type } from 'arktype'
+import * as v from 'valibot'
 
-export const ipifyResponseValidator = type({
-  ip: 'string',
+export const ipifyResponseValidator = v.object({
+  ip: v.string(),
 })
 
-const dnsRecordValidator = type({
-  content: 'string',
-  id: 'string',
-  name: 'string',
-  ttl: 'number',
-  type: 'string',
+const dnsRecordValidator = v.object({
+  content: v.string(),
+  id: v.string(),
+  name: v.string(),
+  ttl: v.number(),
+  type: v.string(),
 })
 
-export const dnsRecordsResponseValidator = type({
-  result: dnsRecordValidator.array(),
-  success: 'boolean',
+export const dnsRecordsResponseValidator = v.object({
+  result: v.array(dnsRecordValidator),
+  success: v.boolean(),
 })
 
-const zoneValidator = type({
-  id: 'string',
-  name: 'string',
+const zoneValidator = v.object({
+  id: v.string(),
+  name: v.string(),
 })
 
-export const zonesResponseValidator = type({
-  result: zoneValidator.array(),
-  success: 'boolean',
+export const zonesResponseValidator = v.object({
+  result: v.array(zoneValidator),
+  success: v.boolean(),
 })
 
-export const cloudflareErrorResponse = type({
-  errors: type({
-    code: 'number',
-    message: 'string',
-  }).array(),
-  success: 'boolean',
+export const cloudflareErrorResponse = v.object({
+  errors: v.array(
+    v.object({
+      code: v.number(),
+      message: v.string(),
+    })
+  ),
+  success: v.boolean(),
 })
 
-export type DnsRecord = typeof dnsRecordValidator.infer
+export type DnsRecord = v.InferOutput<typeof dnsRecordValidator>

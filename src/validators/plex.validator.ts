@@ -1,46 +1,56 @@
-import { type } from 'arktype'
+import * as v from 'valibot'
 
 import { ISO2T } from '@/types/iso_codes'
 
-const streamValidator = type({
-  id: 'number',
-  'languageCode?': type.enumerated(...ISO2T),
-  selected: 'boolean = false',
-  streamType: '1 | 2 | 3',
-  'title?': 'string',
+const integerFromString = v.pipe(
+  v.string(),
+  v.transform((value) => Number(value)),
+  v.check((value) => Number.isInteger(value), 'Expected integer string')
+)
+
+const streamValidator = v.object({
+  id: v.number(),
+  languageCode: v.optional(v.picklist(ISO2T)),
+  selected: v.optional(v.boolean()),
+  streamType: v.union([v.literal(1), v.literal(2), v.literal(3)]),
+  title: v.optional(v.string()),
 })
 
-const plexMediaValidator = type({
-  'grandparentTitle?': 'string',
-  key: 'string',
-  'librarySectionID?': 'number',
-  Media: type({
-    Part: type({
-      file: 'string',
-      id: 'number',
-      'Stream?': streamValidator.array(),
-    }).array(),
-  }).array(),
-  'parentTitle?': 'string',
-  'primaryExtraKey?': 'string',
-  ratingKey: 'string',
-  title: 'string',
-  type: "'episode' | 'movie'",
-  year: 'number',
+const plexMediaValidator = v.object({
+  grandparentTitle: v.optional(v.string()),
+  key: v.string(),
+  librarySectionID: v.optional(v.number()),
+  Media: v.array(
+    v.object({
+      Part: v.array(
+        v.object({
+          file: v.string(),
+          id: v.number(),
+          Stream: v.optional(v.array(streamValidator)),
+        })
+      ),
+    })
+  ),
+  parentTitle: v.optional(v.string()),
+  primaryExtraKey: v.optional(v.string()),
+  ratingKey: v.string(),
+  title: v.string(),
+  type: v.union([v.literal('episode'), v.literal('movie')]),
+  year: v.number(),
 })
 
-const plexDirectoryValidator = type({
-  key: 'string.integer.parse',
-  title: 'string',
-  type: "'movie' | 'show'",
+const plexDirectoryValidator = v.object({
+  key: v.union([integerFromString, v.number()]),
+  title: v.string(),
+  type: v.union([v.literal('movie'), v.literal('show')]),
 })
 
-export const plexResponseValidator = type({
-  MediaContainer: type({
-    'Directory?': plexDirectoryValidator.array(),
-    'Metadata?': plexMediaValidator.array(),
+export const plexResponseValidator = v.object({
+  MediaContainer: v.object({
+    Directory: v.optional(v.array(plexDirectoryValidator)),
+    Metadata: v.optional(v.array(plexMediaValidator)),
   }),
 })
 
-export type PlexMediaStream = typeof streamValidator.infer
-export type PlexMedia = typeof plexMediaValidator.infer
+export type PlexMediaStream = v.InferOutput<typeof streamValidator>
+export type PlexMedia = v.InferOutput<typeof plexMediaValidator>

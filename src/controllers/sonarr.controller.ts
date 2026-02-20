@@ -1,5 +1,6 @@
-import { ArkErrors } from 'arktype'
 import { join } from 'node:path'
+
+import * as v from 'valibot'
 
 import { badRequest, success } from '@/core/response'
 import { getMediaLanguage } from '@/services/metadata.service'
@@ -9,23 +10,23 @@ import { sonarrValidator } from '@/validators/sonarr.validator'
 
 export const sonarrWebhook = async (request: Request) => {
   const body = await request.json()
-  const data = sonarrValidator(body)
+  const parsed = v.safeParse(sonarrValidator, body)
 
-  if (data instanceof ArkErrors) {
-    logError(data, 'Sonarr')
-    return badRequest('invalid request', data.summary)
+  if (!parsed.success) {
+    logError(parsed.issues, 'Sonarr')
+    return badRequest('invalid request', v.flatten(parsed.issues))
   }
 
-  const { eventType } = data
+  const { eventType } = parsed.output
 
   if (eventType === 'Test') {
     return success({ message: 'ok' })
   }
 
   if (eventType === 'Download') {
-    const file = join(data.series.path, data.episodeFile.relativePath)
-    const mediaTitle = `${data.series.title} ${data.episodes[0]?.title}`
-    const { originalLanguage } = await getMediaLanguage(data.series.tmdbId, 'show')
+    const file = join(parsed.output.series.path, parsed.output.episodeFile.relativePath)
+    const mediaTitle = `${parsed.output.series.title} ${parsed.output.episodes[0]?.title}`
+    const { originalLanguage } = await getMediaLanguage(parsed.output.series.tmdbId, 'show')
 
     void transcodeFile(file, mediaTitle, originalLanguage, 'show')
   }

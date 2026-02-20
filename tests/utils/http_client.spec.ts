@@ -1,4 +1,4 @@
-import { type } from 'arktype'
+import * as v from 'valibot'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { HttpError } from '@/errors/http'
@@ -34,7 +34,7 @@ describe('httpClient', () => {
     })
 
     test('should validate response with validator', async () => {
-      const validator = type({ id: 'number', name: 'string' })
+      const validator = v.object({ id: v.number(), name: v.string() })
       mockFetch.mockResolvedValue(Response.json({ id: 1, name: 'test' }, { status: 200 }))
 
       const result = await client.get('/items/1', { validator })
@@ -46,7 +46,8 @@ describe('httpClient', () => {
     })
 
     test('should return ValidationError when response does not match validator', async () => {
-      const validator = type({ id: 'number', name: 'string' })
+      const validator = v.object({ id: v.number(), name: v.string() })
+
       mockFetch.mockResolvedValue(Response.json({ id: 'not-a-number' }, { status: 200 }))
 
       const result = await client.get('/items/1', { validator })

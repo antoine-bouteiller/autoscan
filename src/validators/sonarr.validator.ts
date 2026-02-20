@@ -1,39 +1,47 @@
-import { type } from 'arktype'
+import * as v from 'valibot'
 
-const episodeValidator = type({
-  title: 'string',
+const numberFromString = v.pipe(
+  v.string(),
+  v.transform((value) => Number(value)),
+  v.check((value) => Number.isFinite(value), 'Expected numeric string')
+)
+
+const episodeValidator = v.object({
+  title: v.string(),
 })
 
-const episodeFileValidator = type({
-  relativePath: 'string',
+const episodeFileValidator = v.object({
+  relativePath: v.string(),
 })
 
-const seriesPayloadValidator = type({
-  path: 'string',
-  title: 'string',
-  tmdbId: 'string.numeric.parse | number',
+const seriesPayloadValidator = v.object({
+  path: v.string(),
+  title: v.string(),
+  tmdbId: v.union([v.number(), numberFromString]),
 })
 
-export const sonarrValidator = type({
-  episodeFile: episodeFileValidator,
-  episodes: episodeValidator.array(),
-  eventType: "'Download'",
-  series: seriesPayloadValidator,
-})
-  .or({
-    'episodeFile?': episodeFileValidator,
-    eventType: "'EpisodeFileDelete' | 'Rename'",
+export const sonarrValidator = v.union([
+  v.object({
+    episodeFile: episodeFileValidator,
+    episodes: v.array(episodeValidator),
+    eventType: v.literal('Download'),
     series: seriesPayloadValidator,
-  })
-  .or({
-    eventType: "'SeriesDelete'",
+  }),
+  v.object({
+    episodeFile: v.optional(episodeFileValidator),
+    eventType: v.union([v.literal('EpisodeFileDelete'), v.literal('Rename')]),
     series: seriesPayloadValidator,
-  })
-  .or({
-    eventType: "'Test'",
-  })
+  }),
+  v.object({
+    eventType: v.literal('SeriesDelete'),
+    series: seriesPayloadValidator,
+  }),
+  v.object({
+    eventType: v.literal('Test'),
+  }),
+])
 
-export const seriesValidator = type({
-  id: 'number',
-  path: 'string',
+export const seriesValidator = v.object({
+  id: v.number(),
+  path: v.string(),
 })

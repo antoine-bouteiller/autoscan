@@ -1,4 +1,4 @@
-import { ArkErrors } from 'arktype'
+import * as v from 'valibot'
 
 import { AppError } from '@/errors/base'
 import { type HttpErrorFormatter } from '@/errors/http'
@@ -11,9 +11,9 @@ export class CloudflareZoneNotFoundError extends AppError {
 }
 
 export const cloudflareErrorFormatter: HttpErrorFormatter = (body) => {
-  const cloudflareError = cloudflareErrorResponse(body)
-  if (cloudflareError instanceof ArkErrors) {
+  const cloudflareError = v.safeParse(cloudflareErrorResponse, body)
+  if (!cloudflareError.success) {
     return typeof body === 'string' ? body : JSON.stringify(body)
   }
-  return cloudflareError.errors.map((e) => e.message).join(', ')
+  return cloudflareError.output.errors.map((error) => error.message).join(', ')
 }

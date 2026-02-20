@@ -16,10 +16,10 @@
   "dependencies": {
     "@grammyjs/conversations": "^2.1.1",
     "@grammyjs/hydrate": "^1.6.0",
-    "arktype": "^2.1.29",
     "croner": "^10.0.1",
     "drizzle-orm": "^1.0.0-beta.9-e89174b",
-    "grammy": "^1.40.0"
+    "grammy": "^1.40.0",
+    "valibot": "^1.2.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.2",
@@ -33,8 +33,8 @@
     "knip": "^5.84.1",
     "lefthook": "^2.1.1",
     "oxfmt": "^0.34.0",
-    "oxlint": "^1.48.0",
-    "oxlint-tsgolint": "^0.14.0",
+    "oxlint": "^1.49.0",
+    "oxlint-tsgolint": "^0.14.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },

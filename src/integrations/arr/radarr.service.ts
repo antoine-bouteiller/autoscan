@@ -1,5 +1,6 @@
-import type { QueueService } from '@/types/cleanup'
+import * as v from 'valibot'
 
+import type { QueueService } from '@/types/cleanup'
 import { logError } from '@/utils/error_handler'
 import { movieValidator } from '@/validators/radarr.validator'
 
@@ -54,7 +55,7 @@ export class RadarrClient extends ArrClient implements IRadarrClient {
 
   async getMovieByPath(filePath: string): Promise<number | undefined> {
     const result = await this.client.get('movie', {
-      validator: movieValidator.array(),
+      validator: v.array(movieValidator),
     })
 
     if (!result.ok) {

@@ -1,19 +1,19 @@
-import { type } from 'arktype'
+import * as v from 'valibot'
 
 import { ISO1 } from '@/types/iso_codes'
 
-export const tmdbMovieResponse = type({
-  original_language: type.enumerated(...ISO1),
-  title: 'string',
+export const tmdbMovieResponse = v.object({
+  original_language: v.picklist(ISO1),
+  title: v.string(),
 })
 
-export const tmdbTvResponse = type({
-  name: 'string',
-  original_language: type.enumerated(...ISO1),
+export const tmdbTvResponse = v.object({
+  name: v.string(),
+  original_language: v.picklist(ISO1),
 })
 
-export type TmdbMovie = typeof tmdbMovieResponse.infer
-export type TmdbTV = typeof tmdbTvResponse.infer
+export type TmdbMovie = v.InferOutput<typeof tmdbMovieResponse>
+export type TmdbTV = v.InferOutput<typeof tmdbTvResponse>
 
 export type TmdbMedia =
   | {
