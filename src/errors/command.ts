@@ -1,17 +1,6 @@
-import { AppError } from './base'
+import { createTaggedError } from '../utils/error'
 
-export class CommandExecutionError extends AppError {
-  constructor(command?: string, exitCode?: number, stderr?: string) {
-    const parts = ['Command execution failed']
-    if (command) {
-      parts.push(`command: ${command}`)
-    }
-    if (exitCode !== undefined) {
-      parts.push(`exit code: ${exitCode}`)
-    }
-    if (stderr) {
-      parts.push(`stderr: ${stderr}`)
-    }
-    super(parts.join(', '))
-  }
-}
+export class CommandExecutionError extends createTaggedError({
+  name: 'CommandExecutionError',
+  message: 'Command $command failed with exit code $exitCode: $stderr',
+}) {}

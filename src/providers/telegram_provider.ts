@@ -6,7 +6,8 @@ import env from '@/config/env'
 import { logger } from '@/config/logger'
 import { selectPreferedLanguage } from '@/controllers/telegram.controller'
 import { type TelegramContext } from '@/types/telegram'
-import { logError } from '@/utils/error_handler'
+
+import { logError } from '../utils/error'
 
 export class TelegramProvider {
   private bot: Bot<TelegramContext> | undefined = undefined

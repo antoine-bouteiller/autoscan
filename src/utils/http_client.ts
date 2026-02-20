@@ -4,10 +4,10 @@ import { HttpError, type HttpErrorFormatter } from '@/errors/http'
 import { NetworkError } from '@/errors/network'
 import { ValidationError } from '@/errors/validation'
 
-type RequestResponse<T> = { ok: true; data: T } | { ok: false; error: HttpError | NetworkError | ValidationError }
+const defaultFormatter: HttpErrorFormatter = (body) => (typeof body === 'string' ? body : JSON.stringify(body))
 
 type AnySchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>
-type OutputFromSchema<TSchema> = [TSchema] extends [undefined] ? undefined : TSchema extends AnySchema ? v.InferOutput<TSchema> : undefined
+
 type RequestParams = Record<string, string | number | boolean>
 
 interface RequestOptions<TSchema extends AnySchema | undefined = undefined> {
@@ -47,7 +47,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     method: string,
     endpoint: string,
     options: RequestOptions<TSchema> = {}
-  ): Promise<RequestResponse<OutputFromSchema<TSchema>>> => {
+  ): Promise<HttpError | NetworkError | ValidationError | v.InferOutput<NonNullable<TSchema>>> => {
     const { body, headers = {}, params, validator } = options
 
     const url = createUrl(endpoint, params)
@@ -56,17 +56,11 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     try {
       response = await fetch(url, {
         method,
-        headers: {
-          ...globalHeaders,
-          ...headers,
-        },
+        headers: { ...globalHeaders, ...headers },
         body: body ? JSON.stringify(body) : undefined,
       })
     } catch (error) {
-      return {
-        ok: false,
-        error: new NetworkError(serviceName, error instanceof Error ? error.message : 'Unknown network error'),
-      }
+      return new NetworkError({ serviceName, originalMessage: error instanceof Error ? error.message : 'Unknown network error' })
     }
 
     if (!response.ok) {
@@ -77,23 +71,21 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
         // Keep statusText as errorData
       }
 
-      return { ok: false, error: new HttpError(serviceName, response.status, errorData, errorFormatter) }
+      return new HttpError({ serviceName, status: response.status, body: (errorFormatter ?? defaultFormatter)(errorData) })
     }
 
     if (!validator) {
-      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-      return { ok: true, data: undefined as OutputFromSchema<TSchema> }
+      return undefined
     }
 
     const json = await response.json().catch(() => undefined)
 
     const result = v.safeParse(validator, json)
     if (!result.success) {
-      return { ok: false, error: new ValidationError(result.issues) }
+      return new ValidationError({ details: JSON.stringify(v.flatten(result.issues)) })
     }
 
-    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-    return { ok: true, data: result.output as OutputFromSchema<TSchema> }
+    return result.output
   }
 
   return {

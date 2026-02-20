@@ -1,6 +1,6 @@
-import { describe, expect, test, vi } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
-import { logError, tryCatch } from '@/utils/error_handler'
+import { logError } from '../../src/utils/error'
 
 describe('logError', () => {
   test('should not throw for Error instances', () => {
@@ -16,40 +16,5 @@ describe('logError', () => {
     expect(() => logError('string error')).not.toThrow()
     expect(() => logError({ key: 'value' })).not.toThrow()
     expect(() => logError(42)).not.toThrow()
-  })
-})
-
-describe('tryCatch', () => {
-  test('should return the result of a successful async function', async () => {
-    const fn = vi.fn(() => Promise.resolve(42))
-    const result = await tryCatch(fn)
-    expect(result).toBe(42)
-  })
-
-  test('should return undefined when the async function throws', async () => {
-    const fn = vi.fn(() => Promise.reject(new Error('fail')))
-    const result = await tryCatch(fn)
-    expect(result).toBeUndefined()
-  })
-
-  test('should pass arguments to the async function', async () => {
-    const fn = vi.fn((a: number, b: number) => Promise.resolve(a + b))
-    const result = await tryCatch(fn, 3, 4)
-    expect(result).toBe(7)
-    expect(fn).toHaveBeenCalledWith(3, 4)
-  })
-
-  test('should handle synchronous functions', async () => {
-    const fn = vi.fn(() => 'sync result')
-    const result = await tryCatch(fn)
-    expect(result).toBe('sync result')
-  })
-
-  test('should handle synchronous functions that throw', async () => {
-    const fn = vi.fn(() => {
-      throw new Error('sync fail')
-    })
-    const result = await tryCatch(fn)
-    expect(result).toBeUndefined()
   })
 })

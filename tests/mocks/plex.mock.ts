@@ -1,5 +1,6 @@
 import { vi } from 'vitest'
 
+import { PlexError } from '@/errors/plex'
 import type { IPlexClient } from '@/integrations/plex.service'
 import type { PlexMedia } from '@/validators/plex.validator'
 
@@ -9,7 +10,7 @@ export const updateStreamMock = vi.fn()
 
 export class MockPlexClient implements IPlexClient {
   async getPlexMetadata(ratingKey: number) {
-    return plexMetadata[ratingKey]
+    return plexMetadata[ratingKey] ?? new PlexError({ ratingKey })
   }
 
   getBasicMediaInfo(plexMedia: PlexMedia) {

@@ -1,6 +1,6 @@
 import { logger } from '@/config/logger'
-import { AppError } from '@/errors/base'
-import { logError } from '@/utils/error_handler'
+
+import { logError } from '../utils/error'
 
 type RouteHandler = (request: Request) => Promise<Response> | Response
 
@@ -46,10 +46,6 @@ export class HttpProvider {
     this.server = Bun.serve({
       error(error) {
         logError(error)
-
-        if (error instanceof AppError) {
-          return error.toResponse()
-        }
 
         return Response.json(
           {

@@ -6,6 +6,8 @@ import { ValidationError } from '@/errors/validation'
 import { spawnPromise } from '@/utils/exec_promisify'
 import { ffprobeOutputValidator } from '@/validators/ffmpeg.validator'
 
+import { isError } from '../utils/error'
+
 export class FfmpegClient {
   executeFfmpeg(id: number, input: string, output: string, command: string[]) {
     const path = input.split('/')
@@ -36,10 +38,14 @@ export class FfmpegClient {
       input,
     ])
 
+    if (isError(output)) {
+      return output
+    }
+
     const parsedOutput = v.safeParse(ffprobeOutputValidator, JSON.parse(output))
 
     if (!parsedOutput.success) {
-      throw new ValidationError(parsedOutput.issues)
+      return new ValidationError({ details: JSON.stringify(v.flatten(parsedOutput.issues)) })
     }
 
     return parsedOutput.output.streams

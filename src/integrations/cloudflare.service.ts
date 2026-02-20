@@ -1,11 +1,15 @@
 import { cloudflareErrorFormatter, CloudflareZoneNotFoundError } from '@/errors/cloudflare'
-import { logError } from '@/utils/error_handler'
+import type { HttpError } from '@/errors/http'
+import type { NetworkError } from '@/errors/network'
+import type { ValidationError } from '@/errors/validation'
 import { httpClient } from '@/utils/http_client'
 import { type DnsRecord, dnsRecordsResponseValidator, ipifyResponseValidator, zonesResponseValidator } from '@/validators/cloudflare.validator'
 
+import { isError, logError } from '../utils/error'
+
 export interface ICloudflareClient {
-  getPublicIP(): Promise<string>
-  getZoneId(zoneName: string): Promise<string>
+  getPublicIP(): Promise<HttpError | NetworkError | ValidationError | string>
+  getZoneId(zoneName: string): Promise<HttpError | NetworkError | ValidationError | CloudflareZoneNotFoundError | string>
   getARecord(recordName: string, zoneId: string): Promise<{ result: DnsRecord[]; success: boolean } | undefined>
   updateDnsRecord(record: DnsRecord, ip: string, zoneId: string): Promise<void>
 }
@@ -40,27 +44,27 @@ export class CloudflareClient implements ICloudflareClient {
       validator: ipifyResponseValidator,
     })
 
-    if (!result.ok) {
-      throw result.error
+    if (isError(result)) {
+      return result
     }
 
-    return result.data.ip
+    return result.ip
   }
 
-  async getZoneId(zoneName: string): Promise<string> {
+  async getZoneId(zoneName: string) {
     const result = await this.cloudflareClient.get('zones', {
       params: { name: zoneName },
       validator: zonesResponseValidator,
     })
 
-    if (!result.ok) {
-      throw result.error
+    if (isError(result)) {
+      return result
     }
 
-    const [zone] = result.data.result
+    const [zone] = result.result
 
     if (!zone) {
-      throw new CloudflareZoneNotFoundError(zoneName)
+      return new CloudflareZoneNotFoundError({ zoneName })
     }
 
     return zone.id
@@ -72,12 +76,12 @@ export class CloudflareClient implements ICloudflareClient {
       validator: dnsRecordsResponseValidator,
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
       return undefined
     }
 
-    return result.data
+    return result
   }
 
   async updateDnsRecord(record: DnsRecord, ip: string, zoneId: string) {
@@ -90,8 +94,8 @@ export class CloudflareClient implements ICloudflareClient {
       },
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
     }
   }
 }

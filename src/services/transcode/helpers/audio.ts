@@ -1,9 +1,8 @@
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
-
 import { logger } from '@/config/logger'
 import { AudioStreamNotFoundError, NoStreamsKeptError } from '@/errors/transcode'
 import { type ISOCode1 } from '@/types/iso_codes'
 import { iso1ToIso2B } from '@/utils/iso_codes'
+import type { FFprobeStream } from '@/validators/ffmpeg.validator'
 
 import { type Criteria, isStreamWanted } from './utils'
 
@@ -59,7 +58,6 @@ const processAudioStream = (
   }
 
   if (stream?.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und') {
-    // Convert to ISO 639-2/B (bibliographic) format for ffmpeg metadata
     const iso2BCode = iso1ToIso2B(originalLanguage)
     commands.push(`-metadata:s:a:${streamIndex}`, `language=${iso2BCode}`)
     needsTranscode = true
@@ -72,9 +70,9 @@ export const processAudioStreams = (
   audioStreams: FFprobeStream[],
   originalLanguage: ISOCode1,
   mediaTitle: string
-): { command: string[]; shouldExecute: boolean } => {
+): AudioStreamNotFoundError | NoStreamsKeptError | { command: string[]; shouldExecute: boolean } => {
   if (audioStreams.length === 0) {
-    throw new AudioStreamNotFoundError(mediaTitle, originalLanguage)
+    return new AudioStreamNotFoundError({ language: originalLanguage, mediaTitle })
   }
 
   const command: string[] = []
@@ -102,7 +100,7 @@ export const processAudioStreams = (
   }
 
   if (countAudioStreamToKeep === 0) {
-    throw new NoStreamsKeptError(mediaTitle)
+    return new NoStreamsKeptError({ mediaTitle })
   }
 
   if (countAudioStreamToKeep !== audioStreams.length) {

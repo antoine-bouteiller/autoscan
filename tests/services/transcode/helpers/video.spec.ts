@@ -3,6 +3,8 @@ import { describe, expect, test } from 'vitest'
 import { processVideoStreams } from '@/services/transcode/helpers/video'
 import type { FFprobeStream } from '@/validators/ffmpeg.validator'
 
+import { isOk } from '../../../../src/utils/error'
+
 describe('processVideoStreams', () => {
   test('should keep valid video streams', () => {
     const videoStreams: FFprobeStream[] = [
@@ -14,6 +16,10 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
+    expect(isOk(result)).toBe(true)
+    if (!isOk(result)) {
+      return
+    }
 
     expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(false)
@@ -34,6 +40,10 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
+    expect(isOk(result)).toBe(true)
+    if (!isOk(result)) {
+      return
+    }
 
     expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(true)
@@ -54,6 +64,10 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
+    expect(isOk(result)).toBe(true)
+    if (!isOk(result)) {
+      return
+    }
 
     expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(true)
@@ -74,6 +88,10 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
+    expect(isOk(result)).toBe(true)
+    if (!isOk(result)) {
+      return
+    }
 
     expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(true)
@@ -94,6 +112,10 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
+    expect(isOk(result)).toBe(true)
+    if (!isOk(result)) {
+      return
+    }
 
     expect(result.command).toEqual(['-map', '0:v:0', '-map', '0:v:1'])
     expect(result.shouldExecute).toBe(false)
@@ -103,6 +125,10 @@ describe('processVideoStreams', () => {
     const videoStreams: FFprobeStream[] = []
 
     const result = processVideoStreams(videoStreams, 'test-media')
+    expect(isOk(result)).toBe(true)
+    if (!isOk(result)) {
+      return
+    }
 
     expect(result.command).toEqual([])
     expect(result.shouldExecute).toBe(false)
@@ -123,6 +149,10 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
+    expect(isOk(result)).toBe(true)
+    if (!isOk(result)) {
+      return
+    }
 
     expect(result.command).toEqual(['-map', '0:v:0'])
     expect(result.shouldExecute).toBe(true)

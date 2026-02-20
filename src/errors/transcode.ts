@@ -1,26 +1,21 @@
-import { AppError } from '@/errors/base'
+import { createTaggedError } from '../utils/error'
 
-export class AudioStreamNotFoundError extends AppError {
-  constructor(mediaTitle: string, language?: string) {
-    const formattedLanguage = language ? ` for language ${language}` : ''
-    super(`(${mediaTitle}) No audio streams found${formattedLanguage}`)
-  }
-}
+export class AudioStreamNotFoundError extends createTaggedError({
+  name: 'AudioStreamNotFoundError',
+  message: '($mediaTitle) No audio streams found for language $language',
+}) {}
 
-export class VideoStreamNotFoundError extends AppError {
-  constructor(mediaTitle: string) {
-    super(`(${mediaTitle}) No video streams found`)
-  }
-}
+export class VideoStreamNotFoundError extends createTaggedError({
+  name: 'VideoStreamNotFoundError',
+  message: '($mediaTitle) No video streams found',
+}) {}
 
-export class NoStreamsKeptError extends AppError {
-  constructor(mediaTitle: string) {
-    super(`(${mediaTitle}) No audio tracks would be kept after processing`)
-  }
-}
+export class NoStreamsKeptError extends createTaggedError({
+  name: 'NoStreamsKeptError',
+  message: '($mediaTitle) No audio tracks would be kept after processing',
+}) {}
 
-export class FileNameInvalidError extends AppError {
-  constructor(mediaTitle: string) {
-    super(`(${mediaTitle}) File name not initialized`)
-  }
-}
+export class FileNameInvalidError extends createTaggedError({
+  name: 'FileNameInvalidError',
+  message: '($mediaTitle) File name not initialized',
+}) {}

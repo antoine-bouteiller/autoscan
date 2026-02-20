@@ -1,14 +1,19 @@
 import * as v from 'valibot'
 
-import { AppError } from '@/errors/base'
 import { type HttpErrorFormatter } from '@/errors/http'
 import { cloudflareErrorResponse } from '@/validators/cloudflare.validator'
 
-export class CloudflareZoneNotFoundError extends AppError {
-  constructor(zoneName: string) {
-    super(`(Cloudflare) Zone not found: ${zoneName}`)
-  }
-}
+import { createTaggedError } from '../utils/error'
+
+export class CloudflareZoneNotFoundError extends createTaggedError({
+  name: 'CloudflareZoneNotFoundError',
+  message: '(Cloudflare) Zone not found: $zoneName',
+}) {}
+
+export class DnsRecordNotFoundError extends createTaggedError({
+  name: 'DnsRecordNotFoundError',
+  message: '(Cloudflare) Record not found for domain $domain',
+}) {}
 
 export const cloudflareErrorFormatter: HttpErrorFormatter = (body) => {
   const cloudflareError = v.safeParse(cloudflareErrorResponse, body)

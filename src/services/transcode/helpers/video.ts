@@ -1,9 +1,11 @@
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
-
 import { logger } from '@/config/logger'
 import { VideoStreamNotFoundError } from '@/errors/transcode'
+import type { FFprobeStream } from '@/validators/ffmpeg.validator'
 
-export const processVideoStreams = (videoStreams: FFprobeStream[], mediaTitle: string): { command: string[]; shouldExecute: boolean } => {
+export const processVideoStreams = (
+  videoStreams: FFprobeStream[],
+  mediaTitle: string
+): VideoStreamNotFoundError | { command: string[]; shouldExecute: boolean } => {
   const command: string[] = []
   let shouldExecute = false
 
@@ -23,7 +25,7 @@ export const processVideoStreams = (videoStreams: FFprobeStream[], mediaTitle: s
   }
 
   if (countVideoStreamToKeep === 0) {
-    throw new VideoStreamNotFoundError(mediaTitle)
+    return new VideoStreamNotFoundError({ mediaTitle })
   }
 
   if (countVideoStreamToKeep !== videoStreams.length) {

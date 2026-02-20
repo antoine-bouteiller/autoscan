@@ -1,14 +1,12 @@
-import type { MessageXFragment } from '@grammyjs/hydrate/out/data/message'
-
 import { ConversationMenuRange } from '@grammyjs/conversations'
+import type { MessageXFragment } from '@grammyjs/hydrate/out/data/message'
 import { and, eq } from 'drizzle-orm'
-
-import type { MediaType } from '@/integrations/plex.service'
-import type { ConfigureLanguageContext, ConfigureLanguageConversation } from '@/types/telegram'
 
 import { db } from '@/config/db'
 import { media, type Media } from '@/database/schema'
+import type { MediaType } from '@/integrations/plex.service'
 import { iso1ToIso2T } from '@/types/iso_codes'
+import type { ConfigureLanguageContext, ConfigureLanguageConversation } from '@/types/telegram'
 import { normalizeToIso1 } from '@/utils/iso_codes'
 
 const handleMediaSelection = async (

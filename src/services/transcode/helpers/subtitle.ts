@@ -1,7 +1,6 @@
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
-
 import { logger } from '@/config/logger'
 import { type ISOCode1 } from '@/types/iso_codes'
+import type { FFprobeStream } from '@/validators/ffmpeg.validator'
 
 import { type Criteria, isStreamWanted } from './utils'
 

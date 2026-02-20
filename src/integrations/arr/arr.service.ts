@@ -1,6 +1,7 @@
 import { type QueueResponse, queueResponseValidator } from '@/types/cleanup'
-import { logError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
+
+import { isError, logError } from '../../utils/error'
 
 interface ArrClientConfig {
   apiKey: string
@@ -26,12 +27,12 @@ export class ArrClient {
       validator: queueResponseValidator,
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
       return undefined
     }
 
-    return result.data
+    return result
   }
 
   async removeQueueItem(itemId: number, options: { blocklist: boolean; removeFromClient: boolean }): Promise<void> {
@@ -42,8 +43,8 @@ export class ArrClient {
       },
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
     }
   }
 }

@@ -1,22 +1,18 @@
+import { logger } from '@/config/logger'
+import { container, TOKENS } from '@/core/container'
 import type { IRadarrClient } from '@/integrations/arr/radarr.service'
 import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
 import type { QueueService } from '@/types/cleanup'
 
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import { tryCatch } from '@/utils/error_handler'
-
 const STRIKE_COUNT = 5
 
-// Initialize the strike count dictionary
 const strikeCounts = new Map<number, number>()
 
 export const cleanupAll = async (): Promise<void> => {
   const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
   const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
 
-  await tryCatch(removeStalledDownloads, sonarrClient, 'Sonarr')
-  await tryCatch(removeStalledDownloads, radarrClient, 'Radarr')
+  await Promise.all([removeStalledDownloads(sonarrClient, 'Sonarr'), removeStalledDownloads(radarrClient, 'Radarr')])
 }
 
 const removeStalledDownloads = async (service: QueueService, serviceName: string): Promise<void> => {

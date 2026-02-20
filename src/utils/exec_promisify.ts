@@ -4,7 +4,7 @@ export const spawnPromise = async (
   command: string,
   args: string[] = [],
   options: Omit<Parameters<typeof Bun.spawn>[1], 'stderr' | 'stdout'> = {}
-): Promise<string> => {
+): Promise<CommandExecutionError | string> => {
   const proc = Bun.spawn([command, ...args], {
     stderr: 'pipe',
     stdout: 'pipe',
@@ -14,7 +14,7 @@ export const spawnPromise = async (
   const [stdout, stderr, exitCode] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited])
 
   if (exitCode !== 0) {
-    throw new CommandExecutionError(`${command} ${args.join(' ')}`, exitCode, stderr)
+    return new CommandExecutionError({ command: `${command} ${args.join(' ')}`, exitCode, stderr })
   }
 
   return stdout

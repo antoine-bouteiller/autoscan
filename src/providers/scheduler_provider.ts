@@ -1,7 +1,8 @@
 import { Cron, type CronOptions } from 'croner'
 
 import { logger } from '@/config/logger'
-import { logError, tryCatch } from '@/utils/error_handler'
+
+import { logError } from '../utils/error'
 
 interface JobConfig {
   handler: () => Promise<void> | void
@@ -30,9 +31,7 @@ export class SchedulerProvider {
           timezone: 'Europe/Paris',
           ...options,
         },
-        async () => {
-          await tryCatch(handler)
-        }
+        handler
       )
 
       this.jobs.set(name, job)

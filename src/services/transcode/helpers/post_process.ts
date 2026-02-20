@@ -7,7 +7,8 @@ import type { IRadarrClient } from '@/integrations/arr/radarr.service'
 import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
 import type { FfmpegClient } from '@/integrations/ffmpeg.service'
 import type { IPlexClient } from '@/integrations/plex.service'
-import { logError } from '@/utils/error_handler'
+
+import { isError, logError } from '../../../utils/error'
 
 const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promise<void> => {
   const paths = inputFile.split('/')
@@ -31,10 +32,16 @@ const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promi
   }
 
   const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-  const streams = await ffmpegClient.ffprobe(join(transcodePath, videoFile))
+  const streamsResult = await ffmpegClient.ffprobe(join(transcodePath, videoFile))
 
-  const videoStreams = streams.filter((stream) => stream.codec_type === 'video')
-  const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
+  if (isError(streamsResult)) {
+    logError(streamsResult, 'postTranscode', mediaTitle)
+    rmSync(transcodePath, { recursive: true })
+    return
+  }
+
+  const videoStreams = streamsResult.filter((stream) => stream.codec_type === 'video')
+  const audioStreams = streamsResult.filter((stream) => stream.codec_type === 'audio')
 
   if (videoStreams.length === 0 || audioStreams.length === 0) {
     logger.error(`No audio or video stream found on transcoded file`, 'postTranscode', mediaTitle)
@@ -59,41 +66,37 @@ export const handlePostTranscode = async ({
   mediaTitle: string
   mediaType: 'movie' | 'show'
 }): Promise<void> => {
-  try {
-    await cleanUp(id, filePath, mediaTitle)
+  await cleanUp(id, filePath, mediaTitle)
 
-    const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
-    const sections = await plexClient.getSections()
-    const fileDirectory = resolve(filePath, '..')
+  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const sections = await plexClient.getSections()
+  const fileDirectory = resolve(filePath, '..')
 
-    if (mediaType === 'movie') {
-      const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
-      const movieId = await radarrClient.getMovieByPath(filePath)
+  if (mediaType === 'movie') {
+    const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
+    const movieId = await radarrClient.getMovieByPath(filePath)
 
-      if (!movieId) {
-        logger.warn(`Could not find movie in Radarr for path: ${filePath}`, 'postTranscode', mediaTitle)
-        return
-      }
-
-      await radarrClient.refreshMovie(movieId)
-      await radarrClient.renameMovie(movieId)
-    } else {
-      const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
-      const seriesId = await sonarrClient.getSeriesByPath(filePath)
-
-      if (!seriesId) {
-        logger.warn(`Could not find series in Sonarr for path: ${filePath}`, 'postTranscode', mediaTitle)
-        return
-      }
-
-      await sonarrClient.refreshSeries(seriesId)
-      await sonarrClient.renameSeries(seriesId)
+    if (!movieId) {
+      logger.warn(`Could not find movie in Radarr for path: ${filePath}`, 'postTranscode', mediaTitle)
+      return
     }
 
-    await Promise.all(
-      (sections ?? []).filter((section) => section.type === mediaType).map((section) => plexClient.refreshSection(section.key, fileDirectory))
-    )
-  } catch (error) {
-    logError(error, 'postTranscode', mediaTitle)
+    await radarrClient.refreshMovie(movieId)
+    await radarrClient.renameMovie(movieId)
+  } else {
+    const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
+    const seriesId = await sonarrClient.getSeriesByPath(filePath)
+
+    if (!seriesId) {
+      logger.warn(`Could not find series in Sonarr for path: ${filePath}`, 'postTranscode', mediaTitle)
+      return
+    }
+
+    await sonarrClient.refreshSeries(seriesId)
+    await sonarrClient.renameSeries(seriesId)
   }
+
+  await Promise.all(
+    (sections ?? []).filter((section) => section.type === mediaType).map((section) => plexClient.refreshSection(section.key, fileDirectory))
+  )
 }

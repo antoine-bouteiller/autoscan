@@ -1,8 +1,8 @@
 import type { MediaType } from '@/integrations/plex.service'
-
-import { logError } from '@/utils/error_handler'
 import { httpClient } from '@/utils/http_client'
 import { type TmdbMedia, type TmdbMovie, tmdbMovieResponse, type TmdbTV, tmdbTvResponse } from '@/validators/tmdb.validator'
+
+import { isError, logError } from '../utils/error'
 
 export interface ITmdbClient {
   getTmdbMedia(tmdbId: number, mediaType: MediaType): Promise<TmdbMedia>
@@ -48,12 +48,12 @@ export class TmdbClient implements ITmdbClient {
       validator: tmdbTvResponse,
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
       return undefined
     }
 
-    return result.data
+    return result
   }
 
   async getTmdbMovie(tmdbId: number): Promise<TmdbMovie | undefined> {
@@ -61,11 +61,11 @@ export class TmdbClient implements ITmdbClient {
       validator: tmdbMovieResponse,
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
       return undefined
     }
 
-    return result.data
+    return result
   }
 }

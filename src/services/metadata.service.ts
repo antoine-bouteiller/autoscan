@@ -1,10 +1,10 @@
-import type { ITmdbClient } from '@/integrations/tmdb.service'
-
 import { container, TOKENS } from '@/core/container'
 import { FileNotFoundError, TmdbIdNotFoundError } from '@/errors/metadata'
 import { type IPlexClient, type MediaType } from '@/integrations/plex.service'
+import type { ITmdbClient } from '@/integrations/tmdb.service'
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/repositories/media.repository'
 import { type ISOCode1 } from '@/types/iso_codes'
+import { isError } from '@/utils/error'
 
 export const extractTmdbIdFromPath = (filePath: string): number | undefined => {
   const match = /{tmdb-(.*?)}/g.exec(filePath)
@@ -46,18 +46,23 @@ export const getMediaLanguage = async (
 export const getCompleteMediaDetails = async (ratingKey: number) => {
   const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
   const plexMetadata = await plexClient.getPlexMetadata(ratingKey)
-  const mediaTitle = buildMediaTitle(plexMetadata?.grandparentTitle, plexMetadata?.parentTitle, plexMetadata?.title)
 
-  const part = plexMetadata?.Media[0]?.Part[0]
+  if (isError(plexMetadata)) {
+    return plexMetadata
+  }
 
-  if (!plexMetadata || !part?.file) {
-    throw new FileNotFoundError(mediaTitle)
+  const mediaTitle = buildMediaTitle(plexMetadata.grandparentTitle, plexMetadata.parentTitle, plexMetadata.title)
+
+  const part = plexMetadata.Media[0]?.Part[0]
+
+  if (!part?.file) {
+    return new FileNotFoundError({ mediaTitle })
   }
 
   const tmdbId = extractTmdbIdFromPath(part.file)
 
   if (!tmdbId) {
-    throw new TmdbIdNotFoundError(mediaTitle, part.file)
+    return new TmdbIdNotFoundError({ mediaTitle, filePath: part.file })
   }
 
   const mediaType: MediaType = plexMetadata.type === 'episode' ? 'show' : plexMetadata.type

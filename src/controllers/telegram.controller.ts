@@ -1,11 +1,10 @@
 import { InlineKeyboard } from 'grammy'
 
-import type { MediaType } from '@/integrations/plex.service'
-import type { ConfigureLanguageContext, ConfigureLanguageConversation } from '@/types/telegram'
-
 import env from '@/config/env'
+import type { MediaType } from '@/integrations/plex.service'
 import { getMediaByTypeWithPagination } from '@/repositories/media.repository'
 import { createMenu } from '@/services/telegram.service'
+import type { ConfigureLanguageContext, ConfigureLanguageConversation } from '@/types/telegram'
 
 export const selectPreferedLanguage = async (conversation: ConfigureLanguageConversation, ctx: ConfigureLanguageContext) => {
   if (ctx.message?.chat.id !== env.TELEGRAM_CHAT_ID) {

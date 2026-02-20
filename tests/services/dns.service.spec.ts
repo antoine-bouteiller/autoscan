@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest'
 
+import { DnsRecordNotFoundError } from '@/errors/cloudflare'
 import { dynDns, handleUpdateIp, resetZoneIdCache } from '@/services/dns.service'
 
 import '../config'
@@ -32,10 +33,11 @@ describe('DnsService', () => {
       expect(mockUpdateDnsRecord).toHaveBeenCalledWith(differentIpRecord.result[0], '1.2.3.4', 'zone-123')
     })
 
-    test('should throw when no record found in results', async () => {
+    test('should return DnsRecordNotFoundError when no record found in results', async () => {
       mockGetARecord.mockResolvedValue(emptyRecord)
 
-      await expect(handleUpdateIp('example.com')).rejects.toThrow('Record not found')
+      const result = await handleUpdateIp('example.com')
+      expect(result).toBeInstanceOf(DnsRecordNotFoundError)
     })
 
     test('should cache zoneId across calls', async () => {
@@ -49,8 +51,8 @@ describe('DnsService', () => {
   })
 
   describe('dynDns', () => {
-    test('should not throw when one domain fails', async () => {
-      mockGetARecord.mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce(wildcardSameIpRecord)
+    test('should not throw when one domain returns no record', async () => {
+      mockGetARecord.mockResolvedValueOnce(undefined).mockResolvedValueOnce(wildcardSameIpRecord)
 
       await expect(dynDns()).resolves.toBeUndefined()
     })

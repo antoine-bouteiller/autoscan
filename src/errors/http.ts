@@ -1,15 +1,8 @@
-import { AppError } from './base'
+import { createTaggedError } from '../utils/error'
 
 export type HttpErrorFormatter = (body: unknown) => string
 
-const defaultFormatter: HttpErrorFormatter = (body) => (typeof body === 'string' ? body : JSON.stringify(body))
-
-export class HttpError extends AppError {
-  public readonly status: number
-
-  constructor(serviceName: string, status: number, body: unknown, formatter: HttpErrorFormatter = defaultFormatter) {
-    super(`(${serviceName}) API error (${status}): ${formatter(body)}`, 502, 'UPSTREAM_ERROR')
-
-    this.status = status
-  }
-}
+export class HttpError extends createTaggedError({
+  name: 'HttpError',
+  message: '($serviceName) API error ($status): $body',
+}) {}

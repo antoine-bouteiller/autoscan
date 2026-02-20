@@ -1,10 +1,10 @@
-import type { IPlexClient } from '@/integrations/plex.service'
-
 import { logger } from '@/config/logger'
 import { container, TOKENS } from '@/core/container'
+import type { IPlexClient } from '@/integrations/plex.service'
 import { getCompleteMediaDetails } from '@/services/metadata.service'
 import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service'
-import { logError, tryCatch } from '@/utils/error_handler'
+
+import { isError, logError } from '../utils/error'
 
 let isScanning = false
 
@@ -15,30 +15,30 @@ export const runTranscodeProcess = async () => {
   }
 
   isScanning = true
-  try {
-    logger.info('Starting transcode scan...')
-    const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
-    const sections = await plexClient.getSections()
+  logger.info('Starting transcode scan...')
 
-    for (const section of sections ?? []) {
-      const medias = (await tryCatch(plexClient.getSectionMedia.bind(plexClient), section.key, section.type)) ?? []
+  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const sections = await plexClient.getSections()
 
-      for (const media of medias) {
-        const details = await tryCatch(getCompleteMediaDetails, Number(media.ratingKey))
+  for (const section of sections ?? []) {
+    const mediasResult = await plexClient.getSectionMedia(section.key, section.type)
 
-        if (!details) {
-          continue
-        }
-        await transcodeFile(details.file, details.mediaTitle, details.originalLanguage, details.mediaType)
+    const medias = mediasResult ?? []
+
+    for (const media of medias) {
+      const details = await getCompleteMediaDetails(Number(media.ratingKey))
+
+      if (isError(details)) {
+        logError(details, 'runTranscodeProcess')
+        continue
       }
-    }
 
-    logger.info('Transcode scan finished')
-  } catch (error) {
-    logError(error)
-  } finally {
-    isScanning = false
+      await transcodeFile(details.file, details.mediaTitle, details.originalLanguage, details.mediaType)
+    }
   }
+
+  logger.info('Transcode scan finished')
+  isScanning = false
 }
 
 export const getTranscodingStatus = () => {

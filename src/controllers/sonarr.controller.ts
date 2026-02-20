@@ -5,8 +5,9 @@ import * as v from 'valibot'
 import { badRequest, success } from '@/core/response'
 import { getMediaLanguage } from '@/services/metadata.service'
 import { transcodeFile } from '@/services/transcode/transcode.service'
-import { logError } from '@/utils/error_handler'
 import { sonarrValidator } from '@/validators/sonarr.validator'
+
+import { logError } from '../utils/error'
 
 export const sonarrWebhook = async (request: Request) => {
   const body = await request.json()

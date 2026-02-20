@@ -8,6 +8,7 @@ import type { FfmpegClient } from '@/integrations/ffmpeg.service'
 import { processSubtitleStreams } from '@/services/transcode/helpers/subtitle'
 import type { ISOCode1 } from '@/types/iso_codes'
 
+import { isOk } from '../../../../src/utils/error.js'
 import { testWithTestDir, videosPath } from '../../../config.js'
 
 interface TestCase {
@@ -50,6 +51,11 @@ describe('Extract subtitles', () => {
 
     const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
     const streams = await ffmpegClient.ffprobe(join(testDir, file))
+    expect(isOk(streams)).toBe(true)
+    if (!isOk(streams)) {
+      return
+    }
+
     const subtitleStreams = streams.filter((stream) => stream.codec_type === 'subtitle')
 
     const streamsKepts = await processSubtitleStreams(subtitleStreams, originalLanguage, 'test')

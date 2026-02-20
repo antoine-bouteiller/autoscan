@@ -1,10 +1,6 @@
-import { AppError } from './base'
+import { createTaggedError } from '../utils/error'
 
-export class NetworkError extends AppError {
-  public readonly originalMessage: string
-
-  constructor(serviceName: string, originalMessage: string) {
-    super(`(${serviceName}) Network Error: ${originalMessage}`, 503, 'SERVICE_UNAVAILABLE')
-    this.originalMessage = originalMessage
-  }
-}
+export class NetworkError extends createTaggedError({
+  name: 'NetworkError',
+  message: '($serviceName) Network Error: $originalMessage',
+}) {}

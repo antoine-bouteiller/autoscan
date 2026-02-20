@@ -1,19 +1,17 @@
+import { logger } from '@/config/logger'
+import { container, TOKENS } from '@/core/container'
+import { FileNameInvalidError } from '@/errors/transcode'
 import type { FfmpegClient } from '@/integrations/ffmpeg.service'
 import type { ISOCode1 } from '@/types/iso_codes'
 import type { TranscodeJob } from '@/types/transcode'
 
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import { FileNameInvalidError } from '@/errors/transcode'
-import { logError, tryCatch } from '@/utils/error_handler'
-
+import { isError, logError } from '../../utils/error'
 import { processAudioStreams } from './helpers/audio'
 import { handlePostTranscode } from './helpers/post_process'
 import { processSubtitleStreams } from './helpers/subtitle'
 import { simpleHash } from './helpers/utils'
 import { processVideoStreams } from './helpers/video'
 
-// Queue Management
 class TranscodeQueue {
   private currentJob?: TranscodeJob
   private isProcessing = false
@@ -60,43 +58,60 @@ class TranscodeQueue {
 
       this.currentJob = job
 
-      try {
-        logger.info(`Processing job with command "${job.command.join(' ')}" (${this.queue.length} jobs remaining)`, 'Transcode', job.mediaTitle)
+      logger.info(`Processing job with command "${job.command.join(' ')}" (${this.queue.length} jobs remaining)`, 'Transcode', job.mediaTitle)
 
-        const fileName = job.file.slice(0, job.file.lastIndexOf('.')).split('/').pop()
-        if (!fileName) {
-          throw new FileNameInvalidError(job.mediaTitle)
-        }
-
-        const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-
-        for (const subtitle of job.subtitlesToExtract) {
-          logger.info(`Extracting subtitle in ${subtitle.language}`, 'Transcode', job.mediaTitle)
-
-          await ffmpegClient.executeFfmpeg(job.id, job.file, `${fileName}.${subtitle.language}.srt`, [
-            `-map`,
-            `0:s:${subtitle.index}`,
-            `-c:s:${subtitle.index}`,
-            `srt`,
-          ])
-        }
-
-        const newFileName = `${fileName}.mp4`
-        logger.info(`Executing transcode`, 'Transcode', job.mediaTitle)
-        await ffmpegClient.executeFfmpeg(job.id, job.file, newFileName, job.command)
-        logger.info(`Transcoded successfully`, 'Transcode', job.mediaTitle)
-
-        await handlePostTranscode({
-          filePath: job.file,
-          id: job.id,
-          mediaTitle: job.mediaTitle,
-          mediaType: job.mediaType,
-        })
-      } catch (error) {
-        logError(error, 'Queue')
-      } finally {
+      const fileName = job.file.slice(0, job.file.lastIndexOf('.')).split('/').pop()
+      if (!fileName) {
+        logError(new FileNameInvalidError({ mediaTitle: job.mediaTitle }), 'Queue')
         this.currentJob = undefined
+        continue
       }
+
+      const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+
+      let subtitleFailed = false
+      for (const subtitle of job.subtitlesToExtract) {
+        logger.info(`Extracting subtitle in ${subtitle.language}`, 'Transcode', job.mediaTitle)
+
+        const subtitleResult = await ffmpegClient.executeFfmpeg(job.id, job.file, `${fileName}.${subtitle.language}.srt`, [
+          `-map`,
+          `0:s:${subtitle.index}`,
+          `-c:s:${subtitle.index}`,
+          `srt`,
+        ])
+
+        if (isError(subtitleResult)) {
+          logError(subtitleResult, 'Queue')
+          subtitleFailed = true
+          break
+        }
+      }
+
+      if (subtitleFailed) {
+        this.currentJob = undefined
+        continue
+      }
+
+      const newFileName = `${fileName}.mp4`
+      logger.info(`Executing transcode`, 'Transcode', job.mediaTitle)
+      const transcodeResult = await ffmpegClient.executeFfmpeg(job.id, job.file, newFileName, job.command)
+
+      if (isError(transcodeResult)) {
+        logError(transcodeResult, 'Queue')
+        this.currentJob = undefined
+        continue
+      }
+
+      logger.info(`Transcoded successfully`, 'Transcode', job.mediaTitle)
+
+      await handlePostTranscode({
+        filePath: job.file,
+        id: job.id,
+        mediaTitle: job.mediaTitle,
+        mediaType: job.mediaType,
+      })
+
+      this.currentJob = undefined
     }
 
     this.isProcessing = false
@@ -105,32 +120,41 @@ class TranscodeQueue {
 
 export const transcodeQueue = new TranscodeQueue()
 
-// Command Builder
 const getTranscodeCommand = async (file: string, mediaTitle: string, originalLanguage: ISOCode1) => {
   const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-  const streams = await ffmpegClient.ffprobe(file)
+  const streamsResult = await ffmpegClient.ffprobe(file)
 
-  const videoStreams = streams.filter((stream) => stream.codec_type === 'video')
-  const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
-  const subtitleStreams = streams.filter((stream) => stream.codec_type === 'subtitle')
+  if (isError(streamsResult)) {
+    return streamsResult
+  }
+
+  const videoStreams = streamsResult.filter((stream) => stream.codec_type === 'video')
+  const audioStreams = streamsResult.filter((stream) => stream.codec_type === 'audio')
+  const subtitleStreams = streamsResult.filter((stream) => stream.codec_type === 'subtitle')
 
   const extension = file.split('.').pop()
   const fileName = file.slice(0, file.lastIndexOf('.')).split('/').pop()
 
   if (!fileName) {
-    throw new FileNameInvalidError(mediaTitle)
+    return new FileNameInvalidError({ mediaTitle })
   }
 
   const command: string[] = ['-c', 'copy']
   let shouldExecute = false
 
   const videoResult = processVideoStreams(videoStreams, mediaTitle)
+  if (isError(videoResult)) {
+    return videoResult
+  }
   command.push(...videoResult.command)
   if (videoResult.shouldExecute) {
     shouldExecute = true
   }
 
   const audioResult = processAudioStreams(audioStreams, originalLanguage, mediaTitle)
+  if (isError(audioResult)) {
+    return audioResult
+  }
   command.push(...audioResult.command)
   if (audioResult.shouldExecute) {
     shouldExecute = true
@@ -150,11 +174,15 @@ const getTranscodeCommand = async (file: string, mediaTitle: string, originalLan
   }
 }
 
-// Main Export
 export const transcodeFile = async (file: string, mediaTitle: string, originalLanguage: ISOCode1, mediaType: 'movie' | 'show') => {
-  const transcodeComands = await tryCatch(getTranscodeCommand, file, mediaTitle, originalLanguage)
+  const result = await getTranscodeCommand(file, mediaTitle, originalLanguage)
 
-  if (transcodeComands) {
+  if (isError(result)) {
+    logError(result, 'transcodeFile')
+    return false
+  }
+
+  if (result) {
     const id = simpleHash(file)
     transcodeQueue.enqueue({
       file,
@@ -162,7 +190,7 @@ export const transcodeFile = async (file: string, mediaTitle: string, originalLa
       mediaTitle,
       mediaType,
       originalLanguage,
-      ...transcodeComands,
+      ...result,
     })
     return true
   }

@@ -1,11 +1,16 @@
-import { logError } from '@/utils/error_handler'
+import type { HttpError } from '@/errors/http'
+import type { NetworkError } from '@/errors/network'
+import { PlexError } from '@/errors/plex'
+import type { ValidationError } from '@/errors/validation'
 import { httpClient } from '@/utils/http_client'
 import { type PlexMedia, plexResponseValidator } from '@/validators/plex.validator'
+
+import { isError, logError } from '../utils/error'
 
 export type MediaType = 'movie' | 'show'
 
 export interface IPlexClient {
-  getPlexMetadata(ratingKey: number): Promise<PlexMedia | undefined>
+  getPlexMetadata(ratingKey: number): Promise<PlexMedia | HttpError | NetworkError | ValidationError | PlexError>
   getBasicMediaInfo(plexMedia: PlexMedia): { file: string | undefined; ratingKey: string; type: string }
   getSectionMedia(id: number, sectionType: 'movie' | 'show'): Promise<PlexMedia[]>
   getSections(): Promise<{ key: number; title: string; type: 'movie' | 'show' }[]>
@@ -37,11 +42,17 @@ export class PlexClient implements IPlexClient {
       validator: plexResponseValidator,
     })
 
-    if (!result.ok) {
-      throw result.error
+    if (isError(result)) {
+      return result
     }
 
-    return result.data.MediaContainer.Metadata?.[0]
+    const metadata = result.MediaContainer.Metadata?.[0]
+
+    if (!metadata) {
+      return new PlexError({ ratingKey })
+    }
+
+    return metadata
   }
 
   getBasicMediaInfo(plexMedia: PlexMedia) {
@@ -62,11 +73,12 @@ export class PlexClient implements IPlexClient {
       validator: plexResponseValidator,
     })
 
-    if (!result.ok) {
-      throw result.error
+    if (isError(result)) {
+      logError(result)
+      return []
     }
 
-    return result.data.MediaContainer.Metadata ?? []
+    return result.MediaContainer.Metadata ?? []
   }
 
   async getSections() {
@@ -74,12 +86,12 @@ export class PlexClient implements IPlexClient {
       validator: plexResponseValidator,
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
       return []
     }
 
-    return result.data.MediaContainer.Directory ?? []
+    return result.MediaContainer.Directory ?? []
   }
 
   async refreshSection(id: number, filePath: string) {
@@ -87,8 +99,8 @@ export class PlexClient implements IPlexClient {
       params: { path: filePath },
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
     }
   }
 
@@ -100,8 +112,8 @@ export class PlexClient implements IPlexClient {
       },
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
     }
   }
 }

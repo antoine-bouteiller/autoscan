@@ -1,8 +1,9 @@
-import type { ICloudflareClient } from '@/integrations/cloudflare.service'
-
 import env from '@/config/env'
 import { container, TOKENS } from '@/core/container'
-import { tryCatch } from '@/utils/error_handler'
+import { DnsRecordNotFoundError } from '@/errors/cloudflare'
+import type { ICloudflareClient } from '@/integrations/cloudflare.service'
+
+import { isError, logError } from '../utils/error'
 
 const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]
 const ZONE_NAME = env.DOMAIN
@@ -13,7 +14,11 @@ export const handleUpdateIp = async (recordName: string) => {
   const cloudflareClient = container.resolve<ICloudflareClient>(TOKENS.CLOUDFLARE_CLIENT)
 
   if (!zoneId) {
-    zoneId = await cloudflareClient.getZoneId(ZONE_NAME)
+    const zoneResult = await cloudflareClient.getZoneId(ZONE_NAME)
+    if (isError(zoneResult)) {
+      return zoneResult
+    }
+    zoneId = zoneResult
   }
 
   const data = await cloudflareClient.getARecord(recordName, zoneId)
@@ -25,21 +30,27 @@ export const handleUpdateIp = async (recordName: string) => {
   const [record] = data.result
 
   if (!record) {
-    throw new Error('(Cloudflare) Record not found for domain')
+    return new DnsRecordNotFoundError({ domain: recordName })
   }
 
-  const currentIp = await cloudflareClient.getPublicIP()
+  const currentIpResult = await cloudflareClient.getPublicIP()
+  if (isError(currentIpResult)) {
+    return currentIpResult
+  }
 
-  if (record.content === currentIp) {
+  if (record.content === currentIpResult) {
     return
   }
 
-  await cloudflareClient.updateDnsRecord(record, currentIp, zoneId)
+  await cloudflareClient.updateDnsRecord(record, currentIpResult, zoneId)
 }
 
 export const dynDns = async () => {
   for (const recordName of DOMAINES_TO_UPDATE) {
-    await tryCatch(handleUpdateIp, recordName)
+    const result = await handleUpdateIp(recordName)
+    if (isError(result)) {
+      logError(result, 'handleUpdateIp')
+    }
   }
 }
 

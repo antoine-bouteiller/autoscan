@@ -6,6 +6,8 @@ import { NetworkError } from '@/errors/network'
 import { ValidationError } from '@/errors/validation'
 import { httpClient } from '@/utils/http_client'
 
+import { isError } from '../../src/utils/error'
+
 const originalFetch = globalThis.fetch
 
 describe('httpClient', () => {
@@ -24,12 +26,12 @@ describe('httpClient', () => {
   const client = httpClient({ baseUrl: 'http://api.test', serviceName: 'Test' })
 
   describe('get', () => {
-    test('should return ok with undefined data when no validator is provided', async () => {
+    test('should return undefined when no validator is provided', async () => {
       mockFetch.mockResolvedValue(new Response(undefined, { status: 200 }))
 
       const result = await client.get('/items')
 
-      expect(result).toEqual({ ok: true, data: undefined })
+      expect(result).toBeUndefined()
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
@@ -39,9 +41,9 @@ describe('httpClient', () => {
 
       const result = await client.get('/items/1', { validator })
 
-      expect(result.ok).toBe(true)
-      if (result.ok) {
-        expect(result.data).toEqual({ id: 1, name: 'test' })
+      expect(isError(result)).toBe(false)
+      if (!isError(result)) {
+        expect(result).toEqual({ id: 1, name: 'test' })
       }
     })
 
@@ -52,10 +54,8 @@ describe('httpClient', () => {
 
       const result = await client.get('/items/1', { validator })
 
-      expect(result.ok).toBe(false)
-      if (!result.ok) {
-        expect(result.error).toBeInstanceOf(ValidationError)
-      }
+      expect(isError(result)).toBe(true)
+      expect(result).toBeInstanceOf(ValidationError)
     })
 
     test('should append query params', async () => {
@@ -89,12 +89,9 @@ describe('httpClient', () => {
 
       const result = await client.get('/missing')
 
-      expect(result.ok).toBe(false)
-      if (!result.ok) {
-        expect(result.error).toBeInstanceOf(HttpError)
-        if (result.error instanceof HttpError) {
-          expect(result.error.status).toBe(404)
-        }
+      expect(result).toBeInstanceOf(HttpError)
+      if (result instanceof HttpError) {
+        expect(result.status).toBe(404)
       }
     })
 
@@ -103,9 +100,9 @@ describe('httpClient', () => {
 
       const result = await client.get('/items')
 
-      expect(result.ok).toBe(false)
-      if (!result.ok && result.error instanceof NetworkError) {
-        expect(result.error.originalMessage).toBe('ECONNREFUSED')
+      expect(result).toBeInstanceOf(NetworkError)
+      if (result instanceof NetworkError) {
+        expect(result.originalMessage).toBe('ECONNREFUSED')
       }
     })
 
@@ -114,9 +111,9 @@ describe('httpClient', () => {
 
       const result = await client.get('/items')
 
-      expect(result.ok).toBe(false)
-      if (!result.ok && result.error instanceof NetworkError) {
-        expect(result.error.originalMessage).toBe('Unknown network error')
+      expect(result).toBeInstanceOf(NetworkError)
+      if (result instanceof NetworkError) {
+        expect(result.originalMessage).toBe('Unknown network error')
       }
     })
 
@@ -130,9 +127,9 @@ describe('httpClient', () => {
 
       const result = await customClient.get('/items')
 
-      expect(result.ok).toBe(false)
-      if (!result.ok) {
-        expect(result.error.message).toContain('custom:')
+      expect(result).toBeInstanceOf(HttpError)
+      if (result instanceof HttpError) {
+        expect(result.message).toContain('custom:')
       }
     })
   })

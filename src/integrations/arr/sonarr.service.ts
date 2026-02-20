@@ -1,9 +1,9 @@
 import * as v from 'valibot'
 
 import type { QueueService } from '@/types/cleanup'
-import { logError } from '@/utils/error_handler'
 import { seriesValidator } from '@/validators/sonarr.validator'
 
+import { isError, logError } from '../../utils/error'
 import { ArrClient } from './arr.service'
 
 export interface ISonarrClient extends QueueService {
@@ -34,8 +34,8 @@ export class SonarrClient extends ArrClient implements ISonarrClient {
       },
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
     }
   }
 
@@ -47,8 +47,8 @@ export class SonarrClient extends ArrClient implements ISonarrClient {
       },
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
     }
   }
 
@@ -57,12 +57,12 @@ export class SonarrClient extends ArrClient implements ISonarrClient {
       validator: v.array(seriesValidator),
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
       return undefined
     }
 
-    const series = result.data.find((s) => filePath.startsWith(s.path))
+    const series = result.find((s) => filePath.startsWith(s.path))
     return series?.id
   }
 }

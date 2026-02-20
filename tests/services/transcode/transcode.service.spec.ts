@@ -8,6 +8,7 @@ import type { FfmpegClient } from '@/integrations/ffmpeg.service.js'
 import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service.js'
 import type { FFprobeStream } from '@/validators/ffmpeg.validator.js'
 
+import { isOk } from '../../../src/utils/error.js'
 import { testWithTestDir, videosPath } from '../../config.js'
 
 const waitForQueueCompletion = async (): Promise<void> =>
@@ -105,6 +106,10 @@ describe('Transcode', () => {
 
     const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
     const streams = await ffmpegClient.ffprobe(join(testDir, outputFileName))
+    expect(isOk(streams)).toBe(true)
+    if (!isOk(streams)) {
+      return
+    }
 
     for (const stream of outputStreams) {
       expect(streams[stream.index]?.codec_type).toBe(stream.codecType)

@@ -1,9 +1,9 @@
 import * as v from 'valibot'
 
 import type { QueueService } from '@/types/cleanup'
-import { logError } from '@/utils/error_handler'
 import { movieValidator } from '@/validators/radarr.validator'
 
+import { isError, logError } from '../../utils/error'
 import { ArrClient } from './arr.service'
 
 export interface IRadarrClient extends QueueService {
@@ -34,8 +34,8 @@ export class RadarrClient extends ArrClient implements IRadarrClient {
       },
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
     }
   }
 
@@ -48,8 +48,8 @@ export class RadarrClient extends ArrClient implements IRadarrClient {
       },
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
     }
   }
 
@@ -58,12 +58,12 @@ export class RadarrClient extends ArrClient implements IRadarrClient {
       validator: v.array(movieValidator),
     })
 
-    if (!result.ok) {
-      logError(result.error)
+    if (isError(result)) {
+      logError(result)
       return undefined
     }
 
-    const movie = result.data.find((m) => filePath.startsWith(m.path))
+    const movie = result.find((m) => filePath.startsWith(m.path))
     return movie?.id
   }
 }

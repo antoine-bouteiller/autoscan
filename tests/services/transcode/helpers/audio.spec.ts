@@ -8,6 +8,7 @@ import type { FfmpegClient } from '@/integrations/ffmpeg.service'
 import { processAudioStreams } from '@/services/transcode/helpers/audio'
 import type { ISOCode1 } from '@/types/iso_codes'
 
+import { isOk } from '../../../../src/utils/error.js'
 import { testWithTestDir, videosPath } from '../../../config.js'
 
 interface TestCase {
@@ -56,9 +57,17 @@ describe('Clean audio', () => {
 
     const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
     const streams = await ffmpegClient.ffprobe(join(testDir, file))
-    const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
+    expect(isOk(streams)).toBe(true)
+    if (!isOk(streams)) {
+      return
+    }
 
+    const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
     const result = processAudioStreams(audioStreams, language, 'test')
+    expect(isOk(result)).toBe(true)
+    if (!isOk(result)) {
+      return
+    }
 
     expect(result.command).toEqual(expectedCommand)
   })

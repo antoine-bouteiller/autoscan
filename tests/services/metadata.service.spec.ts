@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { db } from '@/config/db'
 import { container, TOKENS } from '@/core/container'
 import { media } from '@/database/schema'
+import { FileNotFoundError, TmdbIdNotFoundError } from '@/errors/metadata'
 
+import { isOk } from '../../src/utils/error'
 import '../config'
 import type { MockTmdbClient } from '../mocks/tmdb.mock'
 import { tmdbTvShowResponse } from '../resources/fixtures/tmdb.fixtures'
@@ -114,6 +116,10 @@ describe('MetadataService', () => {
     test('should get complete details for a movie', async () => {
       const result = await getCompleteMediaDetails(123)
 
+      expect(isOk(result)).toBe(true)
+      if (!isOk(result)) {
+        return
+      }
       expect(result).toMatchObject({
         file: '/path/to/{tmdb-12345}/movie.mkv',
         mediaTitle: 'Test Movie',
@@ -137,12 +143,14 @@ describe('MetadataService', () => {
       })
     })
 
-    test('should throw error if no file found', async () => {
-      await expect(getCompleteMediaDetails(345)).rejects.toThrow('No file found')
+    test('should return FileNotFoundError if no file found', async () => {
+      const result = await getCompleteMediaDetails(345)
+      expect(result).toBeInstanceOf(FileNotFoundError)
     })
 
-    test('should throw error if no TMDB ID found', async () => {
-      await expect(getCompleteMediaDetails(567)).rejects.toThrow('No tmdbId found')
+    test('should return TmdbIdNotFoundError if no TMDB ID found', async () => {
+      const result = await getCompleteMediaDetails(567)
+      expect(result).toBeInstanceOf(TmdbIdNotFoundError)
     })
   })
 })

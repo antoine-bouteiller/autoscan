@@ -1,9 +1,8 @@
-import type { SchedulerProvider } from '@/providers/scheduler_provider'
-
 import { container, TOKENS } from '@/core/container'
 import { runCleanupProcess } from '@/jobs/cleanup.job'
 import { updatePlexSelectedLanguages } from '@/jobs/language.job'
 import { runTranscodeProcess } from '@/jobs/transcode.job'
+import type { SchedulerProvider } from '@/providers/scheduler_provider'
 import { dynDns } from '@/services/dns.service'
 
 container.resolve<SchedulerProvider>(TOKENS.SCHEDULER_PROVIDER).registerMany([
