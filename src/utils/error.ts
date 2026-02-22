@@ -1,22 +1,6 @@
 import { logger } from '@/config/logger'
 import type { TaggedErrorClass } from '@/types/error'
 
-const findCause = <T extends Error>(error: Error, ErrorClass: new (...args: unknown[]) => T): T | undefined => {
-  const seen = new Set<Error>()
-  let current: unknown = error
-  while (current instanceof Error) {
-    if (seen.has(current)) {
-      break
-    }
-    seen.add(current)
-    if (current instanceof ErrorClass) {
-      return current
-    }
-    current = current.cause
-  }
-  return undefined
-}
-
 const parseVariables = (message: string): string[] => {
   const vars: string[] = []
   const regex = /\$([a-zA-Z_][a-zA-Z0-9_]*)/g
@@ -37,23 +21,21 @@ const interpolateMessage = (template: string, values: Record<string, unknown>): 
     return value !== undefined ? JSON.stringify(value) : `$${varName}`
   })
 
-export const createTaggedError = <Tag extends string, Msg extends string, ErrorClass extends Error = Error>(opts: {
+export const createTaggedError = <Tag extends string, Msg extends string>({
+  name,
+  message,
+}: {
   name: Tag
   message: Msg
-  extends?: ErrorClass
-}): TaggedErrorClass<Tag, Msg, ErrorClass> => {
-  const { name: tag, message: messageTemplate } = opts
-  const varNames = parseVariables(messageTemplate)
+}): TaggedErrorClass<Tag, Msg> => {
+  const varNames = parseVariables(message)
 
   class TaggedError extends Error {
-    readonly _tag: Tag = opts.name
-    readonly messageTemplate: Msg = opts.message
-
-    static readonly tag: Tag = opts.name
+    readonly _tag: Tag = name
 
     constructor(args?: Record<string, unknown>) {
-      const interpolatedMessage = args ? interpolateMessage(messageTemplate, args) : messageTemplate
-      const cause = args && 'cause' in args ? args['cause'] : undefined
+      const interpolatedMessage = args ? interpolateMessage(message, args) : message
+      const cause = args?.['cause']
 
       super(interpolatedMessage, cause !== undefined ? { cause } : undefined)
 
@@ -67,25 +49,17 @@ export const createTaggedError = <Tag extends string, Msg extends string, ErrorC
       }
 
       Object.setPrototypeOf(this, new.target.prototype)
-      this.name = tag
+      this.name = name
 
       if (cause instanceof Error && cause.stack) {
         const indented = cause.stack.replace(/\n/g, '\n  ')
         this.stack = `${this.stack}\nCaused by: ${indented}`
       }
     }
-
-    static is(v: unknown): v is TaggedError {
-      return v instanceof TaggedError
-    }
-
-    findCause<T extends Error>(ErrorClass: new (...args: unknown[]) => T): T | undefined {
-      return findCause(this, ErrorClass)
-    }
   }
 
   // oxlint-disable-next-line no-unsafe-type-assertion
-  return TaggedError as unknown as TaggedErrorClass<Tag, Msg, ErrorClass>
+  return TaggedError as unknown as TaggedErrorClass<Tag, Msg>
 }
 
 export const isError = <V>(v: V): v is Extract<V, Error> => v instanceof Error

@@ -17,6 +17,8 @@ interface RequestOptions<TSchema extends AnySchema | undefined = undefined> {
   validator?: TSchema
 }
 
+type RequestOptionWithoutResponse = Omit<RequestOptions, 'validator'>
+
 interface Options {
   baseUrl?: string
   errorFormatter?: HttpErrorFormatter
@@ -43,11 +45,19 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     return url
   }
 
-  const request = async <TSchema extends AnySchema | undefined = undefined>(
+  function request(
     method: string,
     endpoint: string,
-    options: RequestOptions<TSchema> = {}
-  ): Promise<HttpError | NetworkError | ValidationError | v.InferOutput<NonNullable<TSchema>>> => {
+    options?: RequestOptionWithoutResponse
+  ): Promise<HttpError | NetworkError | ValidationError | undefined>
+
+  function request<TSchema extends AnySchema>(
+    method: string,
+    endpoint: string,
+    options?: Omit<RequestOptions<TSchema>, 'body'>
+  ): Promise<HttpError | NetworkError | ValidationError | v.InferOutput<TSchema>>
+
+  async function request<TSchema extends AnySchema | undefined = undefined>(method: string, endpoint: string, options: RequestOptions<TSchema> = {}) {
     const { body, headers = {}, params, validator } = options
 
     const url = createUrl(endpoint, params)
@@ -89,11 +99,10 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
   }
 
   return {
-    delete: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: Omit<RequestOptions<TSchema>, 'body'>) =>
-      request('DELETE', url, opts),
-    get: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: Omit<RequestOptions<TSchema>, 'body'>) => request('GET', url, opts),
-    patch: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: RequestOptions<TSchema>) => request('PATCH', url, opts),
-    post: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: RequestOptions<TSchema>) => request('POST', url, opts),
-    put: <TSchema extends AnySchema | undefined = undefined>(url: string, opts?: RequestOptions<TSchema>) => request('PUT', url, opts),
+    delete: (url: string, opts?: Omit<RequestOptionWithoutResponse, 'body'>) => request('DELETE', url, opts),
+    get: <TSchema extends AnySchema>(url: string, opts?: Omit<RequestOptions<TSchema>, 'body'>) => request('GET', url, opts),
+    patch: (url: string, opts?: RequestOptionWithoutResponse) => request('PATCH', url, opts),
+    post: (url: string, opts?: RequestOptionWithoutResponse) => request('POST', url, opts),
+    put: (url: string, opts?: RequestOptionWithoutResponse) => request('PUT', url, opts),
   }
 }
