@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import type { Media } from '@/database/schema'
-import { buildLanguageKeyboard, buildMediaKeyboard } from '@/services/telegram.service'
+import { buildLanguageKeyboard, buildMediaKeyboard } from '@/services/language.service'
 import { iso1ToIso2T } from '@/types/iso_codes'
 
 const makeMedia = (n: number): Media[] =>
