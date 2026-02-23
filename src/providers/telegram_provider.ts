@@ -102,7 +102,6 @@ export class TelegramProvider {
     const handler = this.commands.get(text)
     if (handler) {
       this.conversationState = await handler(this.client, message)
-      return
     }
   }
 
