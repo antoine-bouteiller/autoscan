@@ -5,7 +5,7 @@ import { logger } from '@/config/logger'
 import { container, TOKENS } from '@/core/container'
 import { media, type Media } from '@/database/schema'
 import type { IPlexClient, MediaType } from '@/integrations/plex.service'
-import type { TelegramClient } from '@/integrations/telegram.service'
+import type { ITelegramClient } from '@/integrations/telegram.service'
 import { getMediaByTypeWithPagination } from '@/repositories/media.repository'
 import { iso1ToIso2T } from '@/types/iso_codes'
 import type { UpdateLanguageParams } from '@/types/language'
@@ -76,7 +76,7 @@ export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
 }
 
 export const selectMediaType = async (
-  client: TelegramClient,
+  client: ITelegramClient,
   chatId: number,
   state: AwaitingMediaTypeState,
   mediaType: MediaType
@@ -93,7 +93,7 @@ export const selectMediaType = async (
 }
 
 export const navigateMediaPage = async (
-  client: TelegramClient,
+  client: ITelegramClient,
   chatId: number,
   state: AwaitingMediaSelectionState,
   page: number
@@ -104,7 +104,7 @@ export const navigateMediaPage = async (
 }
 
 export const selectMedia = async (
-  client: TelegramClient,
+  client: ITelegramClient,
   chatId: number,
   state: AwaitingMediaSelectionState,
   tmdbId: number
@@ -119,7 +119,7 @@ export const selectMedia = async (
 }
 
 export const selectLanguage = async (
-  client: TelegramClient,
+  client: ITelegramClient,
   chatId: number,
   state: AwaitingLanguageState,
   lang: string

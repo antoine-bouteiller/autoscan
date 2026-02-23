@@ -1,11 +1,19 @@
 import type { InlineKeyboardMarkup } from '@/types/telegram'
 import { isError, logError } from '@/utils/error'
 import { httpClient } from '@/utils/http_client'
-import { getUpdatesResponseSchema, sendMessageResponseSchema } from '@/validators/telegram.validator'
+import { getUpdatesResponseSchema, sendMessageResponseSchema, type TelegramUpdate } from '@/validators/telegram.validator'
+
+export interface ITelegramClient {
+  getUpdates(offset?: number): Promise<TelegramUpdate[] | Error>
+  sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup): Promise<number | undefined>
+  editMessageText(chatId: number, messageId: number, text: string, replyMarkup?: InlineKeyboardMarkup): Promise<void>
+  deleteMessage(chatId: number, messageId: number): Promise<void>
+  answerCallbackQuery(callbackQueryId: string): Promise<void>
+}
 
 const UPDATE_TIMEOUT = 30
 
-export class TelegramClient {
+export class TelegramClient implements ITelegramClient {
   private readonly client: ReturnType<typeof httpClient>
 
   constructor(token: string) {

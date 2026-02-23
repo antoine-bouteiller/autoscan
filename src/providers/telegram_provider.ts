@@ -1,13 +1,13 @@
 import env from '@/config/env'
 import { logger } from '@/config/logger'
-import { TelegramClient } from '@/integrations/telegram.service'
+import { TelegramClient, type ITelegramClient } from '@/integrations/telegram.service'
 import type { ConversationState } from '@/types/telegram'
 import { isError, logError } from '@/utils/error'
 import type { TelegramCallbackQuery, TelegramMessageIn, TelegramUpdate } from '@/validators/telegram.validator'
 
-type CommandHandler = (client: TelegramClient, message: TelegramMessageIn) => Promise<ConversationState>
+type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Promise<ConversationState>
 type CallbackHandler = (
-  client: TelegramClient,
+  client: ITelegramClient,
   chatId: number,
   state: ConversationState,
   callback: TelegramCallbackQuery
@@ -18,7 +18,7 @@ interface Conversation {
 }
 
 export class TelegramProvider {
-  private readonly client: TelegramClient
+  private readonly client: ITelegramClient
   private running = false
   private conversationState: ConversationState = { step: 'idle' }
   private readonly commands = new Map<string, CommandHandler>()
