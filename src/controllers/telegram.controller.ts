@@ -10,7 +10,7 @@ import type { ConversationState } from '@/types/telegram'
 import { normalizeToIso1 } from '@/utils/iso_codes'
 import type { TelegramCallbackQuery, TelegramMessageIn } from '@/validators/telegram.validator'
 
-export const handleSetLanguageCommand = async (client: TelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
+const handleSetLanguageCommand = async (client: TelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
   const messageId = await client.sendMessage(message.chat.id, 'What kind of media do you want to configure?', buildMediaTypeKeyboard())
   if (!messageId) {
     return { step: 'idle' }
@@ -18,7 +18,7 @@ export const handleSetLanguageCommand = async (client: TelegramClient, message: 
   return { step: 'awaiting_media_type', messageId }
 }
 
-export const handleCallback = async (
+const handleCallback = async (
   client: TelegramClient,
   chatId: number,
   state: ConversationState,
@@ -33,6 +33,12 @@ export const handleCallback = async (
     }
     const mediaType = data as MediaType
     const mediaItems = await getMediaByTypeWithPagination(mediaType, 0, 100)
+
+    if (mediaItems.length === 0) {
+      await client.editMessageText(chatId, state.messageId, `No media in ${mediaType} library`)
+      return { step: 'idle' }
+    }
+
     await client.editMessageText(chatId, state.messageId, `Which ${mediaType} do you want to configure?`, buildMediaKeyboard(mediaItems, 0))
     return { step: 'awaiting_media_selection', messageId: state.messageId, mediaType, page: 0 }
   }
@@ -75,3 +81,5 @@ export const handleCallback = async (
 
   return state
 }
+
+export const setLanguageConversation = { onCommand: handleSetLanguageCommand, onCallback: handleCallback }

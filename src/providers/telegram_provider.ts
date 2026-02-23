@@ -1,18 +1,42 @@
 import env from '@/config/env'
 import { logger } from '@/config/logger'
-import { handleCallback, handleSetLanguageCommand } from '@/controllers/telegram.controller'
 import { TelegramClient } from '@/integrations/telegram.service'
 import type { ConversationState } from '@/types/telegram'
 import { isError, logError } from '@/utils/error'
-import type { TelegramUpdate } from '@/validators/telegram.validator'
+import type { TelegramCallbackQuery, TelegramMessageIn, TelegramUpdate } from '@/validators/telegram.validator'
+
+type CommandHandler = (client: TelegramClient, message: TelegramMessageIn) => Promise<ConversationState>
+type CallbackHandler = (
+  client: TelegramClient,
+  chatId: number,
+  state: ConversationState,
+  callback: TelegramCallbackQuery
+) => Promise<ConversationState>
+interface Conversation {
+  onCommand: CommandHandler
+  onCallback: CallbackHandler
+}
 
 export class TelegramProvider {
   private client: TelegramClient
   private running = false
   private conversationState: ConversationState = { step: 'idle' }
+  private commands = new Map<string, CommandHandler>()
+  private conversations = new Map<string, Conversation>()
+  private activeConversationKey?: string
 
   constructor() {
     this.client = new TelegramClient(env.TELEGRAM_TOKEN)
+  }
+
+  registerCommand(command: string, handler: CommandHandler): this {
+    this.commands.set(command, handler)
+    return this
+  }
+
+  registerConversation(command: string, conversation: Conversation): this {
+    this.conversations.set(command, conversation)
+    return this
   }
 
   start(): void {
@@ -54,17 +78,45 @@ export class TelegramProvider {
       return
     }
 
-    if (update.message?.text === '/setlanguage') {
-      this.conversationState = await handleSetLanguageCommand(this.client, update.message)
+    const text = update.message?.text
+
+    if (text === '/cancel') {
+      if (this.conversationState.step === 'idle') {
+        await this.client.sendMessage(chatId, 'No operation in progress')
+      } else {
+        this.conversationState = { step: 'idle' }
+        this.activeConversationKey = undefined
+        await this.client.sendMessage(chatId, 'Cancelled.')
+      }
       return
     }
-    if (update.message?.text === '/cancel') {
-      this.conversationState = { step: 'idle' }
-      await this.client.sendMessage(chatId, 'Cancelled.')
-      return
+
+    if (text && update.message) {
+      const conversation = this.conversations.get(text)
+      if (conversation) {
+        this.activeConversationKey = text
+        this.conversationState = await conversation.onCommand(this.client, update.message)
+        if (this.conversationState.step === 'idle') {
+          this.activeConversationKey = undefined
+        }
+        return
+      }
+
+      const handler = this.commands.get(text)
+      if (handler) {
+        this.conversationState = await handler(this.client, update.message)
+        return
+      }
     }
-    if (update.callback_query) {
-      this.conversationState = await handleCallback(this.client, chatId, this.conversationState, update.callback_query)
+
+    if (update.callback_query && this.activeConversationKey) {
+      const conversation = this.conversations.get(this.activeConversationKey)
+      if (conversation) {
+        this.conversationState = await conversation.onCallback(this.client, chatId, this.conversationState, update.callback_query)
+        if (this.conversationState.step === 'idle') {
+          this.activeConversationKey = undefined
+        }
+      }
     }
   }
 }
