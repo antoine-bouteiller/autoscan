@@ -22,7 +22,7 @@ export class MockPlexClient implements IPlexClient {
     }
   }
 
-  async getSectionMedia(_id: number, _sectionType: 'movie' | 'show') {
+  async getSectionMedia() {
     return []
   }
 
