@@ -1,9 +1,15 @@
-import type { Conversation, ConversationFlavor } from '@grammyjs/conversations'
-import type { HydrateFlavor } from '@grammyjs/hydrate'
-import type { Context } from 'grammy'
+import type { MediaType } from '@/integrations/plex.service'
 
-export type ConfigureLanguageContext = HydrateFlavor<Context>
+export type ConversationState =
+  | { step: 'idle' }
+  | { step: 'awaiting_media_type'; messageId: number }
+  | { step: 'awaiting_media_selection'; messageId: number; mediaType: MediaType; page: number }
+  | { step: 'awaiting_language'; messageId: number; tmdbId: number; mediaType: MediaType }
 
-export type ConfigureLanguageConversation = Conversation<TelegramContext, ConfigureLanguageContext>
-
-export type TelegramContext = ConversationFlavor<Context>
+export interface InlineKeyboardButton {
+  text: string
+  callback_data: string
+}
+export interface InlineKeyboardMarkup {
+  inline_keyboard: InlineKeyboardButton[][]
+}

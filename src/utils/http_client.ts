@@ -1,66 +1,49 @@
 import * as v from 'valibot'
 
-import { HttpError, type HttpErrorFormatter } from '@/errors/http'
+import { HttpError } from '@/errors/http'
 import { NetworkError } from '@/errors/network'
 import { ValidationError } from '@/errors/validation'
+import type {
+  AnySchema,
+  GetOptionWithoutResponse,
+  GetOptions,
+  HttpClient,
+  HttpClientOptions,
+  HttpClientResult,
+  HttpClientVoidResult,
+  RequestOptions,
+  RequestParams,
+  RequestWithoutResponseOption,
+} from '@/types/http_client'
 
-const defaultFormatter: HttpErrorFormatter = (body) => (typeof body === 'string' ? body : JSON.stringify(body))
+const defaultFormatter = (body: unknown): string => (typeof body === 'string' ? body : JSON.stringify(body))
 
-type AnySchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>
+const createUrl = (baseUrl: string, endpoint: string, params?: RequestParams): URL => {
+  const cleanBase = baseUrl.replace(/\/+$/, '')
+  const cleanEndpoint = endpoint.replace(/^\/+/, '')
+  const fullPath = cleanBase ? `${cleanBase}/${cleanEndpoint}` : cleanEndpoint
 
-type RequestParams = Record<string, string | number | boolean>
+  const url = new URL(fullPath)
 
-interface RequestOptions<TSchema extends AnySchema | undefined = undefined> {
-  body?: unknown
-  headers?: Record<string, string>
-  params?: RequestParams
-  validator?: TSchema
-}
-
-type RequestOptionWithoutResponse = Omit<RequestOptions, 'validator'>
-
-interface Options {
-  baseUrl?: string
-  errorFormatter?: HttpErrorFormatter
-  headers?: Record<string, string>
-  serviceName: string
-}
-
-export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeaders = {}, serviceName }: Options) => {
-  const createUrl = (endpoint: string, params?: RequestParams) => {
-    const cleanBase = baseUrl.replace(/\/+$/, '')
-    const cleanEndpoint = endpoint.replace(/^\/+/, '')
-    const fullPath = cleanBase ? `${cleanBase}/${cleanEndpoint}` : cleanEndpoint
-
-    const url = new URL(fullPath)
-
-    if (params) {
-      const searchParams = new URLSearchParams()
-      for (const [key, value] of Object.entries(params)) {
-        searchParams.append(key, String(value))
-      }
-      url.search = searchParams.toString()
+  if (params) {
+    const searchParams = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) {
+      searchParams.append(key, String(value))
     }
-
-    return url
+    url.search = searchParams.toString()
   }
 
-  function request(
-    method: string,
-    endpoint: string,
-    options?: RequestOptionWithoutResponse
-  ): Promise<HttpError | NetworkError | ValidationError | undefined>
+  return url
+}
 
-  function request<TSchema extends AnySchema>(
-    method: string,
-    endpoint: string,
-    options?: Omit<RequestOptions<TSchema>, 'body'>
-  ): Promise<HttpError | NetworkError | ValidationError | v.InferOutput<TSchema>>
+export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeaders = {}, serviceName }: HttpClientOptions): HttpClient => {
+  function request(method: string, endpoint: string, options?: RequestWithoutResponseOption): Promise<HttpClientVoidResult>
+  function request<TSchema extends AnySchema>(method: string, endpoint: string, options?: RequestOptions<TSchema>): Promise<HttpClientResult<TSchema>>
 
   async function request<TSchema extends AnySchema | undefined = undefined>(method: string, endpoint: string, options: RequestOptions<TSchema> = {}) {
     const { body, headers = {}, params, validator } = options
 
-    const url = createUrl(endpoint, params)
+    const url = createUrl(baseUrl, endpoint, params)
 
     let response: Response
     try {
@@ -74,12 +57,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     }
 
     if (!response.ok) {
-      let errorData: unknown = response.statusText
-      try {
-        errorData = await response.json()
-      } catch {
-        // Keep statusText as errorData
-      }
+      const errorData: unknown = await response.json().catch(() => response.statusText)
 
       return new HttpError({ serviceName, status: response.status, body: (errorFormatter ?? defaultFormatter)(errorData) })
     }
@@ -99,10 +77,10 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
   }
 
   return {
-    delete: (url: string, opts?: Omit<RequestOptionWithoutResponse, 'body'>) => request('DELETE', url, opts),
-    get: <TSchema extends AnySchema>(url: string, opts?: Omit<RequestOptions<TSchema>, 'body'>) => request('GET', url, opts),
-    patch: (url: string, opts?: RequestOptionWithoutResponse) => request('PATCH', url, opts),
-    post: (url: string, opts?: RequestOptionWithoutResponse) => request('POST', url, opts),
-    put: (url: string, opts?: RequestOptionWithoutResponse) => request('PUT', url, opts),
+    delete: (url: string, opts?: GetOptionWithoutResponse): Promise<HttpClientVoidResult> => request('DELETE', url, opts),
+    get: (url: string, opts?: GetOptions<AnySchema> | GetOptionWithoutResponse) => request('GET', url, opts),
+    patch: (url: string, opts?: RequestWithoutResponseOption): Promise<HttpClientVoidResult> => request('PATCH', url, opts),
+    post: (url: string, opts?: GetOptions<AnySchema> | GetOptionWithoutResponse) => request('POST', url, opts),
+    put: (url: string, opts?: RequestWithoutResponseOption): Promise<HttpClientVoidResult> => request('PUT', url, opts),
   }
 }

@@ -1,10 +1,8 @@
-import type { Conversation } from '@grammyjs/conversations'
-import type { MessageXFragment } from '@grammyjs/hydrate/out/data/message'
-import { describe, expect, test, vi } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
 import type { Media } from '@/database/schema'
-import { createMenu } from '@/services/telegram.service'
-import type { ConfigureLanguageContext, TelegramContext } from '@/types/telegram'
+import { buildLanguageKeyboard, buildMediaKeyboard } from '@/services/telegram.service'
+import { iso1ToIso2T } from '@/types/iso_codes'
 
 const makeMedia = (n: number): Media[] =>
   Array.from({ length: n }, (_, i) => ({
@@ -15,132 +13,54 @@ const makeMedia = (n: number): Media[] =>
     preferredLanguage: 'en' as const,
   }))
 
-const makeMockMenu = () => ({
-  dynamic: vi.fn().mockReturnThis(),
-  back: vi.fn().mockReturnThis(),
-  submenu: vi.fn().mockReturnThis(),
+describe('buildMediaKeyboard', () => {
+  test('5 items on page 0: 5 buttons, no nav', () => {
+    const keyboard = buildMediaKeyboard(makeMedia(5), 0)
+    expect(keyboard.inline_keyboard).toHaveLength(5)
+    const allButtons = keyboard.inline_keyboard.flat()
+    expect(allButtons.some((b) => b.callback_data.startsWith('page:'))).toBe(false)
+  })
+
+  test('15 items on page 0: 10 buttons + Next', () => {
+    const keyboard = buildMediaKeyboard(makeMedia(15), 0)
+    const mediaRows = keyboard.inline_keyboard.filter((row) => row.every((b) => b.callback_data.startsWith('select_media:')))
+    expect(mediaRows).toHaveLength(10)
+    const navRow = keyboard.inline_keyboard[keyboard.inline_keyboard.length - 1]
+    expect(navRow?.some((b) => b.callback_data === 'page:1')).toBe(true)
+    expect(navRow?.some((b) => b.callback_data === 'page:-1')).toBe(false)
+  })
+
+  test('15 items on page 1: 5 buttons + Previous, no Next', () => {
+    const keyboard = buildMediaKeyboard(makeMedia(15), 1)
+    const mediaRows = keyboard.inline_keyboard.filter((row) => row.every((b) => b.callback_data.startsWith('select_media:')))
+    expect(mediaRows).toHaveLength(5)
+    const navRow = keyboard.inline_keyboard[keyboard.inline_keyboard.length - 1]
+    expect(navRow?.some((b) => b.callback_data === 'page:0')).toBe(true)
+    expect(navRow?.some((b) => b.callback_data === 'page:2')).toBe(false)
+  })
+
+  test('25 items on page 1: 10 buttons + Previous + Next', () => {
+    const keyboard = buildMediaKeyboard(makeMedia(25), 1)
+    const mediaRows = keyboard.inline_keyboard.filter((row) => row.every((b) => b.callback_data.startsWith('select_media:')))
+    expect(mediaRows).toHaveLength(10)
+    const navRow = keyboard.inline_keyboard[keyboard.inline_keyboard.length - 1]
+    expect(navRow?.some((b) => b.callback_data === 'page:0')).toBe(true)
+    expect(navRow?.some((b) => b.callback_data === 'page:2')).toBe(true)
+  })
 })
 
-const makeMockConversation = (menus: ReturnType<typeof makeMockMenu>[] = []) => {
-  let menuFn = vi.fn().mockImplementation(makeMockMenu)
+describe('buildLanguageKeyboard', () => {
+  test('rows have at most 6 buttons each', () => {
+    const keyboard = buildLanguageKeyboard()
+    for (const row of keyboard.inline_keyboard) {
+      expect(row.length).toBeLessThanOrEqual(6)
+    }
+  })
 
-  for (const menu of menus) {
-    menuFn = menuFn.mockReturnValueOnce(menu)
-  }
-
-  // oxlint-disable-next-line  no-unsafe-type-assertion
-  return { menu: menuFn } as unknown as Conversation<TelegramContext, ConfigureLanguageContext>
-}
-
-// oxlint-disable-next-line  no-unsafe-type-assertion
-const mockedMessage = {} as MessageXFragment
-
-describe('TelegramService', () => {
-  describe('createMenu', () => {
-    test('creates menu with correct id for page 0', () => {
-      const conversation = makeMockConversation()
-
-      createMenu({
-        mediaType: 'movie',
-        menuConversation: conversation,
-        menuMedia: makeMedia(5),
-        message: mockedMessage,
-        page: 0,
-      })
-
-      // oxlint-disable-next-line  no-unbound-method
-      expect(conversation.menu).toHaveBeenCalledWith('menu-0', { parent: undefined })
-    })
-
-    test('creates menu with correct id and parent for page > 0', () => {
-      const conversation = makeMockConversation()
-
-      createMenu({
-        mediaType: 'movie',
-        menuConversation: conversation,
-        menuMedia: makeMedia(5),
-        message: mockedMessage,
-        page: 2,
-      })
-
-      // oxlint-disable-next-line  no-unbound-method
-      expect(conversation.menu).toHaveBeenCalledWith('menu-2', { parent: 'menu-1' })
-    })
-
-    test('does not add Previous button on page 0', () => {
-      const menu = makeMockMenu()
-      const conversation = makeMockConversation([menu])
-
-      createMenu({
-        mediaType: 'movie',
-        menuConversation: conversation,
-        menuMedia: makeMedia(5),
-        message: mockedMessage,
-        page: 0,
-      })
-
-      expect(menu.back).not.toHaveBeenCalled()
-    })
-
-    test('adds Previous button on page > 0', () => {
-      const menu = makeMockMenu()
-      const conversation = makeMockConversation([menu])
-
-      createMenu({
-        mediaType: 'movie',
-        menuConversation: conversation,
-        menuMedia: makeMedia(5),
-        message: mockedMessage,
-        page: 1,
-      })
-
-      expect(menu.back).toHaveBeenCalledWith('Previous')
-    })
-
-    test('does not add Next submenu when 10 or fewer items', () => {
-      const conversation = makeMockConversation()
-      const menu = makeMockMenu()
-
-      createMenu({
-        mediaType: 'movie',
-        menuConversation: conversation,
-        menuMedia: makeMedia(10),
-        message: mockedMessage,
-        page: 0,
-      })
-
-      expect(menu.submenu).not.toHaveBeenCalled()
-    })
-
-    test('adds Next submenu when more than 10 items', () => {
-      const firstMenu = makeMockMenu()
-      const secondMenu = makeMockMenu()
-      const conversation = makeMockConversation([firstMenu, secondMenu])
-
-      createMenu({
-        mediaType: 'movie',
-        menuConversation: conversation,
-        menuMedia: makeMedia(15),
-        message: mockedMessage,
-        page: 0,
-      })
-
-      expect(firstMenu.submenu).toHaveBeenCalledWith('Next', secondMenu)
-    })
-
-    test('returns the created menu', () => {
-      const menu = makeMockMenu()
-      const conversation = makeMockConversation([menu])
-
-      const result = createMenu({
-        mediaType: 'movie',
-        menuConversation: conversation,
-        menuMedia: makeMedia(5),
-        message: mockedMessage,
-        page: 0,
-      })
-
-      expect(result).toBe(menu)
-    })
+  test('all ISO 639-1 codes are present', () => {
+    const keyboard = buildLanguageKeyboard()
+    const allCodes = keyboard.inline_keyboard.flat().map((b) => b.callback_data.slice('lang:'.length))
+    const expectedCodes = Object.keys(iso1ToIso2T)
+    expect(allCodes.toSorted()).toEqual(expectedCodes.toSorted())
   })
 })

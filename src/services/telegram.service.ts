@@ -1,86 +1,39 @@
-import { ConversationMenuRange } from '@grammyjs/conversations'
-import type { MessageXFragment } from '@grammyjs/hydrate/out/data/message'
-import { and, eq } from 'drizzle-orm'
-
-import { db } from '@/config/db'
-import { media, type Media } from '@/database/schema'
-import type { MediaType } from '@/integrations/plex.service'
+import type { Media } from '@/database/schema'
 import { iso1ToIso2T } from '@/types/iso_codes'
-import type { ConfigureLanguageContext, ConfigureLanguageConversation } from '@/types/telegram'
-import { normalizeToIso1 } from '@/utils/iso_codes'
+import type { InlineKeyboardButton, InlineKeyboardMarkup } from '@/types/telegram'
 
-const handleMediaSelection = async (
-  menuConversation: ConfigureLanguageConversation,
-  entry: Media,
-  message: MessageXFragment,
-  mediaType: MediaType
-) => {
-  await message.editText(`Wich language do you want to set for ${entry.title} ?`)
+const PAGE_SIZE = 10
 
-  const language = await menuConversation.form.select(Object.keys(iso1ToIso2T), {
-    action: (ctx) => ctx.deleteMessage(),
-    otherwise: (ctx) => ctx.reply('Invalid language code'),
-  })
+export const buildMediaTypeKeyboard = (): InlineKeyboardMarkup => ({
+  inline_keyboard: [
+    [
+      { text: '🎞️ Movie', callback_data: 'movie' },
+      { text: '📺 TV Show', callback_data: 'show' },
+    ],
+  ],
+})
 
-  await menuConversation.external(() =>
-    db
-      .update(media)
-      .set({
-        preferredLanguage: normalizeToIso1(language),
-      })
-      .where(and(eq(media.tmdbId, entry.tmdbId), eq(media.type, mediaType)))
-  )
-
-  await message.editText(`Language of ${entry.title} updated to ${language}`)
-
-  await menuConversation.halt()
+export const buildMediaKeyboard = (media: Media[], page: number): InlineKeyboardMarkup => {
+  const items = media.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const rows = items.map((m) => [{ text: m.title, callback_data: `select_media:${m.tmdbId}` }])
+  const nav: InlineKeyboardButton[] = []
+  if (page > 0) {
+    nav.push({ text: '◀️ Previous', callback_data: `page:${page - 1}` })
+  }
+  if ((page + 1) * PAGE_SIZE < media.length) {
+    nav.push({ text: 'Next ▶️', callback_data: `page:${page + 1}` })
+  }
+  if (nav.length > 0) {
+    rows.push(nav)
+  }
+  return { inline_keyboard: rows }
 }
 
-export const createMenu = ({
-  mediaType,
-  menuConversation,
-  menuMedia,
-  message,
-  page,
-}: {
-  mediaType: MediaType
-  menuConversation: ConfigureLanguageConversation
-  menuMedia: Media[]
-  message: MessageXFragment
-  page: number
-}): ReturnType<typeof menuConversation.menu> => {
-  const currentMenu = menuMedia.slice(0, 10)
-
-  const nextMenu = menuMedia.slice(10)
-
-  const menuId = `menu-${page}`
-  const parentMenuId = page > 0 ? `menu-${page - 1}` : undefined
-
-  const menu = menuConversation.menu(menuId, { parent: parentMenuId })
-
-  menu.dynamic(() =>
-    currentMenu.reduce(
-      (range, entry) => range.text(entry.title, () => handleMediaSelection(menuConversation, entry, message, mediaType)).row(),
-      new ConversationMenuRange<ConfigureLanguageContext>()
-    )
-  )
-
-  if (page > 0) {
-    menu.back('Previous')
+export const buildLanguageKeyboard = (): InlineKeyboardMarkup => {
+  const codes = Object.keys(iso1ToIso2T)
+  const rows: InlineKeyboardButton[][] = []
+  for (let i = 0; i < codes.length; i += 6) {
+    rows.push(codes.slice(i, i + 6).map((c) => ({ text: c, callback_data: `lang:${c}` })))
   }
-
-  if (nextMenu.length > 0) {
-    menu.submenu(
-      'Next',
-      createMenu({
-        mediaType,
-        menuConversation,
-        menuMedia: nextMenu,
-        message,
-        page: page + 1,
-      })
-    )
-  }
-
-  return menu
+  return { inline_keyboard: rows }
 }

@@ -1,0 +1,68 @@
+import type { InlineKeyboardMarkup } from '@/types/telegram'
+import { isError, logError } from '@/utils/error'
+import { httpClient } from '@/utils/http_client'
+import { getUpdatesResponseSchema, sendMessageResponseSchema } from '@/validators/telegram.validator'
+
+const UPDATE_TIMEOUT = 30
+
+export class TelegramClient {
+  private readonly client: ReturnType<typeof httpClient>
+
+  constructor(token: string) {
+    this.client = httpClient({
+      baseUrl: `https://api.telegram.org/bot${token}`,
+      serviceName: 'Telegram',
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  async getUpdates(offset?: number) {
+    const result = await this.client.post('getUpdates', {
+      body: { offset, timeout: UPDATE_TIMEOUT },
+      validator: getUpdatesResponseSchema,
+    })
+    if (isError(result)) {
+      return result
+    }
+    return result.result
+  }
+
+  async sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup): Promise<number | undefined> {
+    const result = await this.client.post('sendMessage', {
+      body: { chat_id: chatId, text, reply_markup: replyMarkup },
+      validator: sendMessageResponseSchema,
+    })
+    if (isError(result)) {
+      logError(result, 'Telegram')
+      return undefined
+    }
+    return result.result.message_id
+  }
+
+  async editMessageText(chatId: number, messageId: number, text: string, replyMarkup?: InlineKeyboardMarkup): Promise<void> {
+    const result = await this.client.post('editMessageText', {
+      body: { chat_id: chatId, message_id: messageId, text, reply_markup: replyMarkup },
+    })
+    if (isError(result)) {
+      logError(result, 'Telegram')
+    }
+  }
+
+  async deleteMessage(chatId: number, messageId: number): Promise<void> {
+    const result = await this.client.post('deleteMessage', {
+      body: { chat_id: chatId, message_id: messageId },
+    })
+    if (isError(result)) {
+      logError(result, 'Telegram')
+    }
+  }
+
+  async answerCallbackQuery(callbackQueryId: string): Promise<void> {
+    const result = await this.client.post('answerCallbackQuery', {
+      body: { callback_query_id: callbackQueryId },
+    })
+    if (isError(result)) {
+      logError(result, 'Telegram')
+    }
+  }
+}

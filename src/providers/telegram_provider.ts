@@ -1,52 +1,70 @@
-import { conversations, createConversation } from '@grammyjs/conversations'
-import { hydrate } from '@grammyjs/hydrate'
-import { Bot } from 'grammy'
-
 import env from '@/config/env'
 import { logger } from '@/config/logger'
-import { selectPreferedLanguage } from '@/controllers/telegram.controller'
-import { type TelegramContext } from '@/types/telegram'
-
-import { logError } from '../utils/error'
+import { handleCallback, handleSetLanguageCommand } from '@/controllers/telegram.controller'
+import { TelegramClient } from '@/integrations/telegram.service'
+import type { ConversationState } from '@/types/telegram'
+import { isError, logError } from '@/utils/error'
+import type { TelegramUpdate } from '@/validators/telegram.validator'
 
 export class TelegramProvider {
-  private bot: Bot<TelegramContext> | undefined = undefined
+  private client: TelegramClient
+  private running = false
+  private conversationState: ConversationState = { step: 'idle' }
+
+  constructor() {
+    this.client = new TelegramClient(env.TELEGRAM_TOKEN)
+  }
 
   start(): void {
-    if (this.bot) {
+    if (this.running) {
       logger.warn('bot is already running', 'Telegram')
       return
     }
-
-    this.bot = this.configure()
-
-    void this.bot.start()
+    this.running = true
     logger.info('bot started', 'Telegram')
+    void this.poll()
   }
 
   async stop(): Promise<void> {
-    if (this.bot) {
-      await this.bot.stop()
-      logger.info('bot stopped', 'Telegram')
-      this.bot = undefined
+    this.running = false
+    logger.info('bot stopped', 'Telegram')
+  }
+
+  private async poll(): Promise<void> {
+    let offset = 0
+    while (this.running) {
+      const updates = await this.client.getUpdates(offset)
+
+      if (isError(updates)) {
+        logError(updates)
+        await new Promise((r) => setTimeout(r, 5000))
+        continue
+      }
+
+      for (const update of updates) {
+        offset = update.update_id + 1
+        await this.handleUpdate(update)
+      }
     }
   }
 
-  private configure(): Bot<TelegramContext> {
-    const bot = new Bot<TelegramContext>(env.TELEGRAM_TOKEN)
+  private async handleUpdate(update: TelegramUpdate): Promise<void> {
+    const chatId = update.message?.chat.id ?? update.callback_query?.message?.chat.id
+    if (chatId !== env.TELEGRAM_CHAT_ID) {
+      return
+    }
 
-    bot.use(conversations())
-
-    bot.catch((error) => {
-      logError(error, 'Telegram')
-      return error.ctx.reply('An error occurred')
-    })
-
-    bot.use(createConversation(selectPreferedLanguage, { plugins: [hydrate()] }))
-
-    bot.command('setlanguage', (ctx) => ctx.conversation.enter('selectPreferedLanguage'))
-    bot.command('cancel', (ctx) => ctx.reply('Nothing to cancel'))
-
-    return bot
+    if (update.message?.text === '/setlanguage') {
+      this.conversationState = await handleSetLanguageCommand(this.client, update.message)
+      return
+    }
+    if (update.message?.text === '/cancel') {
+      this.conversationState = { step: 'idle' }
+      await this.client.sendMessage(chatId, 'Cancelled.')
+      return
+    }
+    if (update.callback_query) {
+      this.conversationState = await handleCallback(this.client, chatId, this.conversationState, update.callback_query)
+    }
   }
 }
