@@ -44,9 +44,9 @@ jobs:
 
       - name: Run semantic-release
         id: release
+        uses: cycjimmy/semantic-release-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bunx semantic-release
 
   build-binaries:
     name: Build Binary
@@ -66,11 +66,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build binary
-        run: bun build ./src/index.ts --compile --target=bun-linux-x64 --outfile autoscan
+        run: bun build ./src/index.ts --compile --target=bun-linux-x64 --outfile autoscan-linux-x64
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
+          name: autoscan-linux-x64
+          path: autoscan-linux-x64
           retention-days: 1
 
   upload-release-assets:
@@ -78,22 +80,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: [semantic-release, build-binaries]
     steps:
-      - name: Download all artifacts
+      - name: Download artifact
         uses: actions/download-artifact@v7
         with:
-          path: artifacts
+          name: autoscan-linux-x64
 
-      - name: Upload assets to GitHub release
+      - name: Upload asset to GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for dir in artifacts/autoscan-*; do
-            file=$(find "$dir" -type f | head -1)
-            name=$(basename "$dir")
-            gh release upload "${{ needs.semantic-release.outputs.new_release_git_tag }}" \
-              "$file#$name" \
-              --repo "${{ github.repository }}"
-          done
+          gh release upload "${{ needs.semantic-release.outputs.new_release_git_tag }}" \
+            autoscan-linux-x64 \
+            --repo "${{ github.repository }}"
 
   docker:
     name: Docker Build & Push
