@@ -11,8 +11,8 @@
     nixpkgs,
     flake-utils,
   }: let
-    version = "1.1.1";
-    x86_64-linux-hash = "sha256-R8vb79nLg7zTmoEXBVkKx5OlXZH588Q8f3UzQh/xtEA=";
+    version = "1.1.2";
+    x86_64-linux-hash = "sha256-VuGCqZo4R2gsLRwNB/2zUZJf7ySSUby3G+DEpQcEUgc=";
     supportedSystems = ["x86_64-linux"];
   in
     (flake-utils.lib.eachSystem supportedSystems (
