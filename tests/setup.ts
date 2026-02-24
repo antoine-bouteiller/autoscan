@@ -1,7 +1,7 @@
 import { container, TOKENS } from '@/core/container'
 import { FfmpegClient } from '@/integrations/ffmpeg.service'
 
-import { MockCloudflareClient, MockPlexClient, MockRadarrClient, MockSonarrClient, MockTmdbClient } from './config'
+import { MockCloudflareClient, MockPlexClient, MockRadarrClient, MockSonarrClient, MockTmdbClient, MockTraktClient } from './config'
 
 Object.assign(process.env, {
   NODE_ENV: 'test',
@@ -18,6 +18,8 @@ Object.assign(process.env, {
   TELEGRAM_TOKEN: 'test-telegram-token',
   TMDB_API_TOKEN: 'test-tmdb-token',
   TMDB_API_URL: 'http://tmdb.test',
+  TRAKT_CLIENT_ID: 'test-trakt-id',
+  TRAKT_CLIENT_SECRET: 'test-trakt-secret',
 })
 
 container.register(TOKENS.PLEX_CLIENT, () => new MockPlexClient())
@@ -26,3 +28,4 @@ container.register(TOKENS.CLOUDFLARE_CLIENT, () => new MockCloudflareClient())
 container.register(TOKENS.SONARR_CLIENT, () => new MockSonarrClient())
 container.register(TOKENS.RADARR_CLIENT, () => new MockRadarrClient())
 container.register(TOKENS.FFMPEG_CLIENT, () => new FfmpegClient())
+container.register(TOKENS.TRAKT_CLIENT, () => new MockTraktClient())

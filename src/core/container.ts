@@ -43,4 +43,5 @@ export const TOKENS = {
   SONARR_CLIENT: 'sonarrClient',
   TELEGRAM_PROVIDER: 'telegramProvider',
   TMDB_CLIENT: 'tmdbClient',
+  TRAKT_CLIENT: 'traktClient',
 } as const
