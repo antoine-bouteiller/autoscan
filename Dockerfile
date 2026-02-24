@@ -15,9 +15,9 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends curl xz-utils ca-certificates; \
     ARCH=$(dpkg --print-architecture); \
     case "$ARCH" in \
-      amd64) FFMPEG_ARCH="amd64" ;; \
-      arm64) FFMPEG_ARCH="arm64" ;; \
-      *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    amd64) FFMPEG_ARCH="amd64" ;; \
+    arm64) FFMPEG_ARCH="arm64" ;; \
+    *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
     esac; \
     curl -fsSL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${FFMPEG_ARCH}-static.tar.xz" -o /tmp/ffmpeg.tar.xz; \
     tar -C /tmp -xJf /tmp/ffmpeg.tar.xz; \
@@ -36,8 +36,7 @@ COPY --from=ffmpeg /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ffprobe
 
 COPY --from=prerelease /autoscan/index /autoscan/index
-COPY --from=prerelease /autoscan/migrations /autoscan/migrations
-COPY --from=prerelease /autoscan/resources /autoscan/resources
+RUN mkdir /autoscan/resources
 
 ENV DATABASE_URL=/autoscan/resources/autoscan.db
 
