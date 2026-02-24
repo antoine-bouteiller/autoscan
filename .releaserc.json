@@ -29,12 +29,23 @@
       }
     ],
     [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "bun ./scripts/update-release-assets.ts ${nextRelease.version}"
+      }
+    ],
+    [
       "@semantic-release/git",
       {
-        "assets": ["package.json"],
+        "assets": ["package.json", "flake.nix"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
-    "@semantic-release/github"
+    [
+      "@semantic-release/github",
+      {
+        "assets": [{ "path": "autoscan-linux-x64", "label": "autoscan-linux-x64" }]
+      }
+    ]
   ]
 }
