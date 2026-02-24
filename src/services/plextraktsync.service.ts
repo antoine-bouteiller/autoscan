@@ -2,13 +2,13 @@ import { container, TOKENS } from '@/core/container'
 import { TraktTokenExpiredError } from '@/errors/trakt'
 import { type IPlexClient } from '@/integrations/plex.service'
 import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from '@/integrations/trakt.service'
-import { getSyncedRatingKeys, getTokens, markManyAsSynced, upsertTokens } from '@/repositories/trakt.repository'
+import { getSyncedRatingKeys, getToken, markManyAsSynced, upsertTokens } from '@/repositories/trakt.repository'
 import { extractTmdbIdFromPath } from '@/services/metadata.service'
 import { isError, logError } from '@/utils/error'
 import { type PlexMedia } from '@/validators/plex.validator'
 
 export const getValidAccessToken = async () => {
-  const tokens = await getTokens()
+  const tokens = await getToken()
   if (!tokens) {
     return new TraktTokenExpiredError()
   }
@@ -129,7 +129,6 @@ export const syncPlexToTrakt = async () => {
   const result = await traktClient.syncWatchedHistory(accessToken, movies, shows)
 
   if (isError(result)) {
-    logError(result, 'Trakt sync failed')
     return result
   }
 

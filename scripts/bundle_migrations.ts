@@ -30,7 +30,7 @@ for (const folder of migrationFolders) {
       .replaceAll('$', String.raw`\$`)
       .replaceAll('\n', '')
 
-    output += `  {\n    name: '${folder}',\n    sql: \`${safeContent}\`\n  },\n`
+    output += `  {\n    name: '${folder}',\n    sql: \`${safeContent}\`,\n  },\n`
   }
 }
 
