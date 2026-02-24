@@ -104,49 +104,28 @@
             };
             sonarrApiUrl = lib.mkOption {type = lib.types.str;};
             radarrApiUrl = lib.mkOption {type = lib.types.str;};
-            telegramChatId = lib.mkOption {type = lib.types.str;};
           };
 
           secrets = {
-            plexToken = lib.mkOption {
-              type = lib.types.str;
-              default = "";
-            };
+            telegramChatIdFile = lib.mkOption {type = lib.types.path;};
             plexTokenFile = lib.mkOption {type = lib.types.path;};
-
-            telegramToken = lib.mkOption {
-              type = lib.types.str;
-              default = "";
-            };
             telegramTokenFile = lib.mkOption {type = lib.types.path;};
-
-            cloudflareToken = lib.mkOption {
-              type = lib.types.str;
-              default = "";
-            };
             cloudflareTokenFile = lib.mkOption {type = lib.types.path;};
-
-            tmdbApiToken = lib.mkOption {
-              type = lib.types.str;
-              default = "";
-            };
             tmdbApiTokenFile = lib.mkOption {type = lib.types.path;};
-
-            sonarrApiKey = lib.mkOption {
-              type = lib.types.str;
-              default = "";
-            };
             sonarrApiKeyFile = lib.mkOption {type = lib.types.path;};
-
-            radarrApiKey = lib.mkOption {
-              type = lib.types.str;
-              default = "";
-            };
             radarrApiKeyFile = lib.mkOption {type = lib.types.path;};
           };
         };
 
         config = lib.mkIf cfg.enable {
+          users.users.autoscan = {
+            isSystemUser = true;
+            group = "autoscan";
+            home = cfg.dataDir;
+          };
+
+          users.groups.autoscan = {};
+
           systemd.services.autoscan = {
             description = "Autoscan media automation service";
             after = ["network.target"];
@@ -158,7 +137,8 @@
               StateDirectory = "autoscan";
               WorkingDirectory = cfg.dataDir;
 
-              DynamicUser = true;
+              User = "autoscan";
+              Group = "autoscan";
               Restart = "on-failure";
 
               CapabilityBoundingSet = "";
@@ -176,18 +156,12 @@
               TMDB_API_URL = cfg.settings.tmdbApiUrl;
               SONARR_API_URL = cfg.settings.sonarrApiUrl;
               RADARR_API_URL = cfg.settings.radarrApiUrl;
-              TELEGRAM_CHAT_ID = cfg.settings.telegramChatId;
-              PLEX_TOKEN = cfg.secrets.plexToken;
+              TELEGRAM_CHAT_ID_FILE = toString cfg.secrets.telegramChatIdFile;
               PLEX_TOKEN_FILE = toString cfg.secrets.plexTokenFile;
-              TELEGRAM_TOKEN = cfg.secrets.telegramToken;
               TELEGRAM_TOKEN_FILE = toString cfg.secrets.telegramTokenFile;
-              CLOUDFLARE_TOKEN = cfg.secrets.cloudflareToken;
               CLOUDFLARE_TOKEN_FILE = toString cfg.secrets.cloudflareTokenFile;
-              TMDB_API_TOKEN = cfg.secrets.tmdbApiToken;
               TMDB_API_TOKEN_FILE = toString cfg.secrets.tmdbApiTokenFile;
-              SONARR_API_KEY = cfg.secrets.sonarrApiKey;
               SONARR_API_KEY_FILE = toString cfg.secrets.sonarrApiKeyFile;
-              RADARR_API_KEY = cfg.secrets.radarrApiKey;
               RADARR_API_KEY_FILE = toString cfg.secrets.radarrApiKeyFile;
             };
           };
