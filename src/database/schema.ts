@@ -19,4 +19,18 @@ export const media = sqliteTable(
   ]
 )
 
+export const traktTokens = sqliteTable('trakt_tokens', {
+  accessToken: text('access_token').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+  id: integer().primaryKey({ autoIncrement: true }),
+  refreshToken: text('refresh_token').notNull(),
+})
+
+export const traktSyncHistory = sqliteTable('trakt_sync_history', {
+  plexRatingKey: text('plex_rating_key').primaryKey(),
+  syncedAt: integer('synced_at', { mode: 'timestamp' }).notNull(),
+})
+
 export type Media = typeof media.$inferSelect
+export type TraktToken = typeof traktTokens.$inferSelect
+export type TraktSyncHistory = typeof traktSyncHistory.$inferSelect

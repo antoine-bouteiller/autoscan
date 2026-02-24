@@ -18,7 +18,9 @@ const streamValidator = v.object({
 
 const plexMediaValidator = v.object({
   grandparentTitle: v.optional(v.string()),
+  index: v.optional(v.number()),
   key: v.string(),
+  lastViewedAt: v.optional(v.number()),
   librarySectionID: v.optional(v.number()),
   Media: v.array(
     v.object({
@@ -31,11 +33,13 @@ const plexMediaValidator = v.object({
       ),
     })
   ),
+  parentIndex: v.optional(v.number()),
   parentTitle: v.optional(v.string()),
   primaryExtraKey: v.optional(v.string()),
   ratingKey: v.string(),
   title: v.string(),
   type: v.union([v.literal('episode'), v.literal('movie')]),
+  viewCount: v.optional(v.number()),
   year: v.number(),
 })
 

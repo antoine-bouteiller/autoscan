@@ -6,6 +6,7 @@ import { CloudflareClient } from '@/integrations/cloudflare.service'
 import { FfmpegClient } from '@/integrations/ffmpeg.service'
 import { PlexClient } from '@/integrations/plex.service'
 import { TmdbClient } from '@/integrations/tmdb.service'
+import { TraktClient } from '@/integrations/trakt.service'
 import { HttpProvider } from '@/providers/http_provider'
 import { SchedulerProvider } from '@/providers/scheduler_provider'
 import { TelegramProvider } from '@/providers/telegram_provider'
@@ -13,6 +14,15 @@ import { TelegramProvider } from '@/providers/telegram_provider'
 container.register(TOKENS.HTTP_PROVIDER, () => new HttpProvider({ port: 3030 }))
 container.register(TOKENS.SCHEDULER_PROVIDER, () => new SchedulerProvider())
 container.register(TOKENS.TELEGRAM_PROVIDER, () => new TelegramProvider())
+
+container.register(
+  TOKENS.TRAKT_CLIENT,
+  () =>
+    new TraktClient({
+      clientId: env.TRAKT_CLIENT_ID,
+      clientSecret: env.TRAKT_CLIENT_SECRET,
+    })
+)
 
 container.register(
   TOKENS.RADARR_CLIENT,

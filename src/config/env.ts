@@ -2,7 +2,17 @@ import { readFileSync } from 'node:fs'
 
 import * as v from 'valibot'
 
-for (const key of ['CLOUDFLARE_TOKEN', 'PLEX_TOKEN', 'RADARR_API_KEY', 'SONARR_API_KEY', 'TELEGRAM_CHAT_ID', 'TELEGRAM_TOKEN', 'TMDB_API_TOKEN']) {
+for (const key of [
+  'CLOUDFLARE_TOKEN',
+  'PLEX_TOKEN',
+  'RADARR_API_KEY',
+  'SONARR_API_KEY',
+  'TELEGRAM_CHAT_ID',
+  'TELEGRAM_TOKEN',
+  'TMDB_API_TOKEN',
+  'TRAKT_CLIENT_ID',
+  'TRAKT_CLIENT_SECRET',
+]) {
   const filePath = process.env[`${key}_FILE`]
   if (filePath) {
     process.env[key] = readFileSync(filePath, 'utf8').trim()
@@ -40,6 +50,8 @@ const envSchema = v.object({
   TELEGRAM_TOKEN: v.string(),
   TMDB_API_TOKEN: v.string(),
   TMDB_API_URL: urlString,
+  TRAKT_CLIENT_ID: v.string(),
+  TRAKT_CLIENT_SECRET: v.string(),
   DATABASE_URL: v.string(),
 })
 

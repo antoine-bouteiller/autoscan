@@ -1,6 +1,0 @@
-[test]
-coverageReporter=lcov
-root = "tests"
-preload = ["./tests/config.ts"]
-coverageSkipTestFiles = true
-coveragePathIgnorePatterns = ["**/integrations/**"]
