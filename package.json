@@ -15,11 +15,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@grammyjs/conversations": "^2.1.1",
-    "@grammyjs/hydrate": "^1.6.0",
     "croner": "^10.0.1",
     "drizzle-orm": "^1.0.0-beta.9-e89174b",
-    "grammy": "^1.40.0",
     "valibot": "^1.2.0"
   },
   "devDependencies": {

@@ -11,15 +11,9 @@ export class MockCloudflareClient implements ICloudflareClient {
     return '1.2.3.4'
   }
 
-  async getZoneId(zoneName: string) {
-    return mockGetZoneId(zoneName)
-  }
+  getZoneId = mockGetZoneId
 
-  async getARecord(recordName: string, zoneId: string) {
-    return mockGetARecord(recordName, zoneId)
-  }
+  getARecord = mockGetARecord
 
-  async updateDnsRecord(record: Parameters<ICloudflareClient['updateDnsRecord']>[0], ip: string, zoneId: string) {
-    void mockUpdateDnsRecord(record, ip, zoneId)
-  }
+  updateDnsRecord = mockUpdateDnsRecord
 }
