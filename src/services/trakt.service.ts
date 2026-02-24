@@ -5,8 +5,9 @@ import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from
 import { getSyncedRatingKeys, getTokens, markManyAsSynced, upsertTokens } from '@/repositories/trakt.repository'
 import { extractTmdbIdFromPath } from '@/services/metadata.service'
 import { isError, logError } from '@/utils/error'
+import { type PlexMedia } from '@/validators/plex.validator'
 
-const getValidAccessToken = async () => {
+export const getValidAccessToken = async () => {
   const tokens = await getTokens()
   if (!tokens) {
     return new TraktTokenExpiredError()
@@ -31,6 +32,84 @@ const getValidAccessToken = async () => {
   return tokens.accessToken
 }
 
+interface WatchedCollections {
+  movies: TraktMoviePayload[]
+  ratingKeysToMark: string[]
+  showsMap: Map<number, TraktShowPayload>
+}
+
+const processMovie = (item: PlexMedia, tmdbId: number, watchedAt: string, collections: WatchedCollections) => {
+  collections.movies.push({ ids: { tmdb: tmdbId }, watched_at: watchedAt })
+  collections.ratingKeysToMark.push(item.ratingKey)
+}
+
+const processEpisode = (item: PlexMedia, tmdbId: number, watchedAt: string, collections: WatchedCollections) => {
+  if (item.parentIndex === undefined || item.index === undefined) {
+    return
+  }
+
+  let show = collections.showsMap.get(tmdbId)
+  if (!show) {
+    show = { ids: { tmdb: tmdbId }, seasons: [] }
+    collections.showsMap.set(tmdbId, show)
+  }
+
+  let season = show.seasons.find((s) => s.number === item.parentIndex)
+  if (!season) {
+    season = { episodes: [], number: item.parentIndex }
+    show.seasons.push(season)
+  }
+
+  season.episodes.push({ number: item.index, watched_at: watchedAt })
+  collections.ratingKeysToMark.push(item.ratingKey)
+}
+
+const processWatchedItem = (item: PlexMedia, collections: WatchedCollections, syncedKeys: Set<string>) => {
+  if (syncedKeys.has(item.ratingKey) || !item.viewCount) {
+    return
+  }
+
+  const filePath = item.Media[0]?.Part[0]?.file
+  if (!filePath) {
+    return
+  }
+
+  const tmdbId = extractTmdbIdFromPath(filePath)
+  if (!tmdbId) {
+    return
+  }
+
+  const watchedAt = item.lastViewedAt ? new Date(item.lastViewedAt * 1000).toISOString() : new Date().toISOString()
+
+  if (item.type === 'movie') {
+    processMovie(item, tmdbId, watchedAt, collections)
+  } else if (item.type === 'episode') {
+    processEpisode(item, tmdbId, watchedAt, collections)
+  }
+}
+
+export const collectWatchedItems = async (plexClient: IPlexClient, syncedKeys: Set<string>) => {
+  const sections = await plexClient.getSections()
+  const collections: WatchedCollections = {
+    movies: [],
+    ratingKeysToMark: [],
+    showsMap: new Map<number, TraktShowPayload>(),
+  }
+
+  for (const section of sections) {
+    const items = await plexClient.getSectionMedia(section.key, section.type)
+    for (const item of items) {
+      processWatchedItem(item, collections, syncedKeys)
+    }
+  }
+
+  return {
+    movies: collections.movies,
+    ratingKeysToMark: collections.ratingKeysToMark,
+    shows: [...collections.showsMap.values()],
+  }
+}
+
 export const syncPlexToTrakt = async () => {
   const accessToken = await getValidAccessToken()
   if (isError(accessToken)) {
@@ -41,59 +120,7 @@ export const syncPlexToTrakt = async () => {
   const traktClient = container.resolve<ITraktClient>(TOKENS.TRAKT_CLIENT)
 
   const syncedKeys = await getSyncedRatingKeys()
-  const sections = await plexClient.getSections()
-
-  const movies: TraktMoviePayload[] = []
-  const showsMap = new Map<number, TraktShowPayload>()
-  const ratingKeysToMark: string[] = []
-
-  for (const section of sections) {
-    const items = await plexClient.getSectionMedia(section.key, section.type)
-
-    for (const item of items) {
-      if (syncedKeys.has(item.ratingKey)) {
-        continue
-      }
-
-      if (!item.viewCount || item.viewCount === 0) {
-        continue
-      }
-
-      const filePath = item.Media[0]?.Part[0]?.file
-      if (!filePath) {
-        continue
-      }
-
-      const tmdbId = extractTmdbIdFromPath(filePath)
-      if (!tmdbId) {
-        continue
-      }
-
-      const watchedAt = item.lastViewedAt ? new Date(item.lastViewedAt * 1000).toISOString() : new Date().toISOString()
-
-      if (item.type === 'movie') {
-        movies.push({ ids: { tmdb: tmdbId }, watched_at: watchedAt })
-        ratingKeysToMark.push(item.ratingKey)
-      } else if (item.type === 'episode' && item.parentIndex !== undefined && item.index !== undefined) {
-        let show = showsMap.get(tmdbId)
-        if (!show) {
-          show = { ids: { tmdb: tmdbId }, seasons: [] }
-          showsMap.set(tmdbId, show)
-        }
-
-        let season = show.seasons.find((s) => s.number === item.parentIndex)
-        if (!season) {
-          season = { episodes: [], number: item.parentIndex }
-          show.seasons.push(season)
-        }
-
-        season.episodes.push({ number: item.index, watched_at: watchedAt })
-        ratingKeysToMark.push(item.ratingKey)
-      }
-    }
-  }
-
-  const shows = [...showsMap.values()]
+  const { movies, ratingKeysToMark, shows } = await collectWatchedItems(plexClient, syncedKeys)
 
   if (movies.length === 0 && shows.length === 0) {
     return { episodes: 0, movies: 0 }
