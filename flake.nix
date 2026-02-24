@@ -96,6 +96,8 @@
             tmdbApiTokenFile = lib.mkOption {type = lib.types.path;};
             sonarrApiKeyFile = lib.mkOption {type = lib.types.path;};
             radarrApiKeyFile = lib.mkOption {type = lib.types.path;};
+            traktClientIdFile = lib.mkOption {type = lib.types.path;};
+            traktClientSecretFile = lib.mkOption {type = lib.types.path;};
           };
         };
 
@@ -152,6 +154,8 @@
               TMDB_API_TOKEN_FILE = toString cfg.secrets.tmdbApiTokenFile;
               SONARR_API_KEY_FILE = toString cfg.secrets.sonarrApiKeyFile;
               RADARR_API_KEY_FILE = toString cfg.secrets.radarrApiKeyFile;
+              TRAKT_CLIENT_ID_FILE = toString cfg.secrets.traktClientIdFile;
+              TRAKT_CLIENT_SECRET_FILE = toString cfg.secrets.traktClientSecretFile;
 
               DATABASE_URL = "${cfg.dataDir}/autoscan.db";
             };
