@@ -121,7 +121,9 @@ export class TelegramProvider {
 
   private async handleUpdate(update: TelegramUpdate): Promise<void> {
     const chatId = update.message?.chat.id ?? update.callback_query?.message?.chat.id
+
     if (chatId !== env.TELEGRAM_CHAT_ID) {
+      logger.warn(`(Telegram) Unknown chat sender ${chatId}`)
       return
     }
 

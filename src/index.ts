@@ -14,9 +14,7 @@ const telegramProvider = container.resolve<TelegramProvider>(TOKENS.TELEGRAM_PRO
 
 httpProvider.start()
 
-if (process.env.NODE_ENV !== 'development') {
-  telegramProvider.start()
-}
+telegramProvider.start()
 
 process.on('SIGINT', async () => {
   logger.info('Shutting down gracefully...')

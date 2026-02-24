@@ -3,13 +3,21 @@ import { HttpError } from '@/errors/http'
 import { type ITelegramClient } from '@/integrations/telegram.service'
 import { type ITraktClient } from '@/integrations/trakt.service'
 import { upsertTokens } from '@/repositories/trakt.repository'
-import { syncPlexToTrakt } from '@/services/trakt.service'
+import { getValidAccessToken, syncPlexToTrakt } from '@/services/plextraktsync.service'
 import { type ConversationState } from '@/types/telegram'
-import { isError, logError } from '@/utils/error'
+import { isError, isOk, logError } from '@/utils/error'
 import { type TelegramMessageIn } from '@/validators/telegram.validator'
 
 export const traktAuthCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
   const traktClient = container.resolve<ITraktClient>(TOKENS.TRAKT_CLIENT)
+
+  const token = await getValidAccessToken()
+
+  if (isOk(token)) {
+    await client.sendMessage(message.chat.id, 'Already authentified.')
+    return { step: 'idle' }
+  }
+
   const result = await traktClient.getDeviceCode()
 
   if (isError(result)) {
@@ -27,7 +35,6 @@ export const traktAuthCommand = async (client: ITelegramClient, message: Telegra
 
   await client.sendMessage(message.chat.id, authMessage, undefined, 'Markdown')
 
-  // Poll for token in background
   void (async () => {
     const start = Date.now()
     const expiresAt = start + result.expires_in * 1000
@@ -41,14 +48,9 @@ export const traktAuthCommand = async (client: ITelegramClient, message: Telegra
       if (isError(tokenResult)) {
         if (tokenResult instanceof HttpError) {
           if (tokenResult.status === 400) {
-            // Authorization_pending or slow_down
-            // Slow_down: the client should increase the interval by 5 seconds.
-            // But we don't have the body easily parsed here without more effort,
-            // So we'll just keep polling for now.
             continue
           }
         }
-        // Fatal error for polling
         break
       }
 
