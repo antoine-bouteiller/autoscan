@@ -120,7 +120,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: antobouteiller/autoscan:${{ github.sha }}, antobouteiller/autoscan:latest
+          tags: antobouteiller/autoscan:${{ needs.semantic-release.outputs.new_release_version }}, antobouteiller/autoscan:latest
           cache-from: type=registry,ref=antobouteiller/autoscan:buildcache
           cache-to: type=registry,ref=antobouteiller/autoscan:buildcache,mode=max
 
@@ -150,7 +150,7 @@ jobs:
           sri="sha256:${hash}"
           nix_hash=$(nix hash convert --to sri "$sri" 2>/dev/null || echo "sha256-$(echo "$hash" | xxd -r -p | base64)")
 
-          sed -i "s|x86_64-linux-hash = \".*\";|x86_64-linux-hash = \"${nix_hash}\";|" flake.nix
+          sed -i "s|hash = \".*\";|hash = \"${nix_hash}\";|" flake.nix
 
       - name: Commit and push updated flake
         run: |
