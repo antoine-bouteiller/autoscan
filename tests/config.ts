@@ -9,6 +9,7 @@ export { MockPlexClient } from './mocks/plex.mock'
 export { MockRadarrClient } from './mocks/radarr.mock'
 export { MockSonarrClient } from './mocks/sonarr.mock'
 export { MockTmdbClient } from './mocks/tmdb.mock'
+export { MockTraktClient } from './mocks/trakt.mock'
 
 export const testWithTestDir = it.extend<{ testDir: string }>({
   testDir: async ({ expect }, use) => {

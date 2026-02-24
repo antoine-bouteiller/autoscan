@@ -5,8 +5,8 @@ import { getUpdatesResponseSchema, sendMessageResponseSchema, type TelegramUpdat
 
 export interface ITelegramClient {
   getUpdates(offset?: number): Promise<TelegramUpdate[] | Error>
-  sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup): Promise<number | undefined>
-  editMessageText(chatId: number, messageId: number, text: string, replyMarkup?: InlineKeyboardMarkup): Promise<void>
+  sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<number | undefined>
+  editMessageText(chatId: number, messageId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<void>
   deleteMessage(chatId: number, messageId: number): Promise<void>
   answerCallbackQuery(callbackQueryId: string): Promise<void>
 }
@@ -35,9 +35,9 @@ export class TelegramClient implements ITelegramClient {
     return result.result
   }
 
-  async sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup): Promise<number | undefined> {
+  async sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<number | undefined> {
     const result = await this.client.post('sendMessage', {
-      body: { chat_id: chatId, text, reply_markup: replyMarkup },
+      body: { chat_id: chatId, text, reply_markup: replyMarkup, parse_mode: parseMode },
       validator: sendMessageResponseSchema,
     })
     if (isError(result)) {
@@ -47,9 +47,9 @@ export class TelegramClient implements ITelegramClient {
     return result.result.message_id
   }
 
-  async editMessageText(chatId: number, messageId: number, text: string, replyMarkup?: InlineKeyboardMarkup): Promise<void> {
+  async editMessageText(chatId: number, messageId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<void> {
     const result = await this.client.post('editMessageText', {
-      body: { chat_id: chatId, message_id: messageId, text, reply_markup: replyMarkup },
+      body: { chat_id: chatId, message_id: messageId, text, reply_markup: replyMarkup, parse_mode: parseMode },
     })
     if (isError(result)) {
       logError(result, 'Telegram')
