@@ -23,14 +23,11 @@
       };
 
       dontUnpack = true;
-
-      nativeBuildInputs = [pkgs.autoPatchelfHook pkgs.makeWrapper];
-      buildInputs = [pkgs.stdenv.cc.cc.lib];
+      dontStrip = true;
+      dontPatchELF = true;
 
       installPhase = ''
-        install -Dm755 $src $out/libexec/autoscan
-        makeWrapper $out/libexec/autoscan $out/bin/autoscan \
-          --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.ffmpeg]}
+        install -Dm755 $src $out/bin/autoscan
       '';
 
       meta = with pkgs.lib; {
@@ -103,6 +100,8 @@
         };
 
         config = lib.mkIf cfg.enable {
+          programs.nix-ld.enable = true;
+
           users.users.autoscan = {
             isSystemUser = true;
             group = "autoscan";
@@ -115,6 +114,8 @@
             description = "Autoscan media automation service";
             after = ["network.target"];
             wantedBy = ["multi-user.target"];
+
+            path = [pkgs.ffmpeg];
 
             serviceConfig = {
               ExecStart = "${cfg.package}/bin/autoscan";
@@ -135,6 +136,8 @@
             };
 
             environment = {
+              NIX_LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.stdenv.cc.cc.lib];
+
               PORT = toString cfg.port;
               PLEX_URL = cfg.settings.plexUrl;
               DOMAIN = cfg.settings.domain;
