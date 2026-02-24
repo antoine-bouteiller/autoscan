@@ -29,7 +29,9 @@ export const runMigrations = (sqlite: Database) => {
     for (const migration of migrations) {
       if (!appliedNames.has(migration.name)) {
         logger.info(`Running migration: ${migration.name}`)
-        sqlite.run(migration.sql)
+        for (const statement of migration.statements) {
+          sqlite.run(statement)
+        }
 
         sqlite.query(`INSERT INTO __drizzle_migrations (name) VALUES (?)`).run(migration.name)
         count++

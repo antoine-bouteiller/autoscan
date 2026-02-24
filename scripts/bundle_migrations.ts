@@ -25,12 +25,22 @@ for (const folder of migrationFolders) {
   if (existsSync(sqlFilePath)) {
     const content = readFileSync(sqlFilePath, 'utf8')
 
-    const safeContent = content
-      .replaceAll('`', '\\`')
-      .replaceAll('$', String.raw`\$`)
-      .replaceAll('\n', '')
+    const statements = content
+      .split('--> statement-breakpoint')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .map((s) =>
+        s
+          .replaceAll('`', '\\`')
+          .replaceAll('$', String.raw`\$`)
+          .replaceAll('\n', '')
+      )
 
-    output += `  {\n    name: '${folder}',\n    sql: \`${safeContent}\`,\n  },\n`
+    output += `  {\n    name: '${folder}',\n    statements: [\n`
+    for (const statement of statements) {
+      output += `      \`${statement}\`,\n`
+    }
+    output += `    ],\n  },\n`
   }
 }
 
