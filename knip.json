@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "tags": ["-lintignore"],
-  "ignoreDependencies": ["@commitlint/cli", "@vitest/coverage-v8"],
+  "ignoreDependencies": ["@commitlint/cli", "@semantic-release/*", "conventional-changelog-conventionalcommits"],
   "entry": ["src/index.ts", "tests/**/*.spec.ts"],
   "project": ["src/**/*.ts", "tests/**/*.ts"]
 }

@@ -1,9 +1,15 @@
-name: Publish to Docker Hub
+name: Release & Publish
 
 on:
   push:
     branches:
       - main
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
 
 jobs:
   quality-checks:
@@ -11,13 +17,93 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/quality-checks.yaml
 
-  deploy:
-    name: Deploy to Docker Hub
+  semantic-release:
+    name: Semantic Release
     runs-on: ubuntu-latest
     needs: [quality-checks]
+    outputs:
+      new_release_published: ${{ steps.release.outputs.new_release_published }}
+      new_release_version: ${{ steps.release.outputs.new_release_version }}
+      new_release_git_tag: ${{ steps.release.outputs.new_release_git_tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run semantic-release
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bunx semantic-release
+
+  build-binaries:
+    name: Build Binary
+    runs-on: ubuntu-latest
+    needs: [semantic-release]
+    if: needs.semantic-release.outputs.new_release_published == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.semantic-release.outputs.new_release_git_tag }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build binary
+        run: bun build ./src/index.ts --compile --target=bun-linux-x64 --outfile autoscan
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          retention-days: 1
+
+  upload-release-assets:
+    name: Upload Release Assets
+    runs-on: ubuntu-latest
+    needs: [semantic-release, build-binaries]
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: Upload assets to GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for dir in artifacts/autoscan-*; do
+            file=$(find "$dir" -type f | head -1)
+            name=$(basename "$dir")
+            gh release upload "${{ needs.semantic-release.outputs.new_release_git_tag }}" \
+              "$file#$name" \
+              --repo "${{ github.repository }}"
+          done
+
+  docker:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [semantic-release]
+    if: needs.semantic-release.outputs.new_release_published == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.semantic-release.outputs.new_release_git_tag }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -35,3 +121,40 @@ jobs:
           tags: antobouteiller/autoscan:${{ github.sha }}, antobouteiller/autoscan:latest
           cache-from: type=registry,ref=antobouteiller/autoscan:buildcache
           cache-to: type=registry,ref=antobouteiller/autoscan:buildcache,mode=max
+
+  update-nix-flake:
+    name: Update Nix Flake Hashes
+    runs-on: ubuntu-latest
+    needs: [semantic-release, upload-release-assets]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Update flake hashes
+        env:
+          VERSION: ${{ needs.semantic-release.outputs.new_release_version }}
+        run: |
+          TAG="v${VERSION}"
+          URL="https://github.com/antoine-bouteiller/autoscan/releases/download/${TAG}/autoscan-linux-x64"
+
+          sed -i "s/version = \".*\";/version = \"${VERSION}\";/" flake.nix
+
+          hash=$(nix-prefetch-url --type sha256 "$URL" 2>/dev/null)
+          sri="sha256:${hash}"
+          nix_hash=$(nix hash convert --to sri "$sri" 2>/dev/null || echo "sha256-$(echo "$hash" | xxd -r -p | base64)")
+
+          sed -i "s|x86_64-linux-hash = \".*\";|x86_64-linux-hash = \"${nix_hash}\";|" flake.nix
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'chore(nix): update flake hashes for v${{ needs.semantic-release.outputs.new_release_version }}'
+          title: 'chore(nix): update flake hashes for v${{ needs.semantic-release.outputs.new_release_version }}'
+          body: 'Automated update of Nix flake hashes for release v${{ needs.semantic-release.outputs.new_release_version }}.'
+          branch: nix/update-hashes-v${{ needs.semantic-release.outputs.new_release_version }}
+          base: main

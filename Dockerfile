@@ -10,11 +10,16 @@ RUN bun run build
 
 # Download ffmpeg static binaries (cached layer - changes rarely)
 FROM base AS ffmpeg
-ARG FFMPEG_STATIC_URL=https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends curl xz-utils ca-certificates; \
-    curl -fsSL "$FFMPEG_STATIC_URL" -o /tmp/ffmpeg.tar.xz; \
+    ARCH=$(dpkg --print-architecture); \
+    case "$ARCH" in \
+      amd64) FFMPEG_ARCH="amd64" ;; \
+      arm64) FFMPEG_ARCH="arm64" ;; \
+      *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac; \
+    curl -fsSL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${FFMPEG_ARCH}-static.tar.xz" -o /tmp/ffmpeg.tar.xz; \
     tar -C /tmp -xJf /tmp/ffmpeg.tar.xz; \
     mv /tmp/ffmpeg-*/ffmpeg /tmp/ffmpeg-*/ffprobe /usr/local/bin/; \
     chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe; \

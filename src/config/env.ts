@@ -1,6 +1,14 @@
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import * as v from 'valibot'
+
+for (const key of ['CLOUDFLARE_TOKEN', 'PLEX_TOKEN', 'RADARR_API_KEY', 'SONARR_API_KEY', 'TELEGRAM_CHAT_ID', 'TELEGRAM_TOKEN', 'TMDB_API_TOKEN']) {
+  const filePath = process.env[`${key}_FILE`]
+  if (filePath) {
+    process.env[key] = readFileSync(filePath, 'utf8').trim()
+  }
+}
 
 const numberFromString = v.pipe(
   v.string(),
