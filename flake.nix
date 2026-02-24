@@ -163,6 +163,7 @@
               TMDB_API_TOKEN_FILE = toString cfg.secrets.tmdbApiTokenFile;
               SONARR_API_KEY_FILE = toString cfg.secrets.sonarrApiKeyFile;
               RADARR_API_KEY_FILE = toString cfg.secrets.radarrApiKeyFile;
+              DATABASE_URL = "${cfg.dataDir}/autoscan.db";
             };
           };
         };

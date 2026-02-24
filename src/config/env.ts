@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 
 import * as v from 'valibot'
 
@@ -41,11 +40,9 @@ const envSchema = v.object({
   TELEGRAM_TOKEN: v.string(),
   TMDB_API_TOKEN: v.string(),
   TMDB_API_URL: urlString,
+  DATABASE_URL: v.string(),
 })
 
 const env = v.parse(envSchema, process.env)
 
-export default {
-  ...env,
-  DATABASE_URL: process.env['DATABASE_URL'] ?? join(__dirname, '../../resources/autoscan.db'),
-}
+export default env

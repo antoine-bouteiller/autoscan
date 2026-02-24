@@ -39,6 +39,8 @@ COPY --from=prerelease /autoscan/index /autoscan/index
 COPY --from=prerelease /autoscan/migrations /autoscan/migrations
 COPY --from=prerelease /autoscan/resources /autoscan/resources
 
+ENV DATABASE_URL=/autoscan/resources/autoscan.db
+
 USER 1000
 
 EXPOSE 3030
