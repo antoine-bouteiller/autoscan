@@ -1,7 +1,8 @@
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 
 import * as v from 'valibot'
 
+import { FileNotFoundError } from '@/errors/transcode'
 import { ValidationError } from '@/errors/validation'
 import { spawnPromise } from '@/utils/exec_promisify'
 import { ffprobeOutputValidator } from '@/validators/ffmpeg.validator'
@@ -10,6 +11,10 @@ import { isError } from '../utils/error'
 
 export class FfmpegClient {
   executeFfmpeg(id: number, input: string, output: string, command: string[]) {
+    if (!existsSync(input)) {
+      return new FileNotFoundError({ filePath: input })
+    }
+
     const path = input.split('/')
     path.pop()
 
@@ -28,6 +33,10 @@ export class FfmpegClient {
   }
 
   async ffprobe(input: string) {
+    if (!existsSync(input)) {
+      return new FileNotFoundError({ filePath: input })
+    }
+
     const output = await spawnPromise('ffprobe', [
       '-loglevel',
       'error',
