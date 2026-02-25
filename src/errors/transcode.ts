@@ -19,3 +19,8 @@ export class FileNameInvalidError extends createTaggedError({
   name: 'FileNameInvalidError',
   message: '($mediaTitle) File name not initialized',
 }) {}
+
+export class FileNotFoundError extends createTaggedError({
+  name: 'FileNotFoundError',
+  message: '($filePath) File not found',
+}) {}

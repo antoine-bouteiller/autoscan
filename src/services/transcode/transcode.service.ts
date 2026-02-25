@@ -1,7 +1,10 @@
+import { resolve } from 'node:path'
+
 import { logger } from '@/config/logger'
 import { container, TOKENS } from '@/core/container'
-import { FileNameInvalidError } from '@/errors/transcode'
+import { FileNameInvalidError, FileNotFoundError } from '@/errors/transcode'
 import type { FfmpegClient } from '@/integrations/ffmpeg.service'
+import type { IPlexClient } from '@/integrations/plex.service'
 import type { ISOCode1 } from '@/types/iso_codes'
 import type { TranscodeJob } from '@/types/transcode'
 
@@ -11,6 +14,18 @@ import { handlePostTranscode } from './helpers/post_process'
 import { processSubtitleStreams } from './helpers/subtitle'
 import { simpleHash } from './helpers/utils'
 import { processVideoStreams } from './helpers/video'
+
+const refreshPlexSections = async (filePath: string, mediaType: 'movie' | 'show') => {
+  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const sections = await plexClient.getSections()
+  const fileDirectory = resolve(filePath, '..')
+
+  logger.info(`File not found, refreshing Plex sections`, 'Transcode')
+
+  await Promise.all(
+    (sections ?? []).filter((section) => section.type === mediaType).map((section) => plexClient.refreshSection(section.key, fileDirectory))
+  )
+}
 
 class TranscodeQueue {
   private currentJob?: TranscodeJob
@@ -82,6 +97,9 @@ class TranscodeQueue {
 
         if (isError(subtitleResult)) {
           logError(subtitleResult, 'Queue')
+          if (subtitleResult instanceof FileNotFoundError) {
+            await refreshPlexSections(job.file, job.mediaType)
+          }
           subtitleFailed = true
           break
         }
@@ -98,6 +116,9 @@ class TranscodeQueue {
 
       if (isError(transcodeResult)) {
         logError(transcodeResult, 'Queue')
+        if (transcodeResult instanceof FileNotFoundError) {
+          await refreshPlexSections(job.file, job.mediaType)
+        }
         this.currentJob = undefined
         continue
       }
@@ -179,6 +200,9 @@ export const transcodeFile = async (file: string, mediaTitle: string, originalLa
 
   if (isError(result)) {
     logError(result, 'transcodeFile')
+    if (result instanceof FileNotFoundError) {
+      await refreshPlexSections(file, mediaType)
+    }
     return false
   }
 
