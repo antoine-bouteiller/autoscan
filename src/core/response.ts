@@ -16,7 +16,7 @@ const createResponse = <T>(body: ApiResponse<T>, status: number): Response =>
 
 export const success = <T>(data: T, status = 200): Response => createResponse({ data, success: true }, status)
 
-export const error = (code: string, message: string, status = 500, details?: unknown): Response =>
+const error = (code: string, message: string, status = 500, details?: unknown): Response =>
   createResponse(
     {
       error: { code, details, message },
