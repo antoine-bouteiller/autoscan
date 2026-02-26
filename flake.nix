@@ -71,6 +71,18 @@
             default = 3030;
             description = "Port for autoscan to listen on.";
           };
+
+          user = lib.mkOption {
+            type = lib.types.str;
+            default = "autoscan";
+            description = "User account under which Autoscan runs";
+          };
+          group = lib.mkOption {
+            type = lib.types.str;
+            default = "autoscan";
+            description = "Group under which Autoscan runs";
+          };
+
           settings = {
             plexUrl = lib.mkOption {
               type = lib.types.str;
@@ -104,13 +116,17 @@
         config = lib.mkIf cfg.enable {
           programs.nix-ld.enable = true;
 
-          users.users.autoscan = {
-            isSystemUser = true;
-            group = "autoscan";
-            home = cfg.dataDir;
+          users.users = lib.mkIf (cfg.user == "autoscan") {
+            autoscan = {
+              group = cfg.group;
+              home = cfg.dataDir;
+              uid = 990;
+            };
           };
 
-          users.groups.autoscan = {};
+          users.groups = lib.mkIf (cfg.group == "autoscan") {
+            autoscan.gid = 990;
+          };
 
           systemd.services.autoscan = {
             description = "Autoscan media automation service";
@@ -133,8 +149,6 @@
               NoNewPrivileges = true;
               PrivateDevices = true;
               ProtectHome = true;
-              ProtectSystem = "strict";
-              ReadWritePaths = [cfg.dataDir];
             };
 
             environment = {
