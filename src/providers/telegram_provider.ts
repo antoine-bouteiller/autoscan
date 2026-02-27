@@ -1,6 +1,7 @@
 import env from '@/config/env'
 import { logger } from '@/config/logger'
-import { TelegramClient, type ITelegramClient } from '@/integrations/telegram.service'
+import { container, TOKENS } from '@/core/container'
+import type { ITelegramClient } from '@/integrations/telegram.service'
 import type { ConversationState } from '@/types/telegram'
 import { isError, logError } from '@/utils/error'
 import type { TelegramCallbackQuery, TelegramMessageIn, TelegramUpdate } from '@/validators/telegram.validator'
@@ -26,7 +27,7 @@ export class TelegramProvider {
   private activeConversationKey?: string
 
   constructor() {
-    this.client = new TelegramClient(env.TELEGRAM_TOKEN)
+    this.client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
   }
 
   registerCommand(command: string, handler: CommandHandler): this {

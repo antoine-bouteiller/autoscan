@@ -5,6 +5,7 @@ import { SonarrClient } from '@/integrations/arr/sonarr.service'
 import { CloudflareClient } from '@/integrations/cloudflare.service'
 import { FfmpegClient } from '@/integrations/ffmpeg.service'
 import { PlexClient } from '@/integrations/plex.service'
+import { TelegramClient } from '@/integrations/telegram.service'
 import { TmdbClient } from '@/integrations/tmdb.service'
 import { TraktClient } from '@/integrations/trakt.service'
 import { HttpProvider } from '@/providers/http_provider'
@@ -13,6 +14,7 @@ import { TelegramProvider } from '@/providers/telegram_provider'
 
 container.register(TOKENS.HTTP_PROVIDER, () => new HttpProvider({ port: 3030 }))
 container.register(TOKENS.SCHEDULER_PROVIDER, () => new SchedulerProvider())
+container.register(TOKENS.TELEGRAM_CLIENT, () => new TelegramClient(env.TELEGRAM_TOKEN))
 container.register(TOKENS.TELEGRAM_PROVIDER, () => new TelegramProvider())
 
 container.register(

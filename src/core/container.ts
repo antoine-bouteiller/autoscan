@@ -41,6 +41,7 @@ export const TOKENS = {
   RADARR_CLIENT: 'radarrClient',
   SCHEDULER_PROVIDER: 'schedulerProvider',
   SONARR_CLIENT: 'sonarrClient',
+  TELEGRAM_CLIENT: 'telegramClient',
   TELEGRAM_PROVIDER: 'telegramProvider',
   TMDB_CLIENT: 'tmdbClient',
   TRAKT_CLIENT: 'traktClient',
