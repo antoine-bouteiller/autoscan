@@ -8,6 +8,7 @@ export { MockCloudflareClient } from './mocks/cloudflare.mock'
 export { MockPlexClient } from './mocks/plex.mock'
 export { MockRadarrClient } from './mocks/radarr.mock'
 export { MockSonarrClient } from './mocks/sonarr.mock'
+export { MockTelegramClient } from './mocks/telegram.mock'
 export { MockTmdbClient } from './mocks/tmdb.mock'
 export { MockTraktClient } from './mocks/trakt.mock'
 

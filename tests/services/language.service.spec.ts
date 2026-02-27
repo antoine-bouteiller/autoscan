@@ -2,7 +2,9 @@ import { and, eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
 import { db } from '@/config/db'
+import { container, TOKENS } from '@/core/container'
 import { media as mediaTable, type Media } from '@/database/schema'
+import type { ITelegramClient } from '@/integrations/telegram.service'
 import {
   buildLanguageKeyboard,
   buildMediaKeyboard,
@@ -18,7 +20,7 @@ import type { PlexMediaStream } from '@/validators/plex.validator'
 
 import '../config'
 import { updateStreamMock } from '../mocks/plex.mock'
-import { editMessageTextMock, MockTelegramClient } from '../mocks/telegram.mock'
+import { editMessageTextMock } from '../mocks/telegram.mock'
 import {
   mockAudioStreamFrench,
   mockAudioStreamNotMatching,
@@ -103,12 +105,12 @@ describe('buildLanguageKeyboard', () => {
 })
 
 describe('selectMediaType', () => {
+  const client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
   beforeEach(() => {
     editMessageTextMock.mockReset()
   })
 
   test('should return idle state when media list is empty', async () => {
-    const client = new MockTelegramClient()
     const state = { step: 'awaiting_media_type' as const, messageId: 42 }
 
     const result = await selectMediaType(client, 1, state, 'movie')
@@ -119,7 +121,6 @@ describe('selectMediaType', () => {
 
   test('should return awaiting_media_selection state with non-empty media list', async () => {
     await db.insert(mediaTable).values(makeMedia(3))
-    const client = new MockTelegramClient()
     const state = { step: 'awaiting_media_type' as const, messageId: 42 }
 
     const result = await selectMediaType(client, 1, state, 'movie')
@@ -135,13 +136,13 @@ describe('selectMediaType', () => {
 })
 
 describe('navigateMediaPage', () => {
+  const client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
   beforeEach(() => {
     editMessageTextMock.mockReset()
   })
 
   test('should update message and return state with new page', async () => {
     await db.insert(mediaTable).values(makeMedia(15))
-    const client = new MockTelegramClient()
     const state = { step: 'awaiting_media_selection' as const, messageId: 42, mediaType: 'movie' as const, page: 0 }
 
     const result = await navigateMediaPage(client, 1, state, 1)
@@ -157,13 +158,13 @@ describe('navigateMediaPage', () => {
 })
 
 describe('selectMedia', () => {
+  const client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
   beforeEach(() => {
     editMessageTextMock.mockReset()
   })
 
   test('should return unchanged state when tmdbId not found', async () => {
     await db.insert(mediaTable).values(makeMedia(3))
-    const client = new MockTelegramClient()
     const state = { step: 'awaiting_media_selection' as const, messageId: 42, mediaType: 'movie' as const, page: 0 }
 
     const result = await selectMedia(client, 1, state, 999)
@@ -174,7 +175,6 @@ describe('selectMedia', () => {
 
   test('should return awaiting_language state when tmdbId is found', async () => {
     await db.insert(mediaTable).values(makeMedia(3))
-    const client = new MockTelegramClient()
     const state = { step: 'awaiting_media_selection' as const, messageId: 42, mediaType: 'movie' as const, page: 0 }
 
     const result = await selectMedia(client, 1, state, 2)
@@ -190,13 +190,13 @@ describe('selectMedia', () => {
 })
 
 describe('selectLanguage', () => {
+  const client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
   beforeEach(() => {
     editMessageTextMock.mockReset()
   })
 
   test('should update preferred language in db, edit message, and return idle state', async () => {
     await db.insert(mediaTable).values({ tmdbId: 1, title: 'Test Movie', type: 'movie', originalLanguage: 'en', preferredLanguage: 'en' })
-    const client = new MockTelegramClient()
     const state = { step: 'awaiting_language' as const, messageId: 42, tmdbId: 1, mediaType: 'movie' as const }
 
     const result = await selectLanguage(client, 1, state, 'fr')
