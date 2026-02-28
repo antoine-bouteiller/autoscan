@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { logger } from '@/config/logger'
@@ -97,9 +98,6 @@ class TranscodeQueue {
 
         if (isError(subtitleResult)) {
           logError(subtitleResult, 'Queue')
-          if (subtitleResult instanceof FileNotFoundError) {
-            await refreshPlexSections(job.file, job.mediaType)
-          }
           subtitleFailed = true
           break
         }
@@ -116,9 +114,6 @@ class TranscodeQueue {
 
       if (isError(transcodeResult)) {
         logError(transcodeResult, 'Queue')
-        if (transcodeResult instanceof FileNotFoundError) {
-          await refreshPlexSections(job.file, job.mediaType)
-        }
         this.currentJob = undefined
         continue
       }
@@ -196,13 +191,17 @@ const getTranscodeCommand = async (file: string, mediaTitle: string, originalLan
 }
 
 export const transcodeFile = async (file: string, mediaTitle: string, originalLanguage: ISOCode1, mediaType: 'movie' | 'show') => {
+  if (!existsSync(file)) {
+    const error = new FileNotFoundError({ filePath: file })
+    logError(error, 'transcodeFile')
+    await refreshPlexSections(file, mediaType)
+    return false
+  }
+
   const result = await getTranscodeCommand(file, mediaTitle, originalLanguage)
 
   if (isError(result)) {
     logError(result, 'transcodeFile')
-    if (result instanceof FileNotFoundError) {
-      await refreshPlexSections(file, mediaType)
-    }
     return false
   }
 
