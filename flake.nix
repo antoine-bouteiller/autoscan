@@ -11,7 +11,7 @@
   }: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
-    version = "1.2.1";
+    version = "1.3.0";
 
     autoscan = pkgs.stdenv.mkDerivation {
       pname = "autoscan";
@@ -19,7 +19,7 @@
 
       src = pkgs.fetchurl {
         url = "https://github.com/antoine-bouteiller/autoscan/releases/download/v${version}/autoscan-linux-x64";
-        hash = "sha256-AWzaPrny3fvt9kl6EmxOBZIRVeM3sQ2bpk1IW8SOKRY=";
+        hash = "sha256-wQW5BzEQYCtb2bBit1wJ3yt5SgjKODfNSvJnWP9lXgM=";
       };
 
       dontUnpack = true;
