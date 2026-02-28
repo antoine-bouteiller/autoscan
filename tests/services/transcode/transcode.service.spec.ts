@@ -1,15 +1,16 @@
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
 import { container, TOKENS } from '@/core/container'
-import type { FfmpegClient } from '@/integrations/ffmpeg.service.js'
-import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service.js'
-import type { FFprobeStream } from '@/validators/ffmpeg.validator.js'
+import type { FfmpegClient } from '@/integrations/ffmpeg.service'
+import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service'
+import { isOk } from '@/utils/error'
+import type { FFprobeStream } from '@/validators/ffmpeg.validator'
 
-import { isOk } from '../../../src/utils/error.js'
 import { testWithTestDir, videosPath } from '../../config.js'
+import { refreshSectionMock } from '../../mocks/plex.mock.js'
 
 const waitForQueueCompletion = async (): Promise<void> =>
   new Promise((resolve) => {
@@ -118,5 +119,13 @@ describe('Transcode', () => {
         expect(streams[stream.index]?.tags?.language).toBe(stream.language)
       }
     }
+  })
+
+  test('Should refresh section when file not found', async () => {
+    const executed = await transcodeFile('unkown file.mp4', 'test', 'en', 'movie')
+
+      expect(executed).toBe(false)
+
+      expect(refreshSectionMock).toHaveBeenCalled()
   })
 })
