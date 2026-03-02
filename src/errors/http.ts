@@ -4,5 +4,5 @@ export type HttpErrorFormatter = (body: unknown) => string
 
 export class HttpError extends createTaggedError({
   name: 'HttpError',
-  message: '($serviceName) API error ($status): $body',
+  message: '($serviceName)($route) API error ($status): $body',
 }) {}

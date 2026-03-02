@@ -15,10 +15,19 @@ const parseVariables = (message: string): string[] => {
 
 const RESERVED_KEYS = new Set(['_tag', 'messageTemplate', 'fingerprint', 'name', 'stack'])
 
+const safeStringify = (value: unknown): string => {
+  if (['number', 'string', 'null'].includes(typeof value)) {
+    return String(value)
+  }
+
+  return JSON.stringify(value)
+}
+
 const interpolateMessage = (template: string, values: Record<string, unknown>): string =>
   template.replace(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, varName) => {
     const value = values[varName]
-    return value !== undefined ? JSON.stringify(value) : `$${varName}`
+
+    return value !== undefined ? safeStringify(value) : `$${varName}`
   })
 
 export const createTaggedError = <Tag extends string, Msg extends string>({

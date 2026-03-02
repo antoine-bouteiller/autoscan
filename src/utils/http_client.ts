@@ -49,7 +49,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     try {
       response = await fetch(url, {
         method,
-        headers: { ...globalHeaders, ...headers },
+        headers: { ...globalHeaders, ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers },
         body: body ? JSON.stringify(body) : undefined,
       })
     } catch (error) {
@@ -59,7 +59,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     if (!response.ok) {
       const errorData: unknown = await response.json().catch(() => response.statusText)
 
-      return new HttpError({ serviceName, status: response.status, body: (errorFormatter ?? defaultFormatter)(errorData) })
+      return new HttpError({ serviceName, route: endpoint, status: response.status, body: (errorFormatter ?? defaultFormatter)(errorData) })
     }
 
     if (!validator) {
