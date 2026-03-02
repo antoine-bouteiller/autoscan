@@ -28,7 +28,17 @@ const plexMediaValidator = v.object({
         v.object({
           file: v.string(),
           id: v.number(),
-          Stream: v.optional(v.array(streamValidator)),
+          Stream: v.optional(
+            v.pipe(
+              v.array(v.unknown()),
+              v.transform((items) =>
+                items.flatMap((item) => {
+                  const result = v.safeParse(streamValidator, item)
+                  return result.success ? [result.output] : []
+                })
+              )
+            )
+          ),
         })
       ),
     })
