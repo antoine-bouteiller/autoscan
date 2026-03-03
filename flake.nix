@@ -11,7 +11,7 @@
   }: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
-    version = "1.4.0";
+    version = "1.4.1";
 
     autoscan = pkgs.stdenv.mkDerivation {
       pname = "autoscan";
