@@ -120,13 +120,17 @@
             autoscan = {
               group = cfg.group;
               home = cfg.dataDir;
-              uid = 990;
+              isSystemUser = true;
             };
           };
 
           users.groups = lib.mkIf (cfg.group == "autoscan") {
-            autoscan.gid = 990;
+            autoscan = {};
           };
+
+          systemd.tmpfiles.rules = [
+            "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
+          ];
 
           systemd.services.autoscan = {
             description = "Autoscan media automation service";
