@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import env from '@/config/env'
 import { logger } from '@/config/logger'
 import { container, TOKENS } from '@/core/container'
 import type { IRadarrClient } from '@/integrations/arr/radarr.service'
@@ -11,11 +12,7 @@ import type { IPlexClient } from '@/integrations/plex.service'
 import { isError, logError } from '../../../utils/error'
 
 const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promise<void> => {
-  const paths = inputFile.split('/')
-
-  paths.pop()
-
-  const transcodePath = `${paths.join('/')}/transcode/${id}`
+  const transcodePath = `${env.TRANSCODE_PATH}/${id}`
 
   if (!existsSync(transcodePath)) {
     return
@@ -46,9 +43,10 @@ const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promi
   if (videoStreams.length === 0 || audioStreams.length === 0) {
     logger.error(`No audio or video stream found on transcoded file`, 'postTranscode', mediaTitle)
   } else {
+    const inputDir = resolve(inputFile, '..')
     rmSync(inputFile)
     for (const outputFile of outputFiles) {
-      copyFileSync(join(transcodePath, outputFile), `${paths.join('/')}/${outputFile}`)
+      copyFileSync(join(transcodePath, outputFile), join(inputDir, outputFile))
     }
   }
 

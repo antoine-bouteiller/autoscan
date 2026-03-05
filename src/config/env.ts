@@ -53,6 +53,7 @@ const envSchema = v.object({
   TRAKT_CLIENT_ID: v.string(),
   TRAKT_CLIENT_SECRET: v.string(),
   DATABASE_URL: v.string(),
+  TRANSCODE_PATH: v.string(),
 })
 
 const env = v.parse(envSchema, process.env)

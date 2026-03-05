@@ -10,7 +10,7 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.spec.ts'],
-    setupFiles: ['./tests/setup.ts'],
+    setupFiles: ['./tests/env.ts', './tests/setup.ts'],
     coverage: {
       provider: 'istanbul',
       reporter: ['lcov'],

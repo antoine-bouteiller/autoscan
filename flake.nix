@@ -98,6 +98,10 @@
             };
             sonarrApiUrl = lib.mkOption {type = lib.types.str;};
             radarrApiUrl = lib.mkOption {type = lib.types.str;};
+            transcodePath = lib.mkOption {
+              type = lib.types.path;
+              description = "Directory for temporary transcode files.";
+            };
           };
 
           secrets = {
@@ -127,10 +131,6 @@
           users.groups = lib.mkIf (cfg.group == "autoscan") {
             autoscan = {};
           };
-
-          systemd.tmpfiles.rules = [
-            "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
-          ];
 
           systemd.services.autoscan = {
             description = "Autoscan media automation service";
@@ -176,6 +176,7 @@
               TRAKT_CLIENT_SECRET_FILE = toString cfg.secrets.traktClientSecretFile;
 
               DATABASE_URL = "${cfg.dataDir}/autoscan.db";
+              TRANSCODE_PATH = cfg.settings.transcodePath;
             };
           };
         };
