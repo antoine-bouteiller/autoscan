@@ -15,7 +15,6 @@
           "types": [
             { "type": "feat", "section": "🎉 New Features" },
             { "type": "fix", "section": "🐛 Bug Fixes" },
-            { "type": "chore", "scope": "deps", "section": "📦 Dependency Updates" },
             { "type": "docs", "section": "📚 Documentation" },
             { "type": "chore", "section": "🔧 Maintenance", "hidden": true }
           ]
