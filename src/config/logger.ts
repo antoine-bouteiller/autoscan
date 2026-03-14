@@ -26,7 +26,7 @@ const formatContext = (context: string[], message: string): string => {
 }
 
 const prettyLog = (level: LogLevel, message: string, context: string[]): void => {
-  if (process.env.NODE_ENV === 'test') {
+  if (process.env['NODE_ENV'] === 'test') {
     return
   }
 

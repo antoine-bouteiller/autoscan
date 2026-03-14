@@ -1,21 +1,21 @@
 commit-msg:
   jobs:
     - name: Lint Commit Message
-      run: bunx commitlint --edit
+      run: npx commitlint --edit
 pre-commit:
   parallel: true
   jobs:
     - name: Check Lockfile
-      run: bun i --frozen-lockfile --silent
+      run: pnpm i --frozen-lockfile
     - name: Lint
       glob: '*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx}'
-      run: bunx oxlint {staged_files} --fix
+      run: npx oxlint {staged_files} --fix
       stage_fixed: true
     - name: Format
       glob: '*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}'
-      run: bunx oxfmt {staged_files}
+      run: npx oxfmt {staged_files}
       stage_fixed: true
     - name: Type Check
-      run: bun typecheck
+      run: pnpm run typecheck
     - name: Knip
-      run: bun knip
+      run: pnpm run knip

@@ -11,9 +11,9 @@ let flake = readFileSync('flake.nix', 'utf8')
 
 flake = flake.replace(/version = ".*";/, `version = "${nextVersion}";`)
 
-execSync('bun build ./src/index.ts ./migrations/**/*.sql --compile --target=bun-linux-x64 --outfile autoscan-linux-x64', { stdio: 'inherit' })
+execSync('pnpm run build:sea -- autoscan-linux-x64', { stdio: 'inherit' })
 
-const hash = execSync('openssl dgst -sha256 -binary autoscan-linux-x64 | base64').toString().trim()
+const hash = execSync('openssl dgst -sha256 -binary dist/autoscan-linux-x64 | base64').toString().trim()
 
 flake = flake.replace(/hash = ".*";/, `hash = "sha256-${hash}";`)
 

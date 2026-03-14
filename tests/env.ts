@@ -1,7 +1,7 @@
 Object.assign(process.env, {
   NODE_ENV: 'test',
   CLOUDFLARE_TOKEN: 'test-token',
-  DATABASE_URL: ':memory:',
+  DATABASE_URL: 'memory://',
   DOMAIN: 'example.com',
   PLEX_TOKEN: 'test-plex-token',
   PLEX_URL: 'http://plex.test',

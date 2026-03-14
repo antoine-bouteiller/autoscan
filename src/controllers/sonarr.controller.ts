@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import * as v from 'valibot'
 
 import { badRequest, success } from '@/core/response'
@@ -9,19 +10,18 @@ import { sonarrValidator } from '@/validators/sonarr.validator'
 
 import { logError } from '../utils/error'
 
-export const sonarrWebhook = async (request: Request) => {
-  const body = await request.json()
-  const parsed = v.safeParse(sonarrValidator, body)
+export const sonarrWebhook = async (request: FastifyRequest, reply: FastifyReply) => {
+  const parsed = v.safeParse(sonarrValidator, request.body)
 
   if (!parsed.success) {
     logError(parsed.issues, 'Sonarr')
-    return badRequest('invalid request', v.flatten(parsed.issues))
+    return badRequest(reply, 'invalid request', v.flatten(parsed.issues))
   }
 
   const { eventType } = parsed.output
 
   if (eventType === 'Test') {
-    return success({ message: 'ok' })
+    return success(reply, { message: 'ok' })
   }
 
   if (eventType === 'Download') {
@@ -32,5 +32,5 @@ export const sonarrWebhook = async (request: Request) => {
     void transcodeFile(file, mediaTitle, originalLanguage, 'show')
   }
 
-  return success({ message: 'ok' })
+  return success(reply, { message: 'ok' })
 }

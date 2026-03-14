@@ -1,8 +1,8 @@
-import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { integer, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { ISO1 } from '@/types/iso_codes'
 
-export const media = sqliteTable(
+export const media = pgTable(
   'media',
   {
     originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
@@ -19,16 +19,16 @@ export const media = sqliteTable(
   ]
 )
 
-export const traktTokens = sqliteTable('trakt_tokens', {
+export const traktTokens = pgTable('trakt_tokens', {
   accessToken: text('access_token').notNull(),
   expiresAt: integer('expires_at').notNull(),
-  id: integer().primaryKey({ autoIncrement: true }),
+  id: serial().primaryKey(),
   refreshToken: text('refresh_token').notNull(),
 })
 
-export const traktSyncHistory = sqliteTable('trakt_sync_history', {
+export const traktSyncHistory = pgTable('trakt_sync_history', {
   plexRatingKey: text('plex_rating_key').primaryKey(),
-  syncedAt: integer('synced_at', { mode: 'timestamp' }).notNull(),
+  syncedAt: timestamp('synced_at').notNull(),
 })
 
 export type Media = typeof media.$inferSelect

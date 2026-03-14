@@ -53,5 +53,5 @@ export default defineConfig({
     'new-cap': 'off',
     'func-names': ['error', 'as-needed', { generators: 'never' }],
   },
-  ignorePatterns: ['bun.lock'],
+  ignorePatterns: ['pnpm-lock.yaml'],
 })

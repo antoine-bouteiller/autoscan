@@ -1,8 +1,8 @@
+import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { randomUUIDv7 } from 'bun'
-import { it } from 'vitest'
+import { expect, it } from 'vitest'
 
 export { MockCloudflareClient } from './mocks/cloudflare.mock'
 export { MockPlexClient } from './mocks/plex.mock'
@@ -13,8 +13,9 @@ export { MockTmdbClient } from './mocks/tmdb.mock'
 export { MockTraktClient } from './mocks/trakt.mock'
 
 export const testWithTestDir = it.extend<{ testDir: string }>({
-  testDir: async ({ expect }, use) => {
-    const testDir = join(import.meta.dirname, randomUUIDv7())
+  // oxlint-disable-next-line
+  testDir: async ({}, use) => {
+    const testDir = join(import.meta.dirname, randomUUID())
     mkdirSync(testDir, { recursive: true })
     expect(existsSync(testDir)).toBe(true)
     try {

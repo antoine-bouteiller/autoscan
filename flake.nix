@@ -156,8 +156,6 @@
             };
 
             environment = {
-              NIX_LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.stdenv.cc.cc.lib];
-
               PORT = toString cfg.port;
               PLEX_URL = cfg.settings.plexUrl;
               DOMAIN = cfg.settings.domain;
@@ -175,7 +173,7 @@
               TRAKT_CLIENT_ID_FILE = toString cfg.secrets.traktClientIdFile;
               TRAKT_CLIENT_SECRET_FILE = toString cfg.secrets.traktClientSecretFile;
 
-              DATABASE_URL = "${cfg.dataDir}/autoscan.db";
+              DATABASE_URL = "${cfg.dataDir}/pgdata";
               TRANSCODE_PATH = cfg.settings.transcodePath;
             };
           };

@@ -1,20 +1,18 @@
-import { Database } from 'bun:sqlite'
 import { existsSync, mkdirSync } from 'node:fs'
-import { dirname } from 'node:path'
 
-import { drizzle } from 'drizzle-orm/bun-sqlite'
+import { PGlite } from '@electric-sql/pglite'
+import { drizzle } from 'drizzle-orm/pglite'
 
 import env from '@/config/env'
 import { runMigrations } from '@/utils/run_migrations'
 
-const dbPath = env.DATABASE_URL
+const dataDir = env.DATABASE_URL
 
-const dir = dirname(dbPath)
-
-if (!existsSync(dir)) {
-  mkdirSync(dir, { recursive: true })
+if (!existsSync(dataDir)) {
+  mkdirSync(dataDir, { recursive: true })
 }
-const sqlite = new Database(dbPath)
-export const db = drizzle({ client: sqlite })
 
-runMigrations(sqlite)
+const client = new PGlite(dataDir)
+export const db = drizzle({ client })
+
+await runMigrations(client)

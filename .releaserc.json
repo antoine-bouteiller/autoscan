@@ -30,7 +30,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "bun ./scripts/update_release_assets.ts ${nextRelease.version}"
+        "prepareCmd": "pnpm tsx ./scripts/update_release_assets.ts ${nextRelease.version}"
       }
     ],
     [
@@ -43,7 +43,7 @@
     [
       "@semantic-release/github",
       {
-        "assets": [{ "path": "autoscan-linux-x64", "label": "autoscan-linux-x64" }]
+        "assets": [{ "path": "dist/autoscan-linux-x64", "label": "autoscan-linux-x64" }]
       }
     ]
   ]

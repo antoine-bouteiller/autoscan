@@ -1,49 +1,36 @@
-import type { Database } from 'bun:sqlite'
+import type { PGlite } from '@electric-sql/pglite'
 
 import { logger } from '@/config/logger'
 import { migrations } from '@/migrations'
 
-class DrizzleMigration {
-  name: string
-
-  constructor(name: string) {
-    this.name = name
-  }
-}
-
-export const runMigrations = (sqlite: Database) => {
-  sqlite.run(`
+export const runMigrations = async (client: PGlite) => {
+  await client.exec(`
     CREATE TABLE IF NOT EXISTS __drizzle_migrations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT UNIQUE,
       applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `)
 
-  const appliedMigrations = sqlite.query(`SELECT name FROM __drizzle_migrations`).as(DrizzleMigration).all()
+  const appliedMigrations = await client.query<{ name: string }>(`SELECT name FROM __drizzle_migrations`)
+  const appliedNames = new Set(appliedMigrations.rows.map((m) => m.name))
 
-  const appliedNames = new Set(appliedMigrations.map((m) => m.name))
-
-  const runTx = sqlite.transaction(() => {
-    let count = 0
-    for (const migration of migrations) {
-      if (!appliedNames.has(migration.name)) {
-        logger.info(`Running migration: ${migration.name}`)
-        for (const statement of migration.statements) {
-          sqlite.run(statement)
-        }
-
-        sqlite.query(`INSERT INTO __drizzle_migrations (name) VALUES (?)`).run(migration.name)
-        count++
+  let count = 0
+  for (const migration of migrations) {
+    if (!appliedNames.has(migration.name)) {
+      logger.info(`Running migration: ${migration.name}`)
+      for (const statement of migration.statements) {
+        await client.exec(statement)
       }
-    }
-    return count
-  })
 
-  const runCount = runTx()
-  if (runCount > 0) {
-    logger.info(`✅ Successfully applied ${runCount} new migrations.`)
+      await client.query(`INSERT INTO __drizzle_migrations (name) VALUES ($1)`, [migration.name])
+      count++
+    }
+  }
+
+  if (count > 0) {
+    logger.info(`Successfully applied ${count} new migrations.`)
   } else {
-    logger.info(`✅ Database is up to date.`)
+    logger.info(`Database is up to date.`)
   }
 }

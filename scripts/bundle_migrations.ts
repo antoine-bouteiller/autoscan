@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
 const dir = './migrations'
@@ -46,4 +46,4 @@ for (const folder of migrationFolders) {
 
 output += `]\n`
 
-await Bun.write('./src/migrations.ts', output)
+writeFileSync('./src/migrations.ts', output)

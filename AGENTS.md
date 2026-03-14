@@ -5,12 +5,13 @@ Media automation service integrating Radarr, Sonarr, Plex, and TMDB.
 ## Commands
 
 ```bash
-bun dev        # Development with watch mode
-bun run test       # Run tests
-bun run build  # Compile binary
-bun lint       # Lint with oxlint
-bun format     # Format with oxfmt
-bun typecheck  # Type check
+pnpm dev        # Development with watch mode
+pnpm test       # Run tests
+pnpm build      # Bundle with tsdown
+pnpm build:sea  # Build single-file executable (Node.js SEA)
+pnpm lint       # Lint with oxlint
+pnpm format     # Format with oxfmt
+pnpm typecheck  # Type check
 ```
 
 ## Guidelines
