@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 
-import { db } from '@/config/db'
-import { traktSyncHistory, traktTokens } from '@/database/schema'
+import { db } from '#config/db'
+import { traktSyncHistory, traktTokens } from '#database/schema'
 
 export const getToken = async () => {
   const result = await db.select().from(traktTokens).limit(1)

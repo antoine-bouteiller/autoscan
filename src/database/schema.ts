@@ -1,6 +1,6 @@
 import { integer, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
-import { ISO1 } from '@/types/iso_codes'
+import { ISO1 } from '#types/iso_codes'
 
 export const media = pgTable(
   'media',

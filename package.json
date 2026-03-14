@@ -3,12 +3,14 @@
   "version": "1.5.0",
   "private": true,
   "type": "module",
+  "imports": {
+    "#*": "./src/*.js"
+  },
   "scripts": {
-    "lint": "vp lint --type-aware --fix",
-    "format": "vp fmt",
-    "typecheck": "tsgo --noEmit",
-    "dev": "vp dev",
-    "db:generate": "drizzle-kit generate && tsx ./scripts/bundle_migrations.ts",
+    "check": "vp check --fix",
+    "dev": "tsx --env-file=.env --watch src/index.ts",
+    "pack": "vp pack",
+    "db:generate": "drizzle-kit generate",
     "knip": "knip",
     "test": "vp test run",
     "test:coverage": "vp test run --coverage",
@@ -22,7 +24,6 @@
     "valibot": "^1.2.0"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.4",
     "@types/node": "^25.5.0",
     "@typescript/native-preview": "^7.0.0-dev.20260314.1",
     "@vitest/coverage-v8": "^4.1.0",
@@ -30,20 +31,7 @@
     "knip": "^5.86.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-    "vite-plus": "latest",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
+    "vite-plus": "latest"
   },
-  "commitlint": {
-    "extends": [
-      "@commitlint/config-conventional"
-    ]
-  },
-  "packageManager": "pnpm@10.32.1",
-  "pnpm": {
-    "overrides": {
-      "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-      "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
-    }
-  }
+  "packageManager": "pnpm@10.32.1"
 }

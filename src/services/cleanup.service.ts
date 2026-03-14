@@ -1,8 +1,8 @@
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import type { IRadarrClient } from '@/integrations/arr/radarr.service'
-import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
-import type { QueueService } from '@/types/cleanup'
+import { logger } from '#config/logger'
+import { container, TOKENS } from '#core/container'
+import type { IRadarrClient } from '#integrations/arr/radarr.service'
+import type { ISonarrClient } from '#integrations/arr/sonarr.service'
+import type { QueueService } from '#types/cleanup'
 
 const STRIKE_COUNT = 5
 

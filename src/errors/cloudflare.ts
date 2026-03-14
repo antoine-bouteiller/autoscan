@@ -1,9 +1,8 @@
 import * as v from 'valibot'
 
-import { type HttpErrorFormatter } from '@/errors/http'
-import { cloudflareErrorResponse } from '@/validators/cloudflare.validator'
-
-import { createTaggedError } from '../utils/error'
+import { type HttpErrorFormatter } from '#errors/http'
+import { createTaggedError } from '#utils/error'
+import { cloudflareErrorResponse } from '#validators/cloudflare.validator'
 
 export class CloudflareZoneNotFoundError extends createTaggedError({
   name: 'CloudflareZoneNotFoundError',

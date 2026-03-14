@@ -1,16 +1,16 @@
 import { and, eq } from 'drizzle-orm'
 
-import { db } from '@/config/db'
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import { media, type Media } from '@/database/schema'
-import type { IPlexClient, MediaType } from '@/integrations/plex.service'
-import type { ITelegramClient } from '@/integrations/telegram.service'
-import { getMediaByTypeWithPagination } from '@/repositories/media.repository'
-import { iso1ToIso2T } from '@/types/iso_codes'
-import type { UpdateLanguageParams } from '@/types/language'
-import type { ConversationState, InlineKeyboardButton, InlineKeyboardMarkup } from '@/types/telegram'
-import { normalizeToIso1 } from '@/utils/iso_codes'
+import { db } from '#config/db'
+import { logger } from '#config/logger'
+import { container, TOKENS } from '#core/container'
+import { media, type Media } from '#database/schema'
+import type { IPlexClient, MediaType } from '#integrations/plex.service'
+import type { ITelegramClient } from '#integrations/telegram.service'
+import { getMediaByTypeWithPagination } from '#repositories/media.repository'
+import { iso1ToIso2T } from '#types/iso_codes'
+import type { UpdateLanguageParams } from '#types/language'
+import type { ConversationState, InlineKeyboardButton, InlineKeyboardMarkup } from '#types/telegram'
+import { normalizeToIso1 } from '#utils/iso_codes'
 
 const PAGE_SIZE = 10
 

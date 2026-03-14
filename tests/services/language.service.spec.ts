@@ -1,10 +1,10 @@
 import { and, eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test'
 
-import { db } from '@/config/db'
-import { container, TOKENS } from '@/core/container'
-import { media as mediaTable, type Media } from '@/database/schema'
-import type { ITelegramClient } from '@/integrations/telegram.service'
+import { db } from '#config/db'
+import { container, TOKENS } from '#core/container'
+import { media as mediaTable, type Media } from '#database/schema'
+import type { ITelegramClient } from '#integrations/telegram.service'
 import {
   buildLanguageKeyboard,
   buildMediaKeyboard,
@@ -14,20 +14,20 @@ import {
   selectLanguage,
   selectMedia,
   selectMediaType,
-} from '@/services/language.service'
-import { iso1ToIso2T } from '@/types/iso_codes'
-import type { PlexMediaStream } from '@/validators/plex.validator'
+} from '#services/language.service'
+import { iso1ToIso2T } from '#types/iso_codes'
+import type { PlexMediaStream } from '#validators/plex.validator'
 
-import '../config'
-import { updateStreamMock } from '../mocks/plex.mock'
-import { editMessageTextMock } from '../mocks/telegram.mock'
+import '../utils.ts'
+import { updateStreamMock } from '../mocks/plex.mock.js'
+import { editMessageTextMock } from '../mocks/telegram.mock.js'
 import {
   mockAudioStreamFrench,
   mockAudioStreamNotMatching,
   mockAudioStreams,
   mockAudioStreamSelected,
   mockNonAudioStreams,
-} from '../resources/fixtures/media.fixtures'
+} from '../resources/fixtures/media.fixtures.js'
 
 const makeMedia = (n: number): Media[] =>
   Array.from({ length: n }, (_, i) => ({

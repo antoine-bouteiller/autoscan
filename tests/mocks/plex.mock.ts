@@ -1,10 +1,10 @@
 import { vi } from 'vite-plus/test'
 
-import { PlexError } from '@/errors/plex'
-import type { IPlexClient } from '@/integrations/plex.service'
-import type { PlexMedia } from '@/validators/plex.validator'
+import { PlexError } from '#errors/plex'
+import type { IPlexClient } from '#integrations/plex.service'
+import type { PlexMedia } from '#validators/plex.validator'
 
-import { plexMetadata } from '../resources/fixtures/plex.fixtures'
+import { plexMetadata } from '../resources/fixtures/plex.fixtures.js'
 
 export const updateStreamMock = vi.fn()
 export const refreshSectionMock = vi.fn()

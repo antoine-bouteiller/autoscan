@@ -1,8 +1,8 @@
 import * as v from 'valibot'
 
-import { HttpError } from '@/errors/http'
-import { NetworkError } from '@/errors/network'
-import { ValidationError } from '@/errors/validation'
+import { HttpError } from '#errors/http'
+import { NetworkError } from '#errors/network'
+import { ValidationError } from '#errors/validation'
 import type {
   AnySchema,
   GetOptionWithoutResponse,
@@ -14,7 +14,7 @@ import type {
   RequestOptions,
   RequestParams,
   RequestWithoutResponseOption,
-} from '@/types/http_client'
+} from '#types/http_client'
 
 const defaultFormatter = (body: unknown): string => (typeof body === 'string' ? body : JSON.stringify(body))
 

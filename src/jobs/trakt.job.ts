@@ -1,5 +1,5 @@
-import { syncPlexToTrakt } from '@/services/plextraktsync.service'
-import { isError, logError } from '@/utils/error'
+import { syncPlexToTrakt } from '#services/plextraktsync.service'
+import { isError, logError } from '#utils/error'
 
 export const traktSyncJob = async () => {
   const result = await syncPlexToTrakt()

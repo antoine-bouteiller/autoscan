@@ -1,6 +1,6 @@
 import { vi } from 'vite-plus/test'
 
-import type { ITraktClient, TraktMoviePayload, TraktShowPayload } from '@/integrations/trakt.service'
+import type { ITraktClient, TraktMoviePayload, TraktShowPayload } from '#integrations/trakt.service'
 
 const getDeviceCodeMock = vi.fn()
 const pollDeviceTokenMock = vi.fn()

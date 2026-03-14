@@ -8,44 +8,23 @@ on:
       - main
 
 jobs:
-  lint:
-    name: Lint
+  check:
+    name: Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v6
+      - uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: 'latest'
-          cache: 'pnpm'
+          node-version: '24'
+          cache: true
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: vp install --frozen-lockfile
 
       - name: Run linter
-        run: pnpm run lint
-
-  typecheck:
-    name: Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 'latest'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run type checker
-        run: pnpm run typecheck
+        run: vp check
 
   test:
     name: Test
@@ -60,17 +39,16 @@ jobs:
         uses: FedericoCarboni/setup-ffmpeg@v3
         id: setup-ffmpeg
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v6
+      - uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: 'latest'
+          node-version: '24'
+          cache: true
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: vp install --frozen-lockfile
 
       - name: Run tests with coverage
-        run: pnpm run test:coverage
+        run: vp run test:coverage
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v7
@@ -78,6 +56,30 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 7
+
+  nix-hash:
+    name: Nix Hash
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Update pnpmDeps hash
+        run: bash scripts/update_nix_hash.sh
+
+      - name: Commit and push updated hash
+        run: |
+          git diff --quiet flake.nix && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add flake.nix
+          git commit -m "chore: update nix pnpmDeps hash"
+          git push
 
   sonarqube:
     name: SonarQube Analysis
@@ -89,14 +91,13 @@ jobs:
         with:
           fetch-depth: 0 # Shallow clones should be disabled for better analysis
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v6
+      - uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: 'latest'
+          node-version: '24'
+          cache: true
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: vp install --frozen-lockfile
 
       - name: Download coverage report
         uses: actions/download-artifact@v8

@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
-import { db } from '@/config/db'
-import { container, TOKENS } from '@/core/container'
-import { traktSyncHistory, traktTokens } from '@/database/schema'
-import { TraktTokenExpiredError } from '@/errors/trakt'
-import type { IPlexClient } from '@/integrations/plex.service'
-import { collectWatchedItems, getValidAccessToken, syncPlexToTrakt } from '@/services/plextraktsync.service'
+import { db } from '#config/db'
+import { container, TOKENS } from '#core/container'
+import { traktSyncHistory, traktTokens } from '#database/schema'
+import { TraktTokenExpiredError } from '#errors/trakt'
+import type { IPlexClient } from '#integrations/plex.service'
+import { collectWatchedItems, getValidAccessToken, syncPlexToTrakt } from '#services/plextraktsync.service'
 
-import { refreshTokenMock, syncWatchedHistoryMock } from '../mocks/trakt.mock'
+import { refreshTokenMock, syncWatchedHistoryMock } from '../mocks/trakt.mock.js'
 
 describe('TraktService', () => {
   const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)

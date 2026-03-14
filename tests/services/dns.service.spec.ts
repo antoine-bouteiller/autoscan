@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, test } from 'vite-plus/test'
 
-import { DnsRecordNotFoundError } from '@/errors/cloudflare'
-import { dynDns, handleUpdateIp, resetZoneIdCache } from '@/services/dns.service'
+import { DnsRecordNotFoundError } from '#errors/cloudflare'
+import { dynDns, handleUpdateIp, resetZoneIdCache } from '#services/dns.service'
 
-import '../config'
-import { mockGetARecord, mockGetZoneId, mockUpdateDnsRecord } from '../mocks/cloudflare.mock'
-import { differentIpRecord, emptyRecord, sameIpRecord, wildcardSameIpRecord } from '../resources/fixtures/cloudflare.fixtures'
+import '../utils.ts'
+import { mockGetARecord, mockGetZoneId, mockUpdateDnsRecord } from '../mocks/cloudflare.mock.js'
+import { differentIpRecord, emptyRecord, sameIpRecord, wildcardSameIpRecord } from '../resources/fixtures/cloudflare.fixtures.js'
 
 describe('DnsService', () => {
   beforeEach(() => {

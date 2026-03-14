@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test'
 
-import { inversedEntriesOf, isKeyOf, isValueOf, typedEntriesOf, typedKeyOf } from '@/utils/object'
+import { inversedEntriesOf, isKeyOf, isValueOf, typedEntriesOf, typedKeyOf } from '#utils/object'
 
 const sample = { a: 1, b: 2, c: 3 } as const
 

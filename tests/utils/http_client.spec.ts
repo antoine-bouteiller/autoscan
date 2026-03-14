@@ -1,12 +1,12 @@
 import * as v from 'valibot'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-import { HttpError } from '@/errors/http'
-import { NetworkError } from '@/errors/network'
-import { ValidationError } from '@/errors/validation'
-import { httpClient } from '@/utils/http_client'
+import { HttpError } from '#errors/http'
+import { NetworkError } from '#errors/network'
+import { ValidationError } from '#errors/validation'
+import { httpClient } from '#utils/http_client'
 
-import { isError } from '../../src/utils/error'
+import { isError } from '../../src/utils/error.js'
 
 const originalFetch = globalThis.fetch
 

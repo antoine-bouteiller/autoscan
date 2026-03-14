@@ -9,12 +9,15 @@ current_hash=$(sed -n 's/.*hash = "\([^"]*\)".*/\1/p' "$FLAKE_FILE" | head -1)
 sed -i.bak "s|hash = \"$current_hash\"|hash = \"$FAKE_HASH\"|" "$FLAKE_FILE"
 rm -f "$FLAKE_FILE.bak"
 
-real_hash=$(nix build .#autoscan 2>&1 | sed -n 's/.*got: \(sha256-[^ ]*\).*/\1/p' | head -1 || true)
+build_output=$(nix build .#autoscan 2>&1 || true)
+real_hash=$(echo "$build_output" | sed -n 's/.*got: *\(sha256-[^ ]*\).*/\1/p' | head -1)
 
 if [ -z "$real_hash" ]; then
   sed -i.bak "s|hash = \"$FAKE_HASH\"|hash = \"$current_hash\"|" "$FLAKE_FILE"
   rm -f "$FLAKE_FILE.bak"
   echo "Failed to determine pnpm deps hash, restored previous hash"
+  echo "Nix build output:"
+  echo "$build_output"
   exit 1
 fi
 

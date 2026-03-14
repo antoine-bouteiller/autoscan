@@ -2,17 +2,17 @@ import { existsSync, mkdirSync } from 'node:fs'
 
 import { PGlite } from '@electric-sql/pglite'
 import { drizzle } from 'drizzle-orm/pglite'
+import { migrate } from 'drizzle-orm/pglite/migrator'
 
-import env from '@/config/env'
-import { runMigrations } from '@/utils/run_migrations'
+import env from '#config/env'
 
-const dataDir = env.DATABASE_URL
+const dataBasePath = env.DATABASE_URL
 
-if (!existsSync(dataDir)) {
-  mkdirSync(dataDir, { recursive: true })
+if (dataBasePath !== 'memory://' && !existsSync(dataBasePath)) {
+  mkdirSync(dataBasePath, { recursive: true })
 }
 
-const client = new PGlite(dataDir)
+const client = new PGlite(dataBasePath)
 export const db = drizzle({ client })
 
-await runMigrations(client)
+await migrate(db, { migrationsFolder: './migrations' })

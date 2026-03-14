@@ -1,20 +1,20 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import { FileNameInvalidError, FileNotFoundError } from '@/errors/transcode'
-import type { FfmpegClient } from '@/integrations/ffmpeg.service'
-import type { IPlexClient } from '@/integrations/plex.service'
-import type { ISOCode1 } from '@/types/iso_codes'
-import type { TranscodeJob } from '@/types/transcode'
+import { logger } from '#config/logger'
+import { container, TOKENS } from '#core/container'
+import { FileNameInvalidError, FileNotFoundError } from '#errors/transcode'
+import type { FfmpegClient } from '#integrations/ffmpeg.service'
+import type { IPlexClient } from '#integrations/plex.service'
+import type { ISOCode1 } from '#types/iso_codes'
+import type { TranscodeJob } from '#types/transcode'
+import { isError, logError } from '#utils/error'
 
-import { isError, logError } from '../../utils/error'
-import { processAudioStreams } from './helpers/audio'
-import { handlePostTranscode } from './helpers/post_process'
-import { processSubtitleStreams } from './helpers/subtitle'
-import { simpleHash } from './helpers/utils'
-import { processVideoStreams } from './helpers/video'
+import { processAudioStreams } from './helpers/audio.js'
+import { handlePostTranscode } from './helpers/post_process.js'
+import { processSubtitleStreams } from './helpers/subtitle.js'
+import { simpleHash } from './helpers/utils.js'
+import { processVideoStreams } from './helpers/video.js'
 
 const refreshPlexSections = async (filePath: string, mediaType: 'movie' | 'show') => {
   const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)

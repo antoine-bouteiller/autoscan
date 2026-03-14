@@ -34,22 +34,26 @@
             pname = "autoscan";
             inherit version;
             src = pkgs.lib.cleanSource ./.;
-            hash = "sha256-eXvKKzHiU6p7hyju3RKFTejRn1fnB1Gs/Rn023db1xU=";
+            hash = "sha256-/60rj9oaW1Wb0I0ZZN/kNZT1tHWCNGBCSyRJPBEcwOg=";
             fetcherVersion = 3;
           };
 
           buildPhase = ''
             runHook preBuild
-            pnpm exec tsdown src/index.ts --format esm --platform node --out-dir dist
+            pnpm pack
             runHook postBuild
           '';
 
           installPhase = ''
             runHook preInstall
-            mkdir -p $out/lib $out/bin
-            cp dist/index.js $out/lib/autoscan.js
+            mkdir -p $out/lib/autoscan $out/bin
+
+            cp -r dist/* $out/lib/autoscan/
+            cp -r node_modules $out/lib/autoscan/
+
             makeWrapper ${pkgs.nodejs}/bin/node $out/bin/autoscan \
-              --add-flags "$out/lib/autoscan.js"
+              --add-flags "$out/lib/autoscan/index.js" \
+              --run "cd $out/lib/autoscan"
             runHook postInstall
           '';
 

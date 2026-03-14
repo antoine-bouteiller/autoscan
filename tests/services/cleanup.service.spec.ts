@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, test } from 'vite-plus/test'
 
-import '../config'
-import { mockRadarrQueue, mockRadarrRemoveQueueItem } from '../mocks/radarr.mock'
-import { mockSonarrQueue, mockSonarrRemoveQueueItem } from '../mocks/sonarr.mock'
+import '../utils.ts'
+import { mockRadarrQueue, mockRadarrRemoveQueueItem } from '../mocks/radarr.mock.js'
+import { mockSonarrQueue, mockSonarrRemoveQueueItem } from '../mocks/sonarr.mock.js'
 import {
   mockQueueResponseEmpty,
   mockQueueResponseNormal,
   mockQueueResponseWithDangerousFiles,
   mockQueueResponseWithNoEligibleFiles,
   mockQueueResponseWithStalledWarning,
-} from '../resources/fixtures/queue.fixtures'
+} from '../resources/fixtures/queue.fixtures.js'
 
-const { cleanupAll } = await import('@/services/cleanup.service')
+const { cleanupAll } = await import('#services/cleanup.service')
 
 describe('CleanupService', () => {
   beforeEach(() => {

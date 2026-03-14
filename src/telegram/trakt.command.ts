@@ -1,12 +1,12 @@
-import { container, TOKENS } from '@/core/container'
-import { HttpError } from '@/errors/http'
-import { type ITelegramClient } from '@/integrations/telegram.service'
-import { type ITraktClient } from '@/integrations/trakt.service'
-import { upsertTokens } from '@/repositories/trakt.repository'
-import { getValidAccessToken, syncPlexToTrakt } from '@/services/plextraktsync.service'
-import { type ConversationState } from '@/types/telegram'
-import { isError, isOk, logError } from '@/utils/error'
-import { type TelegramMessageIn } from '@/validators/telegram.validator'
+import { container, TOKENS } from '#core/container'
+import { HttpError } from '#errors/http'
+import { type ITelegramClient } from '#integrations/telegram.service'
+import { type ITraktClient } from '#integrations/trakt.service'
+import { upsertTokens } from '#repositories/trakt.repository'
+import { getValidAccessToken, syncPlexToTrakt } from '#services/plextraktsync.service'
+import { type ConversationState } from '#types/telegram'
+import { isError, isOk, logError } from '#utils/error'
+import { type TelegramMessageIn } from '#validators/telegram.validator'
 
 export const traktAuthCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
   const traktClient = container.resolve<ITraktClient>(TOKENS.TRAKT_CLIENT)

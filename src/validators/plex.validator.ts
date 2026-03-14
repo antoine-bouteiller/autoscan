@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 
-import { ISO2T } from '@/types/iso_codes'
+import { ISO2T } from '#types/iso_codes'
 
 const integerFromString = v.pipe(
   v.string(),

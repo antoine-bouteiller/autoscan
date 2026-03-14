@@ -1,0 +1,72 @@
+import { describe, expect } from 'vite-plus/test'
+
+import '../utils.ts'
+import { testWithHttpProvider } from '../utils.ts'
+
+describe('POST /radarr', () => {
+  testWithHttpProvider('should return 200 for Test event', async ({ http }) => {
+    const response = await http.app.inject({
+      method: 'POST',
+      url: '/radarr',
+      payload: { eventType: 'Test' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json()
+    expect(body.success).toBe(true)
+    expect(body.data).toEqual({ message: 'ok' })
+  })
+
+  testWithHttpProvider('should return 400 for invalid payload', async ({ http }) => {
+    const response = await http.app.inject({
+      method: 'POST',
+      url: '/radarr',
+      payload: { eventType: 'InvalidEvent' },
+    })
+
+    expect(response.statusCode).toBe(400)
+    const body = response.json()
+    expect(body.success).toBe(false)
+    expect(body.error.code).toBe('BAD_REQUEST')
+  })
+
+  testWithHttpProvider('should return 200 for Download event', async ({ http }) => {
+    const response = await http.app.inject({
+      method: 'POST',
+      url: '/radarr',
+      payload: {
+        eventType: 'Download',
+        movie: { folderPath: '/movies/test', title: 'Test Movie', tmdbId: 123 },
+        movieFile: { relativePath: 'movie.mkv' },
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().success).toBe(true)
+  })
+
+  testWithHttpProvider('should return 200 for MovieDelete event', async ({ http }) => {
+    const response = await http.app.inject({
+      method: 'POST',
+      url: '/radarr',
+      payload: {
+        eventType: 'MovieDelete',
+        deleteFiles: true,
+        movie: { folderPath: '/movies/test', title: 'Test Movie', tmdbId: 123 },
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().success).toBe(true)
+  })
+
+  testWithHttpProvider('should return 400 for empty body', async ({ http }) => {
+    const response = await http.app.inject({
+      method: 'POST',
+      url: '/radarr',
+      payload: {},
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+})

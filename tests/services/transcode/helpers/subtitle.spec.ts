@@ -3,13 +3,13 @@ import { join } from 'node:path'
 
 import { describe, expect } from 'vite-plus/test'
 
-import { container, TOKENS } from '@/core/container'
-import type { FfmpegClient } from '@/integrations/ffmpeg.service'
-import { processSubtitleStreams } from '@/services/transcode/helpers/subtitle'
-import type { ISOCode1 } from '@/types/iso_codes'
+import { container, TOKENS } from '#core/container'
+import type { FfmpegClient } from '#integrations/ffmpeg.service'
+import { processSubtitleStreams } from '#services/transcode/helpers/subtitle'
+import type { ISOCode1 } from '#types/iso_codes'
 
 import { isOk } from '../../../../src/utils/error.js'
-import { testWithTestDir, videosPath } from '../../../config.js'
+import { testWithTestDir, videosPath } from '../../../utils.ts'
 
 interface TestCase {
   file: string

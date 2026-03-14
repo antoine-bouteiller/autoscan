@@ -1,8 +1,7 @@
-import Fastify, { type FastifyInstance } from 'fastify'
+import fastify from 'fastify'
 
-import { logger } from '@/config/logger'
-
-import { logError } from '../utils/error'
+import { logger } from '#config/logger'
+import { logError } from '#utils/error'
 
 interface HttpProviderOptions {
   hostname?: string
@@ -10,7 +9,7 @@ interface HttpProviderOptions {
 }
 
 export class HttpProvider {
-  readonly app: FastifyInstance
+  readonly app = fastify()
   private readonly options: HttpProviderOptions
 
   constructor(options: HttpProviderOptions) {
@@ -19,8 +18,6 @@ export class HttpProvider {
       port: 3030,
       ...options,
     }
-
-    this.app = Fastify()
 
     this.app.setErrorHandler((error, _request, reply) => {
       logError(error)

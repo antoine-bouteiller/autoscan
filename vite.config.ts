@@ -51,6 +51,7 @@ export default defineConfig({
       'no-await-in-loop': 'off',
       'init-declarations': 'off',
       'max-statements': 'off',
+      'no-empty-pattern': 'off',
       'new-cap': 'off',
       'func-names': ['error', 'as-needed', { generators: 'never' }],
     },
@@ -77,5 +78,11 @@ export default defineConfig({
   },
   staged: {
     'pnpm-lock.yaml': 'bash scripts/update_nix_hash.sh',
+  },
+  pack: {
+    entry: 'src/index.ts',
+    format: 'esm',
+    platform: 'node',
+    copy: 'migrations',
   },
 })

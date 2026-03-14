@@ -1,8 +1,8 @@
-import type { MediaType } from '@/integrations/plex.service'
-import type { ITelegramClient } from '@/integrations/telegram.service'
-import { buildMediaTypeKeyboard, navigateMediaPage, selectLanguage, selectMedia, selectMediaType } from '@/services/language.service'
-import type { ConversationState } from '@/types/telegram'
-import type { TelegramCallbackQuery, TelegramMessageIn } from '@/validators/telegram.validator'
+import type { MediaType } from '#integrations/plex.service'
+import type { ITelegramClient } from '#integrations/telegram.service'
+import { buildMediaTypeKeyboard, navigateMediaPage, selectLanguage, selectMedia, selectMediaType } from '#services/language.service'
+import type { ConversationState } from '#types/telegram'
+import type { TelegramCallbackQuery, TelegramMessageIn } from '#validators/telegram.validator'
 
 const handleSetLanguageCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
   const messageId = await client.sendMessage(message.chat.id, 'What kind of media do you want to configure?', buildMediaTypeKeyboard())

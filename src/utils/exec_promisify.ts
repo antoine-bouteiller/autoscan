@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 
-import { CommandExecutionError } from '@/errors/command'
+import { CommandExecutionError } from '#errors/command'
 
 interface SpawnOptions {
   cwd?: string

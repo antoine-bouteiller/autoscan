@@ -1,10 +1,9 @@
-import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import type { IPlexClient } from '@/integrations/plex.service'
-import { getCompleteMediaDetails } from '@/services/metadata.service'
-import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service'
-
-import { isError, logError } from '../utils/error'
+import { logger } from '#config/logger'
+import { container, TOKENS } from '#core/container'
+import type { IPlexClient } from '#integrations/plex.service'
+import { getCompleteMediaDetails } from '#services/metadata.service'
+import { transcodeFile, transcodeQueue } from '#services/transcode/transcode.service'
+import { isError, logError } from '#utils/error'
 
 let isScanning = false
 

@@ -1,8 +1,7 @@
 import { Cron, type CronOptions } from 'croner'
 
-import { logger } from '@/config/logger'
-
-import { logError } from '../utils/error'
+import { logger } from '#config/logger'
+import { logError } from '#utils/error'
 
 interface JobConfig {
   handler: () => Promise<void> | void

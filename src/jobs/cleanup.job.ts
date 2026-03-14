@@ -1,4 +1,4 @@
-import { cleanupAll } from '@/services/cleanup.service'
+import { cleanupAll } from '#services/cleanup.service'
 
 export const runCleanupProcess = async () => {
   await cleanupAll()

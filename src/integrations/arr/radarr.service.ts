@@ -1,10 +1,10 @@
 import * as v from 'valibot'
 
-import type { QueueService } from '@/types/cleanup'
-import { movieValidator } from '@/validators/radarr.validator'
+import type { QueueService } from '#types/cleanup'
+import { isError, logError } from '#utils/error'
+import { movieValidator } from '#validators/radarr.validator'
 
-import { isError, logError } from '../../utils/error'
-import { ArrClient } from './arr.service'
+import { ArrClient } from './arr.service.js'
 
 export interface IRadarrClient extends QueueService {
   refreshMovie(movieId: number): Promise<void>

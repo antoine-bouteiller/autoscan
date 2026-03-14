@@ -1,12 +1,12 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import * as v from 'valibot'
 
-import env from '@/config/env'
-import { container, TOKENS } from '@/core/container'
-import { badRequest, success } from '@/core/response'
-import type { ITelegramClient } from '@/integrations/telegram.service'
-import { logError } from '@/utils/error'
-import { sendMessageValidator } from '@/validators/send_message.validator'
+import env from '#config/env'
+import { container, TOKENS } from '#core/container'
+import { badRequest, success } from '#core/response'
+import type { ITelegramClient } from '#integrations/telegram.service'
+import { logError } from '#utils/error'
+import { sendMessageValidator } from '#validators/send_message.validator'
 
 export const sendMessageWebhook = async (request: FastifyRequest, reply: FastifyReply) => {
   const parsed = v.safeParse(sendMessageValidator, request.body)
