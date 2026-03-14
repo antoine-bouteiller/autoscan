@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vite-plus/test'
 
 import { type Criteria, isStreamWanted, simpleHash } from '@/services/transcode/helpers/utils'
 import type { FFprobeStream } from '@/validators/ffmpeg.validator'

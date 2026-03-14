@@ -1,7 +1,7 @@
 import { copyFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect } from 'vitest'
+import { describe, expect } from 'vite-plus/test'
 
 import { container, TOKENS } from '@/core/container'
 import type { FfmpegClient } from '@/integrations/ffmpeg.service'

@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { vi } from 'vite-plus/test'
 
 import { PlexError } from '@/errors/plex'
 import type { IPlexClient } from '@/integrations/plex.service'

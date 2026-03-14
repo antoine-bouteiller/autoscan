@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { expect, it } from 'vitest'
+import { expect, it } from 'vite-plus/test'
 
 export { MockCloudflareClient } from './mocks/cloudflare.mock'
 export { MockPlexClient } from './mocks/plex.mock'

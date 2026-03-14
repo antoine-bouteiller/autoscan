@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { vi } from 'vite-plus/test'
 
 import type { ITelegramClient } from '@/integrations/telegram.service'
 

@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
 import { HttpError } from '@/errors/http'
 import { NetworkError } from '@/errors/network'

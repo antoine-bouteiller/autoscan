@@ -12,16 +12,20 @@ const httpProvider = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
 const schedulerProvider = container.resolve<SchedulerProvider>(TOKENS.SCHEDULER_PROVIDER)
 const telegramProvider = container.resolve<TelegramProvider>(TOKENS.TELEGRAM_PROVIDER)
 
-await httpProvider.start()
+export const { app } = httpProvider
 
-telegramProvider.start()
+if (process.env['NODE_ENV'] !== 'development') {
+  await httpProvider.start()
 
-process.on('SIGINT', async () => {
-  logger.info('Shutting down gracefully...')
+  telegramProvider.start()
 
-  await httpProvider.stop()
-  schedulerProvider.stopAll()
-  await telegramProvider.stop()
+  process.on('SIGINT', async () => {
+    logger.info('Shutting down gracefully...')
 
-  process.exit(0)
-})
+    await httpProvider.stop()
+    schedulerProvider.stopAll()
+    await telegramProvider.stop()
+
+    process.exit(0)
+  })
+}
