@@ -2,17 +2,12 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "dependencyDashboard": false,
-  "allowedPostUpgradeCommands": ["^bash scripts/update_nix_hash\\.sh$"],
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true,
       "groupName": "all dependencies"
     }
-  ],
-  "postUpgradeTasks": {
-    "commands": ["bash scripts/update_nix_hash.sh"],
-    "fileFilters": ["flake.nix"],
-    "executionMode": "branch"
-  }
+  ]
 }
