@@ -1,6 +1,6 @@
-import { vi } from 'vitest'
+import { vi } from 'vite-plus/test'
 
-import type { ISonarrClient } from '@/integrations/arr/sonarr.service'
+import type { ISonarrClient } from '#integrations/arr/sonarr.service'
 
 export const mockSonarrQueue = vi.fn<ISonarrClient['getQueue']>()
 export const mockSonarrRemoveQueueItem = vi.fn<ISonarrClient['removeQueueItem']>()

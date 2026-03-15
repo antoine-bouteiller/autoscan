@@ -1,7 +1,7 @@
-import type { InlineKeyboardMarkup } from '@/types/telegram'
-import { isError, logError } from '@/utils/error'
-import { httpClient } from '@/utils/http_client'
-import { getUpdatesResponseSchema, sendMessageResponseSchema, type TelegramUpdate } from '@/validators/telegram.validator'
+import type { InlineKeyboardMarkup } from '#types/telegram'
+import { isError, logError } from '#utils/error'
+import { httpClient } from '#utils/http_client'
+import { getUpdatesResponseSchema, sendMessageResponseSchema, type TelegramUpdate } from '#validators/telegram.validator'
 
 export interface ITelegramClient {
   getUpdates(offset?: number): Promise<TelegramUpdate[] | Error>

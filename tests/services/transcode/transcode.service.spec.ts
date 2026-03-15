@@ -1,16 +1,16 @@
 import { copyFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vite-plus/test'
 
-import { container, TOKENS } from '@/core/container'
-import type { FfmpegClient } from '@/integrations/ffmpeg.service'
-import { transcodeFile, transcodeQueue } from '@/services/transcode/transcode.service'
-import { isOk } from '@/utils/error'
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
+import { container, TOKENS } from '#core/container'
+import type { FfmpegClient } from '#integrations/ffmpeg.service'
+import { transcodeFile, transcodeQueue } from '#services/transcode/transcode.service'
+import { isOk } from '#utils/error'
+import type { FFprobeStream } from '#validators/ffmpeg.validator'
 
-import { testWithTestDir, videosPath } from '../../config.js'
 import { refreshSectionMock } from '../../mocks/plex.mock.js'
+import { testWithTestDir, videosPath } from '../../utils.ts'
 
 const waitForQueueCompletion = async (): Promise<void> =>
   new Promise((resolve) => {
@@ -124,8 +124,8 @@ describe('Transcode', () => {
   test('Should refresh section when file not found', async () => {
     const executed = await transcodeFile('unkown file.mp4', 'test', 'en', 'movie')
 
-      expect(executed).toBe(false)
+    expect(executed).toBe(false)
 
-      expect(refreshSectionMock).toHaveBeenCalled()
+    expect(refreshSectionMock).toHaveBeenCalled()
   })
 })

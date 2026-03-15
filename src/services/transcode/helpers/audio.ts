@@ -1,10 +1,10 @@
-import { logger } from '@/config/logger'
-import { AudioStreamNotFoundError, NoStreamsKeptError } from '@/errors/transcode'
-import { type ISOCode1 } from '@/types/iso_codes'
-import { iso1ToIso2B } from '@/utils/iso_codes'
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
+import { logger } from '#config/logger'
+import { AudioStreamNotFoundError, NoStreamsKeptError } from '#errors/transcode'
+import { type ISOCode1 } from '#types/iso_codes'
+import { iso1ToIso2B } from '#utils/iso_codes'
+import type { FFprobeStream } from '#validators/ffmpeg.validator'
 
-import { type Criteria, isStreamWanted } from './utils'
+import { type Criteria, isStreamWanted } from './utils.js'
 
 const wantedAudioEncodings = ['aac', 'ac3', 'eac3']
 

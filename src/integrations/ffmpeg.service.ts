@@ -2,13 +2,12 @@ import { existsSync, mkdirSync } from 'node:fs'
 
 import * as v from 'valibot'
 
-import env from '@/config/env'
-import { FileNotFoundError } from '@/errors/transcode'
-import { ValidationError } from '@/errors/validation'
-import { spawnPromise } from '@/utils/exec_promisify'
-import { ffprobeOutputValidator } from '@/validators/ffmpeg.validator'
-
-import { isError } from '../utils/error'
+import env from '#config/env'
+import { FileNotFoundError } from '#errors/transcode'
+import { ValidationError } from '#errors/validation'
+import { isError } from '#utils/error'
+import { spawnPromise } from '#utils/exec_promisify'
+import { ffprobeOutputValidator } from '#validators/ffmpeg.validator'
 
 export class FfmpegClient {
   executeFfmpeg(id: number, input: string, output: string, command: string[]) {

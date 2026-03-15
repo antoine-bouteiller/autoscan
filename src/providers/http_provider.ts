@@ -1,19 +1,7 @@
-import { logger } from '@/config/logger'
+import fastify from 'fastify'
 
-import { logError } from '../utils/error'
-
-type RouteHandler = (request: Request) => Promise<Response> | Response
-
-type RouteConfig = Record<
-  string,
-  {
-    DELETE?: RouteHandler
-    GET?: RouteHandler
-    PATCH?: RouteHandler
-    POST?: RouteHandler
-    PUT?: RouteHandler
-  }
->
+import { logger } from '#config/logger'
+import { logError } from '#utils/error'
 
 interface HttpProviderOptions {
   hostname?: string
@@ -21,9 +9,8 @@ interface HttpProviderOptions {
 }
 
 export class HttpProvider {
+  readonly app = fastify()
   private readonly options: HttpProviderOptions
-  private routes: RouteConfig = {}
-  private server: ReturnType<typeof Bun.serve> | undefined = undefined
 
   constructor(options: HttpProviderOptions) {
     this.options = {
@@ -31,49 +18,24 @@ export class HttpProvider {
       port: 3030,
       ...options,
     }
-  }
 
-  registerRoutes(routes: RouteConfig): void {
-    this.routes = routes
-  }
-
-  start(): ReturnType<typeof Bun.serve> {
-    if (this.server) {
-      logger.warn('server is already running', 'HTTP')
-      return this.server
-    }
-
-    this.server = Bun.serve({
-      error(error) {
-        logError(error)
-
-        return Response.json(
-          {
-            error: {
-              code: 'INTERNAL_ERROR',
-              message: 'An unexpected error occurred',
-            },
-            meta: { timestamp: new Date().toISOString() },
-            success: false,
-          },
-          { status: 500 }
-        )
-      },
-      hostname: this.options.hostname,
-      port: this.options.port,
-      routes: this.routes,
+    this.app.setErrorHandler((error, _request, reply) => {
+      logError(error)
+      reply.status(500).send({
+        error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        meta: { timestamp: new Date().toISOString() },
+        success: false,
+      })
     })
-
-    logger.info(`Server running at ${this.server.url.toString()}`, 'HTTP')
-
-    return this.server
   }
 
-  stop(): void {
-    if (this.server) {
-      void this.server.stop()
-      logger.info('Server stopped', 'HTTP')
-      this.server = undefined
-    }
+  async start(): Promise<void> {
+    await this.app.listen({ host: this.options.hostname, port: this.options.port })
+    logger.info(`Server running at http://${this.options.hostname}:${this.options.port}/`, 'HTTP')
+  }
+
+  async stop(): Promise<void> {
+    await this.app.close()
+    logger.info('Server stopped', 'HTTP')
   }
 }

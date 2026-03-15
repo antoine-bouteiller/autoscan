@@ -1,3 +1,5 @@
+import type { FastifyReply } from 'fastify'
+
 interface ApiResponse<T> {
   data?: T
   error?: { code: string; details?: unknown; message: string }
@@ -5,24 +7,20 @@ interface ApiResponse<T> {
   success: boolean
 }
 
-const createResponse = <T>(body: ApiResponse<T>, status: number): Response =>
-  Response.json(
-    {
-      ...body,
-      meta: { timestamp: new Date().toISOString() },
-    },
-    { status }
-  )
+const sendResponse = <T>(reply: FastifyReply, body: ApiResponse<T>, status: number) =>
+  reply.status(status).send({
+    ...body,
+    meta: { timestamp: new Date().toISOString() },
+  })
 
-export const success = <T>(data: T, status = 200): Response => createResponse({ data, success: true }, status)
+export const success = <T>(reply: FastifyReply, data: T, status = 200) => sendResponse(reply, { data, success: true }, status)
 
-const error = (code: string, message: string, status = 500, details?: unknown): Response =>
-  createResponse(
+export const badRequest = (reply: FastifyReply, message: string, details?: unknown) =>
+  sendResponse(
+    reply,
     {
-      error: { code, details, message },
+      error: { code: 'BAD_REQUEST', details, message },
       success: false,
     },
-    status
+    400
   )
-
-export const badRequest = (message: string, details?: unknown): Response => error('BAD_REQUEST', message, 400, details)

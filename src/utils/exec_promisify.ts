@@ -1,21 +1,31 @@
-import { CommandExecutionError } from '@/errors/command'
+import { spawn } from 'node:child_process'
 
-export const spawnPromise = async (
-  command: string,
-  args: string[] = [],
-  options: Omit<Parameters<typeof Bun.spawn>[1], 'stderr' | 'stdout'> = {}
-): Promise<CommandExecutionError | string> => {
-  const proc = Bun.spawn([command, ...args], {
-    stderr: 'pipe',
-    stdout: 'pipe',
-    ...options,
-  })
+import { CommandExecutionError } from '#errors/command'
 
-  const [stdout, stderr, exitCode] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited])
-
-  if (exitCode !== 0) {
-    return new CommandExecutionError({ command: `${command} ${args.join(' ')}`, exitCode, stderr })
-  }
-
-  return stdout
+interface SpawnOptions {
+  cwd?: string
+  env?: NodeJS.ProcessEnv
 }
+
+export const spawnPromise = (command: string, args: string[] = [], options: SpawnOptions = {}): Promise<CommandExecutionError | string> =>
+  new Promise((resolve) => {
+    const proc = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options })
+
+    const stdoutChunks: Buffer[] = []
+    const stderrChunks: Buffer[] = []
+
+    proc.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk))
+    proc.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk))
+
+    proc.on('close', (exitCode) => {
+      const stdout = Buffer.concat(stdoutChunks).toString()
+      const stderr = Buffer.concat(stderrChunks).toString()
+
+      if (exitCode !== 0) {
+        resolve(new CommandExecutionError({ command: `${command} ${args.join(' ')}`, exitCode: exitCode ?? 1, stderr }))
+        return
+      }
+
+      resolve(stdout)
+    })
+  })

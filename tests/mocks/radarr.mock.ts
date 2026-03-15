@@ -1,6 +1,6 @@
-import { vi } from 'vitest'
+import { vi } from 'vite-plus/test'
 
-import type { IRadarrClient } from '@/integrations/arr/radarr.service'
+import type { IRadarrClient } from '#integrations/arr/radarr.service'
 
 export const mockRadarrQueue = vi.fn<IRadarrClient['getQueue']>()
 export const mockRadarrRemoveQueueItem = vi.fn<IRadarrClient['removeQueueItem']>()

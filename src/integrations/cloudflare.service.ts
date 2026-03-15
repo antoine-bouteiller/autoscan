@@ -1,11 +1,10 @@
-import { cloudflareErrorFormatter, CloudflareZoneNotFoundError } from '@/errors/cloudflare'
-import type { HttpError } from '@/errors/http'
-import type { NetworkError } from '@/errors/network'
-import type { ValidationError } from '@/errors/validation'
-import { httpClient } from '@/utils/http_client'
-import { type DnsRecord, dnsRecordsResponseValidator, ipifyResponseValidator, zonesResponseValidator } from '@/validators/cloudflare.validator'
-
-import { isError, logError } from '../utils/error'
+import { cloudflareErrorFormatter, CloudflareZoneNotFoundError } from '#errors/cloudflare'
+import type { HttpError } from '#errors/http'
+import type { NetworkError } from '#errors/network'
+import type { ValidationError } from '#errors/validation'
+import { isError, logError } from '#utils/error'
+import { httpClient } from '#utils/http_client'
+import { type DnsRecord, dnsRecordsResponseValidator, ipifyResponseValidator, zonesResponseValidator } from '#validators/cloudflare.validator'
 
 export interface ICloudflareClient {
   getPublicIP(): Promise<HttpError | NetworkError | ValidationError | string>

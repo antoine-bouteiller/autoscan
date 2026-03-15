@@ -1,4 +1,4 @@
-import { createTaggedError } from '../utils/error'
+import { createTaggedError } from '#utils/error'
 
 export class ValidationError extends createTaggedError({
   name: 'ValidationError',

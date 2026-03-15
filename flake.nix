@@ -9,41 +9,65 @@
     self,
     nixpkgs,
   }: let
-    system = "x86_64-linux";
-    pkgs = nixpkgs.legacyPackages.${system};
-    version = "1.5.0";
-
-    autoscan = pkgs.stdenv.mkDerivation {
-      pname = "autoscan";
-      inherit version;
-
-      src = pkgs.fetchurl {
-        url = "https://github.com/antoine-bouteiller/autoscan/releases/download/v${version}/autoscan-linux-x64";
-        hash = "sha256-lP5I13K2wy/OFsYptV+hAB4lmXEZLM1al68VsnZ8sTs=";
-      };
-
-      dontUnpack = true;
-      dontStrip = true;
-      dontPatchELF = true;
-
-      installPhase = ''
-        install -Dm755 $src $out/bin/autoscan
-      '';
-
-      meta = with pkgs.lib; {
-        description = "Media automation service integrating Radarr, Sonarr, Plex, and TMDB";
-        homepage = "https://github.com/antoine-bouteiller/autoscan";
-        license = licenses.mit;
-        platforms = platforms.linux;
-        mainProgram = "autoscan";
-      };
-    };
+    supportedSystems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
+    forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
   in
     {
-      packages.${system} = {
+      packages = forAllSystems (system: let
+        pkgs = nixpkgs.legacyPackages.${system};
+
+        autoscan = pkgs.stdenvNoCC.mkDerivation {
+          pname = "autoscan";
+          version = "unstable";
+
+          src = pkgs.lib.cleanSource ./.;
+
+          nativeBuildInputs = [
+            pkgs.nodejs
+            pkgs.pnpm_10
+            pkgs.pnpmConfigHook
+            pkgs.makeWrapper
+          ];
+
+          pnpmDeps = pkgs.fetchPnpmDeps {
+            pname = "autoscan";
+            version = "unstable";
+            src = pkgs.lib.cleanSource ./.;
+            hash = "sha256-/60rj9oaW1Wb0I0ZZN/kNZT1tHWCNGBCSyRJPBEcwOg=";
+            fetcherVersion = 3;
+          };
+
+          buildPhase = ''
+            runHook preBuild
+            pnpm pack
+            runHook postBuild
+          '';
+
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/lib/autoscan $out/bin
+
+            cp -r dist/* $out/lib/autoscan/
+            cp -r node_modules $out/lib/autoscan/
+
+            makeWrapper ${pkgs.nodejs}/bin/node $out/bin/autoscan \
+              --add-flags "$out/lib/autoscan/index.js" \
+              --run "cd $out/lib/autoscan"
+            runHook postInstall
+          '';
+
+          meta = with pkgs.lib; {
+            description = "Media automation service integrating Radarr, Sonarr, Plex, and TMDB";
+            homepage = "https://github.com/antoine-bouteiller/autoscan";
+            license = licenses.mit;
+            platforms = platforms.all;
+            mainProgram = "autoscan";
+          };
+        };
+      in {
         default = autoscan;
         autoscan = autoscan;
-      };
+      });
     }
     // {
       nixosModules.default = {
@@ -118,8 +142,6 @@
         };
 
         config = lib.mkIf cfg.enable {
-          programs.nix-ld.enable = true;
-
           users.users = lib.mkIf (cfg.user == "autoscan") {
             autoscan = {
               group = cfg.group;
@@ -156,8 +178,6 @@
             };
 
             environment = {
-              NIX_LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [pkgs.stdenv.cc.cc.lib];
-
               PORT = toString cfg.port;
               PLEX_URL = cfg.settings.plexUrl;
               DOMAIN = cfg.settings.domain;
@@ -175,7 +195,7 @@
               TRAKT_CLIENT_ID_FILE = toString cfg.secrets.traktClientIdFile;
               TRAKT_CLIENT_SECRET_FILE = toString cfg.secrets.traktClientSecretFile;
 
-              DATABASE_URL = "${cfg.dataDir}/autoscan.db";
+              DATABASE_URL = "${cfg.dataDir}/pgdata";
               TRANSCODE_PATH = cfg.settings.transcodePath;
             };
           };

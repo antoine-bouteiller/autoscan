@@ -1,10 +1,10 @@
-import { container, TOKENS } from '@/core/container'
-import { FileNotFoundError, TmdbIdNotFoundError } from '@/errors/metadata'
-import { type IPlexClient, type MediaType } from '@/integrations/plex.service'
-import type { ITmdbClient } from '@/integrations/tmdb.service'
-import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/repositories/media.repository'
-import { type ISOCode1 } from '@/types/iso_codes'
-import { isError } from '@/utils/error'
+import { container, TOKENS } from '#core/container'
+import { FileNotFoundError, TmdbIdNotFoundError } from '#errors/metadata'
+import { type IPlexClient, type MediaType } from '#integrations/plex.service'
+import type { ITmdbClient } from '#integrations/tmdb.service'
+import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '#repositories/media.repository'
+import { type ISOCode1 } from '#types/iso_codes'
+import { isError } from '#utils/error'
 
 export const extractTmdbIdFromPath = (filePath: string): number | undefined => {
   const match = /{tmdb-(.*?)}/g.exec(filePath)

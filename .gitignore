@@ -3,9 +3,12 @@ node_modules
 resources
 index
 coverage
+mise.toml
 
 # bun
 *.bun-build
+build
+dist
 
 # Claude
 settings.local.json

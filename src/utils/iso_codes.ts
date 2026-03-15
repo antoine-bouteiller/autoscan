@@ -1,7 +1,7 @@
-import { ISO1, iso1ToIso2T, iso2ToIso1, iso2TToIso2B, type ISOCode1, type ISOCode2B } from '@/types/iso_codes'
+import { ISO1, iso1ToIso2T, iso2ToIso1, iso2TToIso2B, type ISOCode1, type ISOCode2B } from '#types/iso_codes'
 
-import { isInArray } from './array'
-import { isKeyOf } from './object'
+import { isInArray } from './array.js'
+import { isKeyOf } from './object.js'
 
 /**
  * Normalize a language code to ISO 639-1 (2-character) format

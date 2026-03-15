@@ -1,8 +1,8 @@
 import type * as v from 'valibot'
 
-import type { HttpError, HttpErrorFormatter } from '@/errors/http'
-import type { NetworkError } from '@/errors/network'
-import type { ValidationError } from '@/errors/validation'
+import type { HttpError, HttpErrorFormatter } from '#errors/http'
+import type { NetworkError } from '#errors/network'
+import type { ValidationError } from '#errors/validation'
 
 export type AnySchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>
 

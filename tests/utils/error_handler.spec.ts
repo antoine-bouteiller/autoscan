@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vite-plus/test'
 
-import { logError } from '../../src/utils/error'
+import { logError } from '../../src/utils/error.js'
 
 describe('logError', () => {
   test('should not throw for Error instances', () => {

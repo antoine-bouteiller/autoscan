@@ -84,14 +84,15 @@ Trigger a full library transcode manually:
 
 ## Development
 
-Requires [Bun](https://bun.sh) and FFmpeg.
+Requires [Node.js](https://nodejs.org) and FFmpeg.
 
 ```bash
-bun install      # Install dependencies
-bun dev          # Development with watch mode (Telegram disabled)
-bun test         # Run tests
-bun lint         # Lint with oxlint
-bun format       # Format with oxfmt
-bun typecheck    # Type check
-bun run build    # Compile to standalone binary
+pnpm install      # Install dependencies
+pnpm run dev      # Development with watch mode (Telegram disabled)
+pnpm test         # Run tests
+pnpm run lint     # Lint with oxlint
+pnpm run format   # Format with oxfmt
+pnpm run typecheck # Type check
+pnpm run build    # Bundle with tsdown
+pnpm run build:sea # Build single-file executable (Node.js SEA)
 ```

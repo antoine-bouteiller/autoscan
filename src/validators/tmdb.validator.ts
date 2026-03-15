@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 
-import { ISO1 } from '@/types/iso_codes'
+import { ISO1 } from '#types/iso_codes'
 
 export const tmdbMovieResponse = v.object({
   original_language: v.picklist(ISO1),

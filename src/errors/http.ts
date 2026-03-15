@@ -1,4 +1,4 @@
-import { createTaggedError } from '../utils/error'
+import { createTaggedError } from '#utils/error'
 
 export type HttpErrorFormatter = (body: unknown) => string
 

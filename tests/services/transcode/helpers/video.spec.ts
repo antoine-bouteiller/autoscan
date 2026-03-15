@@ -1,9 +1,9 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vite-plus/test'
 
-import { processVideoStreams } from '@/services/transcode/helpers/video'
-import type { FFprobeStream } from '@/validators/ffmpeg.validator'
+import { processVideoStreams } from '#services/transcode/helpers/video'
+import type { FFprobeStream } from '#validators/ffmpeg.validator'
 
-import { isOk } from '../../../../src/utils/error'
+import { isOk } from '../../../../src/utils/error.js'
 
 describe('processVideoStreams', () => {
   test('should keep valid video streams', () => {

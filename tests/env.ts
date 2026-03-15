@@ -1,7 +1,7 @@
 Object.assign(process.env, {
   NODE_ENV: 'test',
   CLOUDFLARE_TOKEN: 'test-token',
-  DATABASE_URL: ':memory:',
+  DATABASE_URL: 'memory://',
   DOMAIN: 'example.com',
   PLEX_TOKEN: 'test-plex-token',
   PLEX_URL: 'http://plex.test',
@@ -14,6 +14,6 @@ Object.assign(process.env, {
   TMDB_API_TOKEN: 'test-tmdb-token',
   TMDB_API_URL: 'http://tmdb.test',
   TRAKT_CLIENT_ID: 'test-trakt-id',
-  TRANSCODE_PATH: 'teststranscode',
+  TRANSCODE_PATH: 'resources/transcode',
   TRAKT_CLIENT_SECRET: 'test-trakt-secret',
 })

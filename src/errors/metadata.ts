@@ -1,4 +1,4 @@
-import { createTaggedError } from '../utils/error'
+import { createTaggedError } from '#utils/error'
 
 export class FileNotFoundError extends createTaggedError({
   name: 'FileNotFoundError',

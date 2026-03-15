@@ -1,7 +1,6 @@
-import { type QueueResponse, queueResponseValidator } from '@/types/cleanup'
-import { httpClient } from '@/utils/http_client'
-
-import { isError, logError } from '../../utils/error'
+import { type QueueResponse, queueResponseValidator } from '#types/cleanup'
+import { isError, logError } from '#utils/error'
+import { httpClient } from '#utils/http_client'
 
 interface ArrClientConfig {
   apiKey: string

@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vite-plus/test'
 
-import { isInArray } from '@/utils/array'
+import { isInArray } from '#utils/array'
 
 describe('isInArray', () => {
   const fruits = ['apple', 'banana', 'cherry'] as const

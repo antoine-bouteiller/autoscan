@@ -1,10 +1,10 @@
 import * as v from 'valibot'
 
-import type { QueueService } from '@/types/cleanup'
-import { seriesValidator } from '@/validators/sonarr.validator'
+import type { QueueService } from '#types/cleanup'
+import { isError, logError } from '#utils/error'
+import { seriesValidator } from '#validators/sonarr.validator'
 
-import { isError, logError } from '../../utils/error'
-import { ArrClient } from './arr.service'
+import { ArrClient } from './arr.service.js'
 
 export interface ISonarrClient extends QueueService {
   refreshSeries(seriesId: number): Promise<void>
