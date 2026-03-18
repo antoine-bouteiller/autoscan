@@ -1,47 +1,46 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
-const numberFromString = v.pipe(
-  v.string(),
-  v.transform((value) => Number(value)),
-  v.check((value) => Number.isFinite(value), 'Expected numeric string')
-)
+const numberFromString = z
+  .string()
+  .transform((value) => Number(value))
+  .refine((value) => Number.isFinite(value), 'Expected numeric string')
 
-const episodeValidator = v.object({
-  title: v.string(),
+const episodeValidator = z.object({
+  title: z.string(),
 })
 
-const episodeFileValidator = v.object({
-  relativePath: v.string(),
+const episodeFileValidator = z.object({
+  relativePath: z.string(),
 })
 
-const seriesPayloadValidator = v.object({
-  path: v.string(),
-  title: v.string(),
-  tmdbId: v.union([v.number(), numberFromString]),
+const seriesPayloadValidator = z.object({
+  path: z.string(),
+  title: z.string(),
+  tmdbId: z.union([z.number(), numberFromString]),
 })
 
-export const sonarrValidator = v.union([
-  v.object({
+export const sonarrValidator = z.union([
+  z.object({
     episodeFile: episodeFileValidator,
-    episodes: v.array(episodeValidator),
-    eventType: v.literal('Download'),
+    episodes: z.array(episodeValidator),
+    eventType: z.literal('Download'),
     series: seriesPayloadValidator,
   }),
-  v.object({
-    episodeFile: v.optional(episodeFileValidator),
-    eventType: v.union([v.literal('EpisodeFileDelete'), v.literal('Rename')]),
+  z.object({
+    episodeFile: episodeFileValidator.optional(),
+    eventType: z.union([z.literal('EpisodeFileDelete'), z.literal('Rename')]),
     series: seriesPayloadValidator,
   }),
-  v.object({
-    eventType: v.literal('SeriesDelete'),
+  z.object({
+    eventType: z.literal('SeriesDelete'),
     series: seriesPayloadValidator,
   }),
-  v.object({
-    eventType: v.literal('Test'),
+  z.object({
+    eventType: z.literal('Test'),
   }),
 ])
 
-export const seriesValidator = v.object({
-  id: v.number(),
-  path: v.string(),
+export const seriesValidator = z.object({
+  id: z.number(),
+  path: z.string(),
 })

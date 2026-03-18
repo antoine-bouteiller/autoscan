@@ -1,40 +1,40 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
-export const ipifyResponseValidator = v.object({
-  ip: v.string(),
+export const ipifyResponseValidator = z.object({
+  ip: z.string(),
 })
 
-const dnsRecordValidator = v.object({
-  content: v.string(),
-  id: v.string(),
-  name: v.string(),
-  ttl: v.number(),
-  type: v.string(),
+const dnsRecordValidator = z.object({
+  content: z.string(),
+  id: z.string(),
+  name: z.string(),
+  ttl: z.number(),
+  type: z.string(),
 })
 
-export const dnsRecordsResponseValidator = v.object({
-  result: v.array(dnsRecordValidator),
-  success: v.boolean(),
+export const dnsRecordsResponseValidator = z.object({
+  result: z.array(dnsRecordValidator),
+  success: z.boolean(),
 })
 
-const zoneValidator = v.object({
-  id: v.string(),
-  name: v.string(),
+const zoneValidator = z.object({
+  id: z.string(),
+  name: z.string(),
 })
 
-export const zonesResponseValidator = v.object({
-  result: v.array(zoneValidator),
-  success: v.boolean(),
+export const zonesResponseValidator = z.object({
+  result: z.array(zoneValidator),
+  success: z.boolean(),
 })
 
-export const cloudflareErrorResponse = v.object({
-  errors: v.array(
-    v.object({
-      code: v.number(),
-      message: v.string(),
+export const cloudflareErrorResponse = z.object({
+  errors: z.array(
+    z.object({
+      code: z.number(),
+      message: z.string(),
     })
   ),
-  success: v.boolean(),
+  success: z.boolean(),
 })
 
-export type DnsRecord = v.InferOutput<typeof dnsRecordValidator>
+export type DnsRecord = z.infer<typeof dnsRecordValidator>

@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from 'node:fs'
 
-import * as v from 'valibot'
+import { z } from 'zod'
 
 import env from '#config/env'
 import { FileNotFoundError } from '#errors/transcode'
@@ -40,13 +40,13 @@ export class FfmpegClient {
       return output
     }
 
-    const parsedOutput = v.safeParse(ffprobeOutputValidator, JSON.parse(output))
+    const parsedOutput = ffprobeOutputValidator.safeParse(JSON.parse(output))
 
     if (!parsedOutput.success) {
-      return new ValidationError({ details: JSON.stringify(v.flatten(parsedOutput.issues)) })
+      return new ValidationError({ details: JSON.stringify(z.treeifyError(parsedOutput.error)) })
     }
 
-    return parsedOutput.output.streams
+    return parsedOutput.data.streams
   }
 
   execute(...command: string[]) {

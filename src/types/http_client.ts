@@ -1,10 +1,10 @@
-import type * as v from 'valibot'
+import type { z } from 'zod'
 
 import type { HttpError, HttpErrorFormatter } from '#errors/http'
 import type { NetworkError } from '#errors/network'
 import type { ValidationError } from '#errors/validation'
 
-export type AnySchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>
+export type AnySchema = z.ZodType
 
 export type RequestParams = Record<string, string | number | boolean>
 
@@ -28,7 +28,7 @@ export type HttpClientError = HttpError | NetworkError | ValidationError
 
 export type HttpClientVoidResult = HttpClientError | undefined
 
-export type HttpClientResult<TSchema extends AnySchema> = HttpClientError | v.InferOutput<TSchema>
+export type HttpClientResult<TSchema extends AnySchema> = HttpClientError | z.infer<TSchema>
 
 export type GetOptions<TSchema extends AnySchema> = Omit<RequestOptions<TSchema>, 'body'>
 
