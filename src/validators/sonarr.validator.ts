@@ -1,10 +1,5 @@
 import { z } from 'zod'
 
-const numberFromString = z
-  .string()
-  .transform((value) => Number(value))
-  .refine((value) => Number.isFinite(value), 'Expected numeric string')
-
 const episodeValidator = z.object({
   title: z.string(),
 })
@@ -16,7 +11,7 @@ const episodeFileValidator = z.object({
 const seriesPayloadValidator = z.object({
   path: z.string(),
   title: z.string(),
-  tmdbId: z.union([z.number(), numberFromString]),
+  tmdbId: z.coerce.number(),
 })
 
 export const sonarrValidator = z.union([

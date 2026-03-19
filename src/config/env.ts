@@ -19,11 +19,6 @@ for (const key of [
   }
 }
 
-const numberFromString = z
-  .string()
-  .transform((value) => Number(value))
-  .refine((value) => Number.isFinite(value), 'Expected numeric string')
-
 const urlString = z.string().refine((value) => {
   try {
     const url = new URL(value)
@@ -42,7 +37,7 @@ const envSchema = z.object({
   RADARR_API_URL: urlString,
   SONARR_API_KEY: z.string(),
   SONARR_API_URL: urlString,
-  TELEGRAM_CHAT_ID: numberFromString,
+  TELEGRAM_CHAT_ID: z.coerce.number(),
   TELEGRAM_TOKEN: z.string(),
   TMDB_API_TOKEN: z.string(),
   TMDB_API_URL: urlString,

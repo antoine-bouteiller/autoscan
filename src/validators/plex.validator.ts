@@ -2,11 +2,6 @@ import { z } from 'zod'
 
 import { ISO2T } from '#types/iso_codes'
 
-const integerFromString = z
-  .string()
-  .transform((value) => Number(value))
-  .refine((value) => Number.isInteger(value), 'Expected integer string')
-
 const streamValidator = z.object({
   id: z.number(),
   languageCode: z.enum(ISO2T).optional(),
@@ -51,7 +46,7 @@ const plexMediaValidator = z.object({
 })
 
 const plexDirectoryValidator = z.object({
-  key: z.union([integerFromString, z.number()]),
+  key: z.coerce.number(),
   title: z.string(),
   type: z.union([z.literal('movie'), z.literal('show')]),
 })
