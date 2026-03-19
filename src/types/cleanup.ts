@@ -1,27 +1,27 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
-const queueItemValidator = v.object({
-  errorMessage: v.optional(v.string()),
-  id: v.number(),
-  status: v.string(),
-  statusMessages: v.optional(
-    v.array(
-      v.object({
-        messages: v.union([v.string(), v.record(v.string(), v.unknown())]),
-        title: v.string(),
+const queueItemValidator = z.object({
+  errorMessage: z.string().optional(),
+  id: z.number(),
+  status: z.string(),
+  statusMessages: z
+    .array(
+      z.object({
+        messages: z.union([z.string(), z.record(z.string(), z.unknown())]),
+        title: z.string(),
       })
     )
-  ),
-  title: v.string(),
-  trackedDownloadStatus: v.optional(v.string()),
+    .optional(),
+  title: z.string(),
+  trackedDownloadStatus: z.string().optional(),
 })
 
-export const queueResponseValidator = v.object({
-  records: v.array(queueItemValidator),
-  totalRecords: v.number(),
+export const queueResponseValidator = z.object({
+  records: z.array(queueItemValidator),
+  totalRecords: z.number(),
 })
 
-export type QueueResponse = v.InferOutput<typeof queueResponseValidator>
+export type QueueResponse = z.infer<typeof queueResponseValidator>
 
 export interface QueueService {
   getQueue: () => Promise<QueueResponse | undefined>

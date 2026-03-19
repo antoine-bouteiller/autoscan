@@ -1,4 +1,4 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
 import type { QueueService } from '#types/cleanup'
 import { isError, logError } from '#utils/error'
@@ -55,7 +55,7 @@ export class RadarrClient extends ArrClient implements IRadarrClient {
 
   async getMovieByPath(filePath: string): Promise<number | undefined> {
     const result = await this.client.get('movie', {
-      validator: v.array(movieValidator),
+      validator: z.array(movieValidator),
     })
 
     if (isError(result)) {

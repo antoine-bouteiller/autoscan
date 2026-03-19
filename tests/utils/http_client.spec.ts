@@ -1,5 +1,5 @@
-import * as v from 'valibot'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { z } from 'zod'
 
 import { HttpError } from '#errors/http'
 import { NetworkError } from '#errors/network'
@@ -36,7 +36,7 @@ describe('httpClient', () => {
     })
 
     test('should validate response with validator', async () => {
-      const validator = v.object({ id: v.number(), name: v.string() })
+      const validator = z.object({ id: z.number(), name: z.string() })
       mockFetch.mockResolvedValue(Response.json({ id: 1, name: 'test' }, { status: 200 }))
 
       const result = await client.get('/items/1', { validator })
@@ -48,7 +48,7 @@ describe('httpClient', () => {
     })
 
     test('should return ValidationError when response does not match validator', async () => {
-      const validator = v.object({ id: v.number(), name: v.string() })
+      const validator = z.object({ id: z.number(), name: z.string() })
 
       mockFetch.mockResolvedValue(Response.json({ id: 'not-a-number' }, { status: 200 }))
 

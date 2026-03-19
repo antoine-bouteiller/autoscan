@@ -1,5 +1,5 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
-export const sendMessageValidator = v.object({
-  text: v.string(),
+export const sendMessageValidator = z.object({
+  text: z.string(),
 })

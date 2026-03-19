@@ -1,4 +1,4 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
 import type { QueueService } from '#types/cleanup'
 import { isError, logError } from '#utils/error'
@@ -54,7 +54,7 @@ export class SonarrClient extends ArrClient implements ISonarrClient {
 
   async getSeriesByPath(filePath: string): Promise<number | undefined> {
     const result = await this.client.get('series', {
-      validator: v.array(seriesValidator),
+      validator: z.array(seriesValidator),
     })
 
     if (isError(result)) {

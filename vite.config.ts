@@ -78,6 +78,7 @@ export default defineConfig({
   },
   staged: {
     'pnpm-lock.yaml': 'bash scripts/update_nix_hash.sh',
+    '*': 'vp check --fix',
   },
   pack: {
     entry: 'src/index.ts',

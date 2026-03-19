@@ -1,37 +1,37 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
-const moviePayloadValidator = v.object({
-  folderPath: v.string(),
-  title: v.string(),
-  tmdbId: v.number(),
+const moviePayloadValidator = z.object({
+  folderPath: z.string(),
+  title: z.string(),
+  tmdbId: z.number(),
 })
 
-const movieFileValidator = v.object({
-  relativePath: v.string(),
+const movieFileValidator = z.object({
+  relativePath: z.string(),
 })
 
-export const radarrValidator = v.union([
-  v.object({
-    eventType: v.literal('MovieFileDelete'),
+export const radarrValidator = z.union([
+  z.object({
+    eventType: z.literal('MovieFileDelete'),
     movie: moviePayloadValidator,
-    movieFile: v.optional(movieFileValidator),
+    movieFile: movieFileValidator.optional(),
   }),
-  v.object({
-    deleteFiles: v.boolean(),
-    eventType: v.literal('MovieDelete'),
+  z.object({
+    deleteFiles: z.boolean(),
+    eventType: z.literal('MovieDelete'),
     movie: moviePayloadValidator,
   }),
-  v.object({
-    eventType: v.literal('Download'),
+  z.object({
+    eventType: z.literal('Download'),
     movie: moviePayloadValidator,
     movieFile: movieFileValidator,
   }),
-  v.object({
-    eventType: v.literal('Test'),
+  z.object({
+    eventType: z.literal('Test'),
   }),
 ])
 
-export const movieValidator = v.object({
-  id: v.number(),
-  path: v.string(),
+export const movieValidator = z.object({
+  id: z.number(),
+  path: z.string(),
 })

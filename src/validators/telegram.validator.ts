@@ -1,48 +1,48 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
-const telegramUserSchema = v.object({
-  id: v.number(),
-  is_bot: v.boolean(),
+const telegramUserSchema = z.object({
+  id: z.number(),
+  is_bot: z.boolean(),
 })
 
-const telegramChatSchema = v.object({
-  id: v.number(),
+const telegramChatSchema = z.object({
+  id: z.number(),
 })
 
-const telegramMessageInSchema = v.object({
-  message_id: v.number(),
+const telegramMessageInSchema = z.object({
+  message_id: z.number(),
   chat: telegramChatSchema,
-  text: v.optional(v.string()),
-  from: v.optional(telegramUserSchema),
+  text: z.string().optional(),
+  from: telegramUserSchema.optional(),
 })
 
-const telegramCallbackQuerySchema = v.object({
-  id: v.string(),
-  data: v.optional(v.string()),
-  message: v.optional(telegramMessageInSchema),
+const telegramCallbackQuerySchema = z.object({
+  id: z.string(),
+  data: z.string().optional(),
+  message: telegramMessageInSchema.optional(),
 })
 
-export const telegramUpdateSchema = v.object({
-  update_id: v.number(),
-  message: v.optional(telegramMessageInSchema),
-  callback_query: v.optional(telegramCallbackQuerySchema),
+export const telegramUpdateSchema = z.object({
+  update_id: z.number(),
+  message: telegramMessageInSchema.optional(),
+  callback_query: telegramCallbackQuerySchema.optional(),
 })
 
-const telegramMessageSchema = v.object({
-  message_id: v.number(),
+const telegramMessageSchema = z.object({
+  message_id: z.number(),
   chat: telegramChatSchema,
 })
 
-export const getUpdatesResponseSchema = v.object({
-  ok: v.literal(true),
-  result: v.array(telegramUpdateSchema),
+export const getUpdatesResponseSchema = z.object({
+  ok: z.literal(true),
+  result: z.array(telegramUpdateSchema),
 })
 
-export const sendMessageResponseSchema = v.object({
-  ok: v.literal(true),
+export const sendMessageResponseSchema = z.object({
+  ok: z.literal(true),
   result: telegramMessageSchema,
 })
 
-export type TelegramUpdate = v.InferOutput<typeof telegramUpdateSchema>
-export type TelegramCallbackQuery = v.InferOutput<typeof telegramCallbackQuerySchema>
-export type TelegramMessageIn = v.InferOutput<typeof telegramMessageInSchema>
+export type TelegramUpdate = z.infer<typeof telegramUpdateSchema>
+export type TelegramCallbackQuery = z.infer<typeof telegramCallbackQuerySchema>
+export type TelegramMessageIn = z.infer<typeof telegramMessageInSchema>

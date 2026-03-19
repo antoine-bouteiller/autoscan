@@ -1,5 +1,3 @@
-import * as v from 'valibot'
-
 import { type HttpErrorFormatter } from '#errors/http'
 import { createTaggedError } from '#utils/error'
 import { cloudflareErrorResponse } from '#validators/cloudflare.validator'
@@ -15,9 +13,9 @@ export class DnsRecordNotFoundError extends createTaggedError({
 }) {}
 
 export const cloudflareErrorFormatter: HttpErrorFormatter = (body) => {
-  const cloudflareError = v.safeParse(cloudflareErrorResponse, body)
+  const cloudflareError = cloudflareErrorResponse.safeParse(body)
   if (!cloudflareError.success) {
     return typeof body === 'string' ? body : JSON.stringify(body)
   }
-  return cloudflareError.output.errors.map((error) => error.message).join(', ')
+  return cloudflareError.data.errors.map((error) => error.message).join(', ')
 }

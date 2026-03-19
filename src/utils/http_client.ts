@@ -1,4 +1,4 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
 import { HttpError } from '#errors/http'
 import { NetworkError } from '#errors/network'
@@ -68,12 +68,12 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
 
     const json = await response.json().catch(() => undefined)
 
-    const result = v.safeParse(validator, json)
+    const result = validator.safeParse(json)
     if (!result.success) {
-      return new ValidationError({ details: JSON.stringify(v.flatten(result.issues)) })
+      return new ValidationError({ details: JSON.stringify(z.treeifyError(result.error)) })
     }
 
-    return result.output
+    return result.data
   }
 
   return {

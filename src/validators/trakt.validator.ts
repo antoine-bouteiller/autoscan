@@ -1,35 +1,35 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
-export const deviceCodeResponseValidator = v.object({
-  device_code: v.string(),
-  expires_in: v.number(),
-  interval: v.number(),
-  user_code: v.string(),
-  verification_url: v.string(),
+export const deviceCodeResponseValidator = z.object({
+  device_code: z.string(),
+  expires_in: z.number(),
+  interval: z.number(),
+  user_code: z.string(),
+  verification_url: z.string(),
 })
 
-export const tokenResponseValidator = v.object({
-  access_token: v.string(),
-  created_at: v.number(),
-  expires_in: v.number(),
-  refresh_token: v.string(),
-  scope: v.string(),
-  token_type: v.string(),
+export const tokenResponseValidator = z.object({
+  access_token: z.string(),
+  created_at: z.number(),
+  expires_in: z.number(),
+  refresh_token: z.string(),
+  scope: z.string(),
+  token_type: z.string(),
 })
 
-export const syncResponseValidator = v.object({
-  added: v.object({
-    episodes: v.number(),
-    movies: v.number(),
+export const syncResponseValidator = z.object({
+  added: z.object({
+    episodes: z.number(),
+    movies: z.number(),
   }),
-  not_found: v.object({
-    episodes: v.array(v.unknown()),
-    movies: v.array(v.unknown()),
-    seasons: v.array(v.unknown()),
-    shows: v.array(v.unknown()),
+  not_found: z.object({
+    episodes: z.array(z.unknown()),
+    movies: z.array(z.unknown()),
+    seasons: z.array(z.unknown()),
+    shows: z.array(z.unknown()),
   }),
 })
 
-export type TraktDeviceCodeResponse = v.InferOutput<typeof deviceCodeResponseValidator>
-export type TraktTokenResponse = v.InferOutput<typeof tokenResponseValidator>
-export type TraktSyncResponse = v.InferOutput<typeof syncResponseValidator>
+export type TraktDeviceCodeResponse = z.infer<typeof deviceCodeResponseValidator>
+export type TraktTokenResponse = z.infer<typeof tokenResponseValidator>
+export type TraktSyncResponse = z.infer<typeof syncResponseValidator>

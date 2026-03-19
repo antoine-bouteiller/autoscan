@@ -1,70 +1,62 @@
-import * as v from 'valibot'
+import { z } from 'zod'
 
 import { ISO2T } from '#types/iso_codes'
 
-const integerFromString = v.pipe(
-  v.string(),
-  v.transform((value) => Number(value)),
-  v.check((value) => Number.isInteger(value), 'Expected integer string')
-)
-
-const streamValidator = v.object({
-  id: v.number(),
-  languageCode: v.optional(v.picklist(ISO2T)),
-  selected: v.optional(v.boolean()),
-  streamType: v.union([v.literal(1), v.literal(2), v.literal(3)]),
-  title: v.optional(v.string()),
+const streamValidator = z.object({
+  id: z.number(),
+  languageCode: z.enum(ISO2T).optional(),
+  selected: z.boolean().optional(),
+  streamType: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  title: z.string().optional(),
 })
 
-const plexMediaValidator = v.object({
-  grandparentTitle: v.optional(v.string()),
-  index: v.optional(v.number()),
-  key: v.string(),
-  lastViewedAt: v.optional(v.number()),
-  librarySectionID: v.optional(v.number()),
-  Media: v.array(
-    v.object({
-      Part: v.array(
-        v.object({
-          file: v.string(),
-          id: v.number(),
-          Stream: v.optional(
-            v.pipe(
-              v.array(v.unknown()),
-              v.transform((items) =>
-                items.flatMap((item) => {
-                  const result = v.safeParse(streamValidator, item)
-                  return result.success ? [result.output] : []
-                })
-              )
+const plexMediaValidator = z.object({
+  grandparentTitle: z.string().optional(),
+  index: z.number().optional(),
+  key: z.string(),
+  lastViewedAt: z.number().optional(),
+  librarySectionID: z.number().optional(),
+  Media: z.array(
+    z.object({
+      Part: z.array(
+        z.object({
+          file: z.string(),
+          id: z.number(),
+          Stream: z
+            .array(z.unknown())
+            .transform((items) =>
+              items.flatMap((item) => {
+                const result = streamValidator.safeParse(item)
+                return result.success ? [result.data] : []
+              })
             )
-          ),
+            .optional(),
         })
       ),
     })
   ),
-  parentIndex: v.optional(v.number()),
-  parentTitle: v.optional(v.string()),
-  primaryExtraKey: v.optional(v.string()),
-  ratingKey: v.string(),
-  title: v.string(),
-  type: v.union([v.literal('episode'), v.literal('movie')]),
-  viewCount: v.optional(v.number()),
-  year: v.number(),
+  parentIndex: z.number().optional(),
+  parentTitle: z.string().optional(),
+  primaryExtraKey: z.string().optional(),
+  ratingKey: z.string(),
+  title: z.string(),
+  type: z.union([z.literal('episode'), z.literal('movie')]),
+  viewCount: z.number().optional(),
+  year: z.number(),
 })
 
-const plexDirectoryValidator = v.object({
-  key: v.union([integerFromString, v.number()]),
-  title: v.string(),
-  type: v.union([v.literal('movie'), v.literal('show')]),
+const plexDirectoryValidator = z.object({
+  key: z.coerce.number(),
+  title: z.string(),
+  type: z.union([z.literal('movie'), z.literal('show')]),
 })
 
-export const plexResponseValidator = v.object({
-  MediaContainer: v.object({
-    Directory: v.optional(v.array(plexDirectoryValidator)),
-    Metadata: v.optional(v.array(plexMediaValidator)),
+export const plexResponseValidator = z.object({
+  MediaContainer: z.object({
+    Directory: z.array(plexDirectoryValidator).optional(),
+    Metadata: z.array(plexMediaValidator).optional(),
   }),
 })
 
-export type PlexMediaStream = v.InferOutput<typeof streamValidator>
-export type PlexMedia = v.InferOutput<typeof plexMediaValidator>
+export type PlexMediaStream = z.infer<typeof streamValidator>
+export type PlexMedia = z.infer<typeof plexMediaValidator>
