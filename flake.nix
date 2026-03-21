@@ -127,6 +127,11 @@
               type = lib.types.path;
               description = "Directory for temporary transcode files.";
             };
+            databaseUrl = lib.mkOption {
+              type = lib.types.str;
+              default = "${cfg.dataDir}/pgdata";
+              description = "Database URL for autoscan.";
+            };
           };
 
           secrets = {
@@ -196,7 +201,7 @@
               TRAKT_CLIENT_ID_FILE = toString cfg.secrets.traktClientIdFile;
               TRAKT_CLIENT_SECRET_FILE = toString cfg.secrets.traktClientSecretFile;
 
-              DATABASE_URL = "${cfg.dataDir}/pgdata";
+              DATABASE_URL = cfg.settings.databaseUrl;
               TRANSCODE_PATH = cfg.settings.transcodePath;
             };
           };
