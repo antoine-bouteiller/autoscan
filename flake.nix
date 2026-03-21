@@ -39,7 +39,7 @@
 
           buildPhase = ''
             runHook preBuild
-            pnpm pack
+            pnpm run pack
             runHook postBuild
           '';
 
@@ -47,11 +47,12 @@
             runHook preInstall
             mkdir -p $out/lib/autoscan $out/bin
 
-            cp -r dist/* $out/lib/autoscan/
+            cp dist/index.mjs $out/lib/autoscan/
+            cp -r migrations $out/lib/autoscan/
             cp -r node_modules $out/lib/autoscan/
 
             makeWrapper ${pkgs.nodejs}/bin/node $out/bin/autoscan \
-              --add-flags "$out/lib/autoscan/index.js" \
+              --add-flags "$out/lib/autoscan/index.mjs" \
               --run "cd $out/lib/autoscan"
             runHook postInstall
           '';
