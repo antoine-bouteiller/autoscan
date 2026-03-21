@@ -1,27 +1,27 @@
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 
 import { container, TOKENS } from '#core/container'
-import type { FfmpegClient } from '#integrations/ffmpeg.service'
 import type { IPlexClient } from '#integrations/plex.service'
 import type { ITelegramClient } from '#integrations/telegram.service'
 import { getCompleteMediaDetails } from '#services/metadata.service'
-import { isForcedSubtitle } from '#services/transcode/helpers/subtitle'
 import type { ConversationState } from '#types/telegram'
 import { isError, logError } from '#utils/error'
 import type { TelegramMessageIn } from '#validators/telegram.validator'
 
-const findSrtFiles = (mediaFilePath: string): string[] => {
+const FORCED_LINE_RATIO_THRESHOLD = 0.3
+
+const findLangSrt = (mediaFilePath: string, lang: string): string | undefined => {
   const dir = dirname(mediaFilePath)
   const mediaBase = basename(mediaFilePath, mediaFilePath.slice(mediaFilePath.lastIndexOf('.')))
+  const srtPath = join(dir, `${mediaBase}.${lang}.srt`)
 
-  if (!existsSync(dir)) {
-    return []
-  }
+  return existsSync(srtPath) ? srtPath : undefined
+}
 
-  return readdirSync(dir)
-    .filter((file) => file.startsWith(mediaBase) && file.endsWith('.srt'))
-    .map((file) => join(dir, file))
+const countLines = (srtFilePath: string): number => {
+  const content = readFileSync(srtFilePath, 'utf8')
+  return content.trim().split(/\n\n+/).length
 }
 
 export const subtitleScanCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
@@ -29,7 +29,6 @@ export const subtitleScanCommand = async (client: ITelegramClient, message: Tele
 
   void (async () => {
     const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
-    const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
     const sections = await plexClient.getSections()
     const missingSubtitles: string[] = []
 
@@ -48,22 +47,22 @@ export const subtitleScanCommand = async (client: ITelegramClient, message: Tele
           continue
         }
 
-        const srtFiles = findSrtFiles(details.file)
+        const enSrt = findLangSrt(details.file, 'en')
 
-        if (srtFiles.length === 0) {
+        if (!enSrt) {
           missingSubtitles.push(details.mediaTitle)
           continue
         }
 
-        const probeResult = await ffmpegClient.ffprobe(details.file)
-        if (isError(probeResult)) {
-          continue
-        }
+        const frSrt = findLangSrt(details.file, 'fr')
 
-        const hasNonForced = srtFiles.some((srtPath) => !isForcedSubtitle(srtPath, probeResult.duration))
+        if (frSrt) {
+          const enLines = countLines(enSrt)
+          const frLines = countLines(frSrt)
 
-        if (!hasNonForced) {
-          missingSubtitles.push(details.mediaTitle)
+          if (frLines > 0 && enLines / frLines < FORCED_LINE_RATIO_THRESHOLD) {
+            missingSubtitles.push(details.mediaTitle)
+          }
         }
       }
     }

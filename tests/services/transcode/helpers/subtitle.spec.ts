@@ -74,12 +74,12 @@ const forcedDataset: ForcedTestCase[] = [
   {
     expected: false,
     file: 'test_audio_dts.mkv',
-    title: 'should detect non-forced subtitle with enough words per minute',
+    title: 'should detect non-forced subtitle with enough lines and screen time',
   },
   {
     expected: true,
     file: 'test_subtitle_forced_content.mkv',
-    title: 'should detect forced subtitle with sparse words per minute',
+    title: 'should detect forced subtitle with low line count and screen time',
   },
 ]
 

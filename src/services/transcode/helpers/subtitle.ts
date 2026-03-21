@@ -6,7 +6,14 @@ import type { FFprobeStream } from '#validators/ffmpeg.validator'
 
 import { type Criteria, isStreamWanted } from './utils.js'
 
-const FORCED_SUBTITLE_WPM_THRESHOLD = 15
+const FORCED_SUBTITLE_LPM_THRESHOLD = 3
+const FORCED_SUBTITLE_SCREEN_RATIO_THRESHOLD = 0.15
+
+const parseSrtTimestamp = (timestamp: string): number => {
+  const [h, m, rest] = timestamp.split(':')
+  const [s, ms] = rest.split(',')
+  return Number(h) * 3600 + Number(m) * 60 + Number(s) + Number(ms) / 1000
+}
 
 export const isForcedSubtitle = (srtFilePath: string, mediaDuration: number): boolean => {
   if (mediaDuration <= 0) {
@@ -16,26 +23,25 @@ export const isForcedSubtitle = (srtFilePath: string, mediaDuration: number): bo
   const content = readFileSync(srtFilePath, 'utf8')
   const blocks = content.trim().split(/\n\n+/)
 
-  let totalWords = 0
+  let totalScreenTime = 0
 
   for (const block of blocks) {
     const lines = block.trim().split('\n')
-    if (lines.length < 3) {
+    if (lines.length < 2) {
       continue
     }
 
-    const text = lines.slice(2).join(' ')
-    const cleanText = text
-      .replace(/<[^>]+>/g, '')
-      .replace(/\{[^}]+\}/g, '')
-      .trim()
-    if (cleanText) {
-      totalWords += cleanText.split(/\s+/).length
+    const timecodeMatch = lines[1].match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/)
+    if (timecodeMatch) {
+      totalScreenTime += parseSrtTimestamp(timecodeMatch[2]) - parseSrtTimestamp(timecodeMatch[1])
     }
   }
 
   const durationMinutes = mediaDuration / 60
-  return totalWords / durationMinutes < FORCED_SUBTITLE_WPM_THRESHOLD
+  const fewLines = blocks.length / durationMinutes < FORCED_SUBTITLE_LPM_THRESHOLD
+  const lowScreenTime = totalScreenTime / mediaDuration < FORCED_SUBTITLE_SCREEN_RATIO_THRESHOLD
+
+  return fewLines || lowScreenTime
 }
 
 const wantedSubtitleEncodings = ['subrip', 'ass']
