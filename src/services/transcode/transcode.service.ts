@@ -1,6 +1,7 @@
-import { existsSync } from 'node:fs'
+import { existsSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+import env from '#config/env'
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
 import { FileNameInvalidError, FileNotFoundError } from '#errors/transcode'
@@ -12,7 +13,7 @@ import { isError, logError } from '#utils/error'
 
 import { processAudioStreams } from './helpers/audio.js'
 import { handlePostTranscode } from './helpers/post_process.js'
-import { processSubtitleStreams } from './helpers/subtitle.js'
+import { isForcedSubtitle, processSubtitleStreams } from './helpers/subtitle.js'
 import { simpleHash } from './helpers/utils.js'
 import { processVideoStreams } from './helpers/video.js'
 
@@ -89,7 +90,8 @@ class TranscodeQueue {
       for (const subtitle of job.subtitlesToExtract) {
         logger.info(`Extracting subtitle in ${subtitle.language}`, 'Transcode', job.mediaTitle)
 
-        const subtitleResult = await ffmpegClient.executeFfmpeg(job.id, job.file, `${fileName}.${subtitle.language}.srt`, [
+        const subtitleOutput = `${fileName}.${subtitle.language}.srt`
+        const subtitleResult = await ffmpegClient.executeFfmpeg(job.id, job.file, subtitleOutput, [
           `-map`,
           `0:s:${subtitle.index}`,
           `-c:s:${subtitle.index}`,
@@ -100,6 +102,12 @@ class TranscodeQueue {
           logError(subtitleResult, 'Queue')
           subtitleFailed = true
           break
+        }
+
+        const subtitlePath = `${env.TRANSCODE_PATH}/${job.id}/${subtitleOutput}`
+        if (job.duration && isForcedSubtitle(subtitlePath, job.duration)) {
+          rmSync(subtitlePath)
+          logger.info(`Deleted forced subtitle`, 'Transcode', job.mediaTitle)
         }
       }
 
@@ -138,15 +146,16 @@ export const transcodeQueue = new TranscodeQueue()
 
 const getTranscodeCommand = async (file: string, mediaTitle: string, originalLanguage: ISOCode1) => {
   const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-  const streamsResult = await ffmpegClient.ffprobe(file)
+  const probeResult = await ffmpegClient.ffprobe(file)
 
-  if (isError(streamsResult)) {
-    return streamsResult
+  if (isError(probeResult)) {
+    return probeResult
   }
 
-  const videoStreams = streamsResult.filter((stream) => stream.codec_type === 'video')
-  const audioStreams = streamsResult.filter((stream) => stream.codec_type === 'audio')
-  const subtitleStreams = streamsResult.filter((stream) => stream.codec_type === 'subtitle')
+  const videoStreams = probeResult.streams.filter((stream) => stream.codec_type === 'video')
+  const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
+  const subtitleStreams = probeResult.streams.filter((stream) => stream.codec_type === 'subtitle')
+  const { duration } = probeResult
 
   const extension = file.split('.').pop()
   const fileName = file.slice(0, file.lastIndexOf('.')).split('/').pop()
@@ -186,7 +195,7 @@ const getTranscodeCommand = async (file: string, mediaTitle: string, originalLan
   }
 
   if (shouldExecute) {
-    return { command, subtitlesToExtract: subtitlesToExtract }
+    return { command, duration, subtitlesToExtract: subtitlesToExtract }
   }
 }
 

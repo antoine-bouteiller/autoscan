@@ -4,6 +4,9 @@ import type { ISOCode1 } from '#types/iso_codes'
 import { normalizeToIso1 } from '#utils/iso_codes'
 
 export const ffprobeOutputValidator = z.object({
+  format: z.object({
+    duration: z.coerce.number(),
+  }),
   streams: z.array(
     z.object({
       channels: z.number().optional(),

@@ -106,17 +106,17 @@ describe('Transcode', () => {
     }
 
     const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-    const streams = await ffmpegClient.ffprobe(join(testDir, outputFileName))
-    expect(isOk(streams)).toBe(true)
-    if (!isOk(streams)) {
+    const probeResult = await ffmpegClient.ffprobe(join(testDir, outputFileName))
+    expect(isOk(probeResult)).toBe(true)
+    if (!isOk(probeResult)) {
       return
     }
 
     for (const stream of outputStreams) {
-      expect(streams[stream.index]?.codec_type).toBe(stream.codecType)
-      expect(streams[stream.index]?.codec_name).toBe(stream.codecName)
+      expect(probeResult.streams[stream.index]?.codec_type).toBe(stream.codecType)
+      expect(probeResult.streams[stream.index]?.codec_name).toBe(stream.codecName)
       if (stream.language) {
-        expect(streams[stream.index]?.tags?.language).toBe(stream.language)
+        expect(probeResult.streams[stream.index]?.tags?.language).toBe(stream.language)
       }
     }
   })

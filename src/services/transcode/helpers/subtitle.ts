@@ -1,8 +1,42 @@
+import { readFileSync } from 'node:fs'
+
 import { logger } from '#config/logger'
 import { type ISOCode1 } from '#types/iso_codes'
 import type { FFprobeStream } from '#validators/ffmpeg.validator'
 
 import { type Criteria, isStreamWanted } from './utils.js'
+
+const FORCED_SUBTITLE_WPM_THRESHOLD = 15
+
+export const isForcedSubtitle = (srtFilePath: string, mediaDuration: number): boolean => {
+  if (mediaDuration <= 0) {
+    return false
+  }
+
+  const content = readFileSync(srtFilePath, 'utf8')
+  const blocks = content.trim().split(/\n\n+/)
+
+  let totalWords = 0
+
+  for (const block of blocks) {
+    const lines = block.trim().split('\n')
+    if (lines.length < 3) {
+      continue
+    }
+
+    const text = lines.slice(2).join(' ')
+    const cleanText = text
+      .replace(/<[^>]+>/g, '')
+      .replace(/\{[^}]+\}/g, '')
+      .trim()
+    if (cleanText) {
+      totalWords += cleanText.split(/\s+/).length
+    }
+  }
+
+  const durationMinutes = mediaDuration / 60
+  return totalWords / durationMinutes < FORCED_SUBTITLE_WPM_THRESHOLD
+}
 
 const wantedSubtitleEncodings = ['subrip', 'ass']
 

@@ -30,7 +30,7 @@ export class FfmpegClient {
       '-loglevel',
       'error',
       '-show_entries',
-      'stream=index,codec_name,codec_type,channels,sample_rate:stream_tags=language',
+      'stream=index,codec_name,codec_type,channels,sample_rate:stream_tags=language,title:format=duration',
       '-print_format',
       'json',
       input,
@@ -46,7 +46,7 @@ export class FfmpegClient {
       return new ValidationError({ details: JSON.stringify(z.treeifyError(parsedOutput.error)) })
     }
 
-    return parsedOutput.data.streams
+    return { duration: parsedOutput.data.format?.duration, streams: parsedOutput.data.streams }
   }
 
   execute(...command: string[]) {

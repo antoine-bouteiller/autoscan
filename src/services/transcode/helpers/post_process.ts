@@ -28,16 +28,16 @@ const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promi
   }
 
   const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-  const streamsResult = await ffmpegClient.ffprobe(join(transcodePath, videoFile))
+  const probeResult = await ffmpegClient.ffprobe(join(transcodePath, videoFile))
 
-  if (isError(streamsResult)) {
-    logError(streamsResult, 'postTranscode', mediaTitle)
+  if (isError(probeResult)) {
+    logError(probeResult, 'postTranscode', mediaTitle)
     rmSync(transcodePath, { recursive: true })
     return
   }
 
-  const videoStreams = streamsResult.filter((stream) => stream.codec_type === 'video')
-  const audioStreams = streamsResult.filter((stream) => stream.codec_type === 'audio')
+  const videoStreams = probeResult.streams.filter((stream) => stream.codec_type === 'video')
+  const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
 
   if (videoStreams.length === 0 || audioStreams.length === 0) {
     logger.error(`No audio or video stream found on transcoded file`, 'postTranscode', mediaTitle)

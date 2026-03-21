@@ -5,7 +5,7 @@ import { describe, expect } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
 import type { FfmpegClient } from '#integrations/ffmpeg.service'
-import { processSubtitleStreams } from '#services/transcode/helpers/subtitle'
+import { isForcedSubtitle, processSubtitleStreams } from '#services/transcode/helpers/subtitle'
 import type { ISOCode1 } from '#types/iso_codes'
 
 import { isOk } from '../../../../src/utils/error.js'
@@ -50,16 +50,56 @@ describe('Extract subtitles', () => {
     copyFileSync(join(videosPath, file), join(testDir, file))
 
     const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-    const streams = await ffmpegClient.ffprobe(join(testDir, file))
-    expect(isOk(streams)).toBe(true)
-    if (!isOk(streams)) {
+    const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
+    expect(isOk(probeResult)).toBe(true)
+    if (!isOk(probeResult)) {
       return
     }
 
-    const subtitleStreams = streams.filter((stream) => stream.codec_type === 'subtitle')
+    const subtitleStreams = probeResult.streams.filter((stream) => stream.codec_type === 'subtitle')
 
     const streamsKepts = await processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
 
     expect(streamsKepts.length).toBe(streamToKeep.length)
+  })
+})
+
+interface ForcedTestCase {
+  expected: boolean
+  file: string
+  title: string
+}
+
+const forcedDataset: ForcedTestCase[] = [
+  {
+    expected: false,
+    file: 'test_audio_dts.mkv',
+    title: 'should detect non-forced subtitle with enough words per minute',
+  },
+  {
+    expected: true,
+    file: 'test_subtitle_forced_content.mkv',
+    title: 'should detect forced subtitle with sparse words per minute',
+  },
+]
+
+describe('Forced subtitle detection', () => {
+  testWithTestDir.for(forcedDataset)('$title', async ({ expected, file }, { testDir }) => {
+    copyFileSync(join(videosPath, file), join(testDir, file))
+
+    const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+    const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
+    expect(isOk(probeResult)).toBe(true)
+    if (!isOk(probeResult)) {
+      return
+    }
+
+    expect(probeResult.duration).toBeDefined()
+
+    const srtPath = join(testDir, 'test.srt')
+    const extractResult = await ffmpegClient.execute('-i', join(testDir, file), '-map', '0:s:0', '-c:s', 'srt', srtPath)
+    expect(isOk(extractResult)).toBe(true)
+
+    expect(isForcedSubtitle(srtPath, probeResult.duration)).toBe(expected)
   })
 })

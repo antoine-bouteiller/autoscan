@@ -56,13 +56,13 @@ describe('Clean audio', () => {
     copyFileSync(join(videosPath, file), join(testDir, file))
 
     const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
-    const streams = await ffmpegClient.ffprobe(join(testDir, file))
-    expect(isOk(streams)).toBe(true)
-    if (!isOk(streams)) {
+    const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
+    expect(isOk(probeResult)).toBe(true)
+    if (!isOk(probeResult)) {
       return
     }
 
-    const audioStreams = streams.filter((stream) => stream.codec_type === 'audio')
+    const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
     const result = processAudioStreams(audioStreams, language, 'test')
     expect(isOk(result)).toBe(true)
     if (!isOk(result)) {
