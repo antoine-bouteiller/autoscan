@@ -18,7 +18,6 @@ import {
 import { iso1ToIso2T } from '#types/iso_codes'
 import type { PlexMediaStream } from '#validators/plex.validator'
 
-import '../utils.ts'
 import { updateStreamMock } from '../mocks/plex.mock.js'
 import { editMessageTextMock } from '../mocks/telegram.mock.js'
 import {
@@ -28,6 +27,7 @@ import {
   mockAudioStreamSelected,
   mockNonAudioStreams,
 } from '../resources/fixtures/media.fixtures.js'
+import '../utils.ts'
 
 const makeMedia = (n: number): Media[] =>
   Array.from({ length: n }, (_, i) => ({

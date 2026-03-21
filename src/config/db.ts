@@ -1,18 +1,40 @@
 import { existsSync, mkdirSync } from 'node:fs'
 
-import { PGlite } from '@electric-sql/pglite'
-import { drizzle } from 'drizzle-orm/pglite'
-import { migrate } from 'drizzle-orm/pglite/migrator'
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
+import type { PgliteDatabase } from 'drizzle-orm/pglite'
 
 import env from '#config/env'
 
-const dataBasePath = env.DATABASE_URL
+type Database = NodePgDatabase | PgliteDatabase
 
-if (dataBasePath !== 'memory://' && !existsSync(dataBasePath)) {
-  mkdirSync(dataBasePath, { recursive: true })
+const isPostgresUrl = (url: string) => url.startsWith('postgres://') || url.startsWith('postgresql://')
+
+const initDatabase = async (): Promise<Database> => {
+  const databaseUrl = env.DATABASE_URL
+
+  if (isPostgresUrl(databaseUrl)) {
+    const pg = await import('pg')
+    const { drizzle } = await import('drizzle-orm/node-postgres')
+    const { migrate } = await import('drizzle-orm/node-postgres/migrator')
+
+    const client = new pg.default.Pool({ connectionString: databaseUrl })
+    const db = drizzle({ client })
+    await migrate(db, { migrationsFolder: './migrations' })
+    return db
+  }
+
+  const { PGlite } = await import('@electric-sql/pglite')
+  const { drizzle } = await import('drizzle-orm/pglite')
+  const { migrate } = await import('drizzle-orm/pglite/migrator')
+
+  if (databaseUrl !== 'memory://' && !existsSync(databaseUrl)) {
+    mkdirSync(databaseUrl, { recursive: true })
+  }
+
+  const client = new PGlite(databaseUrl)
+  const db = drizzle({ client })
+  await migrate(db, { migrationsFolder: './migrations' })
+  return db
 }
 
-const client = new PGlite(dataBasePath)
-export const db = drizzle({ client })
-
-await migrate(db, { migrationsFolder: './migrations' })
+export const db = await initDatabase()
