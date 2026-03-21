@@ -1,6 +1,8 @@
-import { integer, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { integer, pgEnum, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { ISO1 } from '#types/iso_codes'
+
+export const mediaTypeEnum = pgEnum('media_type', ['movie', 'show'])
 
 export const media = pgTable(
   'media',
@@ -9,7 +11,7 @@ export const media = pgTable(
     preferredLanguage: text('preferred_language', { enum: ISO1 }).notNull(),
     title: text().notNull(),
     tmdbId: integer('tmdb_id').notNull(),
-    type: text().notNull(),
+    type: mediaTypeEnum().notNull(),
   },
   (table) => [
     primaryKey({
