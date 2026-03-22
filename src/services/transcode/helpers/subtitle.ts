@@ -74,10 +74,42 @@ const criterias: Criteria[][] = [
   ],
 ]
 
+const forcedFrenchCriterias: Criteria[][] = [
+  [
+    {
+      include: ['forced'],
+      language: 'fr',
+      wantedEncodings: wantedSubtitleEncodings,
+    },
+  ],
+]
+
 export const processSubtitleStreams = async (subtitleStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
   const subtitlesToKeep: { index: number; language: ISOCode1 }[] = []
-  if (originalLanguage === 'fr' || subtitleStreams.length === 0) {
+  if (subtitleStreams.length === 0) {
     return []
+  }
+
+  if (originalLanguage === 'fr') {
+    for (const criteria of forcedFrenchCriterias) {
+      for (const condition of criteria) {
+        const idx = subtitleStreams.findIndex(isStreamWanted(condition))
+        if (idx !== -1) {
+          const stream = subtitleStreams[idx]
+          subtitlesToKeep.push({
+            index: idx,
+            language: stream?.tags?.language ?? 'fr',
+          })
+          break
+        }
+      }
+    }
+
+    if (subtitlesToKeep.length > 0) {
+      logger.info(`Forced French subtitle extracted`, 'Subtitle', mediaTitle)
+    }
+
+    return subtitlesToKeep
   }
 
   let subtitleStreamToKeep = -1

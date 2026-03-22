@@ -1,4 +1,4 @@
-import { existsSync, rmSync } from 'node:fs'
+import { existsSync, renameSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import env from '#config/env'
@@ -106,8 +106,9 @@ class TranscodeQueue {
 
         const subtitlePath = `${env.TRANSCODE_PATH}/${job.id}/${subtitleOutput}`
         if (job.duration && isForcedSubtitle(subtitlePath, job.duration)) {
-          rmSync(subtitlePath)
-          logger.info(`Deleted forced subtitle`, 'Transcode', job.mediaTitle)
+          const forcedPath = subtitlePath.replace(`.${subtitle.language}.srt`, `.${subtitle.language}.forced.srt`)
+          renameSync(subtitlePath, forcedPath)
+          logger.info(`Renamed forced subtitle to ${subtitle.language}.forced.srt`, 'Transcode', job.mediaTitle)
         }
       }
 
