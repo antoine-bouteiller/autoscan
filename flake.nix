@@ -33,7 +33,7 @@
             pname = "autoscan";
             version = "unstable";
             src = pkgs.lib.cleanSource ./.;
-            hash = "sha256-9kx8d7DQgoa0c+N/fk+STQwes0Orzss8zd5e8EoXx1Q=";
+            hash = "sha256-l9h/YPdtCQVnLCzcne2OdqbK8jm3LiApTRhuj9mO/lU=";
             fetcherVersion = 3;
           };
 
