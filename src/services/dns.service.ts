@@ -1,4 +1,5 @@
 import env from '#config/env'
+import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
 import { DnsRecordNotFoundError } from '#errors/cloudflare'
 import type { ICloudflareClient } from '#integrations/cloudflare.service'
@@ -8,6 +9,9 @@ const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]
 const ZONE_NAME = env.DOMAIN
 
 let zoneId = ''
+let backoffUntil = 0
+let errorDelay = 5 * 60 * 1000
+const maxErrorDelay = 30 * 60 * 1000
 
 export const handleUpdateIp = async (recordName: string) => {
   const cloudflareClient = container.resolve<ICloudflareClient>(TOKENS.CLOUDFLARE_CLIENT)
@@ -45,14 +49,31 @@ export const handleUpdateIp = async (recordName: string) => {
 }
 
 export const dynDns = async () => {
+  if (Date.now() < backoffUntil) {
+    logger.warn(`Skipping DNS update, backing off until ${new Date(backoffUntil).toISOString()}`, 'DynDNS')
+    return
+  }
+
+  let hasError = false
   for (const recordName of DOMAINES_TO_UPDATE) {
     const result = await handleUpdateIp(recordName)
     if (isError(result)) {
       logError(result, 'handleUpdateIp')
+      hasError = true
     }
+  }
+
+  if (hasError) {
+    backoffUntil = Date.now() + errorDelay
+    errorDelay = Math.min(errorDelay * 2, maxErrorDelay)
+  } else {
+    errorDelay = 5 * 60 * 1000
+    backoffUntil = 0
   }
 }
 
 export const resetZoneIdCache = () => {
   zoneId = ''
+  backoffUntil = 0
+  errorDelay = 5 * 60 * 1000
 }

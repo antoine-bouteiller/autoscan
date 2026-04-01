@@ -31,7 +31,7 @@ export const isForcedSubtitle = (srtFilePath: string, mediaDuration: number): bo
       continue
     }
 
-    const timecodeMatch = lines[1].match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/)
+    const timecodeMatch = /(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/.exec(lines[1])
     if (timecodeMatch) {
       totalScreenTime += parseSrtTimestamp(timecodeMatch[2]) - parseSrtTimestamp(timecodeMatch[1])
     }

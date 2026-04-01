@@ -57,14 +57,20 @@ export class TelegramProvider {
 
   private async poll(): Promise<void> {
     let offset = 0
+    let errorDelay = 5000
+    const maxErrorDelay = 5 * 60 * 1000
+
     while (this.running) {
       const updates = await this.client.getUpdates(offset)
 
       if (isError(updates)) {
         logError(updates)
-        await new Promise((r) => setTimeout(r, 5000))
+        await new Promise((r) => setTimeout(r, errorDelay))
+        errorDelay = Math.min(errorDelay * 2, maxErrorDelay)
         continue
       }
+
+      errorDelay = 5000
 
       for (const update of updates) {
         offset = update.update_id + 1

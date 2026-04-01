@@ -37,7 +37,7 @@ const parseStartTimestamps = (srtFilePath: string): number[] => {
   const timestamps: number[] = []
 
   for (const block of blocks) {
-    const match = block.match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->/)
+    const match = /(\d{2}:\d{2}:\d{2},\d{3})\s*-->/.exec(block)
     if (match) {
       timestamps.push(parseTimestampMs(match[1]))
     }

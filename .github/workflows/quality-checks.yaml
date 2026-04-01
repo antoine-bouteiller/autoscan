@@ -1,7 +1,9 @@
 name: Quality Checks
 
 on:
-  workflow_call:
+  push:
+    branches:
+      - main
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
