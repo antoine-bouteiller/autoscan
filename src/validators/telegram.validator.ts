@@ -10,27 +10,27 @@ const telegramChatSchema = z.object({
 })
 
 const telegramMessageInSchema = z.object({
-  message_id: z.number(),
   chat: telegramChatSchema,
-  text: z.string().optional(),
   from: telegramUserSchema.optional(),
+  message_id: z.number(),
+  text: z.string().optional(),
 })
 
 const telegramCallbackQuerySchema = z.object({
-  id: z.string(),
   data: z.string().optional(),
+  id: z.string(),
   message: telegramMessageInSchema.optional(),
 })
 
 export const telegramUpdateSchema = z.object({
-  update_id: z.number(),
-  message: telegramMessageInSchema.optional(),
   callback_query: telegramCallbackQuerySchema.optional(),
+  message: telegramMessageInSchema.optional(),
+  update_id: z.number(),
 })
 
 const telegramMessageSchema = z.object({
-  message_id: z.number(),
   chat: telegramChatSchema,
+  message_id: z.number(),
 })
 
 export const getUpdatesResponseSchema = z.object({

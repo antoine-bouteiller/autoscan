@@ -7,8 +7,8 @@ describe('POST /send-message', () => {
   testWithHttpProvider('should return 200 and send message', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/send-message',
       payload: { text: 'Hello world' },
+      url: '/send-message',
     })
 
     expect(response.statusCode).toBe(200)
@@ -20,8 +20,8 @@ describe('POST /send-message', () => {
   testWithHttpProvider('should return 400 for missing text', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/send-message',
       payload: {},
+      url: '/send-message',
     })
 
     expect(response.statusCode).toBe(400)
@@ -33,8 +33,8 @@ describe('POST /send-message', () => {
   testWithHttpProvider('should return 400 for empty body', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/send-message',
       payload: {},
+      url: '/send-message',
     })
 
     expect(response.statusCode).toBe(400)

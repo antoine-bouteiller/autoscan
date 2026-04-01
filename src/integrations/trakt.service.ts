@@ -55,9 +55,9 @@ export class TraktClient implements ITraktClient {
       baseUrl: 'https://api.trakt.tv',
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'Autoscan/1.0',
         'trakt-api-key': this.clientId,
         'trakt-api-version': '2',
-        'User-Agent': 'Autoscan/1.0',
       },
       serviceName: 'Trakt',
     })

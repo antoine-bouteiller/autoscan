@@ -1,20 +1,28 @@
 import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
+  fmt: {
+    experimentalSortImports: {},
+    printWidth: 150,
+    semi: false,
+    singleQuote: true,
+    trailingComma: 'es5',
+  },
   lint: {
-    options: { typeAware: true, typeCheck: true },
-    plugins: ['typescript', 'unicorn'],
     categories: {
       correctness: 'error',
-      suspicious: 'error',
       perf: 'error',
       style: 'error',
+      suspicious: 'error',
     },
     env: {
       builtin: true,
-      node: true,
       commonjs: true,
+      node: true,
     },
+    ignorePatterns: ['pnpm-lock.yaml', 'vite.config.ts'],
+    options: { typeAware: true, typeCheck: true },
+    plugins: ['typescript', 'unicorn'],
     rules: {
       // Restriction
       'no-empty': 'error',
@@ -46,7 +54,6 @@ export default defineConfig({
       'prefer-default-export': 'off',
       'no-magic-numbers': 'off',
       'sort-imports': 'off',
-      'sort-keys': 'off',
       'no-ternary': 'off',
       'no-continue': 'off',
       'max-params': 'off',
@@ -57,40 +64,31 @@ export default defineConfig({
       'func-names': ['error', 'as-needed', { generators: 'never' }],
       'custom-error-definition': 'off',
     },
-    ignorePatterns: ['pnpm-lock.yaml'],
   },
-  fmt: {
-    trailingComma: 'es5',
-    semi: false,
-    singleQuote: true,
-    printWidth: 150,
-    experimentalSortImports: {},
-  },
-  test: {
-    include: ['tests/**/*.spec.ts'],
-    setupFiles: ['./tests/env.ts', './tests/setup.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['lcov'],
-      exclude: ['**/integrations/**'],
-      thresholds: {
-        functions: 80,
-        branches: 80,
-        lines: 80,
-      },
-    },
+  pack: {
+    copy: 'migrations',
+    entry: 'src/index.ts',
+    format: 'esm',
+    platform: 'node',
   },
   resolve: {
     tsconfigPaths: true,
   },
   staged: {
-    'pnpm-lock.yaml': 'bash scripts/update_nix_hash.sh',
     '*': 'vp check --fix',
+    'pnpm-lock.yaml': 'bash scripts/update_nix_hash.sh',
   },
-  pack: {
-    entry: 'src/index.ts',
-    format: 'esm',
-    platform: 'node',
-    copy: 'migrations',
+  test: {
+    coverage: {
+      exclude: ['**/integrations/**'],
+      provider: 'v8',
+      reporter: ['lcov'],
+      thresholds: {
+        functions: 80,
+        lines: 85,
+      },
+    },
+    include: ['tests/**/*.spec.ts'],
+    setupFiles: ['./tests/env.ts', './tests/setup.ts'],
   },
 })

@@ -4,8 +4,8 @@ import { type Criteria, isStreamWanted, simpleHash } from '#services/transcode/h
 import type { FFprobeStream } from '#validators/ffmpeg.validator'
 
 const makeStream = (overrides: Partial<FFprobeStream> = {}): FFprobeStream => ({
-  codec_type: 'audio',
   codec_name: 'aac',
+  codec_type: 'audio',
   tags: { language: 'en' },
   ...overrides,
 })
@@ -40,14 +40,14 @@ describe('isStreamWanted', () => {
   })
 
   test('should exclude streams matching exclude terms in title', () => {
-    const criteria: Criteria = { language: 'en', exclude: ['commentary'] }
+    const criteria: Criteria = { exclude: ['commentary'], language: 'en' }
     const stream = makeStream({ tags: { language: 'en', title: 'Director Commentary' } })
 
     expect(isStreamWanted(criteria)(stream)).toBe(false)
   })
 
   test('should not exclude streams without matching title', () => {
-    const criteria: Criteria = { language: 'en', exclude: ['commentary'] }
+    const criteria: Criteria = { exclude: ['commentary'], language: 'en' }
     const stream = makeStream({ tags: { language: 'en', title: 'English Stereo' } })
 
     expect(isStreamWanted(criteria)(stream)).toBe(true)

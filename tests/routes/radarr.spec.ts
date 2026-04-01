@@ -7,8 +7,8 @@ describe('POST /radarr', () => {
   testWithHttpProvider('should return 200 for Test event', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/radarr',
       payload: { eventType: 'Test' },
+      url: '/radarr',
     })
 
     expect(response.statusCode).toBe(200)
@@ -20,8 +20,8 @@ describe('POST /radarr', () => {
   testWithHttpProvider('should return 400 for invalid payload', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/radarr',
       payload: { eventType: 'InvalidEvent' },
+      url: '/radarr',
     })
 
     expect(response.statusCode).toBe(400)
@@ -33,12 +33,12 @@ describe('POST /radarr', () => {
   testWithHttpProvider('should return 200 for Download event', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/radarr',
       payload: {
         eventType: 'Download',
         movie: { folderPath: '/movies/test', title: 'Test Movie', tmdbId: 123 },
         movieFile: { relativePath: 'movie.mkv' },
       },
+      url: '/radarr',
     })
 
     expect(response.statusCode).toBe(200)
@@ -48,12 +48,12 @@ describe('POST /radarr', () => {
   testWithHttpProvider('should return 200 for MovieDelete event', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/radarr',
       payload: {
-        eventType: 'MovieDelete',
         deleteFiles: true,
+        eventType: 'MovieDelete',
         movie: { folderPath: '/movies/test', title: 'Test Movie', tmdbId: 123 },
       },
+      url: '/radarr',
     })
 
     expect(response.statusCode).toBe(200)
@@ -63,8 +63,8 @@ describe('POST /radarr', () => {
   testWithHttpProvider('should return 400 for empty body', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/radarr',
       payload: {},
+      url: '/radarr',
     })
 
     expect(response.statusCode).toBe(400)

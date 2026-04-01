@@ -27,14 +27,14 @@ describe('TraktService', () => {
     it('should refresh token if expired', async () => {
       await db.insert(traktTokens).values({
         accessToken: 'old-access',
-        refreshToken: 'refresh',
         expiresAt: Math.floor(Date.now() / 1000) - 100,
+        refreshToken: 'refresh',
       })
 
       refreshTokenMock.mockResolvedValue({
         access_token: 'new-access',
-        refresh_token: 'new-refresh',
         expires_in: 3600,
+        refresh_token: 'new-refresh',
       })
 
       const result = await getValidAccessToken()
@@ -49,8 +49,8 @@ describe('TraktService', () => {
     it('should return current token if not expired', async () => {
       await db.insert(traktTokens).values({
         accessToken: 'valid-access',
-        refreshToken: 'refresh',
         expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        refreshToken: 'refresh',
       })
 
       const result = await getValidAccessToken()
@@ -82,14 +82,14 @@ describe('TraktService', () => {
     it('should orchestrate the full sync process', async () => {
       await db.insert(traktTokens).values({
         accessToken: 'access',
-        refreshToken: 'refresh',
         expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        refreshToken: 'refresh',
       })
 
       const result = await syncPlexToTrakt()
 
       expect(syncWatchedHistoryMock).toHaveBeenCalled()
-      expect(result).toEqual({ movies: 1, episodes: 1 })
+      expect(result).toEqual({ episodes: 1, movies: 1 })
 
       const history = await db.select().from(traktSyncHistory)
       const ratingKeys = history.map((row) => row.plexRatingKey)
@@ -100,8 +100,8 @@ describe('TraktService', () => {
     it('should return 0 counts if nothing to sync', async () => {
       await db.insert(traktTokens).values({
         accessToken: 'access',
-        refreshToken: 'refresh',
         expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        refreshToken: 'refresh',
       })
 
       vi.spyOn(plexClient, 'getSections').mockResolvedValue([])

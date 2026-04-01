@@ -9,7 +9,7 @@ const handleSetLanguageCommand = async (client: ITelegramClient, message: Telegr
   if (!messageId) {
     return { step: 'idle' }
   }
-  return { step: 'awaiting_media_type', messageId }
+  return { messageId, step: 'awaiting_media_type' }
 }
 
 const handleSetLanguageCallback = async (
@@ -46,4 +46,4 @@ const handleSetLanguageCallback = async (
   return state
 }
 
-export const setLanguageConversation = { onCommand: handleSetLanguageCommand, onCallback: handleSetLanguageCallback }
+export const setLanguageConversation = { onCallback: handleSetLanguageCallback, onCommand: handleSetLanguageCommand }

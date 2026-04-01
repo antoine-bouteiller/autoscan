@@ -31,11 +31,11 @@ import '../utils.ts'
 
 const makeMedia = (count: number): Media[] =>
   Array.from({ length: count }, (_unused, index) => ({
-    tmdbId: index + 1,
-    title: `Media ${index + 1}`,
-    type: 'movie',
     originalLanguage: 'en' as const,
     preferredLanguage: 'en' as const,
+    title: `Media ${index + 1}`,
+    tmdbId: index + 1,
+    type: 'movie',
   }))
 
 afterEach(async () => {
@@ -111,7 +111,7 @@ describe('selectMediaType', () => {
   })
 
   test('should return idle state when media list is empty', async () => {
-    const state = { step: 'awaiting_media_type' as const, messageId: 42 }
+    const state = { messageId: 42, step: 'awaiting_media_type' as const }
 
     const result = await selectMediaType(client, 1, state, 'movie')
 
@@ -121,11 +121,11 @@ describe('selectMediaType', () => {
 
   test('should return awaiting_media_selection state with non-empty media list', async () => {
     await db.insert(mediaTable).values(makeMedia(3))
-    const state = { step: 'awaiting_media_type' as const, messageId: 42 }
+    const state = { messageId: 42, step: 'awaiting_media_type' as const }
 
     const result = await selectMediaType(client, 1, state, 'movie')
 
-    expect(result).toEqual({ step: 'awaiting_media_selection', messageId: 42, mediaType: 'movie', page: 0 })
+    expect(result).toEqual({ mediaType: 'movie', messageId: 42, page: 0, step: 'awaiting_media_selection' })
     expect(editMessageTextMock).toHaveBeenCalledWith(
       1,
       42,
@@ -143,7 +143,7 @@ describe('navigateMediaPage', () => {
 
   test('should update message and return state with new page', async () => {
     await db.insert(mediaTable).values(makeMedia(15))
-    const state = { step: 'awaiting_media_selection' as const, messageId: 42, mediaType: 'movie' as const, page: 0 }
+    const state = { mediaType: 'movie' as const, messageId: 42, page: 0, step: 'awaiting_media_selection' as const }
 
     const result = await navigateMediaPage(client, 1, state, 1)
 
@@ -165,7 +165,7 @@ describe('selectMedia', () => {
 
   test('should return unchanged state when tmdbId not found', async () => {
     await db.insert(mediaTable).values(makeMedia(3))
-    const state = { step: 'awaiting_media_selection' as const, messageId: 42, mediaType: 'movie' as const, page: 0 }
+    const state = { mediaType: 'movie' as const, messageId: 42, page: 0, step: 'awaiting_media_selection' as const }
 
     const result = await selectMedia(client, 1, state, 999)
 
@@ -175,11 +175,11 @@ describe('selectMedia', () => {
 
   test('should return awaiting_language state when tmdbId is found', async () => {
     await db.insert(mediaTable).values(makeMedia(3))
-    const state = { step: 'awaiting_media_selection' as const, messageId: 42, mediaType: 'movie' as const, page: 0 }
+    const state = { mediaType: 'movie' as const, messageId: 42, page: 0, step: 'awaiting_media_selection' as const }
 
     const result = await selectMedia(client, 1, state, 2)
 
-    expect(result).toEqual({ step: 'awaiting_language', messageId: 42, tmdbId: 2, mediaType: 'movie' })
+    expect(result).toEqual({ mediaType: 'movie', messageId: 42, step: 'awaiting_language', tmdbId: 2 })
     expect(editMessageTextMock).toHaveBeenCalledWith(
       1,
       42,
@@ -196,8 +196,8 @@ describe('selectLanguage', () => {
   })
 
   test('should update preferred language in db, edit message, and return idle state', async () => {
-    await db.insert(mediaTable).values({ tmdbId: 1, title: 'Test Movie', type: 'movie', originalLanguage: 'en', preferredLanguage: 'en' })
-    const state = { step: 'awaiting_language' as const, messageId: 42, tmdbId: 1, mediaType: 'movie' as const }
+    await db.insert(mediaTable).values({ originalLanguage: 'en', preferredLanguage: 'en', title: 'Test Movie', tmdbId: 1, type: 'movie' })
+    const state = { mediaType: 'movie' as const, messageId: 42, step: 'awaiting_language' as const, tmdbId: 1 }
 
     const result = await selectLanguage(client, 1, state, 'fr')
 

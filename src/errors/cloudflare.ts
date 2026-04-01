@@ -3,13 +3,13 @@ import { createTaggedError } from '#utils/error'
 import { cloudflareErrorResponse } from '#validators/cloudflare.validator'
 
 export class CloudflareZoneNotFoundError extends createTaggedError({
-  name: 'CloudflareZoneNotFoundError',
   message: '(Cloudflare) Zone not found: $zoneName',
+  name: 'CloudflareZoneNotFoundError',
 }) {}
 
 export class DnsRecordNotFoundError extends createTaggedError({
-  name: 'DnsRecordNotFoundError',
   message: '(Cloudflare) Record not found for domain $domain',
+  name: 'DnsRecordNotFoundError',
 }) {}
 
 export const cloudflareErrorFormatter: HttpErrorFormatter = (body) => {

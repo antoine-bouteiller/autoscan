@@ -20,8 +20,8 @@ interface SonarrClientConfig {
 export class SonarrClient extends ArrClient implements ISonarrClient {
   constructor(config: SonarrClientConfig) {
     super({
-      baseUrl: `${config.apiUrl}/api/v3`,
       apiKey: config.apiKey,
+      baseUrl: `${config.apiUrl}/api/v3`,
       serviceName: 'Radarr',
     })
   }

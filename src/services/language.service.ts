@@ -21,21 +21,21 @@ type AwaitingLanguageState = Extract<ConversationState, { step: 'awaiting_langua
 export const buildMediaTypeKeyboard = (): InlineKeyboardMarkup => ({
   inline_keyboard: [
     [
-      { text: '🎞️ Movie', callback_data: 'movie' },
-      { text: '📺 TV Show', callback_data: 'show' },
+      { callback_data: 'movie', text: '🎞️ Movie' },
+      { callback_data: 'show', text: '📺 TV Show' },
     ],
   ],
 })
 
 export const buildMediaKeyboard = (mediaList: Media[], page: number): InlineKeyboardMarkup => {
   const items = mediaList.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-  const rows = items.map((item) => [{ text: item.title, callback_data: `select_media:${item.tmdbId}` }])
+  const rows = items.map((item) => [{ callback_data: `select_media:${item.tmdbId}`, text: item.title }])
   const nav: InlineKeyboardButton[] = []
   if (page > 0) {
-    nav.push({ text: '◀️ Previous', callback_data: `page:${page - 1}` })
+    nav.push({ callback_data: `page:${page - 1}`, text: '◀️ Previous' })
   }
   if ((page + 1) * PAGE_SIZE < mediaList.length) {
-    nav.push({ text: 'Next ▶️', callback_data: `page:${page + 1}` })
+    nav.push({ callback_data: `page:${page + 1}`, text: 'Next ▶️' })
   }
   if (nav.length > 0) {
     rows.push(nav)
@@ -47,7 +47,7 @@ export const buildLanguageKeyboard = (): InlineKeyboardMarkup => {
   const codes = Object.keys(iso1ToIso2T)
   const rows: InlineKeyboardButton[][] = []
   for (let idx = 0; idx < codes.length; idx += 6) {
-    rows.push(codes.slice(idx, idx + 6).map((code) => ({ text: code, callback_data: `lang:${code}` })))
+    rows.push(codes.slice(idx, idx + 6).map((code) => ({ callback_data: `lang:${code}`, text: code })))
   }
   return { inline_keyboard: rows }
 }
@@ -89,7 +89,7 @@ export const selectMediaType = async (
   }
 
   await client.editMessageText(chatId, state.messageId, `Which ${mediaType} do you want to configure?`, buildMediaKeyboard(mediaItems, 0))
-  return { step: 'awaiting_media_selection', messageId: state.messageId, mediaType, page: 0 }
+  return { mediaType, messageId: state.messageId, page: 0, step: 'awaiting_media_selection' }
 }
 
 export const navigateMediaPage = async (
@@ -115,7 +115,7 @@ export const selectMedia = async (
     return state
   }
   await client.editMessageText(chatId, state.messageId, `Which language do you want to set for ${selectedMedia.title}?`, buildLanguageKeyboard())
-  return { step: 'awaiting_language', messageId: state.messageId, tmdbId, mediaType: state.mediaType }
+  return { mediaType: state.mediaType, messageId: state.messageId, step: 'awaiting_language', tmdbId }
 }
 
 export const selectLanguage = async (

@@ -62,7 +62,7 @@ export const getCompleteMediaDetails = async (ratingKey: number) => {
   const tmdbId = extractTmdbIdFromPath(part.file)
 
   if (!tmdbId) {
-    return new TmdbIdNotFoundError({ mediaTitle, filePath: part.file })
+    return new TmdbIdNotFoundError({ filePath: part.file, mediaTitle })
   }
 
   const mediaType: MediaType = plexMetadata.type === 'episode' ? 'show' : plexMetadata.type

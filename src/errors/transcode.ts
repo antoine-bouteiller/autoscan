@@ -1,26 +1,26 @@
 import { createTaggedError } from '#utils/error'
 
 export class AudioStreamNotFoundError extends createTaggedError({
-  name: 'AudioStreamNotFoundError',
   message: '($mediaTitle) No audio streams found for language $language',
+  name: 'AudioStreamNotFoundError',
 }) {}
 
 export class VideoStreamNotFoundError extends createTaggedError({
-  name: 'VideoStreamNotFoundError',
   message: '($mediaTitle) No video streams found',
+  name: 'VideoStreamNotFoundError',
 }) {}
 
 export class NoStreamsKeptError extends createTaggedError({
-  name: 'NoStreamsKeptError',
   message: '($mediaTitle) No audio tracks would be kept after processing',
+  name: 'NoStreamsKeptError',
 }) {}
 
 export class FileNameInvalidError extends createTaggedError({
-  name: 'FileNameInvalidError',
   message: '($mediaTitle) File name not initialized',
+  name: 'FileNameInvalidError',
 }) {}
 
 export class FileNotFoundError extends createTaggedError({
-  name: 'FileNotFoundError',
   message: '($filePath) File not found',
+  name: 'FileNotFoundError',
 }) {}

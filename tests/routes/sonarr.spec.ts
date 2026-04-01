@@ -7,8 +7,8 @@ describe('POST /sonarr', () => {
   testWithHttpProvider('should return 200 for Test event', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/sonarr',
       payload: { eventType: 'Test' },
+      url: '/sonarr',
     })
 
     expect(response.statusCode).toBe(200)
@@ -20,8 +20,8 @@ describe('POST /sonarr', () => {
   testWithHttpProvider('should return 400 for invalid payload', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/sonarr',
       payload: { eventType: 'InvalidEvent' },
+      url: '/sonarr',
     })
 
     expect(response.statusCode).toBe(400)
@@ -33,13 +33,13 @@ describe('POST /sonarr', () => {
   testWithHttpProvider('should return 200 for Download event', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/sonarr',
       payload: {
+        episodeFile: { relativePath: 'S01E01.mkv' },
+        episodes: [{ title: 'Pilot' }],
         eventType: 'Download',
         series: { path: '/tv/test', title: 'Test Show', tmdbId: 456 },
-        episodes: [{ title: 'Pilot' }],
-        episodeFile: { relativePath: 'S01E01.mkv' },
       },
+      url: '/sonarr',
     })
 
     expect(response.statusCode).toBe(200)
@@ -49,11 +49,11 @@ describe('POST /sonarr', () => {
   testWithHttpProvider('should return 200 for SeriesDelete event', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/sonarr',
       payload: {
         eventType: 'SeriesDelete',
         series: { path: '/tv/test', title: 'Test Show', tmdbId: 456 },
       },
+      url: '/sonarr',
     })
 
     expect(response.statusCode).toBe(200)
@@ -63,11 +63,11 @@ describe('POST /sonarr', () => {
   testWithHttpProvider('should return 200 for Rename event', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/sonarr',
       payload: {
         eventType: 'Rename',
         series: { path: '/tv/test', title: 'Test Show', tmdbId: 456 },
       },
+      url: '/sonarr',
     })
 
     expect(response.statusCode).toBe(200)
@@ -77,8 +77,8 @@ describe('POST /sonarr', () => {
   testWithHttpProvider('should return 400 for empty body', async ({ http }) => {
     const response = await http.app.inject({
       method: 'POST',
-      url: '/sonarr',
       payload: {},
+      url: '/sonarr',
     })
 
     expect(response.statusCode).toBe(400)

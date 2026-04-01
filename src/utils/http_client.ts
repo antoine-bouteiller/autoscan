@@ -48,18 +48,18 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     let response: Response
     try {
       response = await fetch(url, {
-        method,
-        headers: { ...globalHeaders, ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers },
         body: body ? JSON.stringify(body) : undefined,
+        headers: { ...globalHeaders, ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers },
+        method,
       })
     } catch (error) {
-      return new NetworkError({ serviceName, originalMessage: error instanceof Error ? error.message : 'Unknown network error' })
+      return new NetworkError({ originalMessage: error instanceof Error ? error.message : 'Unknown network error', serviceName })
     }
 
     if (!response.ok) {
       const errorData: unknown = await response.json().catch(() => response.statusText)
 
-      return new HttpError({ serviceName, route: endpoint, status: response.status, body: (errorFormatter ?? defaultFormatter)(errorData) })
+      return new HttpError({ body: (errorFormatter ?? defaultFormatter)(errorData), route: endpoint, serviceName, status: response.status })
     }
 
     if (!validator) {

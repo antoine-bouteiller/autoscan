@@ -65,7 +65,7 @@ describe('inversedEntriesOf', () => {
   })
 
   test('should work with string values', () => {
-    const obj = { foo: 'hello', bar: 'world' } as const
+    const obj = { bar: 'world', foo: 'hello' } as const
     const result = inversedEntriesOf(obj)
     expect(result).toEqual({ hello: 'foo', world: 'bar' })
   })

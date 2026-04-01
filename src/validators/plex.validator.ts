@@ -11,17 +11,10 @@ const streamValidator = z.object({
 })
 
 const plexMediaValidator = z.object({
-  grandparentTitle: z.string().optional(),
-  index: z.number().optional(),
-  key: z.string(),
-  lastViewedAt: z.number().optional(),
-  librarySectionID: z.number().optional(),
   Media: z.array(
     z.object({
       Part: z.array(
         z.object({
-          file: z.string(),
-          id: z.number(),
           Stream: z
             .array(z.unknown())
             .transform((items) =>
@@ -31,10 +24,17 @@ const plexMediaValidator = z.object({
               })
             )
             .optional(),
+          file: z.string(),
+          id: z.number(),
         })
       ),
     })
   ),
+  grandparentTitle: z.string().optional(),
+  index: z.number().optional(),
+  key: z.string(),
+  lastViewedAt: z.number().optional(),
+  librarySectionID: z.number().optional(),
   parentIndex: z.number().optional(),
   parentTitle: z.string().optional(),
   primaryExtraKey: z.string().optional(),

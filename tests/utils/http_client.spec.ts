@@ -61,7 +61,7 @@ describe('httpClient', () => {
     test('should append query params', async () => {
       mockFetch.mockResolvedValue(new Response(undefined, { status: 200 }))
 
-      await client.get('/items', { params: { page: 1, limit: 10 } })
+      await client.get('/items', { params: { limit: 10, page: 1 } })
 
       const calledUrl = mockFetch.mock.calls[0]?.[0]
       expect(calledUrl).toBeInstanceOf(URL)
@@ -120,8 +120,8 @@ describe('httpClient', () => {
     test('should use custom error formatter', async () => {
       const customClient = httpClient({
         baseUrl: 'http://api.test',
-        serviceName: 'Test',
         errorFormatter: (body: unknown) => `custom: ${JSON.stringify(body)}`,
+        serviceName: 'Test',
       })
       mockFetch.mockResolvedValue(Response.json({ msg: 'bad' }, { status: 400 }))
 
@@ -138,8 +138,8 @@ describe('httpClient', () => {
     test('should merge global and per-request headers', async () => {
       const authedClient = httpClient({
         baseUrl: 'http://api.test',
-        serviceName: 'Test',
         headers: { Authorization: 'Bearer token' },
+        serviceName: 'Test',
       })
       mockFetch.mockResolvedValue(new Response(undefined, { status: 200 }))
 

@@ -20,8 +20,8 @@ interface RadarrClientConfig {
 export class RadarrClient extends ArrClient implements IRadarrClient {
   constructor(config: RadarrClientConfig) {
     super({
-      baseUrl: `${config.apiUrl}/api/v3`,
       apiKey: config.apiKey,
+      baseUrl: `${config.apiUrl}/api/v3`,
       serviceName: 'Radarr',
     })
   }

@@ -30,6 +30,7 @@ const urlString = z.string().refine((value) => {
 
 const envSchema = z.object({
   CLOUDFLARE_TOKEN: z.string(),
+  DATABASE_URL: z.string(),
   DOMAIN: z.string(),
   PLEX_TOKEN: z.string(),
   PLEX_URL: urlString,
@@ -43,7 +44,6 @@ const envSchema = z.object({
   TMDB_API_URL: urlString,
   TRAKT_CLIENT_ID: z.string(),
   TRAKT_CLIENT_SECRET: z.string(),
-  DATABASE_URL: z.string(),
   TRANSCODE_PATH: z.string(),
 })
 

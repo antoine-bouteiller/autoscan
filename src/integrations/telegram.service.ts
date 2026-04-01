@@ -19,8 +19,8 @@ export class TelegramClient implements ITelegramClient {
   constructor(token: string) {
     this.client = httpClient({
       baseUrl: `https://api.telegram.org/bot${token}`,
-      serviceName: 'Telegram',
       headers: { 'Content-Type': 'application/json' },
+      serviceName: 'Telegram',
     })
   }
 
@@ -37,7 +37,7 @@ export class TelegramClient implements ITelegramClient {
 
   async sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<number | undefined> {
     const result = await this.client.post('sendMessage', {
-      body: { chat_id: chatId, text, reply_markup: replyMarkup, parse_mode: parseMode },
+      body: { chat_id: chatId, parse_mode: parseMode, reply_markup: replyMarkup, text },
       validator: sendMessageResponseSchema,
     })
     if (isError(result)) {
@@ -49,7 +49,7 @@ export class TelegramClient implements ITelegramClient {
 
   async editMessageText(chatId: number, messageId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<void> {
     const result = await this.client.post('editMessageText', {
-      body: { chat_id: chatId, message_id: messageId, text, reply_markup: replyMarkup, parse_mode: parseMode },
+      body: { chat_id: chatId, message_id: messageId, parse_mode: parseMode, reply_markup: replyMarkup, text },
     })
     if (isError(result)) {
       logError(result, 'Telegram')
