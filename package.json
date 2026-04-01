@@ -17,22 +17,22 @@
     "test:watch": "vp test"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.3.16",
+    "@electric-sql/pglite": "^0.4.2",
     "croner": "^10.0.1",
-    "drizzle-orm": "^1.0.0-beta.9-e89174b",
-    "fastify": "^5.8.2",
+    "drizzle-orm": "^1.0.0-beta.20",
+    "fastify": "^5.8.4",
     "pg": "^8.20.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@types/pg": "^8.20.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260314.1",
-    "@vitest/coverage-v8": "^4.1.0",
-    "drizzle-kit": "^1.0.0-beta.9-e89174b",
-    "knip": "^5.86.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260401.1",
+    "@vitest/coverage-v8": "^4.1.2",
+    "drizzle-kit": "^1.0.0-beta.20",
+    "knip": "^6.1.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vite-plus": "latest"
   },
   "packageManager": "pnpm@10.32.1"

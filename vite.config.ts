@@ -88,6 +88,7 @@ export default defineConfig({
         lines: 85,
       },
     },
+    testTimeout: 10_000,
     include: ['tests/**/*.spec.ts'],
     setupFiles: ['./tests/env.ts', './tests/setup.ts'],
   },

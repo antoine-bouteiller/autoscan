@@ -82,7 +82,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add flake.nix
-          git commit -m "chore: update nix pnpmDeps hash [skip ci]"
+          git commit -m "chore: update nix pnpmDeps hash"
           git push
 
   sonarqube:
