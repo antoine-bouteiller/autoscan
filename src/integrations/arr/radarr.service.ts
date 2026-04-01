@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { QueueService } from '#types/cleanup'
+import { type QueueService } from '#types/cleanup'
 import { isError, logError } from '#utils/error'
 import { movieValidator } from '#validators/radarr.validator'
 

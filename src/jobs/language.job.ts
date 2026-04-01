@@ -1,5 +1,5 @@
 import { container, TOKENS } from '#core/container'
-import type { IPlexClient } from '#integrations/plex.service'
+import { type IPlexClient } from '#integrations/plex.service'
 import { handleUpdateLanguage } from '#services/language.service'
 import { getCompleteMediaDetails } from '#services/metadata.service'
 import { isError, logError } from '#utils/error'

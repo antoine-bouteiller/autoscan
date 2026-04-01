@@ -1,5 +1,5 @@
 import { container, TOKENS } from '#core/container'
-import type { TelegramProvider } from '#providers/telegram_provider'
+import { type TelegramProvider } from '#providers/telegram_provider'
 import { setLanguageConversation } from '#telegram/language.command'
 import { subtitleScanCommand } from '#telegram/subtitle_scan.command'
 import { syncTraktCommand, traktAuthCommand } from '#telegram/trakt.command'

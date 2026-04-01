@@ -1,14 +1,14 @@
-import type { HttpError } from '#errors/http'
-import type { NetworkError } from '#errors/network'
-import type { ValidationError } from '#errors/validation'
+import { type HttpError } from '#errors/http'
+import { type NetworkError } from '#errors/network'
+import { type ValidationError } from '#errors/validation'
 import { httpClient } from '#utils/http_client'
 import {
-  type TraktDeviceCodeResponse,
-  type TraktSyncResponse,
-  type TraktTokenResponse,
   deviceCodeResponseValidator,
   syncResponseValidator,
   tokenResponseValidator,
+  type TraktDeviceCodeResponse,
+  type TraktSyncResponse,
+  type TraktTokenResponse,
 } from '#validators/trakt.validator'
 
 export interface TraktMoviePayload {

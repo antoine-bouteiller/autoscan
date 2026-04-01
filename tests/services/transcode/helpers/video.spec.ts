@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test'
 
 import { processVideoStreams } from '#services/transcode/helpers/video'
-import type { FFprobeStream } from '#validators/ffmpeg.validator'
+import { type FFprobeStream } from '#validators/ffmpeg.validator'
 
 import { isOk } from '../../../../src/utils/error.js'
 

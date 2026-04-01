@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test'
 
 import { db } from '#config/db'
 import { container, TOKENS } from '#core/container'
-import { media as mediaTable, type Media } from '#database/schema'
-import type { ITelegramClient } from '#integrations/telegram.service'
+import { type Media, media as mediaTable } from '#database/schema'
+import { type ITelegramClient } from '#integrations/telegram.service'
 import {
   buildLanguageKeyboard,
   buildMediaKeyboard,
@@ -16,7 +16,7 @@ import {
   selectMediaType,
 } from '#services/language.service'
 import { iso1ToIso2T } from '#types/iso_codes'
-import type { PlexMediaStream } from '#validators/plex.validator'
+import { type PlexMediaStream } from '#validators/plex.validator'
 
 import { updateStreamMock } from '../mocks/plex.mock.js'
 import { editMessageTextMock } from '../mocks/telegram.mock.js'
@@ -113,24 +113,26 @@ describe('selectMediaType', () => {
   test('should return idle state when media list is empty', async () => {
     const state = { messageId: 42, step: 'awaiting_media_type' as const }
 
-    const result = await selectMediaType(client, 1, state, 'movie')
+    const result = await selectMediaType(client, 1, { mediaType: 'movie', state })
 
     expect(result).toEqual({ step: 'idle' })
-    expect(editMessageTextMock).toHaveBeenCalledWith(1, 42, 'No media in movie library')
+    expect(editMessageTextMock).toHaveBeenCalledWith(1, 42, { text: 'No media in movie library' })
   })
 
   test('should return awaiting_media_selection state with non-empty media list', async () => {
     await db.insert(mediaTable).values(makeMedia(3))
     const state = { messageId: 42, step: 'awaiting_media_type' as const }
 
-    const result = await selectMediaType(client, 1, state, 'movie')
+    const result = await selectMediaType(client, 1, { mediaType: 'movie', state })
 
     expect(result).toEqual({ mediaType: 'movie', messageId: 42, page: 0, step: 'awaiting_media_selection' })
     expect(editMessageTextMock).toHaveBeenCalledWith(
       1,
       42,
-      'Which movie do you want to configure?',
-      expect.objectContaining({ inline_keyboard: expect.any(Array) })
+      expect.objectContaining({
+        replyMarkup: expect.objectContaining({ inline_keyboard: expect.any(Array) }),
+        text: 'Which movie do you want to configure?',
+      })
     )
   })
 })
@@ -145,14 +147,16 @@ describe('navigateMediaPage', () => {
     await db.insert(mediaTable).values(makeMedia(15))
     const state = { mediaType: 'movie' as const, messageId: 42, page: 0, step: 'awaiting_media_selection' as const }
 
-    const result = await navigateMediaPage(client, 1, state, 1)
+    const result = await navigateMediaPage(client, 1, { page: 1, state })
 
     expect(result).toEqual({ ...state, page: 1 })
     expect(editMessageTextMock).toHaveBeenCalledWith(
       1,
       42,
-      'Which movie do you want to configure?',
-      expect.objectContaining({ inline_keyboard: expect.any(Array) })
+      expect.objectContaining({
+        replyMarkup: expect.objectContaining({ inline_keyboard: expect.any(Array) }),
+        text: 'Which movie do you want to configure?',
+      })
     )
   })
 })
@@ -167,7 +171,7 @@ describe('selectMedia', () => {
     await db.insert(mediaTable).values(makeMedia(3))
     const state = { mediaType: 'movie' as const, messageId: 42, page: 0, step: 'awaiting_media_selection' as const }
 
-    const result = await selectMedia(client, 1, state, 999)
+    const result = await selectMedia(client, 1, { state, tmdbId: 999 })
 
     expect(result).toEqual(state)
     expect(editMessageTextMock).not.toHaveBeenCalled()
@@ -177,14 +181,16 @@ describe('selectMedia', () => {
     await db.insert(mediaTable).values(makeMedia(3))
     const state = { mediaType: 'movie' as const, messageId: 42, page: 0, step: 'awaiting_media_selection' as const }
 
-    const result = await selectMedia(client, 1, state, 2)
+    const result = await selectMedia(client, 1, { state, tmdbId: 2 })
 
     expect(result).toEqual({ mediaType: 'movie', messageId: 42, step: 'awaiting_language', tmdbId: 2 })
     expect(editMessageTextMock).toHaveBeenCalledWith(
       1,
       42,
-      'Which language do you want to set for Media 2?',
-      expect.objectContaining({ inline_keyboard: expect.any(Array) })
+      expect.objectContaining({
+        replyMarkup: expect.objectContaining({ inline_keyboard: expect.any(Array) }),
+        text: 'Which language do you want to set for Media 2?',
+      })
     )
   })
 })
@@ -199,10 +205,10 @@ describe('selectLanguage', () => {
     await db.insert(mediaTable).values({ originalLanguage: 'en', preferredLanguage: 'en', title: 'Test Movie', tmdbId: 1, type: 'movie' })
     const state = { mediaType: 'movie' as const, messageId: 42, step: 'awaiting_language' as const, tmdbId: 1 }
 
-    const result = await selectLanguage(client, 1, state, 'fr')
+    const result = await selectLanguage(client, 1, { lang: 'fr', state })
 
     expect(result).toEqual({ step: 'idle' })
-    expect(editMessageTextMock).toHaveBeenCalledWith(1, 42, 'Language updated to fr')
+    expect(editMessageTextMock).toHaveBeenCalledWith(1, 42, { text: 'Language updated to fr' })
     const [updated] = await db
       .select()
       .from(mediaTable)

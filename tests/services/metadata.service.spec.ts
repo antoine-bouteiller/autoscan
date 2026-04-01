@@ -8,7 +8,7 @@ import { FileNotFoundError, TmdbIdNotFoundError } from '#errors/metadata'
 
 import { isOk } from '../../src/utils/error.js'
 import '../utils.ts'
-import type { MockTmdbClient } from '../mocks/tmdb.mock.js'
+import { type MockTmdbClient } from '../mocks/tmdb.mock.js'
 import { tmdbTvShowResponse } from '../resources/fixtures/tmdb.fixtures.js'
 
 const {

@@ -1,7 +1,7 @@
 import { container, TOKENS } from '#core/container'
 import { FileNotFoundError, TmdbIdNotFoundError } from '#errors/metadata'
 import { type IPlexClient, type MediaType } from '#integrations/plex.service'
-import type { ITmdbClient } from '#integrations/tmdb.service'
+import { type ITmdbClient } from '#integrations/tmdb.service'
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '#repositories/media.repository'
 import { type ISOCode1 } from '#types/iso_codes'
 import { isError } from '#utils/error'
@@ -35,7 +35,7 @@ export const getMediaLanguage = async (
   const title = type === 'movie' ? data.title : data.name
   const language = data.original_language
 
-  await createdOrUpdatedMedia(tmdbId, mediaType, title, language)
+  await createdOrUpdatedMedia({ originalLanguage: language, title, tmdbId, type: mediaType })
 
   return {
     originalLanguage: language,

@@ -1,4 +1,4 @@
-import type { ISOCode1 } from '#types/iso_codes'
+import { type ISOCode1 } from '#types/iso_codes'
 
 export interface TranscodeJob {
   command: string[]

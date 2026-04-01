@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { QueueService } from '#types/cleanup'
+import { type QueueService } from '#types/cleanup'
 import { isError, logError } from '#utils/error'
 import { seriesValidator } from '#validators/sonarr.validator'
 

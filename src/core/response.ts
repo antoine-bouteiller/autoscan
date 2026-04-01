@@ -1,4 +1,4 @@
-import type { FastifyReply } from 'fastify'
+import { type FastifyReply } from 'fastify'
 
 interface ApiResponse<Data> {
   data?: Data

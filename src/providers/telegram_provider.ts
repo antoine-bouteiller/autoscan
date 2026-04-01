@@ -1,17 +1,16 @@
 import env from '#config/env'
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
-import type { ITelegramClient } from '#integrations/telegram.service'
-import type { ConversationState } from '#types/telegram'
+import { type ITelegramClient } from '#integrations/telegram.service'
+import { type ConversationState } from '#types/telegram'
 import { isError, logError } from '#utils/error'
-import type { TelegramCallbackQuery, TelegramMessageIn, TelegramUpdate } from '#validators/telegram.validator'
+import { type TelegramCallbackQuery, type TelegramMessageIn, type TelegramUpdate } from '#validators/telegram.validator'
 
 type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Promise<ConversationState>
 type CallbackHandler = (
   client: ITelegramClient,
   chatId: number,
-  state: ConversationState,
-  callback: TelegramCallbackQuery
+  params: { state: ConversationState; callback: TelegramCallbackQuery }
 ) => Promise<ConversationState>
 interface Conversation {
   onCommand: CommandHandler
@@ -119,7 +118,7 @@ export class TelegramProvider {
 
     const conversation = this.conversations.get(this.activeConversationKey)
     if (conversation) {
-      this.conversationState = await conversation.onCallback(this.client, chatId, this.conversationState, callback)
+      this.conversationState = await conversation.onCallback(this.client, chatId, { callback, state: this.conversationState })
       if (this.conversationState.step === 'idle') {
         this.activeConversationKey = undefined
       }

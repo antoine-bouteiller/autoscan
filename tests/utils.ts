@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { expect, it } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
-import type { HttpProvider } from '#providers/http_provider'
+import { type HttpProvider } from '#providers/http_provider'
 
 export { MockCloudflareClient } from './mocks/cloudflare.mock.ts'
 export { MockPlexClient } from './mocks/plex.mock.ts'

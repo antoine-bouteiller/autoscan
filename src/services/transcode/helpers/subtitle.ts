@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 
 import { logger } from '#config/logger'
 import { type ISOCode1 } from '#types/iso_codes'
-import type { FFprobeStream } from '#validators/ffmpeg.validator'
+import { type FFprobeStream } from '#validators/ffmpeg.validator'
 
-import { type Criteria, isStreamWanted } from './utils.js'
+import { isStreamWanted, type Criteria } from './utils.js'
 
 const FORCED_SUBTITLE_LPM_THRESHOLD = 3
 const FORCED_SUBTITLE_SCREEN_RATIO_THRESHOLD = 0.15

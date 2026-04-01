@@ -22,7 +22,7 @@ export default defineConfig({
     },
     ignorePatterns: ['pnpm-lock.yaml', 'vite.config.ts'],
     options: { typeAware: true, typeCheck: true },
-    plugins: ['typescript', 'unicorn'],
+    plugins: ['typescript', 'unicorn', 'import', 'node'],
     rules: {
       // Restriction
       'no-empty': 'error',
@@ -42,6 +42,9 @@ export default defineConfig({
       'no-negated-condition': 'error',
       'prefer-string-replace-all': 'error',
 
+      // Suspicious
+      'no-unassigned-import': 'off',
+
       // Style
       'unicorn/filename-case': [
         'error',
@@ -56,13 +59,17 @@ export default defineConfig({
       'sort-imports': 'off',
       'no-ternary': 'off',
       'no-continue': 'off',
-      'max-params': 'off',
       'no-await-in-loop': 'off',
       'init-declarations': 'off',
       'max-statements': 'off',
       'new-cap': 'off',
       'func-names': ['error', 'as-needed', { generators: 'never' }],
       'custom-error-definition': 'off',
+      'no-nodejs-modules': 'off',
+      'no-named-export': 'off',
+      'group-exports': 'off',
+      'consistent-type-specifier-style': ['error', 'prefer-inline'],
+      'exports-last': 'off',
     },
   },
   pack: {

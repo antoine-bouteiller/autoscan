@@ -4,12 +4,12 @@ import { db } from '#config/db'
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
 import { media, type Media } from '#database/schema'
-import type { IPlexClient, MediaType } from '#integrations/plex.service'
-import type { ITelegramClient } from '#integrations/telegram.service'
+import { type IPlexClient, type MediaType } from '#integrations/plex.service'
+import { type ITelegramClient } from '#integrations/telegram.service'
 import { getMediaByTypeWithPagination } from '#repositories/media.repository'
 import { iso1ToIso2T } from '#types/iso_codes'
-import type { UpdateLanguageParams } from '#types/language'
-import type { ConversationState, InlineKeyboardButton, InlineKeyboardMarkup } from '#types/telegram'
+import { type UpdateLanguageParams } from '#types/language'
+import { type ConversationState, type InlineKeyboardButton, type InlineKeyboardMarkup } from '#types/telegram'
 import { normalizeToIso1 } from '#utils/iso_codes'
 
 const PAGE_SIZE = 10
@@ -78,56 +78,65 @@ export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
 export const selectMediaType = async (
   client: ITelegramClient,
   chatId: number,
-  state: AwaitingMediaTypeState,
-  mediaType: MediaType
+  params: { state: AwaitingMediaTypeState; mediaType: MediaType }
 ): Promise<ConversationState> => {
+  const { state, mediaType } = params
   const mediaItems = await getMediaByTypeWithPagination(mediaType, 0, 100)
 
   if (mediaItems.length === 0) {
-    await client.editMessageText(chatId, state.messageId, `No media in ${mediaType} library`)
+    await client.editMessageText(chatId, state.messageId, { text: `No media in ${mediaType} library` })
     return { step: 'idle' }
   }
 
-  await client.editMessageText(chatId, state.messageId, `Which ${mediaType} do you want to configure?`, buildMediaKeyboard(mediaItems, 0))
+  await client.editMessageText(chatId, state.messageId, {
+    replyMarkup: buildMediaKeyboard(mediaItems, 0),
+    text: `Which ${mediaType} do you want to configure?`,
+  })
   return { mediaType, messageId: state.messageId, page: 0, step: 'awaiting_media_selection' }
 }
 
 export const navigateMediaPage = async (
   client: ITelegramClient,
   chatId: number,
-  state: AwaitingMediaSelectionState,
-  page: number
+  params: { state: AwaitingMediaSelectionState; page: number }
 ): Promise<ConversationState> => {
+  const { state, page } = params
   const mediaItems = await getMediaByTypeWithPagination(state.mediaType, 0, 100)
-  await client.editMessageText(chatId, state.messageId, `Which ${state.mediaType} do you want to configure?`, buildMediaKeyboard(mediaItems, page))
+  await client.editMessageText(chatId, state.messageId, {
+    replyMarkup: buildMediaKeyboard(mediaItems, page),
+    text: `Which ${state.mediaType} do you want to configure?`,
+  })
   return { ...state, page }
 }
 
 export const selectMedia = async (
   client: ITelegramClient,
   chatId: number,
-  state: AwaitingMediaSelectionState,
-  tmdbId: number
+  params: { state: AwaitingMediaSelectionState; tmdbId: number }
 ): Promise<ConversationState> => {
+  const { state, tmdbId } = params
   const mediaItems = await getMediaByTypeWithPagination(state.mediaType, 0, 100)
   const selectedMedia = mediaItems.find((item) => item.tmdbId === tmdbId)
   if (!selectedMedia) {
     return state
   }
-  await client.editMessageText(chatId, state.messageId, `Which language do you want to set for ${selectedMedia.title}?`, buildLanguageKeyboard())
+  await client.editMessageText(chatId, state.messageId, {
+    replyMarkup: buildLanguageKeyboard(),
+    text: `Which language do you want to set for ${selectedMedia.title}?`,
+  })
   return { mediaType: state.mediaType, messageId: state.messageId, step: 'awaiting_language', tmdbId }
 }
 
 export const selectLanguage = async (
   client: ITelegramClient,
   chatId: number,
-  state: AwaitingLanguageState,
-  lang: string
+  params: { state: AwaitingLanguageState; lang: string }
 ): Promise<ConversationState> => {
+  const { state, lang } = params
   await db
     .update(media)
     .set({ preferredLanguage: normalizeToIso1(lang) })
     .where(and(eq(media.tmdbId, state.tmdbId), eq(media.type, state.mediaType)))
-  await client.editMessageText(chatId, state.messageId, `Language updated to ${lang}`)
+  await client.editMessageText(chatId, state.messageId, { text: `Language updated to ${lang}` })
   return { step: 'idle' }
 }

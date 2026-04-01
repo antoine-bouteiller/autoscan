@@ -1,6 +1,6 @@
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
-import type { IPlexClient } from '#integrations/plex.service'
+import { type IPlexClient } from '#integrations/plex.service'
 import { getCompleteMediaDetails } from '#services/metadata.service'
 import { transcodeFile, transcodeQueue } from '#services/transcode/transcode.service'
 import { isError, logError } from '#utils/error'
@@ -32,7 +32,12 @@ export const runTranscodeProcess = async () => {
         continue
       }
 
-      await transcodeFile(details.file, details.mediaTitle, details.originalLanguage, details.mediaType)
+      await transcodeFile({
+        file: details.file,
+        mediaTitle: details.mediaTitle,
+        mediaType: details.mediaType,
+        originalLanguage: details.originalLanguage,
+      })
     }
   }
 

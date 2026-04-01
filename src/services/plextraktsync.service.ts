@@ -38,12 +38,13 @@ interface WatchedCollections {
   showsMap: Map<number, TraktShowPayload>
 }
 
-const processMovie = (item: PlexMedia, tmdbId: number, watchedAt: string, collections: WatchedCollections) => {
-  collections.movies.push({ ids: { tmdb: tmdbId }, watched_at: watchedAt })
+const processMovie = (item: PlexMedia, collections: WatchedCollections, params: { tmdbId: number; watchedAt: string }) => {
+  collections.movies.push({ ids: { tmdb: params.tmdbId }, watched_at: params.watchedAt })
   collections.ratingKeysToMark.push(item.ratingKey)
 }
 
-const processEpisode = (item: PlexMedia, tmdbId: number, watchedAt: string, collections: WatchedCollections) => {
+const processEpisode = (item: PlexMedia, collections: WatchedCollections, params: { tmdbId: number; watchedAt: string }) => {
+  const { tmdbId, watchedAt } = params
   if (item.parentIndex === undefined || item.index === undefined) {
     return
   }
@@ -82,9 +83,9 @@ const processWatchedItem = (item: PlexMedia, collections: WatchedCollections, sy
   const watchedAt = item.lastViewedAt ? new Date(item.lastViewedAt * 1000).toISOString() : new Date().toISOString()
 
   if (item.type === 'movie') {
-    processMovie(item, tmdbId, watchedAt, collections)
+    processMovie(item, collections, { tmdbId, watchedAt })
   } else if (item.type === 'episode') {
-    processEpisode(item, tmdbId, watchedAt, collections)
+    processEpisode(item, collections, { tmdbId, watchedAt })
   }
 }
 

@@ -3,17 +3,17 @@ import { z } from 'zod'
 import { HttpError } from '#errors/http'
 import { NetworkError } from '#errors/network'
 import { ValidationError } from '#errors/validation'
-import type {
-  AnySchema,
-  GetOptionWithoutResponse,
-  GetOptions,
-  HttpClient,
-  HttpClientOptions,
-  HttpClientResult,
-  HttpClientVoidResult,
-  RequestOptions,
-  RequestParams,
-  RequestWithoutResponseOption,
+import {
+  type AnySchema,
+  type GetOptionWithoutResponse,
+  type GetOptions,
+  type HttpClient,
+  type HttpClientOptions,
+  type HttpClientResult,
+  type HttpClientVoidResult,
+  type RequestOptions,
+  type RequestParams,
+  type RequestWithoutResponseOption,
 } from '#types/http_client'
 
 const defaultFormatter = (body: unknown): string => (typeof body === 'string' ? body : JSON.stringify(body))

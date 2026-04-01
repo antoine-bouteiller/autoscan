@@ -1,5 +1,5 @@
 import { type ISOCode1 } from '#types/iso_codes'
-import type { FFprobeStream } from '#validators/ffmpeg.validator'
+import { type FFprobeStream } from '#validators/ffmpeg.validator'
 
 export type Criteria =
   | {

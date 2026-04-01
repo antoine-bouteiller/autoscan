@@ -2,23 +2,23 @@ import { and, asc, count, eq } from 'drizzle-orm'
 
 import { db } from '#config/db'
 import { media as mediaTable } from '#database/schema'
-import type { MediaType } from '#integrations/plex.service'
-import type { ISOCode1 } from '#types/iso_codes'
+import { type MediaType } from '#integrations/plex.service'
+import { type ISOCode1 } from '#types/iso_codes'
 
 export const countMediaByType = (type: MediaType) => db.select({ count: count() }).from(mediaTable).where(eq(mediaTable.type, type))
 
-export const createdOrUpdatedMedia = (tmdbId: number, type: MediaType, title: string, originalLanguage: ISOCode1) =>
+export const createdOrUpdatedMedia = (params: { tmdbId: number; type: MediaType; title: string; originalLanguage: ISOCode1 }) =>
   db
     .insert(mediaTable)
     .values({
-      originalLanguage,
-      preferredLanguage: originalLanguage,
-      title,
-      tmdbId,
-      type,
+      originalLanguage: params.originalLanguage,
+      preferredLanguage: params.originalLanguage,
+      title: params.title,
+      tmdbId: params.tmdbId,
+      type: params.type,
     })
     .onConflictDoUpdate({
-      set: { originalLanguage, preferredLanguage: originalLanguage, title },
+      set: { originalLanguage: params.originalLanguage, preferredLanguage: params.originalLanguage, title: params.title },
       target: [mediaTable.tmdbId, mediaTable.type],
     })
 

@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import { type FastifyReply, type FastifyRequest } from 'fastify'
 import { z } from 'zod'
 
 import { badRequest, success } from '#core/response'
@@ -28,7 +28,7 @@ export const sonarrWebhook = async (request: FastifyRequest, reply: FastifyReply
     const mediaTitle = `${parsed.data.series.title} ${parsed.data.episodes[0]?.title}`
     const { originalLanguage } = await getMediaLanguage(parsed.data.series.tmdbId, 'show')
 
-    void transcodeFile(file, mediaTitle, originalLanguage, 'show')
+    void transcodeFile({ file, mediaTitle, mediaType: 'show', originalLanguage })
   }
 
   return success(reply, { message: 'ok' })

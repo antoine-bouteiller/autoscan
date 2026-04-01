@@ -1,10 +1,10 @@
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import { type FastifyReply, type FastifyRequest } from 'fastify'
 import { z } from 'zod'
 
 import env from '#config/env'
 import { container, TOKENS } from '#core/container'
 import { badRequest, success } from '#core/response'
-import type { ITelegramClient } from '#integrations/telegram.service'
+import { type ITelegramClient } from '#integrations/telegram.service'
 import { logError } from '#utils/error'
 import { sendMessageValidator } from '#validators/send_message.validator'
 

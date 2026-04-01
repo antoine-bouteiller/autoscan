@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import { type FastifyReply, type FastifyRequest } from 'fastify'
 import { z } from 'zod'
 
 import { badRequest, success } from '#core/response'
@@ -28,7 +28,7 @@ export const radarrWebhook = async (request: FastifyRequest, reply: FastifyReply
     const mediaTitle = parsed.data.movie.title
     const { originalLanguage } = await getMediaLanguage(parsed.data.movie.tmdbId, 'movie')
 
-    void transcodeFile(file, mediaTitle, originalLanguage, 'movie')
+    void transcodeFile({ file, mediaTitle, mediaType: 'movie', originalLanguage })
   }
 
   return success(reply, { message: 'ok' })

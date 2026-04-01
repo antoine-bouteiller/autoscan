@@ -1,6 +1,6 @@
 import { logger } from '#config/logger'
 import { VideoStreamNotFoundError } from '#errors/transcode'
-import type { FFprobeStream } from '#validators/ffmpeg.validator'
+import { type FFprobeStream } from '#validators/ffmpeg.validator'
 
 export const processVideoStreams = (
   videoStreams: FFprobeStream[],

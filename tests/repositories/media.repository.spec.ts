@@ -101,7 +101,7 @@ describe('MediaService', () => {
 
   describe('createdOrUpdatedMedia', () => {
     test('should insert new media', async () => {
-      await createdOrUpdatedMedia(123, 'movie', 'Test Movie', 'en')
+      await createdOrUpdatedMedia({ originalLanguage: 'en', title: 'Test Movie', tmdbId: 123, type: 'movie' })
 
       const result = await db
         .select()
@@ -126,7 +126,7 @@ describe('MediaService', () => {
         type: 'show',
       })
 
-      await createdOrUpdatedMedia(456, 'show', 'Test Show', 'fr')
+      await createdOrUpdatedMedia({ originalLanguage: 'fr', title: 'Test Show', tmdbId: 456, type: 'show' })
 
       const result = await db
         .select()

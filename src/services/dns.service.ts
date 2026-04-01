@@ -2,7 +2,7 @@ import env from '#config/env'
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
 import { DnsRecordNotFoundError } from '#errors/cloudflare'
-import type { ICloudflareClient } from '#integrations/cloudflare.service'
+import { type ICloudflareClient } from '#integrations/cloudflare.service'
 import { isError, logError } from '#utils/error'
 
 const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]

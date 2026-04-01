@@ -1,8 +1,8 @@
-import type { z } from 'zod'
+import { type z } from 'zod'
 
-import type { HttpError, HttpErrorFormatter } from '#errors/http'
-import type { NetworkError } from '#errors/network'
-import type { ValidationError } from '#errors/validation'
+import { type HttpError, type HttpErrorFormatter } from '#errors/http'
+import { type NetworkError } from '#errors/network'
+import { type ValidationError } from '#errors/validation'
 
 export type AnySchema = z.ZodType
 

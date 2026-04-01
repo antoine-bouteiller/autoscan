@@ -1,12 +1,23 @@
-import type { InlineKeyboardMarkup } from '#types/telegram'
+import { type InlineKeyboardMarkup } from '#types/telegram'
 import { isError, logError } from '#utils/error'
 import { httpClient } from '#utils/http_client'
 import { getUpdatesResponseSchema, sendMessageResponseSchema, type TelegramUpdate } from '#validators/telegram.validator'
 
+export interface SendMessageOptions {
+  replyMarkup?: InlineKeyboardMarkup
+  parseMode?: string
+}
+
+export interface EditMessageOptions {
+  text: string
+  replyMarkup?: InlineKeyboardMarkup
+  parseMode?: string
+}
+
 export interface ITelegramClient {
   getUpdates(offset?: number): Promise<TelegramUpdate[] | Error>
-  sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<number | undefined>
-  editMessageText(chatId: number, messageId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<void>
+  sendMessage(chatId: number, text: string, options?: SendMessageOptions): Promise<number | undefined>
+  editMessageText(chatId: number, messageId: number, options: EditMessageOptions): Promise<void>
   deleteMessage(chatId: number, messageId: number): Promise<void>
   answerCallbackQuery(callbackQueryId: string): Promise<void>
 }
@@ -35,9 +46,9 @@ export class TelegramClient implements ITelegramClient {
     return result.result
   }
 
-  async sendMessage(chatId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<number | undefined> {
+  async sendMessage(chatId: number, text: string, options?: SendMessageOptions): Promise<number | undefined> {
     const result = await this.client.post('sendMessage', {
-      body: { chat_id: chatId, parse_mode: parseMode, reply_markup: replyMarkup, text },
+      body: { chat_id: chatId, parse_mode: options?.parseMode, reply_markup: options?.replyMarkup, text },
       validator: sendMessageResponseSchema,
     })
     if (isError(result)) {
@@ -47,9 +58,9 @@ export class TelegramClient implements ITelegramClient {
     return result.result.message_id
   }
 
-  async editMessageText(chatId: number, messageId: number, text: string, replyMarkup?: InlineKeyboardMarkup, parseMode?: string): Promise<void> {
+  async editMessageText(chatId: number, messageId: number, options: EditMessageOptions): Promise<void> {
     const result = await this.client.post('editMessageText', {
-      body: { chat_id: chatId, message_id: messageId, parse_mode: parseMode, reply_markup: replyMarkup, text },
+      body: { chat_id: chatId, message_id: messageId, parse_mode: options.parseMode, reply_markup: options.replyMarkup, text: options.text },
     })
     if (isError(result)) {
       logError(result, 'Telegram')

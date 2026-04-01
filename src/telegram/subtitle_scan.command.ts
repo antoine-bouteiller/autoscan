@@ -2,12 +2,12 @@ import { existsSync, readFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 
 import { container, TOKENS } from '#core/container'
-import type { IPlexClient } from '#integrations/plex.service'
-import type { ITelegramClient } from '#integrations/telegram.service'
+import { type IPlexClient } from '#integrations/plex.service'
+import { type ITelegramClient } from '#integrations/telegram.service'
 import { getCompleteMediaDetails } from '#services/metadata.service'
-import type { ConversationState } from '#types/telegram'
+import { type ConversationState } from '#types/telegram'
 import { isError, logError } from '#utils/error'
-import type { TelegramMessageIn } from '#validators/telegram.validator'
+import { type TelegramMessageIn } from '#validators/telegram.validator'
 
 const FORCED_LINE_RATIO_THRESHOLD = 0.1
 const SYNC_THRESHOLD_MS = 300
@@ -135,7 +135,7 @@ export const subtitleScanCommand = async (client: ITelegramClient, message: Tele
     const report = formatReport(missingSubtitles, outOfSyncSubtitles)
 
     await (report
-      ? client.sendMessage(message.chat.id, report, undefined, 'Markdown')
+      ? client.sendMessage(message.chat.id, report, { parseMode: 'Markdown' })
       : client.sendMessage(message.chat.id, 'All media have matching subtitles.'))
   })()
 

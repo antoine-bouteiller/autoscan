@@ -1,19 +1,12 @@
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
-import type { IRadarrClient } from '#integrations/arr/radarr.service'
-import type { ISonarrClient } from '#integrations/arr/sonarr.service'
-import type { QueueService } from '#types/cleanup'
+import { type IRadarrClient } from '#integrations/arr/radarr.service'
+import { type ISonarrClient } from '#integrations/arr/sonarr.service'
+import { type QueueService } from '#types/cleanup'
 
 const STRIKE_COUNT = 5
 
 const strikeCounts = new Map<number, number>()
-
-export const cleanupAll = async (): Promise<void> => {
-  const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
-  const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
-
-  await Promise.all([removeStalledDownloads(sonarrClient, 'Sonarr'), removeStalledDownloads(radarrClient, 'Radarr')])
-}
 
 const removeStalledDownloads = async (service: QueueService, serviceName: string): Promise<void> => {
   const queue = await service.getQueue()
@@ -52,4 +45,11 @@ const removeStalledDownloads = async (service: QueueService, serviceName: string
   }
 
   await Promise.all(promises)
+}
+
+export const cleanupAll = async (): Promise<void> => {
+  const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
+  const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
+
+  await Promise.all([removeStalledDownloads(sonarrClient, 'Sonarr'), removeStalledDownloads(radarrClient, 'Radarr')])
 }

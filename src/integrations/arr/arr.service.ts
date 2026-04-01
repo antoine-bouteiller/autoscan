@@ -1,4 +1,4 @@
-import { type QueueResponse, queueResponseValidator } from '#types/cleanup'
+import { queueResponseValidator, type QueueResponse } from '#types/cleanup'
 import { isError, logError } from '#utils/error'
 import { httpClient } from '#utils/http_client'
 

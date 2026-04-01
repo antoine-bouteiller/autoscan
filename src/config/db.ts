@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs'
 
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
-import type { PgliteDatabase } from 'drizzle-orm/pglite'
+import { type NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { type PgliteDatabase } from 'drizzle-orm/pglite'
 
 import env from '#config/env'
 

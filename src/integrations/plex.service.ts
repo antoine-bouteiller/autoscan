@@ -1,10 +1,10 @@
-import type { HttpError } from '#errors/http'
-import type { NetworkError } from '#errors/network'
+import { type HttpError } from '#errors/http'
+import { type NetworkError } from '#errors/network'
 import { PlexError } from '#errors/plex'
-import type { ValidationError } from '#errors/validation'
+import { type ValidationError } from '#errors/validation'
 import { isError, logError } from '#utils/error'
 import { httpClient } from '#utils/http_client'
-import { type PlexMedia, plexResponseValidator } from '#validators/plex.validator'
+import { plexResponseValidator, type PlexMedia } from '#validators/plex.validator'
 
 export type MediaType = 'movie' | 'show'
 

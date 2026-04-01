@@ -5,10 +5,10 @@ import env from '#config/env'
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
 import { FileNameInvalidError, FileNotFoundError } from '#errors/transcode'
-import type { FfmpegClient } from '#integrations/ffmpeg.service'
-import type { IPlexClient } from '#integrations/plex.service'
-import type { ISOCode1 } from '#types/iso_codes'
-import type { TranscodeJob } from '#types/transcode'
+import { type FfmpegClient } from '#integrations/ffmpeg.service'
+import { type IPlexClient } from '#integrations/plex.service'
+import { type ISOCode1 } from '#types/iso_codes'
+import { type TranscodeJob } from '#types/transcode'
 import { isError, logError } from '#utils/error'
 
 import { processAudioStreams } from './helpers/audio.js'
@@ -91,12 +91,12 @@ class TranscodeQueue {
         logger.info(`Extracting subtitle in ${subtitle.language}`, 'Transcode', job.mediaTitle)
 
         const subtitleOutput = `${fileName}.${subtitle.language}.srt`
-        const subtitleResult = await ffmpegClient.executeFfmpeg(job.id, job.file, subtitleOutput, [
-          `-map`,
-          `0:s:${subtitle.index}`,
-          `-c:s:${subtitle.index}`,
-          `srt`,
-        ])
+        const subtitleResult = await ffmpegClient.executeFfmpeg({
+          command: [`-map`, `0:s:${subtitle.index}`, `-c:s:${subtitle.index}`, `srt`],
+          id: job.id,
+          input: job.file,
+          output: subtitleOutput,
+        })
 
         if (isError(subtitleResult)) {
           logError(subtitleResult, 'Queue')
@@ -119,7 +119,7 @@ class TranscodeQueue {
 
       const newFileName = `${fileName}.mp4`
       logger.info(`Executing transcode`, 'Transcode', job.mediaTitle)
-      const transcodeResult = await ffmpegClient.executeFfmpeg(job.id, job.file, newFileName, job.command)
+      const transcodeResult = await ffmpegClient.executeFfmpeg({ command: job.command, id: job.id, input: job.file, output: newFileName })
 
       if (isError(transcodeResult)) {
         logError(transcodeResult, 'Queue')
@@ -200,7 +200,8 @@ const getTranscodeCommand = async (file: string, mediaTitle: string, originalLan
   }
 }
 
-export const transcodeFile = async (file: string, mediaTitle: string, originalLanguage: ISOCode1, mediaType: 'movie' | 'show') => {
+export const transcodeFile = async (params: { file: string; mediaTitle: string; originalLanguage: ISOCode1; mediaType: 'movie' | 'show' }) => {
+  const { file, mediaTitle, originalLanguage, mediaType } = params
   if (!existsSync(file)) {
     const error = new FileNotFoundError({ filePath: file })
     logError(error, 'transcodeFile')

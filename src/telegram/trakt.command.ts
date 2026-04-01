@@ -33,7 +33,7 @@ export const traktAuthCommand = async (client: ITelegramClient, message: Telegra
     `And enter the following code: *${result.user_code}*`,
   ].join('\n')
 
-  await client.sendMessage(message.chat.id, authMessage, undefined, 'Markdown')
+  await client.sendMessage(message.chat.id, authMessage, { parseMode: 'Markdown' })
 
   void (async () => {
     const start = Date.now()
@@ -80,7 +80,7 @@ export const syncTraktCommand = async (client: ITelegramClient, message: Telegra
 
   const summary = ['*Trakt Sync Summary*', `Movies added: ${result.movies}`, `Episodes added: ${result.episodes}`].join('\n')
 
-  await client.sendMessage(message.chat.id, summary, undefined, 'Markdown')
+  await client.sendMessage(message.chat.id, summary, { parseMode: 'Markdown' })
 
   return { step: 'idle' }
 }

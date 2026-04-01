@@ -1,11 +1,13 @@
-import type { MediaType } from '#integrations/plex.service'
-import type { ITelegramClient } from '#integrations/telegram.service'
+import { type MediaType } from '#integrations/plex.service'
+import { type ITelegramClient } from '#integrations/telegram.service'
 import { buildMediaTypeKeyboard, navigateMediaPage, selectLanguage, selectMedia, selectMediaType } from '#services/language.service'
-import type { ConversationState } from '#types/telegram'
-import type { TelegramCallbackQuery, TelegramMessageIn } from '#validators/telegram.validator'
+import { type ConversationState } from '#types/telegram'
+import { type TelegramCallbackQuery, type TelegramMessageIn } from '#validators/telegram.validator'
 
 const handleSetLanguageCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
-  const messageId = await client.sendMessage(message.chat.id, 'What kind of media do you want to configure?', buildMediaTypeKeyboard())
+  const messageId = await client.sendMessage(message.chat.id, 'What kind of media do you want to configure?', {
+    replyMarkup: buildMediaTypeKeyboard(),
+  })
   if (!messageId) {
     return { step: 'idle' }
   }
@@ -15,9 +17,9 @@ const handleSetLanguageCommand = async (client: ITelegramClient, message: Telegr
 const handleSetLanguageCallback = async (
   client: ITelegramClient,
   chatId: number,
-  state: ConversationState,
-  callback: TelegramCallbackQuery
+  params: { state: ConversationState; callback: TelegramCallbackQuery }
 ): Promise<ConversationState> => {
+  const { state, callback } = params
   const data = callback.data ?? ''
   await client.answerCallbackQuery(callback.id)
 
@@ -25,21 +27,21 @@ const handleSetLanguageCallback = async (
     if (data !== 'movie' && data !== 'show') {
       return state
     }
-    return selectMediaType(client, chatId, state, data as MediaType)
+    return selectMediaType(client, chatId, { mediaType: data as MediaType, state })
   }
 
   if (state.step === 'awaiting_media_selection') {
     if (data.startsWith('page:')) {
-      return navigateMediaPage(client, chatId, state, Number.parseInt(data.slice(5), 10))
+      return navigateMediaPage(client, chatId, { page: Number.parseInt(data.slice(5), 10), state })
     }
     if (data.startsWith('select_media:')) {
-      return selectMedia(client, chatId, state, Number.parseInt(data.slice(13), 10))
+      return selectMedia(client, chatId, { state, tmdbId: Number.parseInt(data.slice(13), 10) })
     }
   }
 
   if (state.step === 'awaiting_language') {
     if (data.startsWith('lang:')) {
-      return selectLanguage(client, chatId, state, data.slice(5))
+      return selectLanguage(client, chatId, { lang: data.slice(5), state })
     }
   }
 

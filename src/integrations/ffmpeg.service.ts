@@ -10,15 +10,15 @@ import { spawnPromise } from '#utils/exec_promisify'
 import { ffprobeOutputValidator } from '#validators/ffmpeg.validator'
 
 export class FfmpegClient {
-  executeFfmpeg(id: number, input: string, output: string, command: string[]) {
-    if (!existsSync(input)) {
-      return new FileNotFoundError({ filePath: input })
+  executeFfmpeg(params: { id: number; input: string; output: string; command: string[] }) {
+    if (!existsSync(params.input)) {
+      return new FileNotFoundError({ filePath: params.input })
     }
 
-    const dir = `${env.TRANSCODE_PATH}/${id}`
+    const dir = `${env.TRANSCODE_PATH}/${params.id}`
     mkdirSync(dir, { recursive: true })
 
-    return spawnPromise('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', input, ...command, `${dir}/${output}`])
+    return spawnPromise('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', params.input, ...params.command, `${dir}/${params.output}`])
   }
 
   async ffprobe(input: string) {

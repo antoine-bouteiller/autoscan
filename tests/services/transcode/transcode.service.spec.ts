@@ -4,10 +4,10 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
-import type { FfmpegClient } from '#integrations/ffmpeg.service'
+import { type FfmpegClient } from '#integrations/ffmpeg.service'
 import { transcodeFile, transcodeQueue } from '#services/transcode/transcode.service'
 import { isOk } from '#utils/error'
-import type { FFprobeStream } from '#validators/ffmpeg.validator'
+import { type FFprobeStream } from '#validators/ffmpeg.validator'
 
 import { refreshSectionMock } from '../../mocks/plex.mock.js'
 import { testWithTestDir, videosPath } from '../../utils.ts'
@@ -86,7 +86,7 @@ describe('Transcode', () => {
   testWithTestDir.for(dataset)('$title', async ({ filename, outputStreams, shouldExecute }, { testDir }) => {
     copyFileSync(join(videosPath, filename), join(testDir, filename))
 
-    const executed = await transcodeFile(join(testDir, filename), 'test', 'en', 'movie')
+    const executed = await transcodeFile({ file: join(testDir, filename), mediaTitle: 'test', mediaType: 'movie', originalLanguage: 'en' })
 
     expect(executed).toBe(shouldExecute)
 
@@ -122,7 +122,7 @@ describe('Transcode', () => {
   })
 
   test('Should refresh section when file not found', async () => {
-    const executed = await transcodeFile('unkown file.mp4', 'test', 'en', 'movie')
+    const executed = await transcodeFile({ file: 'unkown file.mp4', mediaTitle: 'test', mediaType: 'movie', originalLanguage: 'en' })
 
     expect(executed).toBe(false)
 

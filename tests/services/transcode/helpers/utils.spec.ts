@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test'
 
-import { type Criteria, isStreamWanted, simpleHash } from '#services/transcode/helpers/utils'
-import type { FFprobeStream } from '#validators/ffmpeg.validator'
+import { isStreamWanted, simpleHash, type Criteria } from '#services/transcode/helpers/utils'
+import { type FFprobeStream } from '#validators/ffmpeg.validator'
 
 const makeStream = (overrides: Partial<FFprobeStream> = {}): FFprobeStream => ({
   codec_name: 'aac',

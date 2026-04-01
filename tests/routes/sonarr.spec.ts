@@ -1,6 +1,5 @@
 import { describe, expect } from 'vite-plus/test'
 
-import '../utils.ts'
 import { testWithHttpProvider } from '../utils.ts'
 
 describe('POST /sonarr', () => {
