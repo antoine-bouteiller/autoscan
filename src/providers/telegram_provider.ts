@@ -65,7 +65,7 @@ export class TelegramProvider {
 
       if (isError(updates)) {
         logError(updates)
-        await new Promise((r) => setTimeout(r, errorDelay))
+        await new Promise((resolve) => setTimeout(resolve, errorDelay))
         errorDelay = Math.min(errorDelay * 2, maxErrorDelay)
         continue
       }

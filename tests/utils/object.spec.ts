@@ -2,15 +2,15 @@ import { describe, expect, test } from 'vite-plus/test'
 
 import { inversedEntriesOf, isKeyOf, isValueOf, typedEntriesOf, typedKeyOf } from '#utils/object'
 
-const sample = { a: 1, b: 2, c: 3 } as const
+const sample = { alpha: 1, beta: 2, gamma: 3 } as const
 
 describe('isKeyOf', () => {
   test('should return true for a valid key', () => {
-    expect(isKeyOf(sample, 'a')).toBe(true)
+    expect(isKeyOf(sample, 'alpha')).toBe(true)
   })
 
   test('should return false for an invalid key', () => {
-    expect(isKeyOf(sample, 'd')).toBe(false)
+    expect(isKeyOf(sample, 'delta')).toBe(false)
   })
 
   test('should return false for non-string values', () => {
@@ -36,7 +36,7 @@ describe('isValueOf', () => {
 
 describe('typedKeyOf', () => {
   test('should return all keys of the object', () => {
-    expect(typedKeyOf(sample)).toEqual(['a', 'b', 'c'])
+    expect(typedKeyOf(sample)).toEqual(['alpha', 'beta', 'gamma'])
   })
 
   test('should return empty array for empty object', () => {
@@ -47,9 +47,9 @@ describe('typedKeyOf', () => {
 describe('typedEntriesOf', () => {
   test('should return typed entries', () => {
     expect(typedEntriesOf(sample)).toEqual([
-      ['a', 1],
-      ['b', 2],
-      ['c', 3],
+      ['alpha', 1],
+      ['beta', 2],
+      ['gamma', 3],
     ])
   })
 
@@ -61,12 +61,12 @@ describe('typedEntriesOf', () => {
 describe('inversedEntriesOf', () => {
   test('should swap keys and values', () => {
     const result = inversedEntriesOf(sample)
-    expect(result).toEqual({ 1: 'a', 2: 'b', 3: 'c' })
+    expect(result).toEqual({ 1: 'alpha', 2: 'beta', 3: 'gamma' })
   })
 
   test('should work with string values', () => {
-    const obj = { x: 'hello', y: 'world' } as const
+    const obj = { foo: 'hello', bar: 'world' } as const
     const result = inversedEntriesOf(obj)
-    expect(result).toEqual({ hello: 'x', world: 'y' })
+    expect(result).toEqual({ hello: 'foo', world: 'bar' })
   })
 })

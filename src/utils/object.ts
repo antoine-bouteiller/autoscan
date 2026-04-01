@@ -1,18 +1,18 @@
-export const isKeyOf = <T extends object>(obj: T, value: unknown): value is keyof T => typeof value === 'string' && value in obj
+export const isKeyOf = <Obj extends object>(obj: Obj, value: unknown): value is keyof Obj => typeof value === 'string' && value in obj
 
-export const isValueOf = <T extends object>(obj: T, value: unknown): value is T[keyof T] => Object.values(obj).includes(value)
+export const isValueOf = <Obj extends object>(obj: Obj, value: unknown): value is Obj[keyof Obj] => Object.values(obj).includes(value)
 
 // oxlint-disable-next-line no-unsafe-type-assertion
-export const typedKeyOf = <T extends object>(obj: T) => Object.keys(obj) as (keyof T)[]
+export const typedKeyOf = <Obj extends object>(obj: Obj) => Object.keys(obj) as (keyof Obj)[]
 
-export const typedEntriesOf = <T extends object>(obj: T) =>
+export const typedEntriesOf = <Obj extends object>(obj: Obj) =>
   // oxlint-disable-next-line no-unsafe-type-assertion
-  Object.entries(obj) as [keyof T, T[keyof T]][]
+  Object.entries(obj) as [keyof Obj, Obj[keyof Obj]][]
 
-export const inversedEntriesOf = <T extends Record<string, number | string | symbol>>(obj: T) => {
+export const inversedEntriesOf = <Obj extends Record<string, number | string | symbol>>(obj: Obj) => {
   const entries = Object.entries(obj).map(([key, value]) => [value, key] as const)
   // oxlint-disable-next-line no-unsafe-type-assertion
   return Object.fromEntries(entries) as {
-    [K in keyof T as T[K]]: K
+    [Key in keyof Obj as Obj[Key]]: Key
   }
 }

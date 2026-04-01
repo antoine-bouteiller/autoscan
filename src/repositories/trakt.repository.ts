@@ -21,7 +21,7 @@ export const upsertTokens = async (accessToken: string, refreshToken: string, ex
 
 export const getSyncedRatingKeys = async () => {
   const result = await db.select({ plexRatingKey: traktSyncHistory.plexRatingKey }).from(traktSyncHistory)
-  return new Set(result.map((r) => r.plexRatingKey))
+  return new Set(result.map((row) => row.plexRatingKey))
 }
 
 export const markManyAsSynced = async (ratingKeys: string[]) => {

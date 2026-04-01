@@ -29,7 +29,7 @@ export const buildMediaTypeKeyboard = (): InlineKeyboardMarkup => ({
 
 export const buildMediaKeyboard = (mediaList: Media[], page: number): InlineKeyboardMarkup => {
   const items = mediaList.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-  const rows = items.map((m) => [{ text: m.title, callback_data: `select_media:${m.tmdbId}` }])
+  const rows = items.map((item) => [{ text: item.title, callback_data: `select_media:${item.tmdbId}` }])
   const nav: InlineKeyboardButton[] = []
   if (page > 0) {
     nav.push({ text: '◀️ Previous', callback_data: `page:${page - 1}` })
@@ -46,8 +46,8 @@ export const buildMediaKeyboard = (mediaList: Media[], page: number): InlineKeyb
 export const buildLanguageKeyboard = (): InlineKeyboardMarkup => {
   const codes = Object.keys(iso1ToIso2T)
   const rows: InlineKeyboardButton[][] = []
-  for (let i = 0; i < codes.length; i += 6) {
-    rows.push(codes.slice(i, i + 6).map((c) => ({ text: c, callback_data: `lang:${c}` })))
+  for (let idx = 0; idx < codes.length; idx += 6) {
+    rows.push(codes.slice(idx, idx + 6).map((code) => ({ text: code, callback_data: `lang:${code}` })))
   }
   return { inline_keyboard: rows }
 }
@@ -110,7 +110,7 @@ export const selectMedia = async (
   tmdbId: number
 ): Promise<ConversationState> => {
   const mediaItems = await getMediaByTypeWithPagination(state.mediaType, 0, 100)
-  const selectedMedia = mediaItems.find((m) => m.tmdbId === tmdbId)
+  const selectedMedia = mediaItems.find((item) => item.tmdbId === tmdbId)
   if (!selectedMedia) {
     return state
   }

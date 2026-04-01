@@ -29,10 +29,10 @@ import {
 } from '../resources/fixtures/media.fixtures.js'
 import '../utils.ts'
 
-const makeMedia = (n: number): Media[] =>
-  Array.from({ length: n }, (_, i) => ({
-    tmdbId: i + 1,
-    title: `Media ${i + 1}`,
+const makeMedia = (count: number): Media[] =>
+  Array.from({ length: count }, (_unused, index) => ({
+    tmdbId: index + 1,
+    title: `Media ${index + 1}`,
     type: 'movie',
     originalLanguage: 'en' as const,
     preferredLanguage: 'en' as const,
@@ -46,8 +46,8 @@ describe('buildMediaTypeKeyboard', () => {
   test('should return movie and show buttons', () => {
     const keyboard = buildMediaTypeKeyboard()
     const buttons = keyboard.inline_keyboard.flat()
-    expect(buttons.some((b) => b.callback_data === 'movie')).toBe(true)
-    expect(buttons.some((b) => b.callback_data === 'show')).toBe(true)
+    expect(buttons.some((btn) => btn.callback_data === 'movie')).toBe(true)
+    expect(buttons.some((btn) => btn.callback_data === 'show')).toBe(true)
     expect(buttons).toHaveLength(2)
   })
 })
@@ -57,34 +57,34 @@ describe('buildMediaKeyboard', () => {
     const keyboard = buildMediaKeyboard(makeMedia(5), 0)
     expect(keyboard.inline_keyboard).toHaveLength(5)
     const allButtons = keyboard.inline_keyboard.flat()
-    expect(allButtons.some((b) => b.callback_data.startsWith('page:'))).toBe(false)
+    expect(allButtons.some((btn) => btn.callback_data.startsWith('page:'))).toBe(false)
   })
 
   test('should render 10 buttons with Next for 15 items on page 0', () => {
     const keyboard = buildMediaKeyboard(makeMedia(15), 0)
-    const mediaRows = keyboard.inline_keyboard.filter((row) => row.every((b) => b.callback_data.startsWith('select_media:')))
+    const mediaRows = keyboard.inline_keyboard.filter((row) => row.every((btn) => btn.callback_data.startsWith('select_media:')))
     expect(mediaRows).toHaveLength(10)
     const navRow = keyboard.inline_keyboard[keyboard.inline_keyboard.length - 1]
-    expect(navRow?.some((b) => b.callback_data === 'page:1')).toBe(true)
-    expect(navRow?.some((b) => b.callback_data === 'page:-1')).toBe(false)
+    expect(navRow?.some((btn) => btn.callback_data === 'page:1')).toBe(true)
+    expect(navRow?.some((btn) => btn.callback_data === 'page:-1')).toBe(false)
   })
 
   test('should render 5 buttons with Previous and no Next for 15 items on page 1', () => {
     const keyboard = buildMediaKeyboard(makeMedia(15), 1)
-    const mediaRows = keyboard.inline_keyboard.filter((row) => row.every((b) => b.callback_data.startsWith('select_media:')))
+    const mediaRows = keyboard.inline_keyboard.filter((row) => row.every((btn) => btn.callback_data.startsWith('select_media:')))
     expect(mediaRows).toHaveLength(5)
     const navRow = keyboard.inline_keyboard[keyboard.inline_keyboard.length - 1]
-    expect(navRow?.some((b) => b.callback_data === 'page:0')).toBe(true)
-    expect(navRow?.some((b) => b.callback_data === 'page:2')).toBe(false)
+    expect(navRow?.some((btn) => btn.callback_data === 'page:0')).toBe(true)
+    expect(navRow?.some((btn) => btn.callback_data === 'page:2')).toBe(false)
   })
 
   test('should render 10 buttons with Previous and Next for 25 items on page 1', () => {
     const keyboard = buildMediaKeyboard(makeMedia(25), 1)
-    const mediaRows = keyboard.inline_keyboard.filter((row) => row.every((b) => b.callback_data.startsWith('select_media:')))
+    const mediaRows = keyboard.inline_keyboard.filter((row) => row.every((btn) => btn.callback_data.startsWith('select_media:')))
     expect(mediaRows).toHaveLength(10)
     const navRow = keyboard.inline_keyboard[keyboard.inline_keyboard.length - 1]
-    expect(navRow?.some((b) => b.callback_data === 'page:0')).toBe(true)
-    expect(navRow?.some((b) => b.callback_data === 'page:2')).toBe(true)
+    expect(navRow?.some((btn) => btn.callback_data === 'page:0')).toBe(true)
+    expect(navRow?.some((btn) => btn.callback_data === 'page:2')).toBe(true)
   })
 })
 
@@ -98,7 +98,7 @@ describe('buildLanguageKeyboard', () => {
 
   test('should include all ISO 639-1 codes', () => {
     const keyboard = buildLanguageKeyboard()
-    const allCodes = keyboard.inline_keyboard.flat().map((b) => b.callback_data.slice('lang:'.length))
+    const allCodes = keyboard.inline_keyboard.flat().map((btn) => btn.callback_data.slice('lang:'.length))
     const expectedCodes = Object.keys(iso1ToIso2T)
     expect(allCodes.toSorted()).toEqual(expectedCodes.toSorted())
   })

@@ -27,9 +27,12 @@ export default defineConfig({
       'no-array-for-each': 'error',
       'prefer-modern-math-apis': 'error',
       'prefer-number-properties': 'error',
+      complexity: ['error', 15],
 
       // Pedantic
       'no-deprecated': 'error',
+      'no-negated-condition': 'error',
+      'prefer-string-replace-all': 'error',
 
       // Style
       'unicorn/filename-case': [
@@ -45,15 +48,14 @@ export default defineConfig({
       'sort-imports': 'off',
       'sort-keys': 'off',
       'no-ternary': 'off',
-      'id-length': 'off',
       'no-continue': 'off',
       'max-params': 'off',
       'no-await-in-loop': 'off',
       'init-declarations': 'off',
       'max-statements': 'off',
-      'no-empty-pattern': 'off',
       'new-cap': 'off',
       'func-names': ['error', 'as-needed', { generators: 'never' }],
+      'custom-error-definition': 'off',
     },
     ignorePatterns: ['pnpm-lock.yaml'],
   },
@@ -71,6 +73,11 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['lcov'],
       exclude: ['**/integrations/**'],
+      thresholds: {
+        functions: 80,
+        branches: 80,
+        lines: 80,
+      },
     },
   },
   resolve: {

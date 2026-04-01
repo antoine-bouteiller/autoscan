@@ -1,3 +1,4 @@
+// oxlint-disable no-empty-pattern
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
@@ -15,24 +16,22 @@ export { MockTelegramClient } from './mocks/telegram.mock.ts'
 export { MockTmdbClient } from './mocks/tmdb.mock.ts'
 export { MockTraktClient } from './mocks/trakt.mock.ts'
 
-export const testWithTestDir = it.extend<{ testDir: string }>({
-  testDir: async ({}, use) => {
-    const testDir = join(import.meta.dirname, randomUUID())
-    mkdirSync(testDir, { recursive: true })
-    expect(existsSync(testDir)).toBe(true)
-    try {
-      await use(testDir)
-    } finally {
-      rmSync(testDir, { recursive: true })
-    }
-  },
+// oxlint-disable-next-line no-empty-pattern
+export const testWithTestDir = it.extend('testDir', async ({}, { onCleanup }) => {
+  const testDir = join(import.meta.dirname, randomUUID())
+  mkdirSync(testDir, { recursive: true })
+  expect(existsSync(testDir)).toBe(true)
+
+  onCleanup(() => {
+    rmSync(testDir, { recursive: true })
+  })
+
+  return testDir
 })
 
-export const testWithHttpProvider = it.extend<{ http: HttpProvider }>({
-  http: async ({}, use) => {
-    await import('#start/routes')
-    await use(container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER))
-  },
+export const testWithHttpProvider = it.extend('http', async () => {
+  await import('#start/routes')
+  return container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
 })
 
 export const videosPath = join(import.meta.dirname, 'resources/videos')

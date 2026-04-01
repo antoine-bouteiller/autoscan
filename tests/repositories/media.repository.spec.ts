@@ -214,11 +214,11 @@ describe('MediaService', () => {
     })
 
     test('should return second page of shows', async () => {
-      const shows: Media[] = Array.from({ length: 15 }, (_, i) => ({
+      const shows: Media[] = Array.from({ length: 15 }, (_value, index) => ({
         originalLanguage: 'en',
         preferredLanguage: 'en',
-        title: `Show ${String(i + 1).padStart(2, '0')}`,
-        tmdbId: i + 1,
+        title: `Show ${String(index + 1).padStart(2, '0')}`,
+        tmdbId: index + 1,
         type: 'show',
       }))
       await db.insert(media).values(shows)
@@ -230,11 +230,11 @@ describe('MediaService', () => {
     })
 
     test('should handle custom page sizes', async () => {
-      const movies: Media[] = Array.from({ length: 75 }, (_, i) => ({
+      const movies: Media[] = Array.from({ length: 75 }, (_value, index) => ({
         originalLanguage: 'en',
         preferredLanguage: 'en',
-        title: `Movie ${String(i + 1).padStart(2, '00')}`,
-        tmdbId: i + 1,
+        title: `Movie ${String(index + 1).padStart(2, '00')}`,
+        tmdbId: index + 1,
         type: 'movie',
       }))
       await db.insert(media).values(movies)

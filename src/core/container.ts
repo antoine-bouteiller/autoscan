@@ -1,18 +1,18 @@
-type Factory<T> = () => T
+type Factory<Value> = () => Value
 
 class Container {
   private readonly factories = new Map<string, Factory<unknown>>()
   private readonly instances = new Map<string, unknown>()
 
-  register<T>(token: string, factory: Factory<T>): void {
+  register<Value>(token: string, factory: Factory<Value>): void {
     this.factories.set(token, factory)
   }
 
-  resolve<T>(token: string): T {
+  resolve<Value>(token: string): Value {
     const cached = this.instances.get(token)
     if (cached) {
       // oxlint-disable-next-line no-unsafe-type-assertion
-      return cached as T
+      return cached as Value
     }
 
     const factory = this.factories.get(token)
@@ -21,7 +21,7 @@ class Container {
     }
 
     // oxlint-disable-next-line no-unsafe-type-assertion
-    const instance = factory() as T
+    const instance = factory() as Value
     this.instances.set(token, instance)
     return instance
   }

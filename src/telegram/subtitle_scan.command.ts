@@ -26,9 +26,9 @@ const countLines = (srtFilePath: string): number => {
 }
 
 const parseTimestampMs = (timestamp: string): number => {
-  const [h, m, rest] = timestamp.split(':')
-  const [s, ms] = rest.split(',')
-  return Number(h) * 3_600_000 + Number(m) * 60_000 + Number(s) * 1000 + Number(ms)
+  const [hours, minutes, rest] = timestamp.split(':')
+  const [seconds, ms] = rest.split(',')
+  return Number(hours) * 3_600_000 + Number(minutes) * 60_000 + Number(seconds) * 1000 + Number(ms)
 }
 
 const parseStartTimestamps = (srtFilePath: string): number[] => {
@@ -57,8 +57,8 @@ const areSubtitlesOutOfSync = (srtPathA: string, srtPathB: string): boolean => {
 
   let outOfSync = 0
 
-  for (let i = 0; i < len; i++) {
-    if (Math.abs(timestampsA[i] - timestampsB[i]) > SYNC_THRESHOLD_MS) {
+  for (let idx = 0; idx < len; idx++) {
+    if (Math.abs(timestampsA[idx] - timestampsB[idx]) > SYNC_THRESHOLD_MS) {
       outOfSync++
     }
   }
@@ -66,79 +66,77 @@ const areSubtitlesOutOfSync = (srtPathA: string, srtPathB: string): boolean => {
   return outOfSync / len > 0.5
 }
 
+const analyzeMedia = async (plexClient: IPlexClient) => {
+  const sections = await plexClient.getSections()
+  const missingSubtitles: string[] = []
+  const outOfSyncSubtitles: string[] = []
+
+  for (const section of sections) {
+    const medias = await plexClient.getSectionMedia(section.key, section.type)
+
+    for (const media of medias) {
+      const details = await getCompleteMediaDetails(Number(media.ratingKey))
+
+      if (isError(details)) {
+        logError(details, 'subtitleScan')
+        continue
+      }
+
+      if (details.originalLanguage === 'fr') {
+        continue
+      }
+
+      const enSrt = findLangSrt(details.file, 'en')
+
+      if (!enSrt) {
+        missingSubtitles.push(details.mediaTitle)
+        continue
+      }
+
+      const frSrt = findLangSrt(details.file, 'fr')
+
+      if (frSrt) {
+        const enLines = countLines(enSrt)
+        const frLines = countLines(frSrt)
+
+        if (frLines > 0 && enLines / frLines < FORCED_LINE_RATIO_THRESHOLD) {
+          missingSubtitles.push(details.mediaTitle)
+        } else if (areSubtitlesOutOfSync(enSrt, frSrt)) {
+          outOfSyncSubtitles.push(details.mediaTitle)
+        }
+      }
+    }
+  }
+
+  return { missingSubtitles, outOfSyncSubtitles }
+}
+
+const formatReport = (missingSubtitles: string[], outOfSyncSubtitles: string[]): string => {
+  const parts: string[] = []
+
+  if (missingSubtitles.length > 0) {
+    parts.push(`*${missingSubtitles.length} media without matching subtitles:*\n\n${missingSubtitles.map((title) => `• ${title}`).join('\n')}`)
+  }
+
+  if (outOfSyncSubtitles.length > 0) {
+    parts.push(`*${outOfSyncSubtitles.length} media with out-of-sync subtitles:*\n\n${outOfSyncSubtitles.map((title) => `• ${title}`).join('\n')}`)
+  }
+
+  return parts.join('\n\n')
+}
+
 export const subtitleScanCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
   await client.sendMessage(message.chat.id, 'Starting subtitle scan...')
 
   void (async () => {
     const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
-    const sections = await plexClient.getSections()
-    const missingSubtitles: string[] = []
-    const outOfSyncSubtitles: string[] = []
+    const { missingSubtitles, outOfSyncSubtitles } = await analyzeMedia(plexClient)
 
-    for (const section of sections) {
-      const medias = await plexClient.getSectionMedia(section.key, section.type)
+    const report = formatReport(missingSubtitles, outOfSyncSubtitles)
 
-      for (const media of medias) {
-        const details = await getCompleteMediaDetails(Number(media.ratingKey))
-
-        if (isError(details)) {
-          logError(details, 'subtitleScan')
-          continue
-        }
-
-        if (details.originalLanguage === 'fr') {
-          continue
-        }
-
-        const enSrt = findLangSrt(details.file, 'en')
-
-        if (!enSrt) {
-          missingSubtitles.push(details.mediaTitle)
-          continue
-        }
-
-        const frSrt = findLangSrt(details.file, 'fr')
-
-        if (frSrt) {
-          const enLines = countLines(enSrt)
-          const frLines = countLines(frSrt)
-
-          if (frLines > 0 && enLines / frLines < FORCED_LINE_RATIO_THRESHOLD) {
-            missingSubtitles.push(details.mediaTitle)
-          } else if (areSubtitlesOutOfSync(enSrt, frSrt)) {
-            outOfSyncSubtitles.push(details.mediaTitle)
-          }
-        }
-      }
-    }
-
-    if (missingSubtitles.length === 0 && outOfSyncSubtitles.length === 0) {
-      await client.sendMessage(message.chat.id, 'All media have matching subtitles.')
-      return
-    }
-
-    let batch = ''
-
-    if (missingSubtitles.length > 0) {
-      batch += `*${missingSubtitles.length} media without matching subtitles:*\n\n`
-      for (const title of missingSubtitles) {
-        batch += `• ${title}\n`
-      }
-    }
-
-    if (outOfSyncSubtitles.length > 0) {
-      if (batch) {
-        batch += '\n'
-      }
-      batch += `*${outOfSyncSubtitles.length} media with out-of-sync subtitles:*\n\n`
-      for (const title of outOfSyncSubtitles) {
-        batch += `• ${title}\n`
-      }
-    }
-
-    if (batch) {
-      await client.sendMessage(message.chat.id, batch, undefined, 'Markdown')
-    }
+    await (report
+      ? client.sendMessage(message.chat.id, report, undefined, 'Markdown')
+      : client.sendMessage(message.chat.id, 'All media have matching subtitles.'))
   })()
 
   return { step: 'idle' }

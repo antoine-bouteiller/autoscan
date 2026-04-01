@@ -35,7 +35,7 @@ class TranscodeQueue {
   private readonly queue: TranscodeJob[] = []
 
   enqueue(job: TranscodeJob): void {
-    if (this.queue.some((j) => j.id === job.id)) {
+    if (this.queue.some((queued) => queued.id === job.id)) {
       logger.warn(`Media already in queue`, 'Transcode', job.mediaTitle)
     }
 

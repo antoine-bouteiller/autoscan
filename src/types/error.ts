@@ -55,18 +55,18 @@ type Alpha =
 type Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
 type AlphaNum = Alpha | Digit
 
-type ConsumeVar<S extends string, Acc extends string = ''> = S extends `${infer C}${infer Rest}`
-  ? C extends AlphaNum
-    ? ConsumeVar<Rest, `${Acc}${C}`>
-    : { var: Acc; rest: S }
+type ConsumeVar<Str extends string, Acc extends string = ''> = Str extends `${infer Char}${infer Rest}`
+  ? Char extends AlphaNum
+    ? ConsumeVar<Rest, `${Acc}${Char}`>
+    : { var: Acc; rest: Str }
   : { var: Acc; rest: '' }
 
-type ExtractVars<S extends string> = S extends `${string}$${infer AfterDollar}`
+type ExtractVars<Str extends string> = Str extends `${string}$${infer AfterDollar}`
   ? AfterDollar extends `${Alpha}${string}`
-    ? ConsumeVar<AfterDollar> extends { var: infer V extends string; rest: infer R extends string }
-      ? V extends ''
-        ? ExtractVars<R>
-        : V | ExtractVars<R>
+    ? ConsumeVar<AfterDollar> extends { var: infer VarName extends string; rest: infer Remaining extends string }
+      ? VarName extends ''
+        ? ExtractVars<Remaining>
+        : VarName | ExtractVars<Remaining>
       : never
     : ExtractVars<AfterDollar>
   : never

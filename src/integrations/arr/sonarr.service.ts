@@ -62,7 +62,7 @@ export class SonarrClient extends ArrClient implements ISonarrClient {
       return undefined
     }
 
-    const series = result.find((s) => filePath.startsWith(s.path))
+    const series = result.find((item) => filePath.startsWith(item.path))
     return series?.id
   }
 }

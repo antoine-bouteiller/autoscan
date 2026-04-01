@@ -63,7 +63,7 @@ export class RadarrClient extends ArrClient implements IRadarrClient {
       return undefined
     }
 
-    const movie = result.find((m) => filePath.startsWith(m.path))
+    const movie = result.find((item) => filePath.startsWith(item.path))
     return movie?.id
   }
 }

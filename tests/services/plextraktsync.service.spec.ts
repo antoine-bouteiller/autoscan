@@ -92,7 +92,7 @@ describe('TraktService', () => {
       expect(result).toEqual({ movies: 1, episodes: 1 })
 
       const history = await db.select().from(traktSyncHistory)
-      const ratingKeys = history.map((h) => h.plexRatingKey)
+      const ratingKeys = history.map((row) => row.plexRatingKey)
       expect(ratingKeys).toContain('movie-1')
       expect(ratingKeys).toContain('ep-1')
     })

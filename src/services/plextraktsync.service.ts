@@ -54,7 +54,7 @@ const processEpisode = (item: PlexMedia, tmdbId: number, watchedAt: string, coll
     collections.showsMap.set(tmdbId, show)
   }
 
-  let season = show.seasons.find((s) => s.number === item.parentIndex)
+  let season = show.seasons.find((sea) => sea.number === item.parentIndex)
   if (!season) {
     season = { episodes: [], number: item.parentIndex }
     show.seasons.push(season)

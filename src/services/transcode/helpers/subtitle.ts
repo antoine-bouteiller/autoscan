@@ -10,9 +10,9 @@ const FORCED_SUBTITLE_LPM_THRESHOLD = 3
 const FORCED_SUBTITLE_SCREEN_RATIO_THRESHOLD = 0.15
 
 const parseSrtTimestamp = (timestamp: string): number => {
-  const [h, m, rest] = timestamp.split(':')
-  const [s, ms] = rest.split(',')
-  return Number(h) * 3600 + Number(m) * 60 + Number(s) + Number(ms) / 1000
+  const [hours, minutes, rest] = timestamp.split(':')
+  const [seconds, ms] = rest.split(',')
+  return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds) + Number(ms) / 1000
 }
 
 export const isForcedSubtitle = (srtFilePath: string, mediaDuration: number): boolean => {
@@ -84,54 +84,41 @@ const forcedFrenchCriterias: Criteria[][] = [
   ],
 ]
 
-export const processSubtitleStreams = async (subtitleStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
-  const subtitlesToKeep: { index: number; language: ISOCode1 }[] = []
-  if (subtitleStreams.length === 0) {
-    return []
-  }
+const findMatchingStreams = (
+  subtitleStreams: FFprobeStream[],
+  criteriaGroups: Criteria[][],
+  fallbackLanguage: ISOCode1
+): { index: number; language: ISOCode1 }[] => {
+  const results: { index: number; language: ISOCode1 }[] = []
 
-  if (originalLanguage === 'fr') {
-    for (const criteria of forcedFrenchCriterias) {
-      for (const condition of criteria) {
-        const idx = subtitleStreams.findIndex(isStreamWanted(condition))
-        if (idx !== -1) {
-          const stream = subtitleStreams[idx]
-          subtitlesToKeep.push({
-            index: idx,
-            language: stream?.tags?.language ?? 'fr',
-          })
-          break
-        }
-      }
-    }
-
-    if (subtitlesToKeep.length > 0) {
-      logger.info(`Forced French subtitle extracted`, 'Subtitle', mediaTitle)
-    }
-
-    return subtitlesToKeep
-  }
-
-  let subtitleStreamToKeep = -1
-
-  for (const criteria of criterias) {
+  for (const criteria of criteriaGroups) {
     for (const condition of criteria) {
-      subtitleStreamToKeep = subtitleStreams.findIndex(isStreamWanted(condition))
-      if (subtitleStreamToKeep !== -1) {
-        const stream = subtitleStreams[subtitleStreamToKeep]
-
-        subtitlesToKeep.push({
-          index: subtitleStreamToKeep,
-          language: stream?.tags?.language ?? 'en',
-        })
-
-        subtitleStreamToKeep = -1
+      const idx = subtitleStreams.findIndex(isStreamWanted(condition))
+      if (idx !== -1) {
+        const stream = subtitleStreams[idx]
+        results.push({ index: idx, language: stream?.tags?.language ?? fallbackLanguage })
         break
       }
     }
   }
 
-  logger.info(`Subtitle extracted`, 'Subtitle', mediaTitle)
+  return results
+}
 
-  return subtitlesToKeep
+export const processSubtitleStreams = async (subtitleStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
+  if (subtitleStreams.length === 0) {
+    return []
+  }
+
+  if (originalLanguage === 'fr') {
+    const kept = findMatchingStreams(subtitleStreams, forcedFrenchCriterias, 'fr')
+    if (kept.length > 0) {
+      logger.info(`Forced French subtitle extracted`, 'Subtitle', mediaTitle)
+    }
+    return kept
+  }
+
+  const kept = findMatchingStreams(subtitleStreams, criterias, 'en')
+  logger.info(`Subtitle extracted`, 'Subtitle', mediaTitle)
+  return kept
 }
