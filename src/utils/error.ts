@@ -30,7 +30,7 @@ const interpolateMessage = (template: string, values: Record<string, unknown>): 
     return value === undefined ? `$${varName}` : safeStringify(value)
   })
 
-export const createTaggedError = <Tag extends string, Msg extends string>({
+export const createTaggedError = <Tag extends `${string}Error`, Msg extends string>({
   name,
   message,
 }: {
