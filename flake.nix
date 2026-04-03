@@ -173,8 +173,8 @@
               StateDirectory = "autoscan";
               WorkingDirectory = cfg.dataDir;
 
-              User = "autoscan";
-              Group = "autoscan";
+              User = cfg.user;
+              Group = cfg.group;
               Restart = "on-failure";
 
               CapabilityBoundingSet = "";
