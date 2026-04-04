@@ -1,9 +1,8 @@
-import { existsSync, mkdirSync } from 'node:fs'
-
 import { type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { type PgliteDatabase } from 'drizzle-orm/pglite'
 
 import env from '#config/env'
+import { safeExistsSync, safeMkdirSync } from '#utils/fs'
 
 type Database = NodePgDatabase | PgliteDatabase
 
@@ -27,8 +26,8 @@ const initDatabase = async (): Promise<Database> => {
   const { drizzle } = await import('drizzle-orm/pglite')
   const { migrate } = await import('drizzle-orm/pglite/migrator')
 
-  if (databaseUrl !== 'memory://' && !existsSync(databaseUrl)) {
-    mkdirSync(databaseUrl, { recursive: true })
+  if (databaseUrl !== 'memory://' && !safeExistsSync(databaseUrl)) {
+    safeMkdirSync(databaseUrl)
   }
 
   const client = new PGlite(databaseUrl)

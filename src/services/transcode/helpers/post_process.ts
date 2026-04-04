@@ -1,4 +1,3 @@
-import { copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 import env from '#config/env'
@@ -9,21 +8,26 @@ import { type ISonarrClient } from '#integrations/arr/sonarr.service'
 import { type FfmpegClient } from '#integrations/ffmpeg.service'
 import { type IPlexClient } from '#integrations/plex.service'
 import { isError, logError } from '#utils/error'
+import { safeCopyFileSync, safeExistsSync, safeReaddirSync, safeRmSync } from '#utils/fs'
 
 const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promise<void> => {
   const transcodePath = `${env.TRANSCODE_PATH}/${id}`
 
-  if (!existsSync(transcodePath)) {
+  if (!safeExistsSync(transcodePath)) {
     return
   }
 
-  const outputFiles = readdirSync(transcodePath)
+  const outputFiles = safeReaddirSync(transcodePath)
+  if (outputFiles instanceof Error) {
+    logError(outputFiles, 'postTranscode', mediaTitle)
+    return
+  }
 
   const videoFile = outputFiles.find((outputFile) => outputFile.endsWith('.mp4'))
 
   if (!videoFile) {
     logger.error(`No mp4 video file found`, 'postTranscode', mediaTitle)
-    rmSync(transcodePath, { recursive: true })
+    safeRmSync(transcodePath, { recursive: true })
     return
   }
 
@@ -32,7 +36,7 @@ const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promi
 
   if (isError(probeResult)) {
     logError(probeResult, 'postTranscode', mediaTitle)
-    rmSync(transcodePath, { recursive: true })
+    safeRmSync(transcodePath, { recursive: true })
     return
   }
 
@@ -43,13 +47,13 @@ const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promi
     logger.error(`No audio or video stream found on transcoded file`, 'postTranscode', mediaTitle)
   } else {
     const inputDir = resolve(inputFile, '..')
-    rmSync(inputFile)
+    safeRmSync(inputFile)
     for (const outputFile of outputFiles) {
-      copyFileSync(join(transcodePath, outputFile), join(inputDir, outputFile))
+      safeCopyFileSync(join(transcodePath, outputFile), join(inputDir, outputFile))
     }
   }
 
-  rmSync(transcodePath, { recursive: true })
+  safeRmSync(transcodePath, { recursive: true })
 }
 
 export const handlePostTranscode = async ({

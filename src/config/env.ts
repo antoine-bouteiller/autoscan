@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs'
-
 import { z } from 'zod'
+
+import { safeReadFileSync } from '#utils/fs'
 
 for (const key of [
   'CLOUDFLARE_TOKEN',
@@ -15,7 +15,10 @@ for (const key of [
 ]) {
   const filePath = process.env[`${key}_FILE`]
   if (filePath) {
-    process.env[key] = readFileSync(filePath, 'utf8').trim()
+    const content = safeReadFileSync(filePath)
+    if (typeof content === 'string') {
+      process.env[key] = content.trim()
+    }
   }
 }
 

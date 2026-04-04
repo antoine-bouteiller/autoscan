@@ -1,4 +1,3 @@
-import { existsSync, renameSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import env from '#config/env'
@@ -10,6 +9,7 @@ import { type IPlexClient } from '#integrations/plex.service'
 import { type ISOCode1 } from '#types/iso_codes'
 import { type TranscodeJob } from '#types/transcode'
 import { isError, logError } from '#utils/error'
+import { safeExistsSync, safeRenameSync } from '#utils/fs'
 
 import { processAudioStreams } from './helpers/audio.js'
 import { handlePostTranscode } from './helpers/post_process.js'
@@ -107,7 +107,10 @@ class TranscodeQueue {
         const subtitlePath = `${env.TRANSCODE_PATH}/${job.id}/${subtitleOutput}`
         if (job.duration && isForcedSubtitle(subtitlePath, job.duration)) {
           const forcedPath = subtitlePath.replace(`.${subtitle.language}.srt`, `.${subtitle.language}.forced.srt`)
-          renameSync(subtitlePath, forcedPath)
+          const renameResult = safeRenameSync(subtitlePath, forcedPath)
+          if (renameResult instanceof Error) {
+            logError(renameResult, 'Queue')
+          }
           logger.info(`Renamed forced subtitle to ${subtitle.language}.forced.srt`, 'Transcode', job.mediaTitle)
         }
       }
@@ -202,7 +205,7 @@ const getTranscodeCommand = async (file: string, mediaTitle: string, originalLan
 
 export const transcodeFile = async (params: { file: string; mediaTitle: string; originalLanguage: ISOCode1; mediaType: 'movie' | 'show' }) => {
   const { file, mediaTitle, originalLanguage, mediaType } = params
-  if (!existsSync(file)) {
+  if (!safeExistsSync(file)) {
     const error = new FileNotFoundError({ filePath: file })
     logError(error, 'transcodeFile')
     await refreshPlexSections(file, mediaType)

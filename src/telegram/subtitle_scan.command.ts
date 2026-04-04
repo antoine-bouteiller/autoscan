@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 
 import { container, TOKENS } from '#core/container'
@@ -7,6 +6,7 @@ import { type ITelegramClient } from '#integrations/telegram.service'
 import { getCompleteMediaDetails } from '#services/metadata.service'
 import { type ConversationState } from '#types/telegram'
 import { isError, logError } from '#utils/error'
+import { safeExistsSync, safeReadFileSync } from '#utils/fs'
 import { type TelegramMessageIn } from '#validators/telegram.validator'
 
 const FORCED_LINE_RATIO_THRESHOLD = 0.1
@@ -17,11 +17,14 @@ const findLangSrt = (mediaFilePath: string, lang: string): string | undefined =>
   const mediaBase = basename(mediaFilePath, mediaFilePath.slice(mediaFilePath.lastIndexOf('.')))
   const srtPath = join(dir, `${mediaBase}.${lang}.srt`)
 
-  return existsSync(srtPath) ? srtPath : undefined
+  return safeExistsSync(srtPath) ? srtPath : undefined
 }
 
 const countLines = (srtFilePath: string): number => {
-  const content = readFileSync(srtFilePath, 'utf8')
+  const content = safeReadFileSync(srtFilePath)
+  if (content instanceof Error) {
+    return 0
+  }
   return content.trim().split(/\n\n+/).length
 }
 
@@ -32,7 +35,10 @@ const parseTimestampMs = (timestamp: string): number => {
 }
 
 const parseStartTimestamps = (srtFilePath: string): number[] => {
-  const content = readFileSync(srtFilePath, 'utf8')
+  const content = safeReadFileSync(srtFilePath)
+  if (content instanceof Error) {
+    return []
+  }
   const blocks = content.trim().split(/\n\n+/)
   const timestamps: number[] = []
 

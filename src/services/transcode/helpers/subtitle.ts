@@ -1,7 +1,6 @@
-import { readFileSync } from 'node:fs'
-
 import { logger } from '#config/logger'
 import { type ISOCode1 } from '#types/iso_codes'
+import { safeReadFileSync } from '#utils/fs'
 import { type FFprobeStream } from '#validators/ffmpeg.validator'
 
 import { isStreamWanted, type Criteria } from './utils.js'
@@ -20,7 +19,10 @@ export const isForcedSubtitle = (srtFilePath: string, mediaDuration: number): bo
     return false
   }
 
-  const content = readFileSync(srtFilePath, 'utf8')
+  const content = safeReadFileSync(srtFilePath)
+  if (content instanceof Error) {
+    return false
+  }
   const blocks = content.trim().split(/\n\n+/)
 
   let totalScreenTime = 0

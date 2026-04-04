@@ -24,3 +24,8 @@ export class FileNotFoundError extends createTaggedError({
   message: '($filePath) File not found',
   name: 'FileNotFoundError',
 }) {}
+
+export class FileAccessError extends createTaggedError({
+  message: '($filePath) $operation failed',
+  name: 'FileAccessError',
+}) {}

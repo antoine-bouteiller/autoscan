@@ -1,5 +1,3 @@
-import { existsSync, mkdirSync } from 'node:fs'
-
 import { z } from 'zod'
 
 import env from '#config/env'
@@ -7,22 +5,26 @@ import { FileNotFoundError } from '#errors/transcode'
 import { ValidationError } from '#errors/validation'
 import { isError } from '#utils/error'
 import { spawnPromise } from '#utils/exec_promisify'
+import { safeExistsSync, safeMkdirSync } from '#utils/fs'
 import { ffprobeOutputValidator } from '#validators/ffmpeg.validator'
 
 export class FfmpegClient {
   executeFfmpeg(params: { id: number; input: string; output: string; command: string[] }) {
-    if (!existsSync(params.input)) {
+    if (!safeExistsSync(params.input)) {
       return new FileNotFoundError({ filePath: params.input })
     }
 
     const dir = `${env.TRANSCODE_PATH}/${params.id}`
-    mkdirSync(dir, { recursive: true })
+    const mkdirResult = safeMkdirSync(dir)
+    if (mkdirResult instanceof Error) {
+      return mkdirResult
+    }
 
     return spawnPromise('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', params.input, ...params.command, `${dir}/${params.output}`])
   }
 
   async ffprobe(input: string) {
-    if (!existsSync(input)) {
+    if (!safeExistsSync(input)) {
       return new FileNotFoundError({ filePath: input })
     }
 
