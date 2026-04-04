@@ -9,12 +9,12 @@ import { safeExistsSync, safeMkdirSync } from '#utils/fs'
 import { ffprobeOutputValidator } from '#validators/ffmpeg.validator'
 
 export class FfmpegClient {
-  executeFfmpeg(params: { id: number; input: string; output: string; command: string[] }) {
+  executeFfmpeg(params: { folderName: string; input: string; output: string; command: string[] }) {
     if (!safeExistsSync(params.input)) {
       return new FileNotFoundError({ filePath: params.input })
     }
 
-    const dir = `${env.TRANSCODE_PATH}/${params.id}`
+    const dir = `${env.TRANSCODE_PATH}/${params.folderName}`
     const mkdirResult = safeMkdirSync(dir)
     if (mkdirResult instanceof Error) {
       return mkdirResult

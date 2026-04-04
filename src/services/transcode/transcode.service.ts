@@ -14,7 +14,6 @@ import { safeExistsSync, safeRenameSync } from '#utils/fs'
 import { processAudioStreams } from './helpers/audio.js'
 import { handlePostTranscode } from './helpers/post_process.js'
 import { isForcedSubtitle, processSubtitleStreams } from './helpers/subtitle.js'
-import { simpleHash } from './helpers/utils.js'
 import { processVideoStreams } from './helpers/video.js'
 
 const refreshPlexSections = async (filePath: string, mediaType: 'movie' | 'show') => {
@@ -35,7 +34,7 @@ class TranscodeQueue {
   private readonly queue: TranscodeJob[] = []
 
   enqueue(job: TranscodeJob): void {
-    if (this.queue.some((queued) => queued.id === job.id)) {
+    if (this.queue.some((queued) => queued.file === job.file)) {
       logger.warn(`Media already in queue`, 'Transcode', job.mediaTitle)
     }
 
@@ -93,7 +92,7 @@ class TranscodeQueue {
         const subtitleOutput = `${fileName}.${subtitle.language}.srt`
         const subtitleResult = await ffmpegClient.executeFfmpeg({
           command: [`-map`, `0:s:${subtitle.index}`, `-c:s:${subtitle.index}`, `srt`],
-          id: job.id,
+          folderName: fileName,
           input: job.file,
           output: subtitleOutput,
         })
@@ -104,7 +103,7 @@ class TranscodeQueue {
           break
         }
 
-        const subtitlePath = `${env.TRANSCODE_PATH}/${job.id}/${subtitleOutput}`
+        const subtitlePath = `${env.TRANSCODE_PATH}/${fileName}/${subtitleOutput}`
         if (job.duration && isForcedSubtitle(subtitlePath, job.duration)) {
           const forcedPath = subtitlePath.replace(`.${subtitle.language}.srt`, `.${subtitle.language}.forced.srt`)
           const renameResult = safeRenameSync(subtitlePath, forcedPath)
@@ -122,7 +121,7 @@ class TranscodeQueue {
 
       const newFileName = `${fileName}.mp4`
       logger.info(`Executing transcode`, 'Transcode', job.mediaTitle)
-      const transcodeResult = await ffmpegClient.executeFfmpeg({ command: job.command, id: job.id, input: job.file, output: newFileName })
+      const transcodeResult = await ffmpegClient.executeFfmpeg({ command: job.command, folderName: fileName, input: job.file, output: newFileName })
 
       if (isError(transcodeResult)) {
         logError(transcodeResult, 'Queue')
@@ -134,7 +133,6 @@ class TranscodeQueue {
 
       await handlePostTranscode({
         filePath: job.file,
-        id: job.id,
         mediaTitle: job.mediaTitle,
         mediaType: job.mediaType,
       })
@@ -220,10 +218,8 @@ export const transcodeFile = async (params: { file: string; mediaTitle: string; 
   }
 
   if (result) {
-    const id = simpleHash(file)
     transcodeQueue.enqueue({
       file,
-      id,
       mediaTitle,
       mediaType,
       originalLanguage,

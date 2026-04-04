@@ -4,7 +4,6 @@ export interface TranscodeJob {
   command: string[]
   duration?: number
   file: string
-  id: number
   mediaTitle: string
   mediaType: 'movie' | 'show'
   originalLanguage: ISOCode1

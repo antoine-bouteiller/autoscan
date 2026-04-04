@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test'
 
-import { isStreamWanted, simpleHash, type Criteria } from '#services/transcode/helpers/utils'
+import { isStreamWanted, type Criteria } from '#services/transcode/helpers/utils'
 import { type FFprobeStream } from '#validators/ffmpeg.validator'
 
 const makeStream = (overrides: Partial<FFprobeStream> = {}): FFprobeStream => ({
@@ -74,23 +74,5 @@ describe('isStreamWanted', () => {
     const stream: FFprobeStream = { codec_type: 'audio' }
 
     expect(isStreamWanted(criteria)(stream)).toBe(true)
-  })
-})
-
-describe('simpleHash', () => {
-  test('should return a number', () => {
-    expect(typeof simpleHash('hello')).toBe('number')
-  })
-
-  test('should return the same hash for the same input', () => {
-    expect(simpleHash('test')).toBe(simpleHash('test'))
-  })
-
-  test('should return different hashes for different inputs', () => {
-    expect(simpleHash('hello')).not.toBe(simpleHash('world'))
-  })
-
-  test('should return 0 for an empty string', () => {
-    expect(simpleHash('')).toBe(0)
   })
 })

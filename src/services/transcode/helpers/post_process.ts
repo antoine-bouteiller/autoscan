@@ -10,8 +10,9 @@ import { type IPlexClient } from '#integrations/plex.service'
 import { isError, logError } from '#utils/error'
 import { safeCopyFileSync, safeExistsSync, safeReaddirSync, safeRmSync } from '#utils/fs'
 
-const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promise<void> => {
-  const transcodePath = `${env.TRANSCODE_PATH}/${id}`
+const cleanUp = async (inputFile: string, mediaTitle: string): Promise<void> => {
+  const fileName = inputFile.slice(0, inputFile.lastIndexOf('.')).split('/').pop()
+  const transcodePath = `${env.TRANSCODE_PATH}/${fileName}`
 
   if (!safeExistsSync(transcodePath)) {
     return
@@ -58,16 +59,14 @@ const cleanUp = async (id: number, inputFile: string, mediaTitle: string): Promi
 
 export const handlePostTranscode = async ({
   filePath,
-  id,
   mediaTitle,
   mediaType,
 }: {
   filePath: string
-  id: number
   mediaTitle: string
   mediaType: 'movie' | 'show'
 }): Promise<void> => {
-  await cleanUp(id, filePath, mediaTitle)
+  await cleanUp(filePath, mediaTitle)
 
   const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
   const sections = await plexClient.getSections()
