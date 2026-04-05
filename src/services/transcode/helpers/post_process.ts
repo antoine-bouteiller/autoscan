@@ -69,8 +69,6 @@ export const handlePostTranscode = async ({
   await cleanUp(filePath, mediaTitle)
 
   const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
-  const sections = await plexClient.getSections()
-  const fileDirectory = resolve(filePath, '..')
 
   if (mediaType === 'movie') {
     const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
@@ -96,7 +94,5 @@ export const handlePostTranscode = async ({
     await sonarrClient.renameSeries(seriesId)
   }
 
-  await Promise.all(
-    (sections ?? []).filter((section) => section.type === mediaType).map((section) => plexClient.refreshSection(section.key, fileDirectory))
-  )
+  await plexClient.refreshSections(filePath, mediaType)
 }

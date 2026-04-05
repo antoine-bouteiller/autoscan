@@ -1,3 +1,5 @@
+import { resolve } from 'node:path'
+
 import { type HttpError } from '#errors/http'
 import { type NetworkError } from '#errors/network'
 import { PlexError } from '#errors/plex'
@@ -14,6 +16,7 @@ export interface IPlexClient {
   getSectionMedia(id: number, sectionType: 'movie' | 'show'): Promise<PlexMedia[]>
   getSections(): Promise<{ key: number; title: string; type: 'movie' | 'show' }[]>
   refreshSection(id: number, filePath: string): Promise<void>
+  refreshSections(filePath: string, mediaType: MediaType): Promise<void>
   updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle'): Promise<void>
 }
 
@@ -101,6 +104,13 @@ export class PlexClient implements IPlexClient {
     if (isError(result)) {
       logError(result)
     }
+  }
+
+  async refreshSections(filePath: string, mediaType: MediaType) {
+    const sections = await this.getSections()
+    const fileDirectory = resolve(filePath, '..')
+
+    await Promise.all(sections.filter((section) => section.type === mediaType).map((section) => this.refreshSection(section.key, fileDirectory)))
   }
 
   async updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle') {

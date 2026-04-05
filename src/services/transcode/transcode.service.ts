@@ -1,5 +1,3 @@
-import { resolve } from 'node:path'
-
 import env from '#config/env'
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
@@ -15,18 +13,6 @@ import { processAudioStreams } from './helpers/audio.js'
 import { handlePostTranscode } from './helpers/post_process.js'
 import { isForcedSubtitle, processSubtitleStreams } from './helpers/subtitle.js'
 import { processVideoStreams } from './helpers/video.js'
-
-const refreshPlexSections = async (filePath: string, mediaType: 'movie' | 'show') => {
-  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
-  const sections = await plexClient.getSections()
-  const fileDirectory = resolve(filePath, '..')
-
-  logger.info(`File not found, refreshing Plex sections`, 'Transcode')
-
-  await Promise.all(
-    (sections ?? []).filter((section) => section.type === mediaType).map((section) => plexClient.refreshSection(section.key, fileDirectory))
-  )
-}
 
 class TranscodeQueue {
   private currentJob?: TranscodeJob
@@ -206,7 +192,8 @@ export const transcodeFile = async (params: { file: string; mediaTitle: string; 
   if (!safeExistsSync(file)) {
     const error = new FileNotFoundError({ filePath: file })
     logError(error, 'transcodeFile')
-    await refreshPlexSections(file, mediaType)
+    const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+    await plexClient.refreshSections(file, mediaType)
     return false
   }
 

@@ -7,7 +7,8 @@ import { type PlexMedia } from '#validators/plex.validator'
 import { plexMetadata } from '../resources/fixtures/plex.fixtures.js'
 
 export const updateStreamMock = vi.fn()
-export const refreshSectionMock = vi.fn()
+const refreshSectionMock = vi.fn()
+export const refreshSectionsMock = vi.fn()
 
 const movies = [
   {
@@ -89,6 +90,8 @@ export class MockPlexClient implements IPlexClient {
   }
 
   refreshSection = refreshSectionMock
+
+  refreshSections = refreshSectionsMock
 
   async updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle') {
     updateStreamMock(partsId, streamId, type)

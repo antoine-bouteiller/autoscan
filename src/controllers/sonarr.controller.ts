@@ -3,7 +3,9 @@ import { join } from 'node:path'
 import { type FastifyReply, type FastifyRequest } from 'fastify'
 import { z } from 'zod'
 
+import { container, TOKENS } from '#core/container'
 import { badRequest, success } from '#core/response'
+import { type IPlexClient } from '#integrations/plex.service'
 import { getMediaLanguage } from '#services/metadata.service'
 import { transcodeFile } from '#services/transcode/transcode.service'
 import { logError } from '#utils/error'
@@ -28,7 +30,12 @@ export const sonarrWebhook = async (request: FastifyRequest, reply: FastifyReply
     const mediaTitle = `${parsed.data.series.title} ${parsed.data.episodes[0]?.title}`
     const { originalLanguage } = await getMediaLanguage(parsed.data.series.tmdbId, 'show')
 
-    void transcodeFile({ file, mediaTitle, mediaType: 'show', originalLanguage })
+    const transcoded = await transcodeFile({ file, mediaTitle, mediaType: 'show', originalLanguage })
+
+    if (!transcoded) {
+      const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+      await plexClient.refreshSections(file, 'show')
+    }
   }
 
   return success(reply, { message: 'ok' })

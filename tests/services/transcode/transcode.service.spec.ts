@@ -9,7 +9,7 @@ import { transcodeFile, transcodeQueue } from '#services/transcode/transcode.ser
 import { isOk } from '#utils/error'
 import { type FFprobeStream } from '#validators/ffmpeg.validator'
 
-import { refreshSectionMock } from '../../mocks/plex.mock.js'
+import { refreshSectionsMock } from '../../mocks/plex.mock.js'
 import { testWithTestDir, videosPath } from '../../utils.ts'
 
 const waitForQueueCompletion = async (): Promise<void> =>
@@ -126,6 +126,6 @@ describe('Transcode', () => {
 
     expect(executed).toBe(false)
 
-    expect(refreshSectionMock).toHaveBeenCalled()
+    expect(refreshSectionsMock).toHaveBeenCalled()
   })
 })
