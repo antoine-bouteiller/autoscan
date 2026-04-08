@@ -172,6 +172,7 @@
 
               StateDirectory = "autoscan";
               WorkingDirectory = cfg.dataDir;
+              UMask = "002";
 
               User = cfg.user;
               Group = cfg.group;
