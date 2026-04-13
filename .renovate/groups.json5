@@ -1,0 +1,10 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  packageRules: [
+    {
+      description: 'Drizzle ORM and Kit must stay on the same version',
+      groupName: 'drizzle',
+      matchPackageNames: ['drizzle-orm', 'drizzle-kit'],
+    },
+  ],
+}
