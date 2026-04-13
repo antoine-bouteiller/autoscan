@@ -20,7 +20,7 @@ importers:
         version: 10.0.1
       drizzle-orm:
         specifier: ^1.0.0-beta.22-41a7d21
-        version: 1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.4)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(zod@4.3.6)
+        version: 1.0.0-beta.9-e89174b(@electric-sql/pglite@0.4.4)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)
       fastify:
         specifier: ^5.8.4
         version: 5.8.4
@@ -42,7 +42,7 @@ importers:
         version: 4.1.4(vitest@4.1.4)
       drizzle-kit:
         specifier: ^1.0.0-beta.22-41a7d21
-        version: 1.0.0-beta.22-41a7d21
+        version: 1.0.0-beta.9-e89174b
       knip:
         specifier: ^6.3.1
         version: 6.3.1(@emnapi/core@1.9.0)(@emnapi/runtime@1.9.0)
@@ -1473,12 +1473,12 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  drizzle-kit@1.0.0-beta.22-41a7d21:
-    resolution: {integrity: sha512-oVaJ9jaC9SWb5OknLAy/eiVTVzDostTrYG3fJivzUYOnRrsgQtywqkfsCkYT9Qh2fb2EqIusDmZ7o5DpG/W/GQ==}
+  drizzle-kit@1.0.0-beta.9-e89174b:
+    resolution: {integrity: sha512-Xrw3k8E2CbSZr+kqe3k5W4oxd2fbEyczjKtyGIkAq0x9Wqpa/VtAT6Mkh83sIzqG4OSN7lOoUafsDxSE/AR7RA==}
     hasBin: true
 
-  drizzle-orm@1.0.0-beta.22-41a7d21:
-    resolution: {integrity: sha512-OSrigFeDbXxsjIbitduXnNce3MfFZis1Rb/sTYiPljf07CThPp6bPOnYfz5nCWe8KUYbhfgJD6bi6iBYSDryhg==}
+  drizzle-orm@1.0.0-beta.9-e89174b:
+    resolution: {integrity: sha512-B5KR/qYMZ0JMOurK+0xi1ObpOQcgrjaC9wHUiU2eTJjLemuh2CoQIw6yur68NxZG6Xcd0b9qghUNC/78/bEfbg==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -1491,7 +1491,7 @@ packages:
       '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
       '@planetscale/database': '>=1.13'
-      '@sinclair/typebox': '>=0.34.8'
+      '@prisma/client': '*'
       '@sqlitecloud/drivers': '>=1.0.653'
       '@tidbcloud/serverless': '*'
       '@tursodatabase/database': '>=0.2.1'
@@ -1504,7 +1504,6 @@ packages:
       '@upstash/redis': '>=1.34.7'
       '@vercel/postgres': '>=0.8.0'
       '@xata.io/client': '*'
-      arktype: '>=2.0.0'
       better-sqlite3: '>=9.3.0'
       bun-types: '*'
       expo-sqlite: '>=14.0.0'
@@ -1513,11 +1512,9 @@ packages:
       mysql2: '>=2'
       pg: '>=8'
       postgres: '>=3'
+      prisma: '*'
       sql.js: '>=1'
       sqlite3: '>=5'
-      typebox: '>=1.0.0'
-      valibot: '>=1.0.0-beta.7'
-      zod: ^3.25.0 || ^4.0.0
     peerDependenciesMeta:
       '@aws-sdk/client-rds-data':
         optional: true
@@ -1541,7 +1538,7 @@ packages:
         optional: true
       '@planetscale/database':
         optional: true
-      '@sinclair/typebox':
+      '@prisma/client':
         optional: true
       '@sqlitecloud/drivers':
         optional: true
@@ -1565,8 +1562,6 @@ packages:
         optional: true
       '@xata.io/client':
         optional: true
-      arktype:
-        optional: true
       better-sqlite3:
         optional: true
       bun-types:
@@ -1581,15 +1576,11 @@ packages:
         optional: true
       postgres:
         optional: true
+      prisma:
+        optional: true
       sql.js:
         optional: true
       sqlite3:
-        optional: true
-      typebox:
-        optional: true
-      valibot:
-        optional: true
-      zod:
         optional: true
 
   ecdsa-sig-formatter@1.0.11:
@@ -3372,15 +3363,14 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  drizzle-kit@1.0.0-beta.22-41a7d21:
+  drizzle-kit@1.0.0-beta.9-e89174b:
     dependencies:
       '@drizzle-team/brocli': 0.11.0
       '@js-temporal/polyfill': 0.5.1
       esbuild: 0.25.12
-      get-tsconfig: 4.13.7
-      jiti: 2.6.1
+      tsx: 4.21.0
 
-  drizzle-orm@1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.4)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(zod@4.3.6):
+  drizzle-orm@1.0.0-beta.9-e89174b(@electric-sql/pglite@0.4.4)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0):
     dependencies:
       '@types/mssql': 9.1.9(@azure/core-client@1.10.1)
       mssql: 11.0.1(@azure/core-client@1.10.1)
@@ -3388,7 +3378,6 @@ snapshots:
       '@electric-sql/pglite': 0.4.4
       '@types/pg': 8.20.0
       pg: 8.20.0
-      zod: 4.3.6
 
   ecdsa-sig-formatter@1.0.11:
     dependencies:
