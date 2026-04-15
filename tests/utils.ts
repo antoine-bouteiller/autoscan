@@ -31,7 +31,8 @@ export const testWithTestDir = it.extend('testDir', async ({}, { onCleanup }) =>
 
 export const testWithHttpProvider = it.extend('http', async () => {
   await import('#start/routes')
-  return container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
+  const http = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
+  return { inject: http.inject.bind(http) }
 })
 
 export const videosPath = join(import.meta.dirname, 'resources/videos')

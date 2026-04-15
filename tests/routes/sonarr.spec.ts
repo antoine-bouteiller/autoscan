@@ -4,7 +4,7 @@ import { testWithHttpProvider } from '../utils.ts'
 
 describe('POST /sonarr', () => {
   testWithHttpProvider('should return 200 for Test event', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: { eventType: 'Test' },
       url: '/sonarr',
@@ -17,7 +17,7 @@ describe('POST /sonarr', () => {
   })
 
   testWithHttpProvider('should return 400 for invalid payload', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: { eventType: 'InvalidEvent' },
       url: '/sonarr',
@@ -26,11 +26,11 @@ describe('POST /sonarr', () => {
     expect(response.statusCode).toBe(400)
     const body = response.json()
     expect(body.success).toBe(false)
-    expect(body.error.code).toBe('BAD_REQUEST')
+    expect(body.error?.code).toBe('BAD_REQUEST')
   })
 
   testWithHttpProvider('should return 200 for Download event', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: {
         episodeFile: { relativePath: 'S01E01.mkv' },
@@ -46,7 +46,7 @@ describe('POST /sonarr', () => {
   })
 
   testWithHttpProvider('should return 200 for SeriesDelete event', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: {
         eventType: 'SeriesDelete',
@@ -60,7 +60,7 @@ describe('POST /sonarr', () => {
   })
 
   testWithHttpProvider('should return 200 for Rename event', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: {
         eventType: 'Rename',
@@ -74,7 +74,7 @@ describe('POST /sonarr', () => {
   })
 
   testWithHttpProvider('should return 400 for empty body', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: {},
       url: '/sonarr',

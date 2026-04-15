@@ -1,4 +1,4 @@
-import { type FastifyReply } from 'fastify'
+import { type AppReply } from '#types/http'
 
 interface ApiResponse<Data> {
   data?: Data
@@ -7,15 +7,15 @@ interface ApiResponse<Data> {
   success: boolean
 }
 
-const sendResponse = <Data>(reply: FastifyReply, body: ApiResponse<Data>, status: number) =>
+const sendResponse = <Data>(reply: AppReply, body: ApiResponse<Data>, status: number) =>
   reply.status(status).send({
     ...body,
     meta: { timestamp: new Date().toISOString() },
   })
 
-export const success = <Data>(reply: FastifyReply, data: Data, status = 200) => sendResponse(reply, { data, success: true }, status)
+export const success = <Data>(reply: AppReply, data: Data, status = 200) => sendResponse(reply, { data, success: true }, status)
 
-export const badRequest = (reply: FastifyReply, message: string, details?: unknown) =>
+export const badRequest = (reply: AppReply, message: string, details?: unknown) =>
   sendResponse(
     reply,
     {

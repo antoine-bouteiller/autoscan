@@ -4,7 +4,7 @@ import { testWithHttpProvider } from '../utils.ts'
 
 describe('POST /radarr', () => {
   testWithHttpProvider('should return 200 for Test event', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: { eventType: 'Test' },
       url: '/radarr',
@@ -17,7 +17,7 @@ describe('POST /radarr', () => {
   })
 
   testWithHttpProvider('should return 400 for invalid payload', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: { eventType: 'InvalidEvent' },
       url: '/radarr',
@@ -26,11 +26,11 @@ describe('POST /radarr', () => {
     expect(response.statusCode).toBe(400)
     const body = response.json()
     expect(body.success).toBe(false)
-    expect(body.error.code).toBe('BAD_REQUEST')
+    expect(body.error?.code).toBe('BAD_REQUEST')
   })
 
   testWithHttpProvider('should return 200 for Download event', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: {
         eventType: 'Download',
@@ -45,7 +45,7 @@ describe('POST /radarr', () => {
   })
 
   testWithHttpProvider('should return 200 for MovieDelete event', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: {
         deleteFiles: true,
@@ -60,7 +60,7 @@ describe('POST /radarr', () => {
   })
 
   testWithHttpProvider('should return 400 for empty body', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: {},
       url: '/radarr',

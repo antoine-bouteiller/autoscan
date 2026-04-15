@@ -5,13 +5,13 @@ import { container, TOKENS } from '#core/container'
 import { success } from '#core/response'
 import { type HttpProvider } from '#providers/http_provider'
 
-const { app } = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
+const http = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
 
-app.post('/radarr', radarrWebhook)
-app.post('/send-message', sendMessageWebhook)
-app.post('/sonarr', sonarrWebhook)
+http.post('/radarr', radarrWebhook)
+http.post('/send-message', sendMessageWebhook)
+http.post('/sonarr', sonarrWebhook)
 
-app.get('/debug/memory', (_request, reply) => {
+http.get('/debug/memory', (_request, reply) => {
   const mem = process.memoryUsage()
   return success(reply, {
     arrayBuffers: `${Math.round(mem.arrayBuffers / 1024 / 1024)}MB`,

@@ -83,7 +83,7 @@ export default defineConfig({
   },
   staged: {
     '*': 'vp check --fix',
-    '{pnpm-lock.yaml,flake.nix}': 'bash scripts/update_nix_hash.sh',
+    'pnpm-lock.yaml': 'bash scripts/update_nix_hash.sh',
   },
   test: {
     coverage: {

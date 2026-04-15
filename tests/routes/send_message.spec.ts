@@ -4,7 +4,7 @@ import { testWithHttpProvider } from '../utils.ts'
 
 describe('POST /send-message', () => {
   testWithHttpProvider('should return 200 and send message', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: { text: 'Hello world' },
       url: '/send-message',
@@ -17,7 +17,7 @@ describe('POST /send-message', () => {
   })
 
   testWithHttpProvider('should return 400 for missing text', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: {},
       url: '/send-message',
@@ -26,11 +26,11 @@ describe('POST /send-message', () => {
     expect(response.statusCode).toBe(400)
     const body = response.json()
     expect(body.success).toBe(false)
-    expect(body.error.code).toBe('BAD_REQUEST')
+    expect(body.error?.code).toBe('BAD_REQUEST')
   })
 
   testWithHttpProvider('should return 400 for empty body', async ({ http }) => {
-    const response = await http.app.inject({
+    const response = await http.inject({
       method: 'POST',
       payload: {},
       url: '/send-message',

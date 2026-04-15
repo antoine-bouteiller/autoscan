@@ -1,6 +1,5 @@
 import { join } from 'node:path'
 
-import { type FastifyReply, type FastifyRequest } from 'fastify'
 import { z } from 'zod'
 
 import { container, TOKENS } from '#core/container'
@@ -8,10 +7,11 @@ import { badRequest, success } from '#core/response'
 import { type IPlexClient } from '#integrations/plex.service'
 import { getMediaLanguage } from '#services/metadata.service'
 import { transcodeFile } from '#services/transcode/transcode.service'
+import { type AppReply, type AppRequest } from '#types/http'
 import { logError } from '#utils/error'
 import { radarrValidator } from '#validators/radarr.validator'
 
-export const radarrWebhook = async (request: FastifyRequest, reply: FastifyReply) => {
+export const radarrWebhook = async (request: AppRequest, reply: AppReply) => {
   const parsed = radarrValidator.safeParse(request.body)
 
   if (!parsed.success) {
