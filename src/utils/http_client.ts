@@ -63,6 +63,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     }
 
     if (!validator) {
+      await response.body?.cancel()
       return undefined
     }
 
