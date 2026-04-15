@@ -1,6 +1,9 @@
 import { type IncomingMessage, type Server, type ServerResponse, createServer } from 'node:http'
 
+import { z } from 'zod'
+
 import { logger } from '#config/logger'
+import { badRequest } from '#core/response'
 import { type AppReply, type AppRequest, type RouteHandler } from '#types/http'
 import { logError } from '#utils/error'
 
@@ -66,8 +69,18 @@ export class HttpProvider {
     this.routes.set(`GET:${path}`, handler)
   }
 
-  post(path: string, handler: RouteHandler): void {
-    this.routes.set(`POST:${path}`, handler)
+  post<TSchema extends z.ZodType>(path: string, validator: TSchema, handler: RouteHandler<z.output<TSchema>>): void {
+    this.routes.set(`POST:${path}`, async (request: AppRequest, reply: AppReply) => {
+      const result = validator.safeParse(request.body)
+
+      if (!result.success) {
+        logError(result.error.issues, path)
+        badRequest(reply, 'invalid request', z.treeifyError(result.error))
+        return
+      }
+
+      await handler({ body: result.data }, reply)
+    })
   }
 
   async inject(options: InjectOptions): Promise<InjectResponse> {

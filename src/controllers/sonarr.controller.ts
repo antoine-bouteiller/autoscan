@@ -1,34 +1,26 @@
 import { join } from 'node:path'
 
-import { z } from 'zod'
+import { type z } from 'zod'
 
 import { container, TOKENS } from '#core/container'
-import { badRequest, success } from '#core/response'
+import { success } from '#core/response'
 import { type IPlexClient } from '#integrations/plex.service'
 import { getMediaLanguage } from '#services/metadata.service'
 import { transcodeFile } from '#services/transcode/transcode.service'
 import { type AppReply, type AppRequest } from '#types/http'
-import { logError } from '#utils/error'
-import { sonarrValidator } from '#validators/sonarr.validator'
+import { type sonarrValidator } from '#validators/sonarr.validator'
 
-export const sonarrWebhook = async (request: AppRequest, reply: AppReply) => {
-  const parsed = sonarrValidator.safeParse(request.body)
-
-  if (!parsed.success) {
-    logError(parsed.error.issues, 'Sonarr')
-    return badRequest(reply, 'invalid request', z.treeifyError(parsed.error))
-  }
-
-  const { eventType } = parsed.data
+export const sonarrWebhook = async (request: AppRequest<z.infer<typeof sonarrValidator>>, reply: AppReply) => {
+  const { eventType } = request.body
 
   if (eventType === 'Test') {
     return success(reply, { message: 'ok' })
   }
 
   if (eventType === 'Download') {
-    const file = join(parsed.data.series.path, parsed.data.episodeFile.relativePath)
-    const mediaTitle = `${parsed.data.series.title} ${parsed.data.episodes[0]?.title}`
-    const { originalLanguage } = await getMediaLanguage(parsed.data.series.tmdbId, 'show')
+    const file = join(request.body.series.path, request.body.episodeFile.relativePath)
+    const mediaTitle = `${request.body.series.title} ${request.body.episodes[0]?.title}`
+    const { originalLanguage } = await getMediaLanguage(request.body.series.tmdbId, 'show')
 
     const transcoded = await transcodeFile({ file, mediaTitle, mediaType: 'show', originalLanguage })
 
