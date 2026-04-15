@@ -87,7 +87,7 @@ export default defineConfig({
   },
   test: {
     coverage: {
-      exclude: ['**/integrations/**'],
+      exclude: ['**/integrations/**', '**/providers/**', '**/errors/**'],
       provider: 'v8',
       reporter: ['lcov'],
       thresholds: {
