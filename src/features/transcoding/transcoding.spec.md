@@ -3,7 +3,7 @@ title: Transcoding pipeline
 status: condensed
 author: Antoine Bouteiller
 date: 2026-04-16
-related: [docs/specs/architecture.spec.md, src/providers/http/http.spec.md, src/features/language-sync/language-sync.spec.md]
+related: [docs/specs/architecture.spec.md, src/providers/http/http.spec.md, src/features/language_sync/language_sync.spec.md]
 ---
 
 ## 2. Problem Statement

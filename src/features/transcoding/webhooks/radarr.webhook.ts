@@ -3,10 +3,10 @@ import { join } from 'node:path'
 import { type z } from 'zod'
 
 import { container, TOKENS } from '#core/container'
+import { getMediaLanguage } from '#domains/media/services/metadata.service'
 import { transcodeFile } from '#features/transcoding/services/transcode.service'
 import { type radarrValidator } from '#integrations/arr/radarr.validator'
 import { type IPlexClient } from '#integrations/plex/plex.service'
-import { getMediaLanguage } from '#media/metadata.service'
 import { success } from '#providers/http/response'
 import { type AppReply, type AppRequest } from '#providers/http/types'
 

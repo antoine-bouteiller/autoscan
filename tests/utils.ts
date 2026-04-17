@@ -31,7 +31,7 @@ export const testWithTestDir = it.extend('testDir', async ({}, { onCleanup }) =>
 
 export const testWithHttpProvider = it.extend('http', async () => {
   const { registerTranscoding } = await import('#features/transcoding/register')
-  const { registerSendMessage } = await import('#features/send-message/register')
+  const { registerSendMessage } = await import('#features/send_message/register')
   registerTranscoding()
   registerSendMessage()
   const http = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)

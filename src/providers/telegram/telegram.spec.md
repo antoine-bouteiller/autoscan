@@ -6,9 +6,9 @@ date: 2026-04-16
 related:
   [
     docs/specs/architecture.spec.md,
-    src/features/language-sync/language-sync.spec.md,
+    src/features/language_sync/language_sync.spec.md,
     src/features/transcoding/transcoding.spec.md,
-    src/features/trakt-sync/trakt-sync.spec.md,
+    src/features/trakt_sync/trakt_sync.spec.md,
   ]
 ---
 
@@ -80,7 +80,7 @@ The actual commands are owned and registered by each feature via its `register*(
 | Telegram types      | Module (`src/providers/telegram/types.ts`)                    | Conversation state, inline-keyboard types      | `ConversationState`, `InlineKeyboardButton`, `InlineKeyboardMarkup`                                                                                     |
 | Telegram client     | Integration (`src/integrations/telegram/telegram.service.ts`) | Telegram Bot API wrapper                       | `TelegramClient` (`ITelegramClient`): `getUpdates`, `sendMessage`, `editMessageText`, `deleteMessage`, `answerCallbackQuery`                            |
 | Telegram validators | Module (`src/integrations/telegram/telegram.validator.ts`)    | Zod schemas for Telegram API                   | `getUpdatesResponseSchema`, `sendMessageResponseSchema`, `TelegramUpdate`, `TelegramMessageIn`, `TelegramCallbackQuery`                                 |
-| Feature commands    | Handlers owned by features                                    | One handler per command, registered by feature | `setLanguageConversation` (language-sync), `traktAuthCommand`, `syncTraktCommand` (trakt-sync), `transcodeCommand`, `subtitleScanCommand` (transcoding) |
+| Feature commands    | Handlers owned by features                                    | One handler per command, registered by feature | `setLanguageConversation` (language_sync), `traktAuthCommand`, `syncTraktCommand` (trakt_sync), `transcodeCommand`, `subtitleScanCommand` (transcoding) |
 
 ## 8. Detailed Design
 
@@ -92,9 +92,9 @@ The actual commands are owned and registered by each feature via its `register*(
 | Telegram types          | `src/providers/telegram/types.ts`                            | `ConversationState`, `InlineKeyboardButton`, `InlineKeyboardMarkup`                |
 | Telegram client         | `src/integrations/telegram/telegram.service.ts`              | `TelegramClient` / `ITelegramClient`                                               |
 | Telegram validators     | `src/integrations/telegram/telegram.validator.ts`            | `getUpdatesResponseSchema`, `sendMessageResponseSchema`, `TelegramUpdate`          |
-| `/setlanguage` command  | `src/features/language-sync/commands/language.command.ts`    | `setLanguageConversation` (registered in `src/features/language-sync/register.ts`) |
-| `/trakt` command        | `src/features/trakt-sync/commands/trakt.command.ts`          | `traktAuthCommand` (registered in `src/features/trakt-sync/register.ts`)           |
-| `/synctrakt` command    | `src/features/trakt-sync/commands/trakt.command.ts`          | `syncTraktCommand` (registered in `src/features/trakt-sync/register.ts`)           |
+| `/setlanguage` command  | `src/features/language_sync/commands/language.command.ts`    | `setLanguageConversation` (registered in `src/features/language_sync/register.ts`) |
+| `/trakt` command        | `src/features/trakt_sync/commands/trakt.command.ts`          | `traktAuthCommand` (registered in `src/features/trakt_sync/register.ts`)           |
+| `/synctrakt` command    | `src/features/trakt_sync/commands/trakt.command.ts`          | `syncTraktCommand` (registered in `src/features/trakt_sync/register.ts`)           |
 | `/transcode` command    | `src/features/transcoding/commands/transcode.command.ts`     | `transcodeCommand` (registered in `src/features/transcoding/register.ts`)          |
 | `/subtitlescan` command | `src/features/transcoding/commands/subtitle_scan.command.ts` | `subtitleScanCommand` (registered in `src/features/transcoding/register.ts`)       |
 | `/cancel` built-in      | `src/providers/telegram/telegram.provider.ts`                | `handleCancel` (hard-coded inside `TelegramProvider.handleUpdate`)                 |

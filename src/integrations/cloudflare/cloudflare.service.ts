@@ -1,4 +1,4 @@
-import { cloudflareErrorFormatter, CloudflareZoneNotFoundError } from '#features/dynamic-dns/errors'
+import { cloudflareErrorFormatter, CloudflareZoneNotFoundError } from '#features/dynamic_dns/errors'
 import {
   dnsRecordsResponseValidator,
   ipifyResponseValidator,

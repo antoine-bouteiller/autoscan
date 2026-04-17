@@ -16,7 +16,7 @@ parsing, and the response envelope. The actual webhook routes are registered by 
 - `[G-1]` Receive Radarr/Sonarr `Download`/`Test` webhooks and trigger transcode / Plex refresh (registered by
   `transcoding` feature).
 - `[G-2]` Accept an authenticated-by-deployment (reverse-proxy-gated) message-send endpoint for piping arbitrary text
-  into the Telegram chat (registered by `send-message` feature).
+  into the Telegram chat (registered by `send_message` feature).
 - `[G-3]` Provide a test-only `inject()` path so routes can be exercised without a real socket.
 - `[G-4]` Use the same Zod schema for validation and for the controller's body type.
 - `[G-5]` The core HTTP module exposes zero app-specific routes of its own — it only exposes the provider API so
@@ -33,7 +33,7 @@ parsing, and the response envelope. The actual webhook routes are registered by 
 | `[KD-5]` Body parsing      | Read raw, `JSON.parse` for `POST`/`PUT`/`PATCH`; `400 BAD_REQUEST` on parse failure | Avoids a third-party body-parser                                                                                    |
 | `[KD-6]` Authentication    | None at app layer                                                                   | Deploy behind a reverse proxy that does auth — single-user homelab context                                          |
 | `[KD-7]` `inject()`        | In-memory dispatcher that returns `{ statusCode, json() }`                          | Enables route tests without TCP — avoids race conditions and port conflicts in test runner                          |
-| `[KD-8.1]` Route ownership | Each route is registered by the feature that owns its handler, not by core          | Keeps features independent; `/radarr` + `/sonarr` live with `transcoding`; `/send-message` lives in its own feature |
+| `[KD-8.1]` Route ownership | Each route is registered by the feature that owns its handler, not by core          | Keeps features independent; `/radarr` + `/sonarr` live with `transcoding`; `/send_message` lives in its own feature |
 
 ## 4. Principles & Intents
 
@@ -72,8 +72,8 @@ parsing, and the response envelope. The actual webhook routes are registered by 
 | HttpProvider     | Core runtime (`src/providers/http/http.provider.ts`) | Server lifecycle, route registry, body parsing, error envelope | `new HttpProvider({ port, hostname })`, `.get(path, handler)`, `.post(path, validator, handler)`, `.start()`, `.stop()`, `.inject({ method, url, payload })` |
 | Response helpers | Module (`src/providers/http/response.ts`)            | Success / failure envelope builders                            | `success(reply, data, status=200)`, `badRequest(reply, message, details?)`                                                                                   |
 | Types            | Module (`src/providers/http/types.ts`)               | Request/reply contracts                                        | `AppRequest<TBody>`, `AppReply`, `RouteHandler<TBody>`                                                                                                       |
-| Feature webhooks | Handlers owned by features                           | Parse validated body, call feature services, call `success()`  | `radarrWebhook`, `sonarrWebhook` (transcoding), `sendMessageWebhook` (send-message)                                                                          |
-| Validators       | Zod schemas                                          | Discriminated unions for webhook event types                   | `radarrValidator`, `sonarrValidator` (`src/integrations/arr/`), `sendMessageValidator` (`src/features/send-message/`)                                        |
+| Feature webhooks | Handlers owned by features                           | Parse validated body, call feature services, call `success()`  | `radarrWebhook`, `sonarrWebhook` (transcoding), `sendMessageWebhook` (send_message)                                                                          |
+| Validators       | Zod schemas                                          | Discriminated unions for webhook event types                   | `radarrValidator`, `sonarrValidator` (`src/integrations/arr/`), `sendMessageValidator` (`src/features/send_message/`)                                        |
 
 **Feature-registered routes:**
 
@@ -81,7 +81,7 @@ parsing, and the response envelope. The actual webhook routes are registered by 
 | ------ | --------------- | -------------- | -------------------- | ---------------------------------------------------------------- |
 | POST   | `/radarr`       | `transcoding`  | `radarrWebhook`      | `src/integrations/arr/radarr.validator.ts`                       |
 | POST   | `/sonarr`       | `transcoding`  | `sonarrWebhook`      | `src/integrations/arr/sonarr.validator.ts`                       |
-| POST   | `/send-message` | `send-message` | `sendMessageWebhook` | `src/features/send-message/validators/send_message.validator.ts` |
+| POST   | `/send_message` | `send_message` | `sendMessageWebhook` | `src/features/send_message/validators/send_message.validator.ts` |
 
 ## 8. Detailed Design
 
@@ -95,22 +95,22 @@ parsing, and the response envelope. The actual webhook routes are registered by 
 | Radarr webhook         | `src/features/transcoding/`  | `src/features/transcoding/webhooks/radarr.webhook.ts`                    |
 | Sonarr webhook         | `src/features/transcoding/`  | `src/features/transcoding/webhooks/sonarr.webhook.ts`                    |
 | Transcoding register   | `src/features/transcoding/`  | `src/features/transcoding/register.ts`                                   |
-| Send-message webhook   | `src/features/send-message/` | `src/features/send-message/webhooks/send_message.webhook.ts`             |
-| Send-message register  | `src/features/send-message/` | `src/features/send-message/register.ts`                                  |
+| Send-message webhook   | `src/features/send_message/` | `src/features/send_message/webhooks/send_message.webhook.ts`             |
+| Send-message register  | `src/features/send_message/` | `src/features/send_message/register.ts`                                  |
 | Radarr validator       | `src/integrations/arr/`      | `src/integrations/arr/radarr.validator.ts`                               |
 | Sonarr validator       | `src/integrations/arr/`      | `src/integrations/arr/sonarr.validator.ts`                               |
-| Send-message validator | `src/features/send-message/` | `src/features/send-message/validators/send_message.validator.ts`         |
+| Send-message validator | `src/features/send_message/` | `src/features/send_message/validators/send_message.validator.ts`         |
 
 ## 9. Verification Criteria
 
 - `[VC-1]` `POST /radarr` with Download event triggers `getMediaLanguage` + `transcodeFile` — **PASS** (`tests/routes/radarr.spec.ts`).
 - `[VC-2]` `POST /sonarr` with Download event triggers `getMediaLanguage` + `transcodeFile` — **PASS** (`tests/routes/sonarr.spec.ts`).
-- `[VC-3]` `POST /send-message` forwards text to Telegram — **PASS** (`tests/routes/send_message.spec.ts`).
+- `[VC-3]` `POST /send_message` forwards text to Telegram — **PASS** (`tests/routes/send_message.spec.ts`).
 - `[VC-4]` Invalid body returns `400` with `error.code === 'BAD_REQUEST'` and `z.treeifyError` details — **PASS** (covered in `tests/routes/radarr.spec.ts`, `tests/routes/sonarr.spec.ts`, `tests/routes/send_message.spec.ts`).
 - `[VC-5]` Unknown route returns `404` with `error.code === 'NOT_FOUND'`.
 - `[VC-6]` Handler exceptions return `500` with `error.code === 'INTERNAL_ERROR'` and a `meta.timestamp`.
 - `[VC-7]` `Test` eventType shortcircuits without any side effect — **PASS** (covered in `tests/routes/radarr.spec.ts`, `tests/routes/sonarr.spec.ts`).
-- `[VC-8.1]` `src/providers/http/**` contains no references to specific routes (`/radarr`, `/sonarr`, `/send-message`);
+- `[VC-8.1]` `src/providers/http/**` contains no references to specific routes (`/radarr`, `/sonarr`, `/send_message`);
   routes appear only under `src/features/**/register.ts` and `*.webhook.ts`.
 
 ## 10. Open Questions

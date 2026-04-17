@@ -1,10 +1,10 @@
 import { basename, dirname, join } from 'node:path'
 
 import { container, TOKENS } from '#core/container'
+import { getCompleteMediaDetails } from '#domains/media/services/metadata.service'
 import { type IPlexClient } from '#integrations/plex/plex.service'
 import { type ITelegramClient } from '#integrations/telegram/telegram.service'
 import { type TelegramMessageIn } from '#integrations/telegram/telegram.validator'
-import { getCompleteMediaDetails } from '#media/metadata.service'
 import { type ConversationState } from '#providers/telegram/types'
 import { isError, logError } from '#shared/utils/error'
 import { safeExistsSync, safeReadFileSync } from '#shared/utils/fs'

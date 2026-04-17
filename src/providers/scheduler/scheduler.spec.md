@@ -7,10 +7,10 @@ related:
   [
     docs/specs/architecture.spec.md,
     src/features/transcoding/transcoding.spec.md,
-    src/features/language-sync/language-sync.spec.md,
-    src/features/queue-cleanup/queue-cleanup.spec.md,
-    src/features/dynamic-dns/dynamic-dns.spec.md,
-    src/features/trakt-sync/trakt-sync.spec.md,
+    src/features/language_sync/language_sync.spec.md,
+    src/features/queue_cleanup/queue_cleanup.spec.md,
+    src/features/dynamic_dns/dynamic_dns.spec.md,
+    src/features/trakt_sync/trakt_sync.spec.md,
   ]
 ---
 
@@ -52,7 +52,7 @@ feature at boot via its `register*()` function.
 - `[NG-1]` No distributed locking — single-process runtime, one Cron per name.
 - `[NG-2]` No runtime reconfiguration — patterns are baked in at register time.
 - `[NG-3]` No retries / backoff at the scheduler layer — features that need retries implement them internally (see
-  `dynamic-dns` backoff or `telegram` poll backoff as examples of feature-level retry strategies).
+  `dynamic_dns` backoff or `telegram` poll backoff as examples of feature-level retry strategies).
 - `[NG-4]` No per-job status/observability endpoint — logs only.
 
 ## 6. Caveats
@@ -68,17 +68,17 @@ feature at boot via its `register*()` function.
 | Component         | Module type                                                    | Responsibility                                                   | Public API surface                                                                                                                                                           |
 | ----------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SchedulerProvider | Core runtime (`src/providers/scheduler/scheduler.provider.ts`) | Register / dedup / shutdown of `Cron` jobs                       | `new SchedulerProvider()`, `.register({ handler, name, options?, pattern })`, `.registerMany(configs)`, `.stopAll()`                                                         |
-| Feature cron jobs | Handlers owned by features                                     | Business logic per tick; registered from feature's `register.ts` | `runTranscodeProcess` (transcoding), `updatePlexSelectedLanguages` (language-sync), `runCleanupProcess` (queue-cleanup), `dynDns` (dynamic-dns), `traktSyncJob` (trakt-sync) |
+| Feature cron jobs | Handlers owned by features                                     | Business logic per tick; registered from feature's `register.ts` | `runTranscodeProcess` (transcoding), `updatePlexSelectedLanguages` (language_sync), `runCleanupProcess` (queue_cleanup), `dynDns` (dynamic_dns), `traktSyncJob` (trakt_sync) |
 
 **Feature-registered jobs:**
 
 | Job name        | Pattern          | Cadence           | Owning feature  | Registered in                            |
 | --------------- | ---------------- | ----------------- | --------------- | ---------------------------------------- |
-| `Cleanup`       | `0 */10 * * * *` | every 10 min      | `queue-cleanup` | `src/features/queue-cleanup/register.ts` |
-| `Dynamic DNS`   | `0 */5 * * * *`  | every 5 min       | `dynamic-dns`   | `src/features/dynamic-dns/register.ts`   |
+| `Cleanup`       | `0 */10 * * * *` | every 10 min      | `queue_cleanup` | `src/features/queue_cleanup/register.ts` |
+| `Dynamic DNS`   | `0 */5 * * * *`  | every 5 min       | `dynamic_dns`   | `src/features/dynamic_dns/register.ts`   |
 | `Transcode`     | `0 0 */12 * * *` | every 12 h at :00 | `transcoding`   | `src/features/transcoding/register.ts`   |
-| `Language Sync` | `0 0 */12 * * *` | every 12 h at :00 | `language-sync` | `src/features/language-sync/register.ts` |
-| `Trakt Sync`    | `0 0 */12 * * *` | every 12 h at :00 | `trakt-sync`    | `src/features/trakt-sync/register.ts`    |
+| `Language Sync` | `0 0 */12 * * *` | every 12 h at :00 | `language_sync` | `src/features/language_sync/register.ts` |
+| `Trakt Sync`    | `0 0 */12 * * *` | every 12 h at :00 | `trakt_sync`    | `src/features/trakt_sync/register.ts`    |
 
 ## 8. Detailed Design
 
