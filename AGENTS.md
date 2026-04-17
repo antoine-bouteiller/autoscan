@@ -4,8 +4,8 @@ Media automation service integrating Radarr, Sonarr, Plex, and TMDB.
 
 ## Guidelines
 
-Cross-cutting specs live in [docs/specs/](../docs/specs/README.md) — start with
-[architecture.spec.md](../docs/specs/architecture.spec.md). Feature specs are co-located with each feature
+Cross-cutting specs live in [docs/](../docs) — start with
+[project_structure.spec.md](../docs/project_structure.spec.md). Feature specs are co-located with each feature
 under `src/features/<feature>/<feature>.spec.md`.
 
 <!--VITE PLUS START-->
