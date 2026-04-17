@@ -1,6 +1,6 @@
 import { describe, expect } from 'vite-plus/test'
 
-import { testWithHttpProvider } from '../../../utils.ts'
+import { testWithHttpProvider } from '../../../http_fixture.ts'
 
 describe('POST /send_message', () => {
   testWithHttpProvider('should return 200 and send message', async ({ http }) => {

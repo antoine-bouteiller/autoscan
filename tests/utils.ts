@@ -5,9 +5,6 @@ import { join } from 'node:path'
 
 import { expect, it } from 'vite-plus/test'
 
-import { container, TOKENS } from '#core/container'
-import { type HttpProvider } from '#providers/http/http.provider'
-
 export { MockCloudflareClient } from './mocks/cloudflare.mock.ts'
 export { MockPlexClient } from './mocks/plex.mock.ts'
 export { MockRadarrClient } from './mocks/radarr.mock.ts'
@@ -27,15 +24,6 @@ export const testWithTestDir = it.extend('testDir', async ({}, { onCleanup }) =>
   })
 
   return testDir
-})
-
-export const testWithHttpProvider = it.extend('http', async () => {
-  const { registerFeatures } = await import('#core/feature')
-  const { transcodingFeature } = await import('#features/transcoding/feature')
-  const { sendMessageFeature } = await import('#features/send_message/feature')
-  registerFeatures([transcodingFeature, sendMessageFeature])
-  const http = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
-  return { inject: http.inject.bind(http) }
 })
 
 export const videosPath = join(import.meta.dirname, 'resources/videos')
