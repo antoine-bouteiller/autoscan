@@ -30,10 +30,10 @@ export const testWithTestDir = it.extend('testDir', async ({}, { onCleanup }) =>
 })
 
 export const testWithHttpProvider = it.extend('http', async () => {
-  const { registerTranscoding } = await import('#features/transcoding/register')
-  const { registerSendMessage } = await import('#features/send_message/register')
-  registerTranscoding()
-  registerSendMessage()
+  const { registerFeatures } = await import('#core/feature')
+  const { transcodingFeature } = await import('#features/transcoding/feature')
+  const { sendMessageFeature } = await import('#features/send_message/feature')
+  registerFeatures([transcodingFeature, sendMessageFeature])
   const http = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
   return { inject: http.inject.bind(http) }
 })

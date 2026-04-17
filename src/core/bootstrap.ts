@@ -1,11 +1,7 @@
 import env from '#config/env'
 import { container, TOKENS } from '#core/container'
-import { registerDynamicDns } from '#features/dynamic_dns/register'
-import { registerLanguageSync } from '#features/language_sync/register'
-import { registerQueueCleanup } from '#features/queue_cleanup/register'
-import { registerSendMessage } from '#features/send_message/register'
-import { registerTraktSync } from '#features/trakt_sync/register'
-import { registerTranscoding } from '#features/transcoding/register'
+import { registerFeatures } from '#core/feature'
+import { features } from '#features/index'
 import { RadarrClient } from '#integrations/arr/radarr.service'
 import { SonarrClient } from '#integrations/arr/sonarr.service'
 import { CloudflareClient } from '#integrations/cloudflare/cloudflare.service'
@@ -78,9 +74,4 @@ container.register(
 
 container.register(TOKENS.FFMPEG_CLIENT, () => new FfmpegClient())
 
-registerTranscoding()
-registerLanguageSync()
-registerQueueCleanup()
-registerDynamicDns()
-registerTraktSync()
-registerSendMessage()
+registerFeatures(features)

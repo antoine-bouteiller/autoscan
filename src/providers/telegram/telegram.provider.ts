@@ -6,13 +6,13 @@ import { type TelegramCallbackQuery, type TelegramMessageIn, type TelegramUpdate
 import { type ConversationState } from '#providers/telegram/types'
 import { isError, logError } from '#shared/utils/error'
 
-type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Promise<ConversationState>
+export type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Promise<ConversationState>
 type CallbackHandler = (
   client: ITelegramClient,
   chatId: number,
   params: { state: ConversationState; callback: TelegramCallbackQuery }
 ) => Promise<ConversationState>
-interface Conversation {
+export interface Conversation {
   onCommand: CommandHandler
   onCallback: CallbackHandler
 }
