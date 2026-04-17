@@ -1,12 +1,11 @@
 node_modules
 .env
-./resources
+resources
 index
 coverage
 mise.toml
 
-# bun
-*.bun-build
+# node
 build
 dist
 

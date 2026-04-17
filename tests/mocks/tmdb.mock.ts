@@ -1,5 +1,5 @@
-import { type ITmdbClient } from '#integrations/tmdb.service'
-import { type TmdbMedia } from '#validators/tmdb.validator'
+import { type ITmdbClient } from '#integrations/tmdb/tmdb.service'
+import { type TmdbMedia } from '#integrations/tmdb/tmdb.validator'
 
 export class MockTmdbClient implements ITmdbClient {
   mediaMap = new Map<string, TmdbMedia>()

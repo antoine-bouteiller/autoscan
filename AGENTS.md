@@ -2,18 +2,11 @@
 
 Media automation service integrating Radarr, Sonarr, Plex, and TMDB.
 
-## Commands
-
-```bash
-vp dev       # Development with watch mode
-vp test      # Run tests
-vp pack      # Bundle with tsdown
-vp check     # Lint + typecheck + format with oxlint and oxfmt
-```
-
 ## Guidelines
 
-- [Architecture](agents_doc/architecture.md)
+Cross-cutting specs live in [docs/](../docs) — start with
+[project_structure.spec.md](../docs/project_structure.spec.md). Feature specs are co-located with each feature
+under `src/features/<feature>/<feature>.spec.md`.
 
 <!--VITE PLUS START-->
 

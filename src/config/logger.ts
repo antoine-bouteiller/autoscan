@@ -12,11 +12,13 @@ const ANSI = {
   YELLOW: '\x1b[33m',
 } as const
 
-const LOG_CONFIG: Record<LogLevel, { color: string; func: typeof console.log }> = {
-  DEBUG: { color: ANSI.CYAN, func: console.debug },
-  ERROR: { color: ANSI.RED, func: console.error },
-  INFO: { color: ANSI.GREEN, func: console.info },
-  WARN: { color: ANSI.YELLOW, func: console.warn },
+type ConsoleMethod = 'debug' | 'error' | 'info' | 'warn'
+
+const LOG_CONFIG: Record<LogLevel, { color: string; method: ConsoleMethod }> = {
+  DEBUG: { color: ANSI.CYAN, method: 'debug' },
+  ERROR: { color: ANSI.RED, method: 'error' },
+  INFO: { color: ANSI.GREEN, method: 'info' },
+  WARN: { color: ANSI.YELLOW, method: 'warn' },
 }
 
 const formatContext = (context: string[], message: string): string => {
@@ -30,13 +32,13 @@ const prettyLog = (level: LogLevel, message: string, context: string[]): void =>
     return
   }
 
-  const { color, func } = LOG_CONFIG[level]
+  const { color, method } = LOG_CONFIG[level]
   const timestamp = new Date().toLocaleString('fr-FR')
   const formattedContext = formatContext(context, message)
 
   const formattedMessage = `${ANSI.GRAY}${timestamp}${ANSI.RESET} ${color}${ANSI.BOLD}[${level}]${ANSI.RESET} ${formattedContext}${message}`
 
-  func(formattedMessage)
+  console[method](formattedMessage)
 }
 
 export const logger = {

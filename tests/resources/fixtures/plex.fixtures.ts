@@ -1,4 +1,4 @@
-import { type PlexMedia } from '#validators/plex.validator'
+import { type PlexMedia } from '#integrations/plex/plex.validator'
 
 export const plexMetadata: Record<number, PlexMedia> = {
   123: {

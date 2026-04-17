@@ -1,6 +1,6 @@
 import { vi } from 'vite-plus/test'
 
-import { type ICloudflareClient } from '#integrations/cloudflare.service'
+import { type ICloudflareClient } from '#integrations/cloudflare/cloudflare.service'
 
 export const mockGetZoneId = vi.fn<ICloudflareClient['getZoneId']>(() => Promise.resolve('zone-123'))
 export const mockGetARecord = vi.fn<ICloudflareClient['getARecord']>()
