@@ -2,7 +2,7 @@ import { vi } from 'vite-plus/test'
 
 import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from '#integrations/trakt/trakt.service'
 
-const getDeviceCodeMock = vi.fn()
+export const getDeviceCodeMock = vi.fn()
 const pollDeviceTokenMock = vi.fn()
 export const refreshTokenMock = vi.fn()
 export const syncWatchedHistoryMock = vi.fn<ITraktClient['syncWatchedHistory']>().mockResolvedValue({

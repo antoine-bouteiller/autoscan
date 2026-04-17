@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { safeReadFileSync } from '#shared/utils/fs'
 
-for (const key of [
+const FILE_SECRET_KEYS = [
   'CLOUDFLARE_TOKEN',
   'PLEX_TOKEN',
   'RADARR_API_KEY',
@@ -12,17 +12,23 @@ for (const key of [
   'TMDB_API_TOKEN',
   'TRAKT_CLIENT_ID',
   'TRAKT_CLIENT_SECRET',
-]) {
-  const filePath = process.env[`${key}_FILE`]
-  if (filePath) {
-    const content = safeReadFileSync(filePath)
-    if (typeof content === 'string') {
-      process.env[key] = content.trim()
+]
+
+export const loadFileSecrets = (target: Record<string, string | undefined>): void => {
+  for (const key of FILE_SECRET_KEYS) {
+    const filePath = target[`${key}_FILE`]
+    if (filePath) {
+      const content = safeReadFileSync(filePath)
+      if (typeof content === 'string') {
+        target[key] = content.trim()
+      }
     }
   }
 }
 
-const urlString = z.string().refine((value) => {
+loadFileSecrets(process.env)
+
+export const urlString = z.string().refine((value) => {
   try {
     const url = new URL(value)
     return Boolean(url)

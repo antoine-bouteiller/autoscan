@@ -12,7 +12,7 @@ import { safeExistsSync, safeReadFileSync } from '#shared/utils/fs'
 const FORCED_LINE_RATIO_THRESHOLD = 0.1
 const SYNC_THRESHOLD_MS = 300
 
-const findLangSrt = (mediaFilePath: string, lang: string): string | undefined => {
+export const findLangSrt = (mediaFilePath: string, lang: string): string | undefined => {
   const dir = dirname(mediaFilePath)
   const mediaBase = basename(mediaFilePath, mediaFilePath.slice(mediaFilePath.lastIndexOf('.')))
   const srtPath = join(dir, `${mediaBase}.${lang}.srt`)
@@ -20,7 +20,7 @@ const findLangSrt = (mediaFilePath: string, lang: string): string | undefined =>
   return safeExistsSync(srtPath) ? srtPath : undefined
 }
 
-const countLines = (srtFilePath: string): number => {
+export const countLines = (srtFilePath: string): number => {
   const content = safeReadFileSync(srtFilePath)
   if (content instanceof Error) {
     return 0
@@ -28,13 +28,13 @@ const countLines = (srtFilePath: string): number => {
   return content.trim().split(/\n\n+/).length
 }
 
-const parseTimestampMs = (timestamp: string): number => {
+export const parseTimestampMs = (timestamp: string): number => {
   const [hours, minutes, rest] = timestamp.split(':')
   const [seconds, ms] = rest.split(',')
   return Number(hours) * 3_600_000 + Number(minutes) * 60_000 + Number(seconds) * 1000 + Number(ms)
 }
 
-const parseStartTimestamps = (srtFilePath: string): number[] => {
+export const parseStartTimestamps = (srtFilePath: string): number[] => {
   const content = safeReadFileSync(srtFilePath)
   if (content instanceof Error) {
     return []
@@ -52,7 +52,7 @@ const parseStartTimestamps = (srtFilePath: string): number[] => {
   return timestamps
 }
 
-const areSubtitlesOutOfSync = (srtPathA: string, srtPathB: string): boolean => {
+export const areSubtitlesOutOfSync = (srtPathA: string, srtPathB: string): boolean => {
   const timestampsA = parseStartTimestamps(srtPathA)
   const timestampsB = parseStartTimestamps(srtPathB)
   const len = Math.min(timestampsA.length, timestampsB.length)
@@ -117,7 +117,7 @@ const analyzeMedia = async (plexClient: IPlexClient) => {
   return { missingSubtitles, outOfSyncSubtitles }
 }
 
-const formatReport = (missingSubtitles: string[], outOfSyncSubtitles: string[]): string => {
+export const formatReport = (missingSubtitles: string[], outOfSyncSubtitles: string[]): string => {
   const parts: string[] = []
 
   if (missingSubtitles.length > 0) {
