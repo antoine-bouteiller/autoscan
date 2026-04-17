@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'vite-plus/test'
 
-import { DnsRecordNotFoundError } from '#errors/cloudflare'
-import { dynDns, handleUpdateIp, resetZoneIdCache } from '#services/dns.service'
+import { DnsRecordNotFoundError } from '#features/dynamic-dns/errors'
+import { dynDns, handleUpdateIp, resetZoneIdCache } from '#features/dynamic-dns/services/dns.service'
 
 import '../utils.ts'
 import { mockGetARecord, mockGetZoneId, mockUpdateDnsRecord } from '../mocks/cloudflare.mock.js'

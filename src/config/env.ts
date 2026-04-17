@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { safeReadFileSync } from '#utils/fs'
+import { safeReadFileSync } from '#shared/utils/fs'
 
 for (const key of [
   'CLOUDFLARE_TOKEN',

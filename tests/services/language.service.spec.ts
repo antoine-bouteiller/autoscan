@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test'
 import { db } from '#config/db'
 import { container, TOKENS } from '#core/container'
 import { type Media, media as mediaTable } from '#database/schema'
-import { type ITelegramClient } from '#integrations/telegram.service'
 import {
   buildLanguageKeyboard,
   buildMediaKeyboard,
@@ -14,9 +13,10 @@ import {
   selectLanguage,
   selectMedia,
   selectMediaType,
-} from '#services/language.service'
-import { iso1ToIso2T } from '#types/iso_codes'
-import { type PlexMediaStream } from '#validators/plex.validator'
+} from '#features/language-sync/services/language.service'
+import { type PlexMediaStream } from '#integrations/plex/plex.validator'
+import { type ITelegramClient } from '#integrations/telegram/telegram.service'
+import { iso1ToIso2T } from '#shared/types/iso_codes'
 
 import { updateStreamMock } from '../mocks/plex.mock.js'
 import { editMessageTextMock } from '../mocks/telegram.mock.js'

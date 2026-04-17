@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test'
 import { db } from '#config/db'
 import { container, TOKENS } from '#core/container'
 import { media } from '#database/schema'
-import { FileNotFoundError, TmdbIdNotFoundError } from '#errors/metadata'
+import { FileNotFoundError, TmdbIdNotFoundError } from '#media/errors'
+import { isOk } from '#shared/utils/error'
 
-import { isOk } from '../../src/utils/error.js'
 import '../utils.ts'
 import { type MockTmdbClient } from '../mocks/tmdb.mock.js'
 import { tmdbTvShowResponse } from '../resources/fixtures/tmdb.fixtures.js'
@@ -16,7 +16,7 @@ const {
   extractTmdbIdFromPath,
   getCompleteMediaDetails,
   getMediaLanguage: getOriginalLanguage,
-} = await import('#services/metadata.service')
+} = await import('#media/metadata.service')
 
 describe('MetadataService', () => {
   let mockTmdbClient: MockTmdbClient

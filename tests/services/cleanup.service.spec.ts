@@ -11,7 +11,7 @@ import {
   mockQueueResponseWithStalledWarning,
 } from '../resources/fixtures/queue.fixtures.js'
 
-const { cleanupAll } = await import('#services/cleanup.service')
+const { cleanupAll } = await import('#features/queue-cleanup/services/cleanup.service')
 
 describe('CleanupService', () => {
   beforeEach(() => {

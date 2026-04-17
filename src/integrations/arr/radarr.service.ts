@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { type QueueService } from '#types/cleanup'
-import { isError, logError } from '#utils/error'
-import { movieValidator } from '#validators/radarr.validator'
+import { type QueueService } from '#integrations/arr/queue.types'
+import { movieValidator } from '#integrations/arr/radarr.validator'
+import { isError, logError } from '#shared/utils/error'
 
 import { ArrClient } from './arr.service.js'
 

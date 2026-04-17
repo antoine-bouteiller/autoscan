@@ -1,8 +1,8 @@
 import { vi } from 'vite-plus/test'
 
-import { PlexError } from '#errors/plex'
-import { type IPlexClient } from '#integrations/plex.service'
-import { type PlexMedia } from '#validators/plex.validator'
+import { PlexError } from '#integrations/plex/plex.errors'
+import { type IPlexClient } from '#integrations/plex/plex.service'
+import { type PlexMedia } from '#integrations/plex/plex.validator'
 
 import { plexMetadata } from '../resources/fixtures/plex.fixtures.js'
 

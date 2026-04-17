@@ -1,16 +1,22 @@
 import env from '#config/env'
 import { container, TOKENS } from '#core/container'
+import { registerDynamicDns } from '#features/dynamic-dns/register'
+import { registerLanguageSync } from '#features/language-sync/register'
+import { registerQueueCleanup } from '#features/queue-cleanup/register'
+import { registerSendMessage } from '#features/send-message/register'
+import { registerTraktSync } from '#features/trakt-sync/register'
+import { registerTranscoding } from '#features/transcoding/register'
 import { RadarrClient } from '#integrations/arr/radarr.service'
 import { SonarrClient } from '#integrations/arr/sonarr.service'
-import { CloudflareClient } from '#integrations/cloudflare.service'
-import { FfmpegClient } from '#integrations/ffmpeg.service'
-import { PlexClient } from '#integrations/plex.service'
-import { TelegramClient } from '#integrations/telegram.service'
-import { TmdbClient } from '#integrations/tmdb.service'
-import { TraktClient } from '#integrations/trakt.service'
-import { HttpProvider } from '#providers/http_provider'
-import { SchedulerProvider } from '#providers/scheduler_provider'
-import { TelegramProvider } from '#providers/telegram_provider'
+import { CloudflareClient } from '#integrations/cloudflare/cloudflare.service'
+import { FfmpegClient } from '#integrations/ffmpeg/ffmpeg.service'
+import { PlexClient } from '#integrations/plex/plex.service'
+import { TelegramClient } from '#integrations/telegram/telegram.service'
+import { TmdbClient } from '#integrations/tmdb/tmdb.service'
+import { TraktClient } from '#integrations/trakt/trakt.service'
+import { HttpProvider } from '#providers/http/http.provider'
+import { SchedulerProvider } from '#providers/scheduler/scheduler.provider'
+import { TelegramProvider } from '#providers/telegram/telegram.provider'
 
 container.register(TOKENS.HTTP_PROVIDER, () => new HttpProvider({ port: 3030 }))
 container.register(TOKENS.SCHEDULER_PROVIDER, () => new SchedulerProvider())
@@ -71,3 +77,10 @@ container.register(
 )
 
 container.register(TOKENS.FFMPEG_CLIENT, () => new FfmpegClient())
+
+registerTranscoding()
+registerLanguageSync()
+registerQueueCleanup()
+registerDynamicDns()
+registerTraktSync()
+registerSendMessage()

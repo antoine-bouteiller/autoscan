@@ -1,14 +1,30 @@
 type Factory<Value> = () => Value
 
-class Container {
-  private readonly factories = new Map<string, Factory<unknown>>()
-  private readonly instances = new Map<string, unknown>()
+export const TOKENS = {
+  CLOUDFLARE_CLIENT: 'cloudflareClient',
+  FFMPEG_CLIENT: 'ffmpegClient',
+  HTTP_PROVIDER: 'httpProvider',
+  PLEX_CLIENT: 'plexClient',
+  RADARR_CLIENT: 'radarrClient',
+  SCHEDULER_PROVIDER: 'schedulerProvider',
+  SONARR_CLIENT: 'sonarrClient',
+  TELEGRAM_CLIENT: 'telegramClient',
+  TELEGRAM_PROVIDER: 'telegramProvider',
+  TMDB_CLIENT: 'tmdbClient',
+  TRAKT_CLIENT: 'traktClient',
+} as const
 
-  register<Value>(token: string, factory: Factory<Value>): void {
+type Token = (typeof TOKENS)[keyof typeof TOKENS]
+
+class Container {
+  private readonly factories = new Map<Token, Factory<unknown>>()
+  private readonly instances = new Map<Token, unknown>()
+
+  register<Value>(token: Token, factory: Factory<Value>): void {
     this.factories.set(token, factory)
   }
 
-  resolve<Value>(token: string): Value {
+  resolve<Value>(token: Token): Value {
     const cached = this.instances.get(token)
     if (cached) {
       // oxlint-disable-next-line no-unsafe-type-assertion
@@ -32,17 +48,3 @@ class Container {
 }
 
 export const container = new Container()
-
-export const TOKENS = {
-  CLOUDFLARE_CLIENT: 'cloudflareClient',
-  FFMPEG_CLIENT: 'ffmpegClient',
-  HTTP_PROVIDER: 'httpProvider',
-  PLEX_CLIENT: 'plexClient',
-  RADARR_CLIENT: 'radarrClient',
-  SCHEDULER_PROVIDER: 'schedulerProvider',
-  SONARR_CLIENT: 'sonarrClient',
-  TELEGRAM_CLIENT: 'telegramClient',
-  TELEGRAM_PROVIDER: 'telegramProvider',
-  TMDB_CLIENT: 'tmdbClient',
-  TRAKT_CLIENT: 'traktClient',
-} as const

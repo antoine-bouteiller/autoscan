@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test } from 'vite-plus/test'
 
 import { db } from '#config/db'
 import { media, type Media } from '#database/schema'
-import { countMediaByType, createdOrUpdatedMedia, getMediaByIdAndType, getMediaByTypeWithPagination } from '#repositories/media.repository'
+import { countMediaByType, createdOrUpdatedMedia, getMediaByIdAndType, getMediaByTypeWithPagination } from '#shared/media.repository'
 
 describe('MediaService', () => {
   afterEach(async () => {

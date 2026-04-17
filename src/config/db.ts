@@ -2,7 +2,7 @@ import { type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { type PgliteDatabase } from 'drizzle-orm/pglite'
 
 import env from '#config/env'
-import { safeExistsSync, safeMkdirSync } from '#utils/fs'
+import { safeExistsSync, safeMkdirSync } from '#shared/utils/fs'
 
 type Database = NodePgDatabase | PgliteDatabase
 

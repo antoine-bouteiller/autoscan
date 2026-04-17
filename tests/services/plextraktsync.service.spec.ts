@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { db } from '#config/db'
 import { container, TOKENS } from '#core/container'
 import { traktSyncHistory, traktTokens } from '#database/schema'
-import { TraktTokenExpiredError } from '#errors/trakt'
-import { type IPlexClient } from '#integrations/plex.service'
-import { collectWatchedItems, getValidAccessToken, syncPlexToTrakt } from '#services/plextraktsync.service'
+import { TraktTokenExpiredError } from '#features/trakt-sync/errors'
+import { collectWatchedItems, getValidAccessToken, syncPlexToTrakt } from '#features/trakt-sync/services/plextraktsync.service'
+import { type IPlexClient } from '#integrations/plex/plex.service'
 
 import { refreshTokenMock, syncWatchedHistoryMock } from '../mocks/trakt.mock.js'
 

@@ -1,9 +1,8 @@
 import { describe, expect, test } from 'vite-plus/test'
 
-import { processVideoStreams } from '#services/transcode/helpers/video'
-import { type FFprobeStream } from '#validators/ffmpeg.validator'
-
-import { isOk } from '../../../../src/utils/error.js'
+import { processVideoStreams } from '#features/transcoding/services/helpers/video'
+import { type FFprobeStream } from '#integrations/ffmpeg/ffmpeg.validator'
+import { isOk } from '#shared/utils/error'
 
 describe('processVideoStreams', () => {
   test('should keep valid video streams', () => {

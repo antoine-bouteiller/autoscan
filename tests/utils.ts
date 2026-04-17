@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { expect, it } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
-import { type HttpProvider } from '#providers/http_provider'
+import { type HttpProvider } from '#providers/http/http.provider'
 
 export { MockCloudflareClient } from './mocks/cloudflare.mock.ts'
 export { MockPlexClient } from './mocks/plex.mock.ts'
@@ -30,7 +30,10 @@ export const testWithTestDir = it.extend('testDir', async ({}, { onCleanup }) =>
 })
 
 export const testWithHttpProvider = it.extend('http', async () => {
-  await import('#start/routes')
+  const { registerTranscoding } = await import('#features/transcoding/register')
+  const { registerSendMessage } = await import('#features/send-message/register')
+  registerTranscoding()
+  registerSendMessage()
   const http = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
   return { inject: http.inject.bind(http) }
 })

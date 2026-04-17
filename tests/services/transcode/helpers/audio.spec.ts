@@ -4,11 +4,11 @@ import { join } from 'node:path'
 import { describe, expect } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
-import { type FfmpegClient } from '#integrations/ffmpeg.service'
-import { processAudioStreams } from '#services/transcode/helpers/audio'
-import { type ISOCode1 } from '#types/iso_codes'
+import { processAudioStreams } from '#features/transcoding/services/helpers/audio'
+import { type FfmpegClient } from '#integrations/ffmpeg/ffmpeg.service'
+import { type ISOCode1 } from '#shared/types/iso_codes'
+import { isOk } from '#shared/utils/error'
 
-import { isOk } from '../../../../src/utils/error.js'
 import { testWithTestDir, videosPath } from '../../../utils.ts'
 
 interface TestCase {
