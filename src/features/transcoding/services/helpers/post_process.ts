@@ -3,10 +3,6 @@ import { join, resolve } from 'node:path'
 import env from '#config/env'
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
-import { type IRadarrClient } from '#integrations/arr/radarr.service'
-import { type ISonarrClient } from '#integrations/arr/sonarr.service'
-import { type FfmpegClient } from '#integrations/ffmpeg/ffmpeg.service'
-import { type IPlexClient } from '#integrations/plex/plex.service'
 import { isError, logError } from '#shared/utils/error'
 import { safeCopyFileSync, safeExistsSync, safeReaddirSync, safeRmSync } from '#shared/utils/fs'
 
@@ -32,7 +28,7 @@ const cleanUp = async (inputFile: string, mediaTitle: string): Promise<void> => 
     return
   }
 
-  const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+  const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
   const probeResult = await ffmpegClient.ffprobe(join(transcodePath, videoFile))
 
   if (isError(probeResult)) {
@@ -68,10 +64,10 @@ export const handlePostTranscode = async ({
 }): Promise<void> => {
   await cleanUp(filePath, mediaTitle)
 
-  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
   if (mediaType === 'movie') {
-    const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
+    const radarrClient = container.resolve(TOKENS.RADARR_CLIENT)
     const movieId = await radarrClient.getMovieByPath(filePath)
 
     if (!movieId) {
@@ -82,7 +78,7 @@ export const handlePostTranscode = async ({
     await radarrClient.refreshMovie(movieId)
     await radarrClient.renameMovie(movieId)
   } else {
-    const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
+    const sonarrClient = container.resolve(TOKENS.SONARR_CLIENT)
     const seriesId = await sonarrClient.getSeriesByPath(filePath)
 
     if (!seriesId) {

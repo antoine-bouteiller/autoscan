@@ -2,7 +2,6 @@ import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
 import { getCompleteMediaDetails } from '#domains/media/services/metadata.service'
 import { transcodeFile, transcodeQueue } from '#features/transcoding/services/transcode.service'
-import { type IPlexClient } from '#integrations/plex/plex.service'
 import { isError, logError } from '#shared/utils/error'
 
 let isScanning = false
@@ -16,7 +15,7 @@ export const runTranscodeProcess = async () => {
   isScanning = true
   logger.info('Starting transcode scan...')
 
-  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
   const sections = await plexClient.getSections()
 
   for (const section of sections ?? []) {

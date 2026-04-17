@@ -3,8 +3,6 @@ import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
 import { FileNameInvalidError, FileNotFoundError } from '#features/transcoding/errors'
 import { type TranscodeJob } from '#features/transcoding/types'
-import { type FfmpegClient } from '#integrations/ffmpeg/ffmpeg.service'
-import { type IPlexClient } from '#integrations/plex/plex.service'
 import { type ISOCode1 } from '#shared/types/iso_codes'
 import { isError, logError } from '#shared/utils/error'
 import { safeExistsSync, safeRenameSync } from '#shared/utils/fs'
@@ -69,7 +67,7 @@ class TranscodeQueue {
         continue
       }
 
-      const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+      const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
 
       let subtitleFailed = false
       for (const subtitle of job.subtitlesToExtract) {
@@ -133,7 +131,7 @@ class TranscodeQueue {
 export const transcodeQueue = new TranscodeQueue()
 
 const getTranscodeCommand = async (file: string, mediaTitle: string, originalLanguage: ISOCode1) => {
-  const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+  const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
   const probeResult = await ffmpegClient.ffprobe(file)
 
   if (isError(probeResult)) {
@@ -183,8 +181,10 @@ const getTranscodeCommand = async (file: string, mediaTitle: string, originalLan
   }
 
   if (shouldExecute) {
-    return { command, duration, subtitlesToExtract: subtitlesToExtract }
+    return { command, duration, subtitlesToExtract }
   }
+
+  return undefined
 }
 
 export const transcodeFile = async (params: { file: string; mediaTitle: string; originalLanguage: ISOCode1; mediaType: 'movie' | 'show' }) => {
@@ -192,7 +192,7 @@ export const transcodeFile = async (params: { file: string; mediaTitle: string; 
   if (!safeExistsSync(file)) {
     const error = new FileNotFoundError({ filePath: file })
     logError(error, 'transcodeFile')
-    const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+    const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
     await plexClient.refreshSections(file, mediaType)
     return false
   }

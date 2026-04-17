@@ -3,13 +3,12 @@ import { upsertTokens } from '#features/trakt_sync/repositories/trakt.repository
 import { getValidAccessToken, syncPlexToTrakt } from '#features/trakt_sync/services/plextraktsync.service'
 import { type ITelegramClient } from '#integrations/telegram/telegram.service'
 import { type TelegramMessageIn } from '#integrations/telegram/telegram.validator'
-import { type ITraktClient } from '#integrations/trakt/trakt.service'
 import { type ConversationState } from '#providers/telegram/types'
 import { HttpError } from '#shared/errors/http'
 import { isError, isOk, logError } from '#shared/utils/error'
 
 export const traktAuthCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
-  const traktClient = container.resolve<ITraktClient>(TOKENS.TRAKT_CLIENT)
+  const traktClient = container.resolve(TOKENS.TRAKT_CLIENT)
 
   const token = await getValidAccessToken()
 

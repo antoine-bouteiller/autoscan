@@ -23,7 +23,8 @@ describe('MetadataService', () => {
 
   beforeEach(async () => {
     container.reset()
-    mockTmdbClient = container.resolve<MockTmdbClient>(TOKENS.TMDB_CLIENT)
+    // oxlint-disable-next-line no-unsafe-type-assertion
+    mockTmdbClient = container.resolve(TOKENS.TMDB_CLIENT) as MockTmdbClient
 
     mockTmdbClient.reset()
 

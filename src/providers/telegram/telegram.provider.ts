@@ -26,7 +26,7 @@ export class TelegramProvider {
   private activeConversationKey?: string
 
   constructor() {
-    this.client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
+    this.client = container.resolve(TOKENS.TELEGRAM_CLIENT)
   }
 
   registerCommand(command: string, handler: CommandHandler): this {

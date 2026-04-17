@@ -6,7 +6,6 @@ import { container, TOKENS } from '#core/container'
 import { getMediaLanguage } from '#domains/media/services/metadata.service'
 import { transcodeFile } from '#features/transcoding/services/transcode.service'
 import { type sonarrValidator } from '#integrations/arr/sonarr.validator'
-import { type IPlexClient } from '#integrations/plex/plex.service'
 import { success } from '#providers/http/response'
 import { type AppReply, type AppRequest } from '#providers/http/types'
 
@@ -25,7 +24,7 @@ export const sonarrWebhook = async (request: AppRequest<z.infer<typeof sonarrVal
     const transcoded = await transcodeFile({ file, mediaTitle, mediaType: 'show', originalLanguage })
 
     if (!transcoded) {
-      const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+      const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
       await plexClient.refreshSections(file, 'show')
     }
   }

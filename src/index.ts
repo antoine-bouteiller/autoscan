@@ -1,13 +1,10 @@
 import { logger } from '#config/logger'
 import '#core/bootstrap'
 import { container, TOKENS } from '#core/container'
-import { type HttpProvider } from '#providers/http/http.provider'
-import { type SchedulerProvider } from '#providers/scheduler/scheduler.provider'
-import { type TelegramProvider } from '#providers/telegram/telegram.provider'
 
-const httpProvider = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
-const schedulerProvider = container.resolve<SchedulerProvider>(TOKENS.SCHEDULER_PROVIDER)
-const telegramProvider = container.resolve<TelegramProvider>(TOKENS.TELEGRAM_PROVIDER)
+const httpProvider = container.resolve(TOKENS.HTTP_PROVIDER)
+const schedulerProvider = container.resolve(TOKENS.SCHEDULER_PROVIDER)
+const telegramProvider = container.resolve(TOKENS.TELEGRAM_PROVIDER)
 
 await httpProvider.start()
 

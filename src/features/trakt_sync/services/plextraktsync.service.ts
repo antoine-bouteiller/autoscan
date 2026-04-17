@@ -4,7 +4,7 @@ import { TraktTokenExpiredError } from '#features/trakt_sync/errors'
 import { getSyncedRatingKeys, getToken, markManyAsSynced, upsertTokens } from '#features/trakt_sync/repositories/trakt.repository'
 import { type IPlexClient } from '#integrations/plex/plex.service'
 import { type PlexMedia } from '#integrations/plex/plex.validator'
-import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from '#integrations/trakt/trakt.service'
+import { type TraktMoviePayload, type TraktShowPayload } from '#integrations/trakt/trakt.service'
 import { isError, logError } from '#shared/utils/error'
 
 export const getValidAccessToken = async () => {
@@ -16,7 +16,7 @@ export const getValidAccessToken = async () => {
   const now = Math.floor(Date.now() / 1000)
 
   if (tokens.expiresAt < now + 300) {
-    const traktClient = container.resolve<ITraktClient>(TOKENS.TRAKT_CLIENT)
+    const traktClient = container.resolve(TOKENS.TRAKT_CLIENT)
     const result = await traktClient.refreshToken(tokens.refreshToken)
 
     if (isError(result)) {
@@ -117,8 +117,8 @@ export const syncPlexToTrakt = async () => {
     return accessToken
   }
 
-  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
-  const traktClient = container.resolve<ITraktClient>(TOKENS.TRAKT_CLIENT)
+  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
+  const traktClient = container.resolve(TOKENS.TRAKT_CLIENT)
 
   const syncedKeys = await getSyncedRatingKeys()
   const { movies, ratingKeysToMark, shows } = await collectWatchedItems(plexClient, syncedKeys)

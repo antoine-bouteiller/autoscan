@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
 import { transcodeCommand } from '#features/transcoding/commands/transcode.command'
-import { type IPlexClient } from '#integrations/plex/plex.service'
 import { type TelegramMessageIn } from '#integrations/telegram/telegram.validator'
 
 import { sendMessageMock } from '../../../mocks/telegram.mock.js'
@@ -15,7 +14,7 @@ const makeMessage = (chatId: number): TelegramMessageIn => ({
 
 describe('transcodeCommand', () => {
   const client = new MockTelegramClient()
-  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
   beforeEach(() => {
     vi.clearAllMocks()

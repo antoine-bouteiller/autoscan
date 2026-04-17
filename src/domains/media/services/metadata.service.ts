@@ -1,8 +1,7 @@
 import { container, TOKENS } from '#core/container'
 import { FileNotFoundError, TmdbIdNotFoundError } from '#domains/media/errors'
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '#domains/media/repositories/media.repository'
-import { type IPlexClient, type MediaType } from '#integrations/plex/plex.service'
-import { type ITmdbClient } from '#integrations/tmdb/tmdb.service'
+import { type MediaType } from '#integrations/plex/plex.service'
 import { type ISOCode1 } from '#shared/types/iso_codes'
 import { isError } from '#shared/utils/error'
 
@@ -26,7 +25,7 @@ export const getMediaLanguage = async (
     }
   }
 
-  const tmdbClient = container.resolve<ITmdbClient>(TOKENS.TMDB_CLIENT)
+  const tmdbClient = container.resolve(TOKENS.TMDB_CLIENT)
   const { data, type } = await tmdbClient.getTmdbMedia(tmdbId, mediaType)
   if (!data) {
     return { originalLanguage: 'en', preferredLanguage: 'en' }
@@ -44,7 +43,7 @@ export const getMediaLanguage = async (
 }
 
 export const getCompleteMediaDetails = async (ratingKey: number) => {
-  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
   const plexMetadata = await plexClient.getPlexMetadata(ratingKey)
 
   if (isError(plexMetadata)) {

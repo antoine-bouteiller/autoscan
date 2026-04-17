@@ -2,17 +2,14 @@ import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
 import { handlePostTranscode } from '#features/transcoding/services/helpers/post_process'
-import { type IRadarrClient } from '#integrations/arr/radarr.service'
-import { type ISonarrClient } from '#integrations/arr/sonarr.service'
-import { type IPlexClient } from '#integrations/plex/plex.service'
 
 import { refreshSectionsMock } from '../../../../mocks/plex.mock.js'
 import '../../../../utils.ts'
 
 describe('handlePostTranscode', () => {
-  const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
-  const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
-  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const radarrClient = container.resolve(TOKENS.RADARR_CLIENT)
+  const sonarrClient = container.resolve(TOKENS.SONARR_CLIENT)
+  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
   beforeEach(() => {
     vi.clearAllMocks()

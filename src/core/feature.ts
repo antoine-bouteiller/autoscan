@@ -3,8 +3,7 @@ import { type z } from 'zod'
 import { container, TOKENS } from '#core/container'
 import { type HttpProvider } from '#providers/http/http.provider'
 import { type RouteHandler } from '#providers/http/types'
-import { type SchedulerProvider } from '#providers/scheduler/scheduler.provider'
-import { type CommandHandler, type Conversation, type TelegramProvider } from '#providers/telegram/telegram.provider'
+import { type CommandHandler, type Conversation } from '#providers/telegram/telegram.provider'
 
 type FeatureRoute = (http: HttpProvider) => void
 
@@ -30,9 +29,9 @@ export const postRoute =
     http.post(path, validator, handler)
 
 export const registerFeatures = (features: readonly Feature[]): void => {
-  const http = container.resolve<HttpProvider>(TOKENS.HTTP_PROVIDER)
-  const scheduler = container.resolve<SchedulerProvider>(TOKENS.SCHEDULER_PROVIDER)
-  const telegram = container.resolve<TelegramProvider>(TOKENS.TELEGRAM_PROVIDER)
+  const http = container.resolve(TOKENS.HTTP_PROVIDER)
+  const scheduler = container.resolve(TOKENS.SCHEDULER_PROVIDER)
+  const telegram = container.resolve(TOKENS.TELEGRAM_PROVIDER)
 
   for (const feature of features) {
     for (const route of feature.routes ?? []) {

@@ -135,7 +135,7 @@ export const subtitleScanCommand = async (client: ITelegramClient, message: Tele
   await client.sendMessage(message.chat.id, 'Starting subtitle scan...')
 
   void (async () => {
-    const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+    const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
     const { missingSubtitles, outOfSyncSubtitles } = await analyzeMedia(plexClient)
 
     const report = formatReport(missingSubtitles, outOfSyncSubtitles)

@@ -5,12 +5,11 @@ import { container, TOKENS } from '#core/container'
 import { traktSyncHistory, traktTokens } from '#database/schema'
 import { TraktTokenExpiredError } from '#features/trakt_sync/errors'
 import { collectWatchedItems, getValidAccessToken, syncPlexToTrakt } from '#features/trakt_sync/services/plextraktsync.service'
-import { type IPlexClient } from '#integrations/plex/plex.service'
 
 import { refreshTokenMock, syncWatchedHistoryMock } from '../../../mocks/trakt.mock.js'
 
 describe('TraktService', () => {
-  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
   beforeEach(async () => {
     vi.clearAllMocks()

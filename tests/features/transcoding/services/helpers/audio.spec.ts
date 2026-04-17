@@ -5,7 +5,6 @@ import { describe, expect } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
 import { processAudioStreams } from '#features/transcoding/services/helpers/audio'
-import { type FfmpegClient } from '#integrations/ffmpeg/ffmpeg.service'
 import { type ISOCode1 } from '#shared/types/iso_codes'
 import { isOk } from '#shared/utils/error'
 
@@ -55,7 +54,7 @@ describe('Clean audio', () => {
   testWithTestDir.for(dataset)('$title', async ({ expectedCommand, file, language }, { testDir }) => {
     copyFileSync(join(videosPath, file), join(testDir, file))
 
-    const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+    const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
     const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
     expect(isOk(probeResult)).toBe(true)
     if (!isOk(probeResult)) {

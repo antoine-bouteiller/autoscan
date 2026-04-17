@@ -2,7 +2,6 @@ import env from '#config/env'
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
 import { DnsRecordNotFoundError } from '#features/dynamic_dns/errors'
-import { type ICloudflareClient } from '#integrations/cloudflare/cloudflare.service'
 import { isError, logError } from '#shared/utils/error'
 
 const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]
@@ -14,7 +13,7 @@ let errorDelay = 5 * 60 * 1000
 const maxErrorDelay = 30 * 60 * 1000
 
 export const handleUpdateIp = async (recordName: string) => {
-  const cloudflareClient = container.resolve<ICloudflareClient>(TOKENS.CLOUDFLARE_CLIENT)
+  const cloudflareClient = container.resolve(TOKENS.CLOUDFLARE_CLIENT)
 
   if (!zoneId) {
     const zoneResult = await cloudflareClient.getZoneId(ZONE_NAME)
@@ -27,7 +26,7 @@ export const handleUpdateIp = async (recordName: string) => {
   const data = await cloudflareClient.getARecord(recordName, zoneId)
 
   if (!data) {
-    return
+    return undefined
   }
 
   const [record] = data.result
@@ -42,10 +41,11 @@ export const handleUpdateIp = async (recordName: string) => {
   }
 
   if (record.content === currentIpResult) {
-    return
+    return undefined
   }
 
   await cloudflareClient.updateDnsRecord(record, currentIpResult, zoneId)
+  return undefined
 }
 
 export const dynDns = async () => {

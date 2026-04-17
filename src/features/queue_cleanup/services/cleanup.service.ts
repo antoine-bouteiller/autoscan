@@ -1,8 +1,6 @@
 import { logger } from '#config/logger'
 import { container, TOKENS } from '#core/container'
 import { type QueueService } from '#integrations/arr/queue.types'
-import { type IRadarrClient } from '#integrations/arr/radarr.service'
-import { type ISonarrClient } from '#integrations/arr/sonarr.service'
 
 const STRIKE_COUNT = 5
 
@@ -57,8 +55,8 @@ const removeStalledDownloads = async (service: QueueService, serviceName: string
 }
 
 export const cleanupAll = async (): Promise<void> => {
-  const sonarrClient = container.resolve<ISonarrClient>(TOKENS.SONARR_CLIENT)
-  const radarrClient = container.resolve<IRadarrClient>(TOKENS.RADARR_CLIENT)
+  const sonarrClient = container.resolve(TOKENS.SONARR_CLIENT)
+  const radarrClient = container.resolve(TOKENS.RADARR_CLIENT)
 
   await Promise.all([removeStalledDownloads(sonarrClient, 'Sonarr'), removeStalledDownloads(radarrClient, 'Radarr')])
 }

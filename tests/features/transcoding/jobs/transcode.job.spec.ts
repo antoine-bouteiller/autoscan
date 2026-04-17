@@ -2,12 +2,11 @@ import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
 import { getTranscodingStatus, runTranscodeProcess } from '#features/transcoding/jobs/transcode.job'
-import { type IPlexClient } from '#integrations/plex/plex.service'
 
 import '../../../utils.ts'
 
 describe('transcode.job', () => {
-  const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
   beforeEach(() => {
     vi.clearAllMocks()

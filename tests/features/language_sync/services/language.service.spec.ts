@@ -15,7 +15,6 @@ import {
   selectMediaType,
 } from '#features/language_sync/services/language.service'
 import { type PlexMediaStream } from '#integrations/plex/plex.validator'
-import { type ITelegramClient } from '#integrations/telegram/telegram.service'
 import { iso1ToIso2T } from '#shared/types/iso_codes'
 
 import { updateStreamMock } from '../../../mocks/plex.mock.js'
@@ -105,7 +104,7 @@ describe('buildLanguageKeyboard', () => {
 })
 
 describe('selectMediaType', () => {
-  const client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
+  const client = container.resolve(TOKENS.TELEGRAM_CLIENT)
   beforeEach(() => {
     editMessageTextMock.mockReset()
   })
@@ -138,7 +137,7 @@ describe('selectMediaType', () => {
 })
 
 describe('navigateMediaPage', () => {
-  const client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
+  const client = container.resolve(TOKENS.TELEGRAM_CLIENT)
   beforeEach(() => {
     editMessageTextMock.mockReset()
   })
@@ -162,7 +161,7 @@ describe('navigateMediaPage', () => {
 })
 
 describe('selectMedia', () => {
-  const client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
+  const client = container.resolve(TOKENS.TELEGRAM_CLIENT)
   beforeEach(() => {
     editMessageTextMock.mockReset()
   })
@@ -196,7 +195,7 @@ describe('selectMedia', () => {
 })
 
 describe('selectLanguage', () => {
-  const client = container.resolve<ITelegramClient>(TOKENS.TELEGRAM_CLIENT)
+  const client = container.resolve(TOKENS.TELEGRAM_CLIENT)
   beforeEach(() => {
     editMessageTextMock.mockReset()
   })

@@ -40,6 +40,8 @@ export class SchedulerProvider {
     } catch (error) {
       logError(error, 'Scheduler')
     }
+
+    return undefined
   }
 
   registerMany(configs: JobConfig[]): void {

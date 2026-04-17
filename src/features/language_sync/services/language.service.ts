@@ -6,7 +6,7 @@ import { container, TOKENS } from '#core/container'
 import { media, type Media } from '#database/schema'
 import { getMediaByTypeWithPagination } from '#domains/media/repositories/media.repository'
 import { type UpdateLanguageParams } from '#features/language_sync/types'
-import { type IPlexClient, type MediaType } from '#integrations/plex/plex.service'
+import { type MediaType } from '#integrations/plex/plex.service'
 import { type ITelegramClient } from '#integrations/telegram/telegram.service'
 import { type ConversationState, type InlineKeyboardButton, type InlineKeyboardMarkup } from '#providers/telegram/types'
 import { iso1ToIso2T } from '#shared/types/iso_codes'
@@ -65,7 +65,7 @@ export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
   if (!audioStream.selected) {
     logger.info(`Setting audio in ${preferredLanguage}`, 'Language', mediaTitle)
 
-    const plexClient = container.resolve<IPlexClient>(TOKENS.PLEX_CLIENT)
+    const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
     await plexClient.updateStream(partsId, audioStream.id, 'audio')
 

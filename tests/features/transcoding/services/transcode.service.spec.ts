@@ -5,7 +5,6 @@ import { describe, expect, test } from 'vite-plus/test'
 
 import { container, TOKENS } from '#core/container'
 import { transcodeFile, transcodeQueue } from '#features/transcoding/services/transcode.service'
-import { type FfmpegClient } from '#integrations/ffmpeg/ffmpeg.service'
 import { type FFprobeStream } from '#integrations/ffmpeg/ffmpeg.validator'
 import { isOk } from '#shared/utils/error'
 
@@ -105,7 +104,7 @@ describe('Transcode', () => {
       expect(existsSync(join(testDir, filename))).toBe(false)
     }
 
-    const ffmpegClient = container.resolve<FfmpegClient>(TOKENS.FFMPEG_CLIENT)
+    const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
     const probeResult = await ffmpegClient.ffprobe(join(testDir, outputFileName))
     expect(isOk(probeResult)).toBe(true)
     if (!isOk(probeResult)) {

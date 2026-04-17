@@ -13,7 +13,7 @@ const sendResponse = <Data>(reply: AppReply, body: ApiResponse<Data>, status: nu
     meta: { timestamp: new Date().toISOString() },
   })
 
-export const success = <Data>(reply: AppReply, data: Data, status = 200) => sendResponse(reply, { data, success: true }, status)
+export const success = (reply: AppReply, data: unknown, status = 200) => sendResponse(reply, { data, success: true }, status)
 
 export const badRequest = (reply: AppReply, message: string, details?: unknown) =>
   sendResponse(
