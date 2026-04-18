@@ -1,10 +1,10 @@
-import { type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { type PgliteDatabase } from 'drizzle-orm/pglite'
+import { type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 import env from '#config/env'
 import { safeExistsSync, safeMkdirSync } from '#shared/utils/fs'
 
-type Database = NodePgDatabase | PgliteDatabase
+type Database = PostgresJsDatabase | PgliteDatabase
 
 const isPostgresUrl = (url: string) => url.startsWith('postgres://') || url.startsWith('postgresql://')
 
@@ -12,17 +12,14 @@ const initDatabase = async (): Promise<Database> => {
   const databaseUrl = env.DATABASE_URL
 
   if (isPostgresUrl(databaseUrl)) {
-    const pg = await import('pg')
-    const { drizzle } = await import('drizzle-orm/node-postgres')
-    const { migrate } = await import('drizzle-orm/node-postgres/migrator')
+    const { drizzle } = await import('drizzle-orm/postgres-js')
+    const { migrate } = await import('drizzle-orm/postgres-js/migrator')
 
-    const client = new pg.default.Pool({ connectionString: databaseUrl })
-    const db = drizzle({ client })
+    const db = drizzle(databaseUrl)
     await migrate(db, { migrationsFolder: './migrations' })
     return db
   }
 
-  const { PGlite } = await import('@electric-sql/pglite')
   const { drizzle } = await import('drizzle-orm/pglite')
   const { migrate } = await import('drizzle-orm/pglite/migrator')
 
@@ -30,8 +27,7 @@ const initDatabase = async (): Promise<Database> => {
     safeMkdirSync(databaseUrl)
   }
 
-  const client = new PGlite(databaseUrl)
-  const db = drizzle({ client })
+  const db = drizzle(databaseUrl)
   await migrate(db, { migrationsFolder: './migrations' })
   return db
 }
