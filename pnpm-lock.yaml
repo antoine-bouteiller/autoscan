@@ -12,9 +12,6 @@ importers:
 
   .:
     dependencies:
-      '@electric-sql/pglite':
-        specifier: 0.4.4
-        version: 0.4.4
       croner:
         specifier: 10.0.1
         version: 10.0.1
@@ -28,6 +25,9 @@ importers:
         specifier: 4.3.6
         version: 4.3.6
     devDependencies:
+      '@electric-sql/pglite':
+        specifier: 0.4.4
+        version: 0.4.4
       '@types/node':
         specifier: 25.6.0
         version: 25.6.0
