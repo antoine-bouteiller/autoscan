@@ -77,6 +77,9 @@ export default defineConfig({
     entry: 'src/index.ts',
     format: 'esm',
     platform: 'node',
+    define: {
+      'process.env.NODE_ENV': JSON.stringify('production'),
+    },
   },
   resolve: {
     tsconfigPaths: true,

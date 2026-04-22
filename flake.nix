@@ -127,10 +127,24 @@
               type = lib.types.path;
               description = "Directory for temporary transcode files.";
             };
-            databaseUrl = lib.mkOption {
-              type = lib.types.str;
-              default = "${cfg.dataDir}/pgdata";
-              description = "Database URL for autoscan.";
+            postgres = {
+              host = lib.mkOption {
+                type = lib.types.str;
+                description = "PostgreSQL host (or unix socket directory).";
+              };
+              port = lib.mkOption {
+                type = lib.types.port;
+                default = 5432;
+                description = "PostgreSQL port.";
+              };
+              user = lib.mkOption {
+                type = lib.types.str;
+                description = "PostgreSQL role name.";
+              };
+              database = lib.mkOption {
+                type = lib.types.str;
+                description = "PostgreSQL database name.";
+              };
             };
           };
 
@@ -144,6 +158,10 @@
             radarrApiKeyFile = lib.mkOption {type = lib.types.path;};
             traktClientIdFile = lib.mkOption {type = lib.types.path;};
             traktClientSecretFile = lib.mkOption {type = lib.types.path;};
+            postgresPasswordFile = lib.mkOption {
+              type = lib.types.nullOr lib.types.path;
+              default = null;
+            };
           };
         };
 
@@ -184,27 +202,36 @@
               ProtectHome = true;
             };
 
-            environment = {
-              PORT = toString cfg.port;
-              PLEX_URL = cfg.settings.plexUrl;
-              DOMAIN = cfg.settings.domain;
-              TMDB_API_URL = cfg.settings.tmdbApiUrl;
-              SONARR_API_URL = cfg.settings.sonarrApiUrl;
-              RADARR_API_URL = cfg.settings.radarrApiUrl;
+            environment =
+              {
+                PORT = toString cfg.port;
+                PLEX_URL = cfg.settings.plexUrl;
+                DOMAIN = cfg.settings.domain;
+                TMDB_API_URL = cfg.settings.tmdbApiUrl;
+                SONARR_API_URL = cfg.settings.sonarrApiUrl;
+                RADARR_API_URL = cfg.settings.radarrApiUrl;
+                NODE_ENV = "production";
 
-              TELEGRAM_CHAT_ID_FILE = toString cfg.secrets.telegramChatIdFile;
-              PLEX_TOKEN_FILE = toString cfg.secrets.plexTokenFile;
-              TELEGRAM_TOKEN_FILE = toString cfg.secrets.telegramTokenFile;
-              CLOUDFLARE_TOKEN_FILE = toString cfg.secrets.cloudflareTokenFile;
-              TMDB_API_TOKEN_FILE = toString cfg.secrets.tmdbApiTokenFile;
-              SONARR_API_KEY_FILE = toString cfg.secrets.sonarrApiKeyFile;
-              RADARR_API_KEY_FILE = toString cfg.secrets.radarrApiKeyFile;
-              TRAKT_CLIENT_ID_FILE = toString cfg.secrets.traktClientIdFile;
-              TRAKT_CLIENT_SECRET_FILE = toString cfg.secrets.traktClientSecretFile;
+                TELEGRAM_CHAT_ID_FILE = toString cfg.secrets.telegramChatIdFile;
+                PLEX_TOKEN_FILE = toString cfg.secrets.plexTokenFile;
+                TELEGRAM_TOKEN_FILE = toString cfg.secrets.telegramTokenFile;
+                CLOUDFLARE_TOKEN_FILE = toString cfg.secrets.cloudflareTokenFile;
+                TMDB_API_TOKEN_FILE = toString cfg.secrets.tmdbApiTokenFile;
+                SONARR_API_KEY_FILE = toString cfg.secrets.sonarrApiKeyFile;
+                RADARR_API_KEY_FILE = toString cfg.secrets.radarrApiKeyFile;
+                TRAKT_CLIENT_ID_FILE = toString cfg.secrets.traktClientIdFile;
+                POSTGRES_PASSWORD_FILE = toString cfg.secrets.postgresPasswordFile;
+                TRAKT_CLIENT_SECRET_FILE = toString cfg.secrets.traktClientSecretFile;
 
-              DATABASE_URL = cfg.settings.databaseUrl;
-              TRANSCODE_PATH = cfg.settings.transcodePath;
-            };
+                POSTGRES_HOST = cfg.settings.postgres.host;
+                POSTGRES_PORT = toString cfg.settings.postgres.port;
+                POSTGRES_DATABASE = cfg.settings.postgres.database;
+                POSTGRES_USERNAME = cfg.settings.postgres.user;
+                TRANSCODE_PATH = cfg.settings.transcodePath;
+              }
+              // lib.optionalAttrs (cfg.secrets.postgresPasswordFile != null) {
+                POSTGRES_PASSWORD_FILE = toString cfg.secrets.postgresPasswordFile;
+              };
           };
         };
       };

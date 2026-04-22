@@ -15,7 +15,6 @@ const writeTempSecret = (value: string): string => {
 
 describe('env', () => {
   test('should expose required keys from process.env', () => {
-    expect(env.DATABASE_URL).toBe(process.env['DATABASE_URL'])
     expect(env.PLEX_TOKEN).toBe(process.env['PLEX_TOKEN'])
     expect(env.TRANSCODE_PATH).toBe(process.env['TRANSCODE_PATH'])
   })
