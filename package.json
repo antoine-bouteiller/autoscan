@@ -26,7 +26,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "0.4.4",
     "@types/node": "25.6.0",
-    "@vitest/coverage-v8": "4.1.4",
+    "@vitest/coverage-v8": "npm:@voidzero-dev/vite-plus-core@latest",
     "drizzle-kit": "1.0.0-beta.22-41a7d21",
     "knip": "6.4.1",
     "tsx": "4.21.0",
