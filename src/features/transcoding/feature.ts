@@ -1,6 +1,6 @@
-import { defineFeature, postRoute } from '#core/feature'
-import { radarrValidator } from '#integrations/arr/radarr.validator'
-import { sonarrValidator } from '#integrations/arr/sonarr.validator'
+import { defineFeature, postRoute } from '#/core/feature'
+import { radarrValidator } from '#/integrations/arr/radarr.validator'
+import { sonarrValidator } from '#/integrations/arr/sonarr.validator'
 
 import { subtitleScanCommand } from './commands/subtitle_scan.command.js'
 import { transcodeCommand } from './commands/transcode.command.js'

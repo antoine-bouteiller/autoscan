@@ -5,11 +5,11 @@ import {
   type TraktDeviceCodeResponse,
   type TraktSyncResponse,
   type TraktTokenResponse,
-} from '#integrations/trakt/trakt.validator'
-import { type HttpError } from '#shared/errors/http'
-import { type NetworkError } from '#shared/errors/network'
-import { type ValidationError } from '#shared/errors/validation'
-import { httpClient } from '#shared/utils/http_client'
+} from '#/integrations/trakt/trakt.validator'
+import { type HttpError } from '#/shared/errors/http'
+import { type NetworkError } from '#/shared/errors/network'
+import { type ValidationError } from '#/shared/errors/validation'
+import { httpClient } from '#/shared/utils/http_client'
 
 export interface TraktMoviePayload {
   ids: { tmdb: number }

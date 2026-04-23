@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-import { container, TOKENS } from '#core/container'
-import { handlePostTranscode } from '#features/transcoding/services/helpers/post_process'
+import { container, TOKENS } from '#/core/container'
+import { handlePostTranscode } from '#/features/transcoding/services/helpers/post_process'
 
 import { refreshSectionsMock } from '../../../../mocks/plex.mock.js'
 import '../../../../utils.ts'

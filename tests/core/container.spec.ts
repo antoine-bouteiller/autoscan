@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-import { Container, type Token } from '#core/container'
+import { Container, type Token } from '#/core/container'
 
 interface Counter {
   value: number

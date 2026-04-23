@@ -1,11 +1,11 @@
 import { and, eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test'
 
-import { db } from '#config/db'
-import { container, TOKENS } from '#core/container'
-import { media } from '#database/schema'
-import { FileNotFoundError, TmdbIdNotFoundError } from '#domains/media/errors'
-import { isOk } from '#shared/utils/error'
+import { db } from '#/config/db'
+import { container, TOKENS } from '#/core/container'
+import { media } from '#/database/schema'
+import { FileNotFoundError, TmdbIdNotFoundError } from '#/domains/media/errors'
+import { isOk } from '#/shared/utils/error'
 
 import '../../../utils.ts'
 import { type MockTmdbClient } from '../../../mocks/tmdb.mock.js'
@@ -16,7 +16,7 @@ const {
   extractTmdbIdFromPath,
   getCompleteMediaDetails,
   getMediaLanguage: getOriginalLanguage,
-} = await import('#domains/media/services/metadata.service')
+} = await import('#/domains/media/services/metadata.service')
 
 describe('MetadataService', () => {
   let mockTmdbClient: MockTmdbClient

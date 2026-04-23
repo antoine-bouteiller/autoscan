@@ -1,5 +1,5 @@
-import { logger } from '#config/logger'
-import { type TaggedErrorClass } from '#shared/types/error'
+import { logger } from '#/config/logger'
+import { type TaggedErrorClass } from '#/shared/types/error'
 
 const parseVariables = (message: string): string[] => {
   const vars: string[] = []

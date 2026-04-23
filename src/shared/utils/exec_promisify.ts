@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 
-import { CommandExecutionError } from '#shared/errors/command'
+import { CommandExecutionError } from '#/shared/errors/command'
 
 interface SpawnOptions {
   cwd?: string

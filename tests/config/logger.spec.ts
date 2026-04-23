@@ -1,7 +1,7 @@
 /* oxlint-disable no-console */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-import { logger } from '#config/logger'
+import { logger } from '#/config/logger'
 
 describe('logger', () => {
   const originalEnv = process.env['NODE_ENV']

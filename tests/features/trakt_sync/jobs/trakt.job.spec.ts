@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-import { db } from '#config/db'
-import { traktSyncHistory, traktTokens } from '#database/schema'
-import { traktSyncJob } from '#features/trakt_sync/jobs/trakt.job'
+import { db } from '#/config/db'
+import { traktSyncHistory, traktTokens } from '#/database/schema'
+import { traktSyncJob } from '#/features/trakt_sync/jobs/trakt.job'
 
 import { syncWatchedHistoryMock } from '../../../mocks/trakt.mock.js'
 import '../../../utils.ts'

@@ -1,8 +1,8 @@
-import env from '#config/env'
-import { logger } from '#config/logger'
-import { container, TOKENS } from '#core/container'
-import { DnsRecordNotFoundError } from '#features/dynamic_dns/errors'
-import { isError, logError } from '#shared/utils/error'
+import env from '#/config/env'
+import { logger } from '#/config/logger'
+import { container, TOKENS } from '#/core/container'
+import { DnsRecordNotFoundError } from '#/features/dynamic_dns/errors'
+import { isError, logError } from '#/shared/utils/error'
 
 const DOMAINES_TO_UPDATE = [env.DOMAIN, `*.${env.DOMAIN}`]
 const ZONE_NAME = env.DOMAIN

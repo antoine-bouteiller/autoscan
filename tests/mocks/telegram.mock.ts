@@ -1,6 +1,6 @@
 import { vi } from 'vite-plus/test'
 
-import { type ITelegramClient } from '#integrations/telegram/telegram.service'
+import { type ITelegramClient } from '#/integrations/telegram/telegram.service'
 
 export const editMessageTextMock = vi.fn().mockResolvedValue(undefined)
 export const sendMessageMock = vi.fn().mockResolvedValue(100)

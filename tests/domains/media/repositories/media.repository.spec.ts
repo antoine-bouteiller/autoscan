@@ -1,14 +1,14 @@
 import { and, eq } from 'drizzle-orm'
 import { afterEach, describe, expect, test } from 'vite-plus/test'
 
-import { db } from '#config/db'
-import { media, type Media } from '#database/schema'
+import { db } from '#/config/db'
+import { media, type Media } from '#/database/schema'
 import {
   countMediaByType,
   createdOrUpdatedMedia,
   getMediaByIdAndType,
   getMediaByTypeWithPagination,
-} from '#domains/media/repositories/media.repository'
+} from '#/domains/media/repositories/media.repository'
 
 describe('MediaService', () => {
   afterEach(async () => {

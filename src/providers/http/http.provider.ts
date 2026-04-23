@@ -2,10 +2,10 @@ import { type IncomingMessage, type Server, type ServerResponse, createServer } 
 
 import { z } from 'zod'
 
-import { logger } from '#config/logger'
-import { badRequest } from '#providers/http/response'
-import { type AppReply, type AppRequest, type RouteHandler } from '#providers/http/types'
-import { logError } from '#shared/utils/error'
+import { logger } from '#/config/logger'
+import { badRequest } from '#/providers/http/response'
+import { type AppReply, type AppRequest, type RouteHandler } from '#/providers/http/types'
+import { logError } from '#/shared/utils/error'
 
 interface HttpProviderOptions {
   hostname?: string

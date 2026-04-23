@@ -4,11 +4,11 @@ import {
   selectLanguage,
   selectMedia,
   selectMediaType,
-} from '#features/language_sync/services/language.service'
-import { type MediaType } from '#integrations/plex/plex.service'
-import { type ITelegramClient } from '#integrations/telegram/telegram.service'
-import { type TelegramCallbackQuery, type TelegramMessageIn } from '#integrations/telegram/telegram.validator'
-import { type ConversationState } from '#providers/telegram/types'
+} from '#/features/language_sync/services/language.service'
+import { type MediaType } from '#/integrations/plex/plex.service'
+import { type ITelegramClient } from '#/integrations/telegram/telegram.service'
+import { type TelegramCallbackQuery, type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
+import { type ConversationState } from '#/providers/telegram/types'
 
 const handleSetLanguageCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
   const messageId = await client.sendMessage(message.chat.id, 'What kind of media do you want to configure?', {

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-import { container, TOKENS } from '#core/container'
-import { updatePlexSelectedLanguages } from '#features/language_sync/jobs/language.job'
-import { type PlexMedia } from '#integrations/plex/plex.validator'
+import { container, TOKENS } from '#/core/container'
+import { updatePlexSelectedLanguages } from '#/features/language_sync/jobs/language.job'
+import { type PlexMedia } from '#/integrations/plex/plex.validator'
 
 import { updateStreamMock } from '../../../mocks/plex.mock.js'
 import '../../../utils.ts'

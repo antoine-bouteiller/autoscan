@@ -1,4 +1,4 @@
-import { ISO1, iso1ToIso2T, iso2ToIso1, iso2TToIso2B, type ISOCode1, type ISOCode2B } from '#shared/types/iso_codes'
+import { ISO1, iso1ToIso2T, iso2ToIso1, iso2TToIso2B, type ISOCode1, type ISOCode2B } from '#/shared/types/iso_codes'
 
 import { isInArray } from './array.js'
 import { isKeyOf } from './object.js'

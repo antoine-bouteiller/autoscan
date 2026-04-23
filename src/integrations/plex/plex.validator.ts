@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { ISO2T } from '#shared/types/iso_codes'
+import { ISO2T } from '#/shared/types/iso_codes'
 
 const streamValidator = z.object({
   id: z.number(),

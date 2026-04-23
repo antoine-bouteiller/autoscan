@@ -1,7 +1,7 @@
-import { type MediaType } from '#integrations/plex/plex.service'
-import { tmdbMovieResponse, tmdbTvResponse, type TmdbMedia, type TmdbMovie, type TmdbTV } from '#integrations/tmdb/tmdb.validator'
-import { isError, logError } from '#shared/utils/error'
-import { httpClient } from '#shared/utils/http_client'
+import { type MediaType } from '#/integrations/plex/plex.service'
+import { tmdbMovieResponse, tmdbTvResponse, type TmdbMedia, type TmdbMovie, type TmdbTV } from '#/integrations/tmdb/tmdb.validator'
+import { isError, logError } from '#/shared/utils/error'
+import { httpClient } from '#/shared/utils/http_client'
 
 export interface ITmdbClient {
   getTmdbMedia(tmdbId: number, mediaType: MediaType): Promise<TmdbMedia>

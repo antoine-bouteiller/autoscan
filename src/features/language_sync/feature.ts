@@ -1,4 +1,4 @@
-import { defineFeature } from '#core/feature'
+import { defineFeature } from '#/core/feature'
 
 import { setLanguageConversation } from './commands/language.command.js'
 import { updatePlexSelectedLanguages } from './jobs/language.job.js'

@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 import { afterEach, describe, expect, test } from 'vite-plus/test'
 
-import env, { loadFileSecrets, urlString } from '#config/env'
+import env, { loadFileSecrets, urlString } from '#/config/env'
 
 const writeTempSecret = (value: string): string => {
   const filePath = join(tmpdir(), `autoscan-test-${randomUUID()}.txt`)

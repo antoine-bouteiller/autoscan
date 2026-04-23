@@ -1,8 +1,8 @@
 import { type z } from 'zod'
 
-import { type HttpError, type HttpErrorFormatter } from '#shared/errors/http'
-import { type NetworkError } from '#shared/errors/network'
-import { type ValidationError } from '#shared/errors/validation'
+import { type HttpError, type HttpErrorFormatter } from '#/shared/errors/http'
+import { type NetworkError } from '#/shared/errors/network'
+import { type ValidationError } from '#/shared/errors/validation'
 
 export type AnySchema = z.ZodType
 

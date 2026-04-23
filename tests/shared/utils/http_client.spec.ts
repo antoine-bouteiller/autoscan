@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 import { z } from 'zod'
 
-import { HttpError } from '#shared/errors/http'
-import { NetworkError } from '#shared/errors/network'
-import { ValidationError } from '#shared/errors/validation'
-import { isError } from '#shared/utils/error'
-import { httpClient } from '#shared/utils/http_client'
+import { HttpError } from '#/shared/errors/http'
+import { NetworkError } from '#/shared/errors/network'
+import { ValidationError } from '#/shared/errors/validation'
+import { isError } from '#/shared/utils/error'
+import { httpClient } from '#/shared/utils/http_client'
 
 const originalFetch = globalThis.fetch
 

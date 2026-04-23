@@ -3,10 +3,10 @@ import { join } from 'node:path'
 
 import { describe, expect, test } from 'vite-plus/test'
 
-import { container, TOKENS } from '#core/container'
-import { transcodeFile, transcodeQueue } from '#features/transcoding/services/transcode.service'
-import { type FFprobeStream } from '#integrations/ffmpeg/ffmpeg.validator'
-import { isOk } from '#shared/utils/error'
+import { container, TOKENS } from '#/core/container'
+import { transcodeFile, transcodeQueue } from '#/features/transcoding/services/transcode.service'
+import { type FFprobeStream } from '#/integrations/ffmpeg/ffmpeg.validator'
+import { isOk } from '#/shared/utils/error'
 
 import { refreshSectionsMock } from '../../../mocks/plex.mock.js'
 import { testWithTestDir, videosPath } from '../../../utils.ts'

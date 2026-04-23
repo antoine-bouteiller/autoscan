@@ -49,7 +49,7 @@ new code goes and when an import crosses a boundary it should not.
 ## 4. Principles & Intents
 
 - `[PI-1]` **Features are independent.** A file under `src/features/<A>/` must not import from `src/features/<B>/`.
-  Cross-feature reuse means the shared code is promoted to `#domains`, `#shared`, `#integrations`, or `#providers`.
+  Cross-feature reuse means the shared code is promoted to `#/domains`, `#/shared`, `#/integrations`, or `#/providers`.
 - `[PI-2]` **Core is boring.** `src/core/` contains only the DI container and the bootstrap wiring. No business
   logic, no ambient state beyond the `container` singleton.
 - `[PI-3]` **Integrations are thin, services are thick.** An integration wraps an external API with typed Zod
@@ -66,8 +66,8 @@ new code goes and when an import crosses a boundary it should not.
   under `integrations/arr/` because Radarr _is_ the arr integration; the send_message body validator is under
   `features/send_message/` because that feature defines the shape.
 - `[PI-8]` **Domains are independent.** A file under `src/domains/<A>/` must not import from `src/domains/<B>/`.
-  Domains may depend on `#shared`, `#config`, `#database`, and `#integrations` — never on `#features`, `#providers`,
-  or sibling domains. If two domains need the same code, promote it to `#shared` or `#integrations`.
+  Domains may depend on `#/shared`, `#/config`, `#/database`, and `#/integrations` — never on `#/features`, `#/providers`,
+  or sibling domains. If two domains need the same code, promote it to `#/shared` or `#/integrations`.
 - `[PI-9]` **Domain folders earn their place.** Create `src/domains/<x>/` only when the code is reused across 3+
   features (or 2 features + 1 provider/integration). Until that threshold is reached, the code stays with its
   originator. This prevents speculative domains and keeps the top level meaningful.
@@ -125,8 +125,8 @@ new code goes and when an import crosses a boundary it should not.
 
 ## 9. Verification Criteria
 
-- `[VC-1]` No file under `src/features/<A>/` imports from `#features/<B>/*` for any `A ≠ B`. Verified via:
-  `for f in src/features/*/; do grep -rn "from '#features/" "$f" | grep -v "from '#features/$(basename "$f")/"; done`
+- `[VC-1]` No file under `src/features/<A>/` imports from `#/features/<B>/*` for any `A ≠ B`. Verified via:
+  `for f in src/features/*/; do grep -rn "from '#/features/" "$f" | grep -v "from '#/features/$(basename "$f")/"; done`
   must print nothing.
 - `[VC-2]` No "layer" folders exist at `src/` root: none of `services/`, `controllers/`, `repositories/`,
   `validators/`, `errors/`, `types/`, `utils/`, `jobs/`.
@@ -143,9 +143,9 @@ new code goes and when an import crosses a boundary it should not.
   is not subject to the subfolder rule. Every `*.provider.ts` lives under `src/providers/<name>/`. Verified via:
   `find src/features src/domains -name "*.service.ts" -not -path "*/services/*"` (and analogous for other suffixes)
   must print nothing.
-- `[VC-8]` No file under `src/domains/<A>/` imports from `#domains/<B>/*` for any `A ≠ B`, and no file under
-  `src/domains/` imports from `#features/*` or `#providers/*`. Verified via:
-  `for d in src/domains/*/; do grep -rn "from '#domains/" "$d" | grep -v "from '#domains/$(basename "$d")/"; done`
+- `[VC-8]` No file under `src/domains/<A>/` imports from `#/domains/<B>/*` for any `A ≠ B`, and no file under
+  `src/domains/` imports from `#/features/*` or `#/providers/*`. Verified via:
+  `for d in src/domains/*/; do grep -rn "from '#/domains/" "$d" | grep -v "from '#/domains/$(basename "$d")/"; done`
   and `grep -rn "from '#\(features\|providers\)/" src/domains/` must both print nothing.
 - `[VC-9]` All folders under `src/` and `tests/` use `snake_case`. Verified via:
   `find src tests -type d | grep -E '/[^/]*(-|[A-Z])[^/]*/?$'` must print nothing.

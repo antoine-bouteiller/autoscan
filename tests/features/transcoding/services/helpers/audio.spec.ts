@@ -3,10 +3,10 @@ import { join } from 'node:path'
 
 import { describe, expect } from 'vite-plus/test'
 
-import { container, TOKENS } from '#core/container'
-import { processAudioStreams } from '#features/transcoding/services/helpers/audio'
-import { type ISOCode1 } from '#shared/types/iso_codes'
-import { isOk } from '#shared/utils/error'
+import { container, TOKENS } from '#/core/container'
+import { processAudioStreams } from '#/features/transcoding/services/helpers/audio'
+import { type ISOCode1 } from '#/shared/types/iso_codes'
+import { isOk } from '#/shared/utils/error'
 
 import { testWithTestDir, videosPath } from '../../../../utils.ts'
 

@@ -103,6 +103,6 @@ N/A
 
 ## Changelog
 
-| Date       | Amendment                              | Sections affected | Reason                                                                                                        |
-| ---------- | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------- |
-| 2026-04-17 | Retarget metadata import to `#domains` | §7, §8            | `#media/metadata.service` → `#domains/media/services/metadata.service` per `project-structure.spec.md` [KD-5] |
+| Date       | Amendment                               | Sections affected | Reason                                                                                                          |
+| ---------- | --------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| 2026-04-17 | Retarget metadata import to `#/domains` | §7, §8            | `#/media/metadata.service` → `#/domains/media/services/metadata.service` per `project-structure.spec.md` [KD-5] |

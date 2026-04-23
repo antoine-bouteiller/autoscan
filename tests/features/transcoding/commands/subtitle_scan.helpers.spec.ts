@@ -10,7 +10,7 @@ import {
   formatReport,
   parseStartTimestamps,
   parseTimestampMs,
-} from '#features/transcoding/commands/subtitle_scan.command'
+} from '#/features/transcoding/commands/subtitle_scan.command'
 
 import { testWithTestDir } from '../../../utils.ts'
 

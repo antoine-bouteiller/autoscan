@@ -1,10 +1,10 @@
-import env from '#config/env'
-import { logger } from '#config/logger'
-import { container, TOKENS } from '#core/container'
-import { type ITelegramClient } from '#integrations/telegram/telegram.service'
-import { type TelegramCallbackQuery, type TelegramMessageIn, type TelegramUpdate } from '#integrations/telegram/telegram.validator'
-import { type ConversationState } from '#providers/telegram/types'
-import { isError, logError } from '#shared/utils/error'
+import env from '#/config/env'
+import { logger } from '#/config/logger'
+import { container, TOKENS } from '#/core/container'
+import { type ITelegramClient } from '#/integrations/telegram/telegram.service'
+import { type TelegramCallbackQuery, type TelegramMessageIn, type TelegramUpdate } from '#/integrations/telegram/telegram.validator'
+import { type ConversationState } from '#/providers/telegram/types'
+import { isError, logError } from '#/shared/utils/error'
 
 export type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Promise<ConversationState>
 type CallbackHandler = (

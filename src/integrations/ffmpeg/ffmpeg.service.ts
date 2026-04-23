@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
-import env from '#config/env'
-import { FileNotFoundError } from '#features/transcoding/errors'
-import { ffprobeOutputValidator } from '#integrations/ffmpeg/ffmpeg.validator'
-import { ValidationError } from '#shared/errors/validation'
-import { isError } from '#shared/utils/error'
-import { spawnPromise } from '#shared/utils/exec_promisify'
-import { safeExistsSync, safeMkdirSync } from '#shared/utils/fs'
+import env from '#/config/env'
+import { FileNotFoundError } from '#/features/transcoding/errors'
+import { ffprobeOutputValidator } from '#/integrations/ffmpeg/ffmpeg.validator'
+import { ValidationError } from '#/shared/errors/validation'
+import { isError } from '#/shared/utils/error'
+import { spawnPromise } from '#/shared/utils/exec_promisify'
+import { safeExistsSync, safeMkdirSync } from '#/shared/utils/fs'
 
 export class FfmpegClient {
   executeFfmpeg(params: { folderName: string; input: string; output: string; command: string[] }) {

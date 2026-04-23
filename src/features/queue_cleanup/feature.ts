@@ -1,4 +1,4 @@
-import { defineFeature } from '#core/feature'
+import { defineFeature } from '#/core/feature'
 
 import { runCleanupProcess } from './jobs/cleanup.job.js'
 

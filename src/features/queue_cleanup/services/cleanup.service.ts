@@ -1,6 +1,6 @@
-import { logger } from '#config/logger'
-import { container, TOKENS } from '#core/container'
-import { type QueueService } from '#integrations/arr/queue.types'
+import { logger } from '#/config/logger'
+import { container, TOKENS } from '#/core/container'
+import { type QueueService } from '#/integrations/arr/queue.types'
 
 const STRIKE_COUNT = 5
 

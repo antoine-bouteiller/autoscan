@@ -1,16 +1,16 @@
 import { and, eq } from 'drizzle-orm'
 
-import { db } from '#config/db'
-import { logger } from '#config/logger'
-import { container, TOKENS } from '#core/container'
-import { media, type Media } from '#database/schema'
-import { getMediaByTypeWithPagination } from '#domains/media/repositories/media.repository'
-import { type UpdateLanguageParams } from '#features/language_sync/types'
-import { type MediaType } from '#integrations/plex/plex.service'
-import { type ITelegramClient } from '#integrations/telegram/telegram.service'
-import { type ConversationState, type InlineKeyboardButton, type InlineKeyboardMarkup } from '#providers/telegram/types'
-import { iso1ToIso2T } from '#shared/types/iso_codes'
-import { normalizeToIso1 } from '#shared/utils/iso_codes'
+import { db } from '#/config/db'
+import { logger } from '#/config/logger'
+import { container, TOKENS } from '#/core/container'
+import { media, type Media } from '#/database/schema'
+import { getMediaByTypeWithPagination } from '#/domains/media/repositories/media.repository'
+import { type UpdateLanguageParams } from '#/features/language_sync/types'
+import { type MediaType } from '#/integrations/plex/plex.service'
+import { type ITelegramClient } from '#/integrations/telegram/telegram.service'
+import { type ConversationState, type InlineKeyboardButton, type InlineKeyboardMarkup } from '#/providers/telegram/types'
+import { iso1ToIso2T } from '#/shared/types/iso_codes'
+import { normalizeToIso1 } from '#/shared/utils/iso_codes'
 
 const PAGE_SIZE = 10
 

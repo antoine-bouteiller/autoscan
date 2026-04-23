@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vite-plus/test'
 
-import '../../../utils.ts'
 import { mockRadarrQueue, mockRadarrRemoveQueueItem } from '../../../mocks/radarr.mock.js'
 import { mockSonarrQueue, mockSonarrRemoveQueueItem } from '../../../mocks/sonarr.mock.js'
 import {
@@ -10,8 +9,9 @@ import {
   mockQueueResponseWithNoEligibleFiles,
   mockQueueResponseWithStalledWarning,
 } from '../../../resources/fixtures/queue.fixtures.js'
+import '../../../utils.ts'
 
-const { cleanupAll } = await import('#features/queue_cleanup/services/cleanup.service')
+const { cleanupAll } = await import('#/features/queue_cleanup/services/cleanup.service')
 
 describe('CleanupService', () => {
   beforeEach(() => {

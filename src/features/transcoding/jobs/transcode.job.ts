@@ -1,8 +1,8 @@
-import { logger } from '#config/logger'
-import { container, TOKENS } from '#core/container'
-import { getCompleteMediaDetails } from '#domains/media/services/metadata.service'
-import { transcodeFile, transcodeQueue } from '#features/transcoding/services/transcode.service'
-import { isError, logError } from '#shared/utils/error'
+import { logger } from '#/config/logger'
+import { container, TOKENS } from '#/core/container'
+import { getCompleteMediaDetails } from '#/domains/media/services/metadata.service'
+import { transcodeFile, transcodeQueue } from '#/features/transcoding/services/transcode.service'
+import { isError, logError } from '#/shared/utils/error'
 
 let isScanning = false
 

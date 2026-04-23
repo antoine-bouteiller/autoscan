@@ -1,4 +1,4 @@
-import { defineFeature } from '#core/feature'
+import { defineFeature } from '#/core/feature'
 
 import { dynDns } from './services/dns.service.js'
 

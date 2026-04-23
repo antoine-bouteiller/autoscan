@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test'
 
-import { sendMessageValidator } from '#features/send_message/validators/send_message.validator'
+import { sendMessageValidator } from '#/features/send_message/validators/send_message.validator'
 
 describe('sendMessageValidator', () => {
   test('should parse valid body', () => {

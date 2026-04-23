@@ -1,6 +1,6 @@
-import { cloudflareErrorResponse } from '#integrations/cloudflare/cloudflare.validator'
-import { type HttpErrorFormatter } from '#shared/errors/http'
-import { createTaggedError } from '#shared/utils/error'
+import { cloudflareErrorResponse } from '#/integrations/cloudflare/cloudflare.validator'
+import { type HttpErrorFormatter } from '#/shared/errors/http'
+import { createTaggedError } from '#/shared/utils/error'
 
 export class CloudflareZoneNotFoundError extends createTaggedError({
   message: '(Cloudflare) Zone not found: $zoneName',

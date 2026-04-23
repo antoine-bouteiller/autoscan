@@ -10,7 +10,7 @@ sed -i.bak "s|hash = \"$current_hash\"|hash = \"$FAKE_HASH\"|" "$FLAKE_FILE"
 rm -f "$FLAKE_FILE.bak"
 
 build_log=$(mktemp)
-nix build .#autoscan --log-format raw >"$build_log" 2>&1 || true
+nix build .#/autoscan --log-format raw >"$build_log" 2>&1 || true
 real_hash=$(sed 's/\x1b\[[0-9;]*m//g' "$build_log" | sed -n 's/.*got: *\(sha256-[^ ]*\).*/\1/p' | head -1)
 
 if [ -z "$real_hash" ]; then

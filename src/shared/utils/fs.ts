@@ -1,6 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from 'node:fs'
 
-import { FileAccessError } from '#features/transcoding/errors'
+import { FileAccessError } from '#/features/transcoding/errors'
 
 const tryCatch = <Result>(filePath: string, operation: string, fn: () => Result): Result | FileAccessError => {
   try {

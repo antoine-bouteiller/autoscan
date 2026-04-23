@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vite-plus/test'
 
-import { runCleanupProcess } from '#features/queue_cleanup/jobs/cleanup.job'
+import { runCleanupProcess } from '#/features/queue_cleanup/jobs/cleanup.job'
 
 import '../../../utils.ts'
 import { mockRadarrQueue, mockRadarrRemoveQueueItem } from '../../../mocks/radarr.mock.js'

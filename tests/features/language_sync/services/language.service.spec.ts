@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test'
 
-import { db } from '#config/db'
-import { container, TOKENS } from '#core/container'
-import { type Media, media as mediaTable } from '#database/schema'
+import { db } from '#/config/db'
+import { container, TOKENS } from '#/core/container'
+import { type Media, media as mediaTable } from '#/database/schema'
 import {
   buildLanguageKeyboard,
   buildMediaKeyboard,
@@ -13,9 +13,9 @@ import {
   selectLanguage,
   selectMedia,
   selectMediaType,
-} from '#features/language_sync/services/language.service'
-import { type PlexMediaStream } from '#integrations/plex/plex.validator'
-import { iso1ToIso2T } from '#shared/types/iso_codes'
+} from '#/features/language_sync/services/language.service'
+import { type PlexMediaStream } from '#/integrations/plex/plex.validator'
+import { iso1ToIso2T } from '#/shared/types/iso_codes'
 
 import { updateStreamMock } from '../../../mocks/plex.mock.js'
 import { editMessageTextMock } from '../../../mocks/telegram.mock.js'

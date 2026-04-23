@@ -32,12 +32,12 @@ both forbidden by `project-structure.spec.md` [PI-1]. This domain exists to host
 
 ## 4. Principles & Intents
 
-- `[PI-1]` **Independent from sibling domains.** No imports from `#domains/<other>` or `#features/*` or `#providers/*`
+- `[PI-1]` **Independent from sibling domains.** No imports from `#/domains/<other>` or `#/features/*` or `#/providers/*`
   — per `project-structure.spec.md` [PI-8].
 - `[PI-2]` **Errors are typed and returned, not thrown.** `FileNotFoundError` and `TmdbIdNotFoundError` are exported
   from `errors.ts`; callers use `isError()`.
 - `[PI-3]` **Services call repositories; callers call services.** External callers of this domain should target
-  `#domains/media/services/*`, not `#domains/media/repositories/*`, unless they genuinely need raw Drizzle queries
+  `#/domains/media/services/*`, not `#/domains/media/repositories/*`, unless they genuinely need raw Drizzle queries
   (e.g., the language-sync cron does a bulk paginated scan via the repository directly — that's the exception).
 
 ## 5. Non-Goals
@@ -47,7 +47,7 @@ both forbidden by `project-structure.spec.md` [PI-1]. This domain exists to host
 - `[NG-2]` No update-on-read for existing rows — once persisted, `getMediaLanguage` returns the stored row verbatim;
   refreshing stale TMDB data is out of scope.
 - `[NG-3]` No sibling-domain composition — if another domain needs media info, it must consume through the shared
-  `#shared` layer, not cross-import this domain.
+  `#/shared` layer, not cross-import this domain.
 
 ## 6. Caveats
 
@@ -83,8 +83,8 @@ both forbidden by `project-structure.spec.md` [PI-1]. This domain exists to host
   upserts on `(tmdbId, type)` conflict; `getMediaByTypeWithPagination` orders by `title`; `countMediaByType` counts
   per type — **PASS** (`tests/domains/media/repositories/media.repository.spec.ts`).
 - `[VC-3]` `extractTmdbIdFromPath` parses `{tmdb-<id>}` from a Plex file path — **PASS** (`tests/domains/media/services/metadata.service.spec.ts`).
-- `[VC-4]` Domain imports satisfy `project-structure.spec.md` [VC-8]: no `#features/*`, no `#providers/*`, no
-  `#domains/<other>/*` — verified by the cross-cutting spec's grep check.
+- `[VC-4]` Domain imports satisfy `project-structure.spec.md` [VC-8]: no `#/features/*`, no `#/providers/*`, no
+  `#/domains/<other>/*` — verified by the cross-cutting spec's grep check.
 
 ## 10. Open Questions
 

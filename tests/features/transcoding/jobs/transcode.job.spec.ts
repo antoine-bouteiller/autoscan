@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-import { container, TOKENS } from '#core/container'
-import { getTranscodingStatus, runTranscodeProcess } from '#features/transcoding/jobs/transcode.job'
+import { container, TOKENS } from '#/core/container'
+import { getTranscodingStatus, runTranscodeProcess } from '#/features/transcoding/jobs/transcode.job'
 
 import '../../../utils.ts'
 

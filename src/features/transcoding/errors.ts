@@ -1,4 +1,4 @@
-import { createTaggedError } from '#shared/utils/error'
+import { createTaggedError } from '#/shared/utils/error'
 
 export class AudioStreamNotFoundError extends createTaggedError({
   message: '($mediaTitle) No audio streams found for language $language',

@@ -1,8 +1,8 @@
 import { type PgliteDatabase } from 'drizzle-orm/pglite'
 import { type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
-import env, { isEnvironmentEnv } from '#config/env'
-import { safeExistsSync, safeMkdirSync } from '#shared/utils/fs'
+import env, { isEnvironmentEnv } from '#/config/env'
+import { safeExistsSync, safeMkdirSync } from '#/shared/utils/fs'
 
 type Database = PostgresJsDatabase | PgliteDatabase
 

@@ -1,5 +1,5 @@
-import { type FFprobeStream } from '#integrations/ffmpeg/ffmpeg.validator'
-import { type ISOCode1 } from '#shared/types/iso_codes'
+import { type FFprobeStream } from '#/integrations/ffmpeg/ffmpeg.validator'
+import { type ISOCode1 } from '#/shared/types/iso_codes'
 
 export type Criteria =
   | {

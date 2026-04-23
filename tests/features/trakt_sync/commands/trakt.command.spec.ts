@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-import { db } from '#config/db'
-import { traktSyncHistory, traktTokens } from '#database/schema'
-import { syncTraktCommand, traktAuthCommand } from '#features/trakt_sync/commands/trakt.command'
-import { type TelegramMessageIn } from '#integrations/telegram/telegram.validator'
-import { HttpError } from '#shared/errors/http'
+import { db } from '#/config/db'
+import { traktSyncHistory, traktTokens } from '#/database/schema'
+import { syncTraktCommand, traktAuthCommand } from '#/features/trakt_sync/commands/trakt.command'
+import { type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
+import { HttpError } from '#/shared/errors/http'
 
 import { sendMessageMock } from '../../../mocks/telegram.mock.js'
 import { getDeviceCodeMock, syncWatchedHistoryMock } from '../../../mocks/trakt.mock.js'

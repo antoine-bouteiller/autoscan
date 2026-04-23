@@ -1,7 +1,7 @@
-import { logger } from '#config/logger'
-import { type FFprobeStream } from '#integrations/ffmpeg/ffmpeg.validator'
-import { type ISOCode1 } from '#shared/types/iso_codes'
-import { safeReadFileSync } from '#shared/utils/fs'
+import { logger } from '#/config/logger'
+import { type FFprobeStream } from '#/integrations/ffmpeg/ffmpeg.validator'
+import { type ISOCode1 } from '#/shared/types/iso_codes'
+import { safeReadFileSync } from '#/shared/utils/fs'
 
 import { isStreamWanted, type Criteria } from './utils.js'
 

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
-import { container, TOKENS } from '#core/container'
-import { transcodeCommand } from '#features/transcoding/commands/transcode.command'
-import { type TelegramMessageIn } from '#integrations/telegram/telegram.validator'
+import { container, TOKENS } from '#/core/container'
+import { transcodeCommand } from '#/features/transcoding/commands/transcode.command'
+import { type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
 
 import { sendMessageMock } from '../../../mocks/telegram.mock.js'
 import { MockTelegramClient } from '../../../utils.ts'
