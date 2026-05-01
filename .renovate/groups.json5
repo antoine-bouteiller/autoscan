@@ -7,5 +7,10 @@
       matchPackageNames: ['drizzle-orm', 'drizzle-kit'],
       versioning: 'docker',
     },
+    {
+      description: 'Vite+ Group',
+      groupName: 'vite-plus',
+      matchPackageNames: ['vite-plus', '@vitest/coverage-v8'],
+    },
   ],
 }
