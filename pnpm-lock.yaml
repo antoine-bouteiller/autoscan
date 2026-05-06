@@ -17,7 +17,7 @@ importers:
         version: 10.0.1
       drizzle-orm:
         specifier: 1.0.0-beta.22-41a7d21
-        version: 1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.4)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(postgres@3.4.9)(zod@4.3.6)
+        version: 1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.5)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(postgres@3.4.9)(zod@4.3.6)
       postgres:
         specifier: 3.4.9
         version: 3.4.9
@@ -26,8 +26,8 @@ importers:
         version: 4.3.6
     devDependencies:
       '@electric-sql/pglite':
-        specifier: 0.4.4
-        version: 0.4.4
+        specifier: 0.4.5
+        version: 0.4.5
       '@types/node':
         specifier: 25.6.0
         version: 25.6.0
@@ -147,8 +147,8 @@ packages:
   '@drizzle-team/brocli@0.11.0':
     resolution: {integrity: sha512-hD3pekGiPg0WPCCGAZmusBBJsDqGUR66Y452YgQsZOnkdQ7ViEPKuyP4huUGEZQefp8g34RRodXYmJ2TbCH+tg==}
 
-  '@electric-sql/pglite@0.4.4':
-    resolution: {integrity: sha512-g/6CWAJ4XOkObWCWAQ2IReZD8VvsDy3poRHSKvpRR2F96F8WJ3HVbjpso3gN7l0q6QPPgvxSSpl/qo5k8a7mkQ==}
+  '@electric-sql/pglite@0.4.5':
+    resolution: {integrity: sha512-aGG2zGEyZzGWKy8P+9ZoNUV0jxt1+hgbeTf+bVAYyxVZZLXg3/9aFlfLxb08AYZVAfAkQlQIysmWjhc5hwDG8g==}
 
   '@emnapi/core@1.9.0':
     resolution: {integrity: sha512-0DQ98G9ZQZOxfUcQn1waV2yS8aWdZ6kJMbYCJB3oUBecjWYO1fqJ+a1DRfPF3O5JEkwqwP1A9QEN/9mYm2Yd0w==}
@@ -2399,7 +2399,7 @@ snapshots:
 
   '@drizzle-team/brocli@0.11.0': {}
 
-  '@electric-sql/pglite@0.4.4': {}
+  '@electric-sql/pglite@0.4.5': {}
 
   '@emnapi/core@1.9.0':
     dependencies:
@@ -3186,12 +3186,12 @@ snapshots:
       get-tsconfig: 4.14.0
       jiti: 2.6.1
 
-  drizzle-orm@1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.4)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(postgres@3.4.9)(zod@4.3.6):
+  drizzle-orm@1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.5)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(postgres@3.4.9)(zod@4.3.6):
     dependencies:
       '@types/mssql': 9.1.9(@azure/core-client@1.10.1)
       mssql: 11.0.1(@azure/core-client@1.10.1)
     optionalDependencies:
-      '@electric-sql/pglite': 0.4.4
+      '@electric-sql/pglite': 0.4.5
       '@types/pg': 8.20.0
       pg: 8.20.0
       postgres: 3.4.9
