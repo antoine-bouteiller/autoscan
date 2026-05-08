@@ -24,7 +24,7 @@
 
           nativeBuildInputs = [
             pkgs.nodejs
-            pkgs.pnpm_10
+            pkgs.pnpm_11
             pkgs.pnpmConfigHook
             pkgs.makeWrapper
           ];
