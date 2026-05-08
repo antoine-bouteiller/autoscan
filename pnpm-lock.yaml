@@ -17,13 +17,13 @@ importers:
         version: 10.0.1
       drizzle-orm:
         specifier: 1.0.0-beta.22-41a7d21
-        version: 1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.5)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(postgres@3.4.9)(zod@4.3.6)
+        version: 1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.5)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(postgres@3.4.9)(zod@4.4.3)
       postgres:
         specifier: 3.4.9
         version: 3.4.9
       zod:
-        specifier: 4.3.6
-        version: 4.3.6
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@electric-sql/pglite':
         specifier: 0.4.5
@@ -2233,8 +2233,8 @@ packages:
     engines: {node: '>= 14.6'}
     hasBin: true
 
-  zod@4.3.6:
-    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
@@ -3186,7 +3186,7 @@ snapshots:
       get-tsconfig: 4.14.0
       jiti: 2.6.1
 
-  drizzle-orm@1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.5)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(postgres@3.4.9)(zod@4.3.6):
+  drizzle-orm@1.0.0-beta.22-41a7d21(@electric-sql/pglite@0.4.5)(@types/mssql@9.1.9(@azure/core-client@1.10.1))(@types/pg@8.20.0)(mssql@11.0.1(@azure/core-client@1.10.1))(pg@8.20.0)(postgres@3.4.9)(zod@4.4.3):
     dependencies:
       '@types/mssql': 9.1.9(@azure/core-client@1.10.1)
       mssql: 11.0.1(@azure/core-client@1.10.1)
@@ -3195,7 +3195,7 @@ snapshots:
       '@types/pg': 8.20.0
       pg: 8.20.0
       postgres: 3.4.9
-      zod: 4.3.6
+      zod: 4.4.3
 
   ecdsa-sig-formatter@1.0.11:
     dependencies:
@@ -3425,7 +3425,7 @@ snapshots:
       strip-json-comments: 5.0.3
       unbash: 2.2.0
       yaml: 2.8.3
-      zod: 4.3.6
+      zod: 4.4.3
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -4000,4 +4000,4 @@ snapshots:
 
   yaml@2.8.3: {}
 
-  zod@4.3.6: {}
+  zod@4.4.3: {}
