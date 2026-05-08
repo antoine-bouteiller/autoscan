@@ -78,6 +78,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.NIX_UPDATE_GITHUB_TOKEN }}
 
       - name: Install Nix
         uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
@@ -93,6 +94,7 @@ jobs:
           git add flake.nix
           git commit -m "chore: update nix pnpmDeps hash"
           git push
+          exit 1
 
   knip:
     name: Knip
