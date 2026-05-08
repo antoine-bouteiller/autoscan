@@ -73,7 +73,7 @@ type ExtractVars<Str extends string> = Str extends `${string}$${infer AfterDolla
 
 type VarProps<Msg extends string> = [ExtractVars<Msg>] extends [never] ? Record<never, never> : Record<ExtractVars<Msg>, string | number>
 
-export type TaggedErrorInstance<Tag extends string, Msg extends string> = Error & {
+type TaggedErrorInstance<Tag extends string, Msg extends string> = Error & {
   readonly _tag: Tag
   readonly tag: Tag
   readonly messageTemplate: Msg

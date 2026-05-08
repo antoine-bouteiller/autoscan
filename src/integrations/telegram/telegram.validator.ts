@@ -22,7 +22,7 @@ const telegramCallbackQuerySchema = z.object({
   message: telegramMessageInSchema.optional(),
 })
 
-export const telegramUpdateSchema = z.object({
+const telegramUpdateSchema = z.object({
   callback_query: telegramCallbackQuerySchema.optional(),
   message: telegramMessageInSchema.optional(),
   update_id: z.number(),

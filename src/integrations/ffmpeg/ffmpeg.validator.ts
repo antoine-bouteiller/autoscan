@@ -27,6 +27,6 @@ export const ffprobeOutputValidator = z.object({
   ),
 })
 
-export type FfprobeOutput = z.infer<typeof ffprobeOutputValidator>
+type FfprobeOutput = z.infer<typeof ffprobeOutputValidator>
 
 export type FFprobeStream = FfprobeOutput['streams'][number]
