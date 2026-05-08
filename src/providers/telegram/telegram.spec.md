@@ -1,117 +1,179 @@
 ---
-title: Telegram — core bot runtime + feature-owned commands
-status: condensed
-author: Antoine Bouteiller
-date: 2026-04-16
-related:
-  [
-    docs/specs/architecture.spec.md,
-    src/features/language_sync/language_sync.spec.md,
-    src/features/transcoding/transcoding.spec.md,
-    src/features/trakt_sync/trakt_sync.spec.md,
-  ]
+title: Telegram Provider
+version: 1.0
+date_created: 2026-05-08
+last_updated: 2026-05-08
+tags: [provider, telegram, bot, runtime]
 ---
 
-## 2. Problem Statement
+# Introduction
 
-Autoscan runs headless — there is no web UI. Telegram is the operator-facing command channel: one-shot commands for
-common actions, and a multi-step conversation for setting per-media language preferences. The bot is a **core runtime
-provider** (not a feature): it owns the long-poll loop, the chat-ID auth gate, and the command/conversation dispatch.
-The actual commands are owned and registered by each feature via its `register*()` function.
+The Telegram provider is the runtime host for the bot. It polls the Telegram Bot API,
+authorizes incoming chats, and dispatches updates to feature-registered command handlers
+and conversations.
 
-- `[G-1]` Expose `/setlanguage`, `/trakt`, `/synctrakt`, `/transcode`, `/subtitlescan`, `/cancel` to the operator chat
-  — all except `/cancel` are registered by individual features.
-- `[G-2]` Support multi-step conversations with inline-keyboard callbacks (needed by `/setlanguage`).
-- `[G-3]` Reject any update whose chat ID doesn't match `env.TELEGRAM_CHAT_ID`.
-- `[G-4]` Survive transient Telegram API failures with exponential backoff.
-- `[G-5]` The core Telegram module exposes zero app-specific commands of its own (except the built-in `/cancel`) —
-  it only exposes the provider API so features can register their commands on it.
+## 1. Purpose & Scope
 
-## 3. Key Design Decisions
+Wrap the `ITelegramClient` HTTP wrapper, hold the routing tables for commands and
+multi-step conversations, and own the long-running poll loop. Out of scope: low-level
+HTTP, schema validation (delegated to `#/integrations/telegram`), and feature business
+logic.
 
-| Decision                      | Choice                                                                                                 | Rationale                                                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| `[KD-1]` Transport            | Long-polling `getUpdates` with `timeout=30`                                                            | No public HTTPS endpoint needed; fits homelab behind NAT                           |
-| `[KD-2]` Auth                 | `update.message.chat.id === env.TELEGRAM_CHAT_ID` or `update.callback_query.message.chat.id`           | Single-operator bot, no per-user auth                                              |
-| `[KD-3]` Command registration | Two shapes: `registerCommand(cmd, handler)` and `registerConversation(cmd, { onCommand, onCallback })` | One-shot commands and multi-step flows share the bot but have different lifecycles |
-| `[KD-4]` State                | Single `ConversationState` field on the provider — one active conversation at a time                   | Operator is single, serialized flows are simpler to reason about                   |
-| `[KD-5]` Cancel               | Hard-coded `/cancel` handler that always runs before dispatch                                          | User can always escape                                                             |
-| `[KD-6]` Backoff              | On `getUpdates` error: 5s → 5min exponential                                                           | Same pattern as DNS service                                                        |
-| `[KD-7]` Telegram client      | Custom thin wrapper (`TelegramClient`) over `fetch` via internal `httpClient`                          | No framework; matches other integrations                                           |
-| `[KD-8.1]` Command ownership  | Each command is registered by the feature that owns its handler; `/cancel` is the only built-in        | Keeps features independent; provider only dispatches                               |
+## 2. Definitions
 
-## 4. Principles & Intents
+- **command** — a `/word` text message routed to a one-shot handler.
+- **conversation** — a stateful flow with an entry command and a callback step driven by
+  inline keyboard button presses.
+- **chat** — a Telegram chat; only `env.TELEGRAM_CHAT_ID` is authorized.
+- **handler** — async function returning the next `ConversationState`.
+- **polling** — long-poll loop calling `getUpdates` with a 30s timeout.
 
-- `[PI-1]` **Chat-ID gate is the auth boundary** — every update goes through `handleUpdate` which short-circuits on
-  unknown chat IDs.
-- `[PI-2]` **Commands return `ConversationState`** — a command that goes multi-step returns a non-`idle` state and
-  the provider remembers which command "owns" it via `activeConversationKey`.
-- `[PI-3]` **Long-running work is detached** — `traktAuthCommand` and `subtitleScanCommand` spawn async IIFEs so the
-  poll loop isn't blocked.
-- `[PI-4]` **The provider does not know what commands do** — commands own all business logic; the provider only
-  dispatches.
-- `[PI-5.1]` **Features own their commands.** `core/telegram/` exposes only `TelegramProvider` and the conversation
-  types. Commands are attached from `features/<feature>/register.ts`. Core never hard-codes a command (other than
-  `/cancel`).
+## 3. Requirements, Constraints & Guidelines
 
-## 5. Non-Goals
+- **REQ-001** Expose `registerCommand(name, handler)` and `registerConversation(name,
+conversation)` for `registerFeatures` to wire feature tables at bootstrap.
+- **REQ-002** Drop any update whose `chat.id !== env.TELEGRAM_CHAT_ID`; log a warning.
+- **REQ-003** `start()` is idempotent (warns if already running) and launches the poll
+  loop; `stop()` flips `running = false` so the loop exits after the current iteration.
+- **REQ-004** Resolved as a singleton via `container.resolve(TOKENS.TELEGRAM_PROVIDER)`.
+- **REQ-005** Only one conversation may be active at a time, tracked by
+  `activeConversationKey`. `/cancel` resets state to `{ step: 'idle' }`.
+- **REQ-006** While a conversation is active, plain `/command` messages are ignored —
+  only `callback_query` updates feed the conversation. Messages are processed only when
+  no conversation is active.
+- **CON-001** No third-party bot SDK (Telegraf, grammY) — uses raw HTTP via
+  `httpClient` against `https://api.telegram.org/bot<token>`.
+- **CON-002** `getUpdates` errors do not crash the loop; back off exponentially from 5s
+  to 5min.
+- **CON-003** State is in-memory only; restarts drop active conversations.
+- **GUD-001** Features expose commands/conversations through `defineFeature` rather than
+  calling `registerCommand` directly.
+- **PAT-001** Conversation = `{ onCommand, onCallback }`; both return the next
+  `ConversationState`. Returning `{ step: 'idle' }` ends the conversation.
 
-- `[NG-1]` No multi-user, per-user permissions, groups.
-- `[NG-2]` No slash-command arguments — all input is via inline keyboards or free text (not parsed).
-- `[NG-3]` No persistent conversation state — a restart resets conversations to `idle`.
-- `[NG-4]` No rate limiting of operator commands.
+## 4. Interfaces & Data Contracts
 
-## 6. Caveats
+```ts
+// telegram.provider.ts
+export type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Promise<ConversationState>
 
-- `[C-1]` Only one conversation can be active at a time — starting `/setlanguage` mid-`/setlanguage` re-enters the
-  first step.
-- `[C-2]` Callback queries received when no conversation is active are ignored (no warning).
-- `[C-3]` Error backoff pauses polling up to 5 minutes — commands sent during backoff are buffered by Telegram and
-  replayed after.
-- `[C-4]` The bot is started in `src/index.ts` _after_ `http.start()` — a crash in bootstrap won't start the bot, so
-  operator won't be notified via Telegram.
-- `[C-5]` Commands spawning fire-and-forget IIFEs (e.g. `/trakt`, `/subtitlescan`) are not awaited on `SIGINT`.
+export interface Conversation {
+  onCommand: CommandHandler
+  onCallback: (
+    client: ITelegramClient,
+    chatId: number,
+    params: { state: ConversationState; callback: TelegramCallbackQuery }
+  ) => Promise<ConversationState>
+}
 
-## 7. High-Level Components
+export class TelegramProvider {
+  constructor() // resolves TOKENS.TELEGRAM_CLIENT from container
+  registerCommand(command: string, handler: CommandHandler): this
+  registerConversation(command: string, conversation: Conversation): this
+  start(): void
+  stop(): Promise<void>
+}
+```
 
-| Component           | Module type                                                   | Responsibility                                 | Public API surface                                                                                                                                      |
-| ------------------- | ------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Telegram provider   | Core runtime (`src/providers/telegram/telegram.provider.ts`)  | Poll + dispatch + active-conversation state    | `TelegramProvider.start()`, `.stop()`, `.registerCommand(cmd, handler)`, `.registerConversation(cmd, { onCommand, onCallback })`                        |
-| Telegram types      | Module (`src/providers/telegram/types.ts`)                    | Conversation state, inline-keyboard types      | `ConversationState`, `InlineKeyboardButton`, `InlineKeyboardMarkup`                                                                                     |
-| Telegram client     | Integration (`src/integrations/telegram/telegram.service.ts`) | Telegram Bot API wrapper                       | `TelegramClient` (`ITelegramClient`): `getUpdates`, `sendMessage`, `editMessageText`, `deleteMessage`, `answerCallbackQuery`                            |
-| Telegram validators | Module (`src/integrations/telegram/telegram.validator.ts`)    | Zod schemas for Telegram API                   | `getUpdatesResponseSchema`, `sendMessageResponseSchema`, `TelegramUpdate`, `TelegramMessageIn`, `TelegramCallbackQuery`                                 |
-| Feature commands    | Handlers owned by features                                    | One handler per command, registered by feature | `setLanguageConversation` (language_sync), `traktAuthCommand`, `syncTraktCommand` (trakt_sync), `transcodeCommand`, `subtitleScanCommand` (transcoding) |
+```ts
+// types.ts
+export type ConversationState =
+  | { step: 'idle' }
+  | { step: 'awaiting_media_type'; messageId: number }
+  | { step: 'awaiting_media_selection'; messageId: number; mediaType: MediaType; page: number }
+  | { step: 'awaiting_language'; messageId: number; tmdbId: number; mediaType: MediaType }
 
-## 8. Detailed Design
+export interface InlineKeyboardButton {
+  text: string
+  callback_data: string
+}
+export interface InlineKeyboardMarkup {
+  inline_keyboard: InlineKeyboardButton[][]
+}
+```
 
-> Condensed after implementation. See source code for full detail.
+`registerCommand` / `registerConversation` use `Map.set` — re-registering the same name
+silently overwrites the previous entry. Authorized chat = `env.TELEGRAM_CHAT_ID`.
 
-| Component               | Module                                                       | Entry point                                                                        |
-| ----------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| Telegram provider       | `src/providers/telegram/telegram.provider.ts`                | `TelegramProvider`                                                                 |
-| Telegram types          | `src/providers/telegram/types.ts`                            | `ConversationState`, `InlineKeyboardButton`, `InlineKeyboardMarkup`                |
-| Telegram client         | `src/integrations/telegram/telegram.service.ts`              | `TelegramClient` / `ITelegramClient`                                               |
-| Telegram validators     | `src/integrations/telegram/telegram.validator.ts`            | `getUpdatesResponseSchema`, `sendMessageResponseSchema`, `TelegramUpdate`          |
-| `/setlanguage` command  | `src/features/language_sync/commands/language.command.ts`    | `setLanguageConversation` (registered in `src/features/language_sync/register.ts`) |
-| `/trakt` command        | `src/features/trakt_sync/commands/trakt.command.ts`          | `traktAuthCommand` (registered in `src/features/trakt_sync/register.ts`)           |
-| `/synctrakt` command    | `src/features/trakt_sync/commands/trakt.command.ts`          | `syncTraktCommand` (registered in `src/features/trakt_sync/register.ts`)           |
-| `/transcode` command    | `src/features/transcoding/commands/transcode.command.ts`     | `transcodeCommand` (registered in `src/features/transcoding/register.ts`)          |
-| `/subtitlescan` command | `src/features/transcoding/commands/subtitle_scan.command.ts` | `subtitleScanCommand` (registered in `src/features/transcoding/register.ts`)       |
-| `/cancel` built-in      | `src/providers/telegram/telegram.provider.ts`                | `handleCancel` (hard-coded inside `TelegramProvider.handleUpdate`)                 |
+## 5. Acceptance Criteria
 
-## 9. Verification Criteria
+- **AC-001** Given `/foo` is registered, When the authorized chat sends `/foo`, Then
+  the handler runs with the parsed message.
+- **AC-002** Given an unauthorized chat sends `/foo`, When the poll loop sees the
+  update, Then the handler is not invoked and a warning is logged.
+- **AC-003** Given a registered conversation, When the user types its entry command,
+  Then `onCommand` runs and subsequent button presses route to `onCallback` until state
+  returns to `idle`.
+- **AC-004** Given a conversation is active, When the user sends `/cancel`, Then state
+  resets to `idle` and the user is told "Cancelled."
+- **AC-005** Given `start()` was called, When `stop()` is called, Then the poll loop
+  exits before its next `getUpdates` and `running === false`.
+- **AC-006** Given `getUpdates` returns an `Error`, When the loop iterates, Then it
+  waits, doubles its backoff (capped at 5min), and retries without exiting.
 
-- `[VC-1]` Updates from foreign chat IDs are ignored — covered indirectly by integration test; asserted at
-  `handleUpdate`.
-- `[VC-2]` `/cancel` resets an active conversation and clears `activeConversationKey`.
-- `[VC-3]` `registerCommand` and `registerConversation` are exclusive — a command name registered in both maps resolves
-  to the conversation entry first.
-- `[VC-4]` `getUpdates` errors trigger exponential backoff up to 5 min — verifiable via mocking the client.
-- `[VC-5]` Command handlers that return `{ step: 'idle' }` cause the provider to clear `activeConversationKey`.
-- `[VC-6]` `sendMessage` returns `undefined` on underlying HTTP failure.
-- `[VC-7.1]` `src/providers/telegram/**` contains no references to specific commands (except `/cancel`); commands appear
-  only under `src/features/**/register.ts` and `*.command.ts`.
+## 6. Test Automation Strategy
 
-## 10. Open Questions
+Unit-test the dispatcher with a fake `ITelegramClient` driving update sequences through
+`handleUpdate`. Cover: chat-id filtering, `/cancel`, conversation activation/deactivation,
+overwrite-on-re-register. The poll-loop backoff is integration-tested by faking a
+sequence of `Error` then success returns from `getUpdates`.
 
-N/A
+## 7. Rationale & Context
+
+A provider sits between features and the HTTP client to keep state-machine routing,
+authorization, and lifecycle concerns out of every feature. Features stay declarative
+(`defineFeature({ commands, conversations })`); the provider owns dispatch.
+
+A raw HTTP poll loop was chosen over Telegraf/grammY because the surface needed
+(`getUpdates`, `sendMessage`, `editMessageText`, `answerCallbackQuery`) is small and
+already validated with zod in `#/integrations/telegram`.
+
+## 8. Dependencies & External Integrations
+
+### External Systems
+
+- **EXT-001** Telegram Bot API (`https://api.telegram.org/bot<token>`) — long-poll
+  `getUpdates` with 30s timeout.
+
+### Technology Platform Dependencies
+
+- **PLT-001** Internal `httpClient` (`#/shared/utils/http_client`) — no third-party bot
+  SDK.
+- **PLT-002** Node.js (timers, async iteration).
+
+## 9. Examples & Edge Cases
+
+```ts
+// Command (one-shot)
+defineFeature({
+  name: 'ping',
+  commands: {
+    '/ping': async (client, message) => {
+      await client.sendMessage(message.chat.id, 'pong')
+      return { step: 'idle' }
+    },
+  },
+})
+
+// Conversation (multi-step) — see language_sync/commands/language.command.ts
+defineFeature({
+  name: 'language_sync',
+  conversations: { '/setlanguage': setLanguageConversation },
+})
+```
+
+Edge cases: re-registering `/ping` overwrites the prior handler; an unauthorized chat
+sending `/ping` is ignored; a button press while `activeConversationKey` is undefined is
+dropped silently.
+
+## 10. Validation Criteria
+
+`vp check` and `vp test` pass. The dev script (`pnpm run dev` →
+`tsx --env-file=.env --watch src/index.ts`) starts the provider whenever `.env` provides
+`TELEGRAM_TOKEN` and `TELEGRAM_CHAT_ID`; omitting either fails zod parsing in
+`src/config/env.ts` before `start()` is reached.
+
+## 11. Related Specifications / Further Reading
+
+- ../../../docs/architecture/container.spec.md
+- ../../../docs/architecture/feature_registration.spec.md

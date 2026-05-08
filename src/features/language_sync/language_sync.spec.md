@@ -1,108 +1,183 @@
 ---
-title: Plex language sync
-status: amended
-author: Antoine Bouteiller
-date: 2026-04-17
-related: [docs/specs/architecture.spec.md, docs/specs/persistence.spec.md, src/domains/media/media.spec.md, src/providers/telegram/telegram.spec.md]
+title: Language Sync Feature
+version: 1.0
+date_created: 2026-05-08
+last_updated: 2026-05-08
+tags: [feature, plex, tmdb, telegram, scheduler]
 ---
 
-## 2. Problem Statement
+# Introduction
 
-Plex does not automatically select the "right" audio track or subtitles for multi-language content. Autoscan owns a
-per-media `preferredLanguage`, defaults it to the title's original language from TMDB, lets the operator override it
-via Telegram, and pushes the selection to Plex on a schedule.
+The `language_sync` feature keeps each Plex item playing back in the user's preferred audio language. A
+scheduled job walks every Plex section, resolves the preferred language for each item via `#/domains/media`,
+and instructs Plex to switch the audio (and, for French, subtitle) stream selection. A Telegram conversation
+lets the user override the per-media preferred language interactively.
 
-- `[G-1]` Every Plex media item should default to original-language audio (via TMDB lookup).
-- `[G-2]` Operator can override per-media via `/setlanguage` in Telegram.
-- `[G-3]` A cron every 12h reconciles Plex audio track selection with the stored preference.
-- `[G-4]` When preferred language is French, explicitly disable subtitles on Plex; otherwise leave subs alone.
+## 1. Purpose & Scope
 
-## 3. Key Design Decisions
+In scope: scheduled enforcement of the per-media preferred audio/subtitle stream on Plex, and the
+`/setlanguage` Telegram conversation that updates the `media.preferred_language` column. Out of scope:
+populating media rows (handled by `#/domains/media`), language detection, and Plex library refresh.
 
-| Decision                        | Choice                                                                                           | Rationale                                                                 |
-| ------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `[KD-1]` Language storage       | `media` table keyed by `(tmdb_id, type)` with `original_language` + `preferred_language` columns | Deduplicated across movie/show; preference persists across Plex rescans   |
-| `[KD-2]` Default preference     | On first sighting, `preferred_language = original_language` from TMDB                            | Sensible default; no operator action required                             |
-| `[KD-3]` Reconciliation cadence | Cron every 12h at minute 0 (`0 0 */12 * * *`)                                                    | Matches transcode cadence; not latency-sensitive                          |
-| `[KD-4]` Override channel       | Telegram `/setlanguage` multi-step conversation                                                  | Operator-only surface matches single-user bot design                      |
-| `[KD-5]` Source of truth        | The DB `preferred_language` is authoritative; Plex is the "view"                                 | Rebuilding Plex doesn't lose operator choices                             |
-| `[KD-6]` Subtitle handling      | If preferred is `fr`, set subtitle stream to `0` (none); otherwise do not touch subtitles        | French content + French audio rarely needs subs; other languages often do |
+## 2. Definitions
 
-## 4. Principles & Intents
+- **Preferred language**: ISO 639-1 code stored in `media.preferred_language`; defaults to the TMDB
+  `original_language` on first ingest.
+- **Stream selection**: Plex `library/parts/{partsId}` PUT call setting `audioStreamID` or `subtitleStreamID`.
+- **Conversation state**: per-chat finite state machine maintained by `#/providers/telegram`.
 
-- `[PI-1]` **No mutation without necessity** — if the desired audio stream is already `selected`, skip the Plex call.
-- `[PI-2]` **Preference language → ISO 639-1 normalized** — all DB storage and comparison happens in ISO-1 via
-  `normalizeToIso1()` (which handles 639-2/B/T variants).
-- `[PI-3]` **Failures per media are logged, not fatal** — job loops over all Plex items; one missing stream doesn't
-  abort the run.
-- `[PI-4]` **Pagination in the Telegram UI** — media list is navigable (`◀️` / `▶️`) with `PAGE_SIZE = 10`.
+## 3. Requirements, Constraints & Guidelines
 
-## 5. Non-Goals
+- **REQ-001** Register a cron job named `Language Sync` with pattern `0 0 */12 * * *` (every 12 hours on the
+  hour) that runs `updatePlexSelectedLanguages`.
+- **REQ-002** For every Plex section returned by `getSections`, the job MUST iterate every media item and
+  resolve `{ mediaTitle, partsId, preferredLanguage, streams }` via `getCompleteMediaDetails(ratingKey)`.
+- **REQ-003** The job MUST select the audio stream where `streamType === 2` and the normalized stream
+  language code equals `preferredLanguage`.
+- **REQ-004** The job MUST be idempotent: if the matching audio stream already has `selected === true` no
+  Plex call is made.
+- **REQ-005** When `preferredLanguage === 'fr'` and an audio change is issued, the job MUST also clear the
+  subtitle track by calling `updateStream(partsId, 0, 'subtitle')`.
+- **REQ-006** Register a Telegram conversation under the command `/setlanguage` driving a three-step flow
+  (`awaiting_media_type` → `awaiting_media_selection` → `awaiting_language`).
+- **REQ-007** `/setlanguage` MUST persist the chosen ISO 639-1 code to `media.preferred_language` keyed by
+  `(tmdbId, type)`.
+- **CON-001** Stream language codes returned by Plex are ISO 639-2; comparison goes through `normalizeToIso1`
+  (see `#/shared/utils/iso_codes`) using the mappings in `#/shared/types/iso_codes`.
+- **CON-002** Errors returned by `getCompleteMediaDetails` (`FileNotFoundError`, `TmdbIdNotFoundError`, Plex
+  HTTP errors) MUST NOT abort the loop; log via `logError` and continue with the next media.
+- **CON-003** When no matching audio stream exists the job logs a warning and skips the item. It MUST NOT
+  fall back to another language.
+- **GUD-001** All Plex/TMDB clients are resolved through the DI container (`TOKENS.PLEX_CLIENT`,
+  `TOKENS.TMDB_CLIENT`); never instantiate clients directly.
+- **GUD-002** Read and write media rows exclusively through `#/domains/media` repositories and services.
+- **PAT-001** Job follows the cron-handler pattern described in
+  `../../providers/scheduler/scheduler.spec.md`; conversation follows the callback-driven state-machine
+  pattern in `../../providers/telegram/telegram.spec.md`.
 
-- `[NG-1]` No automatic subtitle download — see `subtitle_scan.command.ts` for a reporting-only scan.
-- `[NG-2]` No audio re-encoding from the sync job — re-encoding is the transcoder's responsibility.
-- `[NG-3]` No multi-user preferences — one operator, one preference per media.
-- `[NG-4]` Forced-subtitle language selection is not driven by this module (that's in the transcoder).
+## 4. Interfaces & Data Contracts
 
-## 6. Caveats
+**Cron job**
 
-- `[C-1]` If Plex has no audio stream in the preferred language, we log a warning and do nothing — we do not fall
-  back to original language.
-- `[C-2]` TMDB failures fall back to `{ originalLanguage: 'en', preferredLanguage: 'en' }` and do not persist — next
-  sighting retries.
-- `[C-3]` `selectMediaType` and navigation re-fetch the first 100 media per call; large libraries paginate only in
-  the UI, not in the DB query.
-- `[C-4]` `handleUpdateLanguage` uses `streamType === 2` to identify audio streams (Plex convention); changes to
-  Plex's schema would silently break selection.
+| Name            | Pattern          | Handler                       |
+| --------------- | ---------------- | ----------------------------- |
+| `Language Sync` | `0 0 */12 * * *` | `updatePlexSelectedLanguages` |
 
-## 7. High-Level Components
+**Telegram conversation** — registered as `/setlanguage`:
 
-| Component             | Module type                                                               | Responsibility                                                         | Public API surface                                                                                                                                                       |
-| --------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Language service      | Module (`src/features/language_sync/services/language.service.ts`)        | Preference storage + Plex stream reconciliation + Telegram UI builders | `handleUpdateLanguage`, `buildMediaTypeKeyboard`, `buildMediaKeyboard`, `buildLanguageKeyboard`, `selectMediaType`, `navigateMediaPage`, `selectMedia`, `selectLanguage` |
-| Language job          | Module (`src/features/language_sync/jobs/language.job.ts`)                | Cron entry                                                             | `updatePlexSelectedLanguages`                                                                                                                                            |
-| Telegram conversation | Module (`src/features/language_sync/commands/language.command.ts`)        | Multi-step `/setlanguage`                                              | `setLanguageConversation`                                                                                                                                                |
-| Feature register      | Module (`src/features/language_sync/register.ts`)                         | Wires cron + telegram conversation                                     | `registerLanguageSync()`                                                                                                                                                 |
-| Metadata service      | Domain (`src/domains/media/services/metadata.service.ts`)                 | TMDB lookup + media-row upsert (used by multiple features)             | `getMediaLanguage(tmdbId, mediaType)`, `getCompleteMediaDetails(ratingKey)`, `extractTmdbIdFromPath`, `buildMediaTitle`                                                  |
-| Media repository      | Domain (`src/domains/media/repositories/media.repository.ts`)             | Drizzle queries                                                        | `getMediaByIdAndType`, `createdOrUpdatedMedia`, `getMediaByTypeWithPagination`, `countMediaByType`                                                                       |
-| ISO code utils        | Shared (`src/shared/utils/iso_codes.ts`, `src/shared/types/iso_codes.ts`) | Normalize between 639-1/2/B/T                                          | `normalizeToIso1`, `iso1ToIso2B`, `iso1ToIso2T` (map), `ISOCode1`, `ISO1`                                                                                                |
+```
+idle
+  └── /setlanguage           → awaiting_media_type     [keyboard: Movie | TV Show]
+awaiting_media_type
+  └── callback `movie|show`  → awaiting_media_selection [paginated media keyboard]
+awaiting_media_selection
+  ├── callback `page:N`      → awaiting_media_selection (page = N)
+  └── callback `select_media:{tmdbId}` → awaiting_language [ISO1 keyboard, 6 cols]
+awaiting_language
+  └── callback `lang:{code}` → idle (UPDATE media.preferred_language)
+```
 
-## 8. Detailed Design
+Page size is 10; the media list is fetched once per step via `getMediaByTypeWithPagination(type, 0, 100)`.
+The language keyboard renders every key of `iso1ToIso2T` in 6-column rows.
 
-> Condensed after implementation. See source code for full detail.
+**Service API** (`services/language.service.ts`):
 
-| Component             | Module                                   | Entry point                                                                                                                                               |
-| --------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Language service      | `src/features/language_sync/services/`   | `src/features/language_sync/services/language.service.ts`                                                                                                 |
-| Language job          | `src/features/language_sync/jobs/`       | `src/features/language_sync/jobs/language.job.ts` (`updatePlexSelectedLanguages`)                                                                         |
-| Telegram conversation | `src/features/language_sync/commands/`   | `src/features/language_sync/commands/language.command.ts` (`setLanguageConversation`)                                                                     |
-| Feature register      | `src/features/language_sync/`            | `src/features/language_sync/register.ts` (`registerLanguageSync`)                                                                                         |
-| Feature types         | `src/features/language_sync/`            | `src/features/language_sync/types.ts` (`UpdateLanguageParams`)                                                                                            |
-| Metadata service      | `src/domains/media/services/`            | `src/domains/media/services/metadata.service.ts` (`getMediaLanguage`, `getCompleteMediaDetails`, `extractTmdbIdFromPath`, `buildMediaTitle`)              |
-| Media repository      | `src/domains/media/repositories/`        | `src/domains/media/repositories/media.repository.ts` (`getMediaByIdAndType`, `createdOrUpdatedMedia`, `getMediaByTypeWithPagination`, `countMediaByType`) |
-| ISO code utils        | `src/shared/utils/`, `src/shared/types/` | `src/shared/utils/iso_codes.ts` (`normalizeToIso1`), `src/shared/types/iso_codes.ts` (`ISOCode1`, `ISO1`, `iso1ToIso2B`, `iso1ToIso2T`)                   |
+| Function                 | Purpose                                                        |
+| ------------------------ | -------------------------------------------------------------- |
+| `handleUpdateLanguage`   | Idempotent stream selection; called by the job per media.      |
+| `buildMediaTypeKeyboard` | Inline keyboard for step 1.                                    |
+| `buildMediaKeyboard`     | Paginated keyboard for step 2.                                 |
+| `buildLanguageKeyboard`  | ISO 639-1 keyboard for step 3.                                 |
+| `selectMediaType`        | Transition `awaiting_media_type` → `awaiting_media_selection`. |
+| `navigateMediaPage`      | Re-render media keyboard at requested page.                    |
+| `selectMedia`            | Transition `awaiting_media_selection` → `awaiting_language`.   |
+| `selectLanguage`         | Persist new `preferredLanguage` and transition to `idle`.      |
 
-## 9. Verification Criteria
+**Internal contract**
 
-- `[VC-1]` `getMediaLanguage` returns cached row when present, upserts TMDB result otherwise — **PASS**
-  (`tests/services/metadata.service.spec.ts`).
-- `[VC-2]` `handleUpdateLanguage` no-ops when already selected; calls `updateStream('audio')` otherwise; calls
-  `updateStream(0, 'subtitle')` additionally when pref is `fr` — **PASS** (`tests/services/language.service.spec.ts`).
-- `[VC-3]` Cron iterates all sections and all media without aborting on single-item errors — **PASS**
-  (`tests/services/language.service.spec.ts`, indirectly + manual run).
-- `[VC-4]` `/setlanguage` full flow: media-type → paginated media → language → DB update — **PASS**
-  (`tests/services/language.service.spec.ts`).
-- `[VC-5]` `buildMediaKeyboard` produces `Previous`/`Next` only when applicable — **PASS**
-  (`tests/services/language.service.spec.ts`).
-- `[VC-6]` `normalizeToIso1` accepts ISO-1, ISO-2/B, and ISO-2/T inputs — **PASS** (`tests/utils/iso_codes.spec.ts`).
-- `[VC-7.1]` `registerLanguageSync()` attaches exactly: cron `Language Sync` (12h) and `/setlanguage` conversation.
+```ts
+interface UpdateLanguageParams {
+  mediaTitle: string
+  partsId: number
+  preferredLanguage: ISOCode1
+  streams: PlexMediaStream[]
+}
+```
 
-## 10. Open Questions
+## 5. Acceptance Criteria
 
-N/A
+- **AC-001** Given a Plex media whose preferred language has a matching unselected audio stream, when the
+  job runs, then `plexClient.updateStream(partsId, audioStream.id, 'audio')` is called exactly once.
+- **AC-002** Given a Plex media whose matching audio stream is already `selected`, when the job runs, then
+  no Plex mutation calls are made for that media.
+- **AC-003** Given `preferredLanguage === 'fr'` and an audio switch is performed, then `updateStream` is
+  also called with `(partsId, 0, 'subtitle')`.
+- **AC-004** Given the user completes `/setlanguage` selecting `(tmdbId, type, lang)`, then
+  `media.preferred_language` for that row equals `normalizeToIso1(lang)` and the conversation returns to
+  `idle`.
+- **AC-005** Given a media item without a TMDB id in its file path, when the job processes it, then the
+  loop logs the error and continues with the next item.
 
-## Changelog
+## 6. Test Automation Strategy
 
-| Date       | Amendment                             | Sections affected | Reason                                                                                                                                                                                         |
-| ---------- | ------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-04-17 | Retarget media imports to `#/domains` | §7, §8            | `#/media/metadata.service` → `#/domains/media/services/metadata.service`; `#/shared/media.repository` → `#/domains/media/repositories/media.repository` per `project-structure.spec.md` [KD-5] |
+- **Unit (Vitest)** — mock `PLEX_CLIENT`, `TMDB_CLIENT`, and `db`. Cover: idempotent path (no update),
+  audio-only update, French audio + subtitle clear, missing-stream warning, error short-circuit per item.
+- **Conversation tests** — drive `setLanguageConversation.onCommand` and `.onCallback` with fake state and
+  callback payloads; assert produced state transitions, edited message text, and that `selectLanguage`
+  issues the expected `db.update`.
+- **Run** via `vp test`; lint/typecheck via `vp check` per the project review checklist.
+
+## 7. Rationale & Context
+
+Plex stream selection is a per-part mutation, so the job iterates `Media[0].Part[0]` via the metadata
+service rather than Plex's section endpoints. Reusing `getCompleteMediaDetails` keeps TMDB lookups, the
+`media` row upsert, and stream extraction in one place owned by `#/domains/media`. The 12-hour cadence
+balances catching newly-imported items quickly against avoiding unnecessary Plex churn. Subtitles are only
+cleared for French because that is the operator's only consistently-subtitled audio path.
+
+## 8. Dependencies & External Integrations
+
+### External Systems
+
+- **EXT-001** Plex Media Server — `getSections`, `getSectionMedia`, `getPlexMetadata`, `updateStream`.
+  Authenticated via `X-Plex-Token`.
+- **EXT-002** TMDB — `movie/{id}` and `tv/{id}` consumed indirectly through `getMediaLanguage` for
+  `original_language` resolution on first ingest.
+
+### Internal Dependencies
+
+- **DEP-001** `#/domains/media` — the feature reads and writes media rows through this domain
+  (`getCompleteMediaDetails`, `getMediaByTypeWithPagination`, and the `media` schema). The feature does not
+  query Plex/TMDB metadata directly.
+- **DEP-002** `#/providers/scheduler` — registers and executes the `Language Sync` cron job.
+- **DEP-003** `#/providers/telegram` — hosts the `/setlanguage` conversation, conversation state, and inline
+  keyboard rendering.
+- **DEP-004** `#/shared/types/iso_codes` and `#/shared/utils/iso_codes` — ISO 639-1 ↔ 639-2 mappings used to
+  normalize Plex stream `languageCode` values for comparison with `preferredLanguage`.
+- **DEP-005** `#/core/container` — DI tokens `PLEX_CLIENT` and `TMDB_CLIENT`.
+
+## 9. Examples & Edge Cases
+
+- **Already-correct selection** — French file with `selected` French audio: no Plex call, no log.
+- **Audio switch** — English file with French preferred and an unselected `fra` audio stream: one
+  `updateStream(audio)` call; subtitle also cleared because `preferredLanguage === 'fr'`.
+- **No matching stream** — Spanish preferred but media only ships English/French: warn and continue.
+- **Pagination boundary** — Library with 25 movies: keyboard shows pages 0..2, navigation buttons appear
+  only when `(page+1)*10 < total`.
+- **Conversation aborted mid-flow** — Unrecognized callback data leaves state unchanged; no DB write.
+- **Plex returns ISO 639-2/B** — `bur`, `chi`, `fre`, … are mapped to ISO 639-1 via `iso2ToIso1` before
+  comparison.
+
+## 10. Validation Criteria
+
+- `vp check` passes (oxlint, oxfmt, tsc).
+- `vp test` covers AC-001..AC-005 with mocked Plex/TMDB clients.
+- Manual: trigger `/setlanguage`, set a media to `fr`, then run the job and confirm via Plex UI that the
+  audio track switched and subtitles are off.
+
+## 11. Related Specifications / Further Reading
+
+- ../../../docs/architecture/feature_registration.spec.md
+- ../../domains/media/media.spec.md
+- ../../providers/scheduler/scheduler.spec.md
+- ../../providers/telegram/telegram.spec.md

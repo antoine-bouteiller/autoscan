@@ -1,108 +1,177 @@
 ---
-title: Plex → Trakt watch history sync
-status: amended
-author: Antoine Bouteiller
-date: 2026-04-17
-related: [docs/specs/architecture.spec.md, docs/specs/persistence.spec.md, src/domains/media/media.spec.md, src/providers/telegram/telegram.spec.md]
+title: Trakt Sync Feature
+version: 1.0
+date_created: 2026-05-08
+last_updated: 2026-05-08
+tags: [feature, trakt, plex, telegram, scheduler, oauth]
 ---
 
-## 2. Problem Statement
+# Introduction
 
-Plex tracks what has been watched locally; Trakt is the operator's long-lived watch history. Autoscan syncs newly
-watched Plex items to Trakt twice a day, deduplicating by Plex `ratingKey` so the same episode isn't posted twice.
-OAuth is bootstrapped from Telegram via Trakt's device-code flow.
+Push Plex watch history to Trakt.tv on a schedule, with OAuth bootstrap driven from Telegram and
+per-rating-key idempotency persisted in PostgreSQL.
 
-- `[G-1]` Push Plex watched items (movies + episodes) to Trakt's `sync/history` endpoint.
-- `[G-2]` Avoid duplicate posts via a dedicated `trakt_sync_history` table keyed by Plex `ratingKey`.
-- `[G-3]` Manage Trakt OAuth tokens autonomously: refresh when near expiry, bootstrap via Telegram `/trakt`.
-- `[G-4]` Provide manual trigger (`/synctrakt` in Telegram) in addition to the 12h cron.
+## 1. Purpose & Scope
 
-## 3. Key Design Decisions
+- Mirror Plex `viewCount > 0` items (movies, episodes) into Trakt's `sync/history`.
+- Persist Trakt OAuth tokens (access + refresh) in `trakt_tokens` and refresh proactively before expiry.
+- Track already-synced Plex rating keys in `trakt_sync_history` to make every run idempotent.
+- Out of scope: scrobbling, ratings, collection sync, reverse sync (Trakt -> Plex).
 
-| Decision                     | Choice                                                                                 | Rationale                                                                       |
-| ---------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `[KD-1]` Auth flow           | Trakt device-code flow initiated from Telegram                                         | No redirect URI needed; fits a single-user headless service                     |
-| `[KD-2]` Token store         | `trakt_tokens` table, single row (`id` serial PK, but only one row used)               | Single-user service; simplest schema                                            |
-| `[KD-3]` Refresh policy      | Refresh if `expiresAt < now + 300` (5 min skew)                                        | Avoids mid-sync expiry                                                          |
-| `[KD-4]` Dedup               | `trakt_sync_history(plex_rating_key PK, synced_at)`; insert on successful sync         | Idempotent re-sync; small footprint                                             |
-| `[KD-5]` TMDB resolution     | Extract `{tmdb-<id>}` token from Plex file path via regex                              | Radarr/Sonarr path templates include the TMDB ID; avoids a TMDB lookup per item |
-| `[KD-6]` Show aggregation    | Build `Map<tmdbId, Show>` with nested seasons/episodes in-memory, then flatten         | Trakt's `sync/history` expects one entry per show with nested episodes          |
-| `[KD-7]` Cadence             | Every 12h at minute 0 (`0 0 */12 * * *`)                                               | Matches other periodic tasks; not latency-sensitive                             |
-| `[KD-8]` Device-code polling | Async IIFE in `traktAuthCommand`, polls every `interval` seconds until success/timeout | Bot thread stays free while user completes auth                                 |
+## 2. Definitions
 
-## 4. Principles & Intents
+- **ratingKey**: Plex's stable per-item identifier (string), used as the idempotency key.
+- **OAuth device code flow**: user-facing flow where Trakt issues `user_code` + `verification_url`;
+  client polls `oauth/device/token` until the user authorizes.
+- **Watch history**: Trakt `sync/history` endpoint accepting movies + nested shows/seasons/episodes
+  with `watched_at` timestamps.
+- **TMDB id**: media identifier extracted from the Plex file path (`extractTmdbIdFromPath`).
 
-- `[PI-1]` **Dedup before the API call** — items already in `trakt_sync_history` are never sent, even if Trakt would
-  silently accept duplicates.
-- `[PI-2]` **Mark as synced only after Trakt confirms** — `markManyAsSynced` runs after a successful
-  `syncWatchedHistory` response.
-- `[PI-3]` **Token refresh is transparent** — callers get a valid access token from `getValidAccessToken`, never
-  handle refresh themselves.
-- `[PI-4]` **Unresolved items are skipped silently** — missing viewCount, missing file path, missing `{tmdb-...}` →
-  skip (no error, no strike).
-- `[PI-5]` **watched_at precision** — derived from Plex `lastViewedAt` (Unix seconds → ISO); falls back to `now()` if
-  missing.
+## 3. Requirements, Constraints & Guidelines
 
-## 5. Non-Goals
+- **REQ-001** Run `syncPlexToTrakt` on cron `0 0 */12 * * *` (every 12 hours, top of hour) under
+  job name `Trakt Sync`. Direction is Plex -> Trakt only.
+- **REQ-002** Persist `(accessToken, refreshToken, expiresAt)` as a single row in `trakt_tokens`.
+  Refresh when `expiresAt < now + 300s` (5-minute leeway) and overwrite the row in place.
+- **REQ-003** Skip any `ratingKey` already present in `trakt_sync_history`. After a successful
+  Trakt push, insert all submitted rating keys with `onConflictDoNothing`.
+- **REQ-004** Expose `/trakt` (OAuth bootstrap) and `/synctrakt` (manual run) Telegram commands.
+- **REQ-005** Resolve TMDB id from the Plex file path; items without a resolvable TMDB id are
+  skipped silently.
+- **CON-001** A single Trakt account is supported (one row in `trakt_tokens`).
+- **CON-002** Episodes without `parentIndex` (season) or `index` (episode number) are skipped.
+- **CON-003** Movies are submitted by TMDB id only; shows nest seasons + episodes with `watched_at`.
+- **GUD-001** All Trakt and Plex calls return tagged errors; surface them via `logError` and bubble
+  the original error up so the job logs and the command reply both reflect the failure.
+- **PAT-001** Repository functions are module-level async functions over Drizzle, not a class.
+- **PAT-002** OAuth polling runs in a detached `void (async () => { … })()` so the command handler
+  returns `{ step: 'idle' }` immediately and Telegram does not block.
 
-- `[NG-1]` Not a two-way sync — we do not pull Trakt data into Plex.
-- `[NG-2]` No ratings, lists, or collection sync — only watched history.
-- `[NG-3]` No multi-user Trakt account support.
-- `[NG-4]` No retry queue for transient Trakt failures — failed sync logs; next cron retries untracked items.
+## 4. Interfaces & Data Contracts
 
-## 6. Caveats
+### Scheduled job
 
-- `[C-1]` `trakt_tokens.id` is serial but the code assumes a single row (`limit(1)` + `upsertTokens` rewrites the
-  existing id). Manual inserts could break this invariant.
-- `[C-2]` `extractTmdbIdFromPath` requires the literal Plex path to contain `{tmdb-<id>}` — files renamed outside of
-  Radarr/Sonarr won't sync.
-- `[C-3]` `markManyAsSynced` uses `onConflictDoNothing` on the PK — failing to mark is a no-op, not a retry signal.
-- `[C-4]` Device-code polling runs unbounded in the background — a user who abandons the prompt still consumes the
-  full `expires_in` window before timing out.
-- `[C-5]` Empty history pass short-circuits returning `{ movies: 0, episodes: 0 }` — no API call is made.
+| Name         | Pattern          | Handler                             |
+| ------------ | ---------------- | ----------------------------------- |
+| `Trakt Sync` | `0 0 */12 * * *` | `traktSyncJob` -> `syncPlexToTrakt` |
 
-## 7. High-Level Components
+### Telegram commands
 
-| Component             | Module type                                                          | Responsibility                                           | Public API surface                                                                                       |
-| --------------------- | -------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Sync service          | Module (`src/features/trakt_sync/services/plextraktsync.service.ts`) | Orchestration + token refresh + watched collection       | `syncPlexToTrakt()`, `getValidAccessToken()`, `collectWatchedItems(plex, syncedKeys)`                    |
-| Trakt client          | Integration (`src/integrations/trakt/trakt.service.ts`)              | Trakt HTTP API                                           | `TraktClient` (`ITraktClient`): `getDeviceCode`, `pollDeviceToken`, `refreshToken`, `syncWatchedHistory` |
-| Trakt repository      | Module (`src/features/trakt_sync/repositories/trakt.repository.ts`)  | Drizzle queries on `trakt_tokens` + `trakt_sync_history` | `getToken`, `upsertTokens`, `getSyncedRatingKeys`, `markManyAsSynced`                                    |
-| Trakt job             | Module (`src/features/trakt_sync/jobs/trakt.job.ts`)                 | Cron entry                                               | `traktSyncJob()`                                                                                         |
-| Telegram auth command | Module (`src/features/trakt_sync/commands/trakt.command.ts`)         | Device-code bootstrap + manual sync                      | `traktAuthCommand`, `syncTraktCommand`                                                                   |
-| Feature register      | Module (`src/features/trakt_sync/register.ts`)                       | Wires cron + telegram commands                           | `registerTraktSync()`                                                                                    |
-| Metadata utils        | Domain (`src/domains/media/services/metadata.service.ts`)            | Path parsing (shared with other features)                | `extractTmdbIdFromPath(filePath)`                                                                        |
+| Command      | Handler            | Conversation                                                                                                                                                                                                                                                                                                                                                   |
+| ------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/trakt`     | `traktAuthCommand` | If a valid token already exists, reply "Already authentified.". Otherwise call `getDeviceCode`, post `verification_url` + `user_code` (Markdown), then poll `pollDeviceToken` every `interval` seconds until `expires_in` elapses. On success, persist tokens and reply success; on timeout / non-400 error, reply failure. Always returns `{ step: 'idle' }`. |
+| `/synctrakt` | `syncTraktCommand` | Acknowledge "Starting Trakt sync...", run `syncPlexToTrakt`, reply `*Trakt Sync Summary*` with `Movies added` / `Episodes added` (Markdown) on success or `Trakt sync failed: <message>` on error.                                                                                                                                                             |
 
-## 8. Detailed Design
+### Service API (`services/plextraktsync.service.ts`)
 
-> Condensed after implementation. See source code for full detail.
+- `getValidAccessToken(): Promise<string | TraktTokenExpiredError | HttpError | NetworkError | ValidationError>` — returns a usable token, refreshing if needed.
+- `collectWatchedItems(plexClient, syncedKeys)` — iterates Plex sections, returns `{ movies, shows, ratingKeysToMark }`.
+- `syncPlexToTrakt(): Promise<{ movies: number; episodes: number } | Error>` — orchestrates token, collect, push, mark.
 
-| Component             | Module                                  | Entry point                                                 |
-| --------------------- | --------------------------------------- | ----------------------------------------------------------- |
-| Sync service          | `src/features/trakt_sync/services/`     | `plextraktsync.service.ts` (`syncPlexToTrakt`)              |
-| Trakt client          | `src/integrations/trakt/`               | `trakt.service.ts` (`TraktClient`)                          |
-| Trakt repository      | `src/features/trakt_sync/repositories/` | `trakt.repository.ts`                                       |
-| Trakt job             | `src/features/trakt_sync/jobs/`         | `trakt.job.ts` (`traktSyncJob`)                             |
-| Telegram auth command | `src/features/trakt_sync/commands/`     | `trakt.command.ts` (`traktAuthCommand`, `syncTraktCommand`) |
-| Feature register      | `src/features/trakt_sync/`              | `register.ts` (`registerTraktSync`)                         |
-| Metadata utils        | `src/domains/media/services/`           | `metadata.service.ts` (`extractTmdbIdFromPath`)             |
+### Repository API (`repositories/trakt.repository.ts`)
 
-## 9. Verification Criteria
+- `getToken(): Promise<TraktToken | undefined>`
+- `upsertTokens(accessToken, refreshToken, expiresAt: number)` — single-row upsert.
+- `getSyncedRatingKeys(): Promise<Set<string>>`
+- `markManyAsSynced(ratingKeys: string[])` — single transaction, `onConflictDoNothing`.
 
-- `[VC-1]` `extractTmdbIdFromPath` parses `{tmdb-<id>}` from a Plex file path; returns undefined otherwise — **PASS** (`tests/services/metadata.service.spec.ts`).
-- `[VC-2]` Already-synced Plex items are skipped — **PASS** (`tests/services/plextraktsync.service.spec.ts`).
-- `[VC-3]` Movies and episodes are bucketed correctly into the Trakt payload shape — **PASS** (`tests/services/plextraktsync.service.spec.ts`).
-- `[VC-4]` Expired tokens trigger a refresh; active tokens skip refresh — **PASS** (`tests/services/plextraktsync.service.spec.ts`).
-- `[VC-5]` After a successful `syncWatchedHistory`, corresponding rating keys are inserted into `trakt_sync_history` — **PASS** (`tests/services/plextraktsync.service.spec.ts`).
-- `[VC-6]` An empty collection returns `{ movies: 0, episodes: 0 }` without calling Trakt — **PASS** (`tests/services/plextraktsync.service.spec.ts`).
-- `[VC-7.1]` `registerTraktSync()` attaches exactly: cron `Trakt Sync` (12h), `/trakt` command, `/synctrakt` command.
+### Database tables
 
-## 10. Open Questions
+`trakt_tokens`:
 
-N/A
+| Column          | Type               | Notes                     |
+| --------------- | ------------------ | ------------------------- |
+| `id`            | `serial` PK        | always one row            |
+| `access_token`  | `text NOT NULL`    | bearer for `sync/history` |
+| `refresh_token` | `text NOT NULL`    | used at `oauth/token`     |
+| `expires_at`    | `integer NOT NULL` | unix seconds              |
 
-## Changelog
+`trakt_sync_history`:
 
-| Date       | Amendment                               | Sections affected | Reason                                                                                                          |
-| ---------- | --------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------- |
-| 2026-04-17 | Retarget metadata import to `#/domains` | §7, §8            | `#/media/metadata.service` → `#/domains/media/services/metadata.service` per `project-structure.spec.md` [KD-5] |
+| Column            | Type                 | Notes                     |
+| ----------------- | -------------------- | ------------------------- |
+| `plex_rating_key` | `text` PK            | Plex `ratingKey` (string) |
+| `synced_at`       | `timestamp NOT NULL` | wall clock at insert      |
+
+### Errors
+
+- `TraktTokenExpiredError` — raised by `getValidAccessToken` when `trakt_tokens` is empty; signals
+  the user must run `/trakt`.
+- All `TraktClient` / `PlexClient` calls may also return `HttpError | NetworkError | ValidationError`.
+
+## 5. Acceptance Criteria
+
+- **AC-001** With valid tokens, the cron run pushes new movies + episodes to Trakt and inserts each
+  submitted `ratingKey` into `trakt_sync_history`.
+- **AC-002** A second run immediately after produces `{ movies: 0, episodes: 0 }` and writes nothing
+  new to the database.
+- **AC-003** When `expiresAt < now + 300`, `getValidAccessToken` calls `refreshToken`, persists the
+  new token triple, and proceeds without user interaction.
+- **AC-004** When `trakt_tokens` is empty, `syncPlexToTrakt` returns `TraktTokenExpiredError` and the
+  command/job reply contains the error message; nothing is written to `trakt_sync_history`.
+- **AC-005** `/trakt` polls device authorization until success, expiry, or a non-400 HTTP error;
+  on success the token row is created.
+- **AC-006** Items with `viewCount === 0`, missing file path, or unresolved TMDB id are skipped and
+  not marked as synced.
+
+## 6. Test Automation Strategy
+
+- Unit-test `processWatchedItem`, `processMovie`, `processEpisode` against fixture `PlexMedia`
+  values (already-synced, no view, missing tmdb, episode without season/index, movie, episode).
+- Mock `IPlexClient` and `ITraktClient` via the container; assert the payload shape passed to
+  `syncWatchedHistory` and the rating keys passed to `markManyAsSynced`.
+- Cover `getValidAccessToken` token-refresh branch (expired, near-expiry, valid).
+- Test `/trakt` happy path and 400-keep-polling branch with a fake `traktClient`.
+
+## 7. Rationale & Context
+
+- 12h cadence keeps Trakt history near-current without hammering the Plex library scan.
+- 300s refresh leeway avoids using a token that expires mid-request.
+- Per-`ratingKey` history (rather than per-(tmdbId, episode)) aligns with Plex's identity model and
+  prevents re-pushing if a user re-watches an item (Plex bumps `lastViewedAt` but the key is stable).
+- Detached polling in `/trakt` is required because Telegram conversation handlers must return
+  promptly; the user receives async success/failure messages from the same chat id.
+
+## 8. Dependencies & External Integrations
+
+### External Systems
+
+- **EXT-001** Trakt.tv REST API at `https://api.trakt.tv` — `oauth/device/code`, `oauth/device/token`,
+  `oauth/token`, `sync/history`. Requires `clientId` + `clientSecret`, `trakt-api-version: 2`.
+- **EXT-002** Plex Media Server — `library/sections`, `library/sections/{id}/all` filtered by
+  `type=1` (movies) or `type=4` (episodes). Authenticated via `X-Plex-Token`.
+- **EXT-003** PostgreSQL — `trakt_tokens`, `trakt_sync_history` tables managed by Drizzle.
+
+### Internal Dependencies
+
+- **DEP-001** `#/integrations/trakt` (TraktClient), `#/integrations/plex` (PlexClient).
+- **DEP-002** `#/database`, `#/config/db` — Drizzle schema + connection.
+- **DEP-003** `#/providers/scheduler` — cron registration via `defineFeature.jobs`.
+- **DEP-004** `#/providers/telegram` — command registration via `defineFeature.commands`.
+- **DEP-005** `#/domains/media/services/metadata.service` (`extractTmdbIdFromPath`).
+- **DEP-006** `#/core/container` for `TRAKT_CLIENT`, `PLEX_CLIENT` resolution.
+
+## 9. Examples & Edge Cases
+
+- Plex returns an episode with `parentIndex = 2`, `index = 5`, TMDB id `1399` -> Trakt receives
+  `{ ids: { tmdb: 1399 }, seasons: [{ number: 2, episodes: [{ number: 5, watched_at }] }] }`.
+- Same episode on next run -> filtered out by `syncedKeys`, never reaches Trakt.
+- Refresh token revoked by user on Trakt -> `refreshToken` returns `HttpError`, surfaced to the
+  job log; the command reply tells the user to re-auth via `/trakt`.
+- Plex `lastViewedAt` missing -> `watched_at` falls back to `new Date().toISOString()`.
+- `movies.length === 0 && shows.length === 0` -> short-circuits to `{ movies: 0, episodes: 0 }`
+  with no Trakt call and no DB write.
+
+## 10. Validation Criteria
+
+- `vp check` and `vp test` pass.
+- After running `/synctrakt`, `select count(*) from trakt_sync_history` increases by exactly the
+  number of unique rating keys submitted.
+- `select count(*) from trakt_tokens` is always 0 or 1.
+- Trakt's "Watched" view shows the items pushed in the run.
+
+## 11. Related Specifications / Further Reading
+
+- ../../../docs/architecture/feature_registration.spec.md
+- ../../providers/scheduler/scheduler.spec.md
+- ../../providers/telegram/telegram.spec.md

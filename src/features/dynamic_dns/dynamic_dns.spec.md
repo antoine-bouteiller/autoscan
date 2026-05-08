@@ -1,88 +1,139 @@
 ---
-title: Dynamic DNS (Cloudflare)
-status: condensed
-author: Antoine Bouteiller
-date: 2026-04-16
-related: [docs/specs/architecture.spec.md]
+title: Dynamic DNS Feature
+version: 1.0
+date_created: 2026-05-08
+last_updated: 2026-05-08
+tags: [feature, dns, cloudflare, scheduler]
 ---
 
-## 2. Problem Statement
+# Introduction
 
-The home server sits behind a residential ISP with a dynamic public IP. Autoscan keeps an A record for the root
-domain and the wildcard subdomain pointed at the current public IP by reconciling with Cloudflare every 5 minutes.
+The `dynamic_dns` feature keeps the Cloudflare A records for `DOMAIN` and `*.DOMAIN` aligned
+with the public IP of the host running Autoscan. It replaces an external DDNS client and runs
+on the in-process scheduler.
 
-- `[G-1]` Keep `DOMAIN` and `*.DOMAIN` A records aligned with the current public IP.
-- `[G-2]` Only PATCH the record when the IP actually changed.
-- `[G-3]` Back off exponentially when Cloudflare or ipify fails, to avoid hammering under an outage.
-- `[G-4]` Cache the zone ID once resolved — it doesn't change.
+## 1. Purpose & Scope
 
-## 3. Key Design Decisions
+- Update the apex and wildcard A records for the configured `DOMAIN` whenever the host's
+  public IP changes.
+- Avoid unnecessary Cloudflare writes when the IP is unchanged.
+- Self-throttle on transient Cloudflare or network errors.
+- Out of scope: AAAA/IPv6 records, multi-domain support, manual record creation.
 
-| Decision               | Choice                                                                                   | Rationale                                                                         |
-| ---------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `[KD-1]` IP source     | `api.ipify.org/?format=json`                                                             | Simple, unauthenticated, stable JSON                                              |
-| `[KD-2]` Domain source | `DOMAIN` env var; record list is `[DOMAIN, *.DOMAIN]`                                    | Root + wildcard is sufficient for homelab sub-sites                               |
-| `[KD-3]` Cadence       | Every 5 minutes (`0 */5 * * * *`)                                                        | IP changes are rare but fast reconvergence matters; 5 min is cheap for Cloudflare |
-| `[KD-4]` Backoff       | Module-level `backoffUntil` timestamp; exponential 5 min → 30 min cap                    | Silences errors during outages without special-casing                             |
-| `[KD-5]` Zone cache    | Module-level `zoneId` string, lazy                                                       | Zone lookup is an extra roundtrip per pass; cache for the lifetime of the process |
-| `[KD-6]` Update method | Cloudflare `PATCH zones/{zoneId}/dns_records/{id}` with `content`, `name`, `ttl`, `type` | Preserves TTL; only `content` changes in practice                                 |
+## 2. Definitions
 
-## 4. Principles & Intents
+- **Zone**: Cloudflare DNS zone identified by `DOMAIN`.
+- **Record name**: FQDN written to Cloudflare; here `DOMAIN` and `*.DOMAIN`.
+- **Public IP**: IPv4 address returned by `https://api.ipify.org/?format=json`.
+- **Backoff**: Exponential pause window during which the job short-circuits.
 
-- `[PI-1]` **No-op when already correct** — compare `record.content === currentIp` before PATCHing.
-- `[PI-2]` **Result-style errors bubble up** — `handleUpdateIp` returns the error; `dynDns` logs and sets backoff.
-- `[PI-3]` **Cold zone cache is fetched lazily on first pass**, not at boot.
-- `[PI-4]` **Backoff is coarse, not per-record** — one failure on either record pauses the whole job.
+## 3. Requirements, Constraints & Guidelines
 
-## 5. Non-Goals
+- REQ-001 The job MUST run on the cron pattern `0 */5 * * * *` (every 5 minutes).
+- REQ-002 The job MUST update both `DOMAIN` and `*.DOMAIN` A records on each run.
+- REQ-003 The zone ID MUST be resolved once and cached in module scope across runs.
+- REQ-004 A Cloudflare PATCH MUST only be issued when `record.content !== currentIp`.
+- REQ-005 On any error from `handleUpdateIp`, the run MUST schedule a backoff window.
+- CON-001 The feature depends on `TOKENS.CLOUDFLARE_CLIENT` being registered in the DI container.
+- CON-002 `CLOUDFLARE_TOKEN` and `DOMAIN` MUST be present in the environment (validated by
+  `src/config/env.ts`).
+- CON-003 The Cloudflare token MUST grant `Zone:Read` and `DNS:Edit` for the target zone.
+- GUD-001 Use `isError`/`logError` from `#/shared/utils/error` rather than `try/catch`.
+- GUD-002 Keep the handler idempotent — repeated invocations with the same IP must be no-ops.
+- PAT-001 Errors are returned as values (tagged error classes) rather than thrown.
+- PAT-002 Backoff state lives in module scope; `resetZoneIdCache` exists for tests.
 
-- `[NG-1]` No IPv6 (AAAA) records.
-- `[NG-2]` No multi-zone, multi-domain, or per-subdomain granularity beyond `DOMAIN` + `*.DOMAIN`.
-- `[NG-3]` No TTL adjustment — whatever Cloudflare has is preserved.
-- `[NG-4]` No manual trigger or status endpoint.
+## 4. Interfaces & Data Contracts
 
-## 6. Caveats
+- Cron job: `{ name: 'Dynamic DNS', pattern: '0 */5 * * * *', handler: dynDns }` registered via
+  `defineFeature` in `feature.ts`.
+- `dynDns()`: top-level handler. Iterates `[DOMAIN, *.DOMAIN]`, calls `handleUpdateIp`, logs any
+  error, and updates the backoff window.
+- `handleUpdateIp(recordName)`: resolves zone ID (cached), fetches the A record, fetches the
+  public IP, and patches the record only when the IP differs. Returns `undefined` on success,
+  an error value otherwise.
+- `resetZoneIdCache()`: clears module-level state; intended for tests.
+- `ICloudflareClient` (from `#/integrations/cloudflare/cloudflare.service`): `getPublicIP()`,
+  `getZoneId(zoneName)`, `getARecord(recordName, zoneId)`, `updateDnsRecord(record, ip, zoneId)`.
+- Errors (`errors.ts`): `CloudflareZoneNotFoundError` (zone lookup empty),
+  `DnsRecordNotFoundError` (no A record returned), `cloudflareErrorFormatter` (extracts
+  `errors[].message` from Cloudflare error envelopes for HTTP error logging).
+- Env vars: `CLOUDFLARE_TOKEN` (Bearer token, supports `_FILE` secret indirection),
+  `DOMAIN` (apex domain, used as both zone name and record name).
 
-- `[C-1]` Zone cache is invalidated only by process restart or by calling `resetZoneIdCache()` (test helper). If a
-  zone is renamed or recreated in Cloudflare, restart is required.
-- `[C-2]` ipify rate limits unauthenticated users; at every-5-minute cadence we are well under the limit, but a
-  restart loop could hit it.
-- `[C-3]` Backoff applies to the whole job — if wildcard lookup fails but root succeeds, the job still backs off.
-- `[C-4]` `getARecord` returns `undefined` on lookup error (after logging) and the loop treats it as "no record" — it
-  does _not_ trigger backoff. Only errors from `getZoneId` / `getPublicIP` do.
+## 5. Acceptance Criteria
 
-## 7. High-Level Components
+- AC-001 Given the public IP changed, When the `dynamic_dns` job fires, Then the Cloudflare A
+  record for `DOMAIN` and `*.DOMAIN` is patched with the new IP.
+- AC-002 Given the public IP did not change, When the job fires, Then no `PATCH` request is
+  sent to Cloudflare.
+- AC-003 Given the Cloudflare API is unreachable, When the job fires, Then the error is logged,
+  the scheduler is not crashed, and a backoff window is set.
+- AC-004 Given the zone is not found, When the job fires, Then a `CloudflareZoneNotFoundError`
+  is returned, logged, and the cached zone ID stays empty so the next run retries lookup.
+- AC-005 Given the previous run errored, When the next tick fires inside the backoff window,
+  Then the handler logs a skip message and returns without contacting Cloudflare.
+- AC-006 Given the backoff window has expired with continued errors, When the next run also
+  errors, Then the delay doubles up to a 30-minute cap.
 
-| Component             | Module type                                                         | Responsibility                               | Public API surface                                                                             |
-| --------------------- | ------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| DNS service           | Module (`src/features/dynamic_dns/services/dns.service.ts`)         | Orchestration + backoff + zone cache         | `dynDns()`, `handleUpdateIp(recordName)`, `resetZoneIdCache()`                                 |
-| Feature register      | Module (`src/features/dynamic_dns/register.ts`)                     | Wires cron to SchedulerProvider              | `registerDynamicDns()`                                                                         |
-| Cloudflare errors     | Module (`src/features/dynamic_dns/errors.ts`)                       | Domain errors + CF error-body formatter      | `DnsRecordNotFoundError`, `CloudflareZoneNotFoundError`, `cloudflareErrorFormatter`            |
-| Cloudflare client     | Integration (`src/integrations/cloudflare/cloudflare.service.ts`)   | HTTP wrapper for Cloudflare + ipify          | `CloudflareClient` (`ICloudflareClient`)                                                       |
-| Cloudflare validators | Integration (`src/integrations/cloudflare/cloudflare.validator.ts`) | Zod schemas for Cloudflare + ipify responses | `zonesResponseValidator`, `dnsRecordsResponseValidator`, `ipifyResponseValidator`, `DnsRecord` |
+## 6. Test Automation Strategy
 
-## 8. Detailed Design
+- Unit-test `handleUpdateIp` against a mocked `ICloudflareClient` covering: cache miss/hit on
+  `zoneId`, IP unchanged, IP changed, zone not found, record not found, network error from
+  `getPublicIP`.
+- Unit-test `dynDns` for backoff math: success resets to 5 minutes, errors double up to 30
+  minutes, in-window calls short-circuit.
+- Use `resetZoneIdCache()` in `beforeEach` to isolate module state.
+- Stub the container with `container.register(TOKENS.CLOUDFLARE_CLIENT, ...)` per test.
 
-> Condensed after implementation. See source code for full detail.
+## 7. Rationale & Context
 
-| Component             | Module                                                | Entry point                                                                                    |
-| --------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| DNS service           | `src/features/dynamic_dns/services/dns.service.ts`    | `dynDns`, `handleUpdateIp`, `resetZoneIdCache`                                                 |
-| Feature register      | `src/features/dynamic_dns/register.ts`                | `registerDynamicDns`                                                                           |
-| Cloudflare errors     | `src/features/dynamic_dns/errors.ts`                  | `DnsRecordNotFoundError`, `CloudflareZoneNotFoundError`, `cloudflareErrorFormatter`            |
-| Cloudflare client     | `src/integrations/cloudflare/cloudflare.service.ts`   | `CloudflareClient` (`ICloudflareClient`)                                                       |
-| Cloudflare validators | `src/integrations/cloudflare/cloudflare.validator.ts` | `zonesResponseValidator`, `dnsRecordsResponseValidator`, `ipifyResponseValidator`, `DnsRecord` |
+The home network behind Autoscan has a dynamic public IP. A 5-minute cadence balances
+recovery time after an ISP-driven IP change against Cloudflare API quota and ipify rate
+limits. Caching the zone ID avoids one Cloudflare call per tick. Returning errors as values
+lets the handler keep iterating both record names without aborting on the first failure, while
+the backoff prevents tight error loops from hammering Cloudflare during outages.
 
-## 9. Verification Criteria
+## 8. Dependencies & External Integrations
 
-- `[VC-1]` `dynDns` updates when the current IP differs from the record content — **PASS** (`tests/services/dns.service.spec.ts`).
-- `[VC-2]` `dynDns` is a no-op when IP matches — **PASS** (`tests/services/dns.service.spec.ts`).
-- `[VC-3]` Error on `getZoneId` or `getPublicIP` sets `backoffUntil` and the next pass short-circuits — **PASS** (`tests/services/dns.service.spec.ts`).
-- `[VC-4]` `errorDelay` doubles up to the 30-minute cap on consecutive failures — **PASS** (`tests/services/dns.service.spec.ts`).
-- `[VC-5]` Successful pass resets `errorDelay` and clears `backoffUntil` — **PASS** (`tests/services/dns.service.spec.ts`).
-- `[VC-6]` Zone ID is cached after first successful resolution — **PASS** (`tests/services/dns.service.spec.ts`).
-- `[VC-7.1]` `registerDynamicDns()` attaches exactly: cron `Dynamic DNS` (every 5 minutes).
+### External Systems
 
-## 10. Open Questions
+- EXT-001 Cloudflare API (`https://api.cloudflare.com/client/v4/`) — `GET /zones`,
+  `GET /zones/:id/dns_records`, `PATCH /zones/:id/dns_records/:recordId`. Authenticated via
+  `Authorization: Bearer ${CLOUDFLARE_TOKEN}`.
+- EXT-002 ipify (`https://api.ipify.org/?format=json`) — public IP lookup, no auth, JSON
+  response validated by `ipifyResponseValidator`.
 
-N/A
+### Technology Platform Dependencies
+
+- PLT-001 DI container (`#/core/container`, `TOKENS.CLOUDFLARE_CLIENT`).
+- PLT-002 Feature registration (`#/core/feature` → `defineFeature`).
+- PLT-003 Scheduler provider that consumes `jobs` exported by features.
+- PLT-004 `#/shared/utils/http_client` for HTTP, validation, and structured error returns.
+- PLT-005 `#/config/env` for typed access to `CLOUDFLARE_TOKEN` and `DOMAIN`.
+
+## 9. Examples & Edge Cases
+
+- IP unchanged: `record.content === currentIp` short-circuits before any `PATCH`.
+- First run after boot: `zoneId` is empty, so `getZoneId` is called and cached.
+- Wildcard record missing: `DnsRecordNotFoundError` is returned for `*.DOMAIN` only; the apex
+  update still proceeds in the same tick.
+- ipify outage: `getPublicIP` returns a network/validation error; the run sets backoff and
+  retries after the window.
+- Cloudflare 5xx during `getARecord`: the integration logs and returns `undefined`, so
+  `handleUpdateIp` exits cleanly without scheduling a write.
+- Token rotated and revoked: Cloudflare returns a 401 envelope; `cloudflareErrorFormatter`
+  surfaces the human-readable message in logs.
+
+## 10. Validation Criteria
+
+- The handler never throws; all failure paths return through `isError`/`logError`.
+- `zoneId` is resolved at most once per process unless an error path leaves it unset.
+- No Cloudflare `PATCH` is observed in tests when the mocked record content matches the
+  mocked public IP.
+- The cron pattern in `feature.ts` matches `0 */5 * * * *`.
+
+## 11. Related Specifications / Further Reading
+
+- ../../../docs/architecture/feature_registration.spec.md
+- ../../providers/scheduler/scheduler.spec.md

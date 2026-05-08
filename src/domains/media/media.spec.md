@@ -1,91 +1,125 @@
 ---
-title: Media domain
-status: condensed
-author: Antoine Bouteiller
-date: 2026-04-17
-related: [docs/specs/architecture.spec.md, docs/specs/persistence.spec.md, docs/project_structure.spec.md]
+title: Media Domain
+version: 1.0
+date_created: 2026-05-08
+last_updated: 2026-05-08
+tags: [domain, media, persistence]
 ---
 
-## 2. Problem Statement
+# Introduction
 
-Three features (`transcoding`, `language_sync`, `trakt_sync`) share the same need: resolve a piece of Plex media to its
-TMDB identifier and original language, and persist that metadata in the `media` table for later lookup. Without a
-shared home, each feature would either duplicate the TMDB + Drizzle plumbing or cross-import from another feature —
-both forbidden by `project-structure.spec.md` [PI-1]. This domain exists to host that shared logic.
+The `media` domain owns the cross-feature persistence of catalogued media items and their language preferences. It exposes a repository over the `media` table and a metadata service that enriches items via TMDB and Plex.
 
-- `[G-1]` Provide a single entry point for "what do we know about this media" (`getMediaLanguage`,
-  `getCompleteMediaDetails`).
-- `[G-2]` Provide a single entry point for `media` table queries (`getMediaByIdAndType`, `createdOrUpdatedMedia`,
-  `getMediaByTypeWithPagination`, `countMediaByType`).
-- `[G-3]` Keep the domain passive — no routes, no cron jobs, no Telegram commands. Features call into it; it never
-  calls into them.
+## 1. Purpose & Scope
 
-## 3. Key Design Decisions
+- Single source of truth for `(tmdbId, type)` tuples and their `originalLanguage` / `preferredLanguage`.
+- Hosts reusable orchestration: extract `tmdbId` from Plex file paths, resolve language via TMDB, assemble Plex metadata into a usable shape.
+- Out of scope: feature-specific business rules (sync triggers, scoring, transcoding decisions).
 
-| Decision                        | Choice                                                                                      | Rationale                                                                              |
-| ------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `[KD-1]` Domain location        | `src/domains/media/` (not `src/shared/`, not a feature)                                     | Business logic with >2 consumers — follows `project-structure.spec.md` [KD-5]          |
-| `[KD-2]` Passive (no register)  | No `register.ts`; no attachment to HTTP/Scheduler/Telegram                                  | Per `project-structure.spec.md` [KD-5]: domains are passive; features own entry points |
-| `[KD-3]` Repository location    | `src/domains/media/repositories/media.repository.ts` — co-located with the service it backs | Consolidates the prior `src/media/` + `src/shared/media.repository.ts` split           |
-| `[KD-4]` TMDB is an integration | `metadata.service` composes `TmdbClient` (`src/integrations/tmdb/`) with the repository     | Integration = thin client; service = orchestration (`architecture.spec.md` [PI-6])     |
-| `[KD-5]` Upsert on lookup       | `getMediaLanguage` falls back to TMDB and upserts the `media` row                           | The "read through + write behind" pattern keeps callers ignorant of the cache miss     |
+## 2. Definitions
 
-## 4. Principles & Intents
+- **tmdbId**: TMDB integer identifier; primary correlation key across Plex, Radarr, Sonarr.
+- **ratingKey**: Plex internal item id; resolved to `tmdbId` via the file path token `{tmdb-<id>}`.
+- **ISO 639-1**: 2-letter language code; the only language representation persisted (`ISO1` enum).
+- **mediaTypeEnum**: PostgreSQL enum, values `'movie' | 'show'`.
+- **Composite PK**: `(tmdbId, type)` — same id may exist as both movie and show.
 
-- `[PI-1]` **Independent from sibling domains.** No imports from `#/domains/<other>` or `#/features/*` or `#/providers/*`
-  — per `project-structure.spec.md` [PI-8].
-- `[PI-2]` **Errors are typed and returned, not thrown.** `FileNotFoundError` and `TmdbIdNotFoundError` are exported
-  from `errors.ts`; callers use `isError()`.
-- `[PI-3]` **Services call repositories; callers call services.** External callers of this domain should target
-  `#/domains/media/services/*`, not `#/domains/media/repositories/*`, unless they genuinely need raw Drizzle queries
-  (e.g., the language-sync cron does a bulk paginated scan via the repository directly — that's the exception).
+## 3. Requirements, Constraints & Guidelines
 
-## 5. Non-Goals
+- **REQ-001**: The `media` table MUST use `(tmdbId, type)` as a composite primary key (`media_tmdb_id_type_pk`).
+- **REQ-002**: `originalLanguage` and `preferredLanguage` MUST be constrained to the `ISO1` set (Drizzle `text({ enum: ISO1 })`).
+- **REQ-003**: The repository exposes: `countMediaByType`, `createdOrUpdatedMedia`, `getMediaByIdAndType`, `getMediaByTypeWithPagination`. No other module performs direct writes against `media`.
+- **REQ-004**: `metadata.service` MUST resolve language with cache-first semantics (DB hit short-circuits TMDB) and persist via the repository on TMDB hit.
+- **REQ-005**: `metadata.service` defaults to `'en' / 'en'` when TMDB returns no data; nothing is persisted in that case.
+- **CON-001**: This domain MUST NOT import from `#/features/*`, `#/providers/*`, or sibling domains.
+- **CON-002**: Allowed dependencies: `#/shared`, `#/config`, `#/database`, `#/integrations`, `#/core/container`.
+- **CON-003**: `preferredLanguage` is initialised to `originalLanguage` on insert/upsert; future divergence is a feature concern (language_sync), not a domain concern.
+- **GUD-001**: Repository functions return Drizzle query builders (no `await`) so callers can chain or transact; only `getMediaByIdAndType` resolves eagerly.
+- **PAT-001**: Errors are tagged classes from `errors.ts` (`FileNotFoundError`, `TmdbIdNotFoundError`); callers detect them with `isError`.
 
-- `[NG-1]` No cache beyond the `media` table itself — repeated TMDB lookups on unknown ids go to TMDB every time
-  until the row is persisted.
-- `[NG-2]` No update-on-read for existing rows — once persisted, `getMediaLanguage` returns the stored row verbatim;
-  refreshing stale TMDB data is out of scope.
-- `[NG-3]` No sibling-domain composition — if another domain needs media info, it must consume through the shared
-  `#/shared` layer, not cross-import this domain.
+## 4. Interfaces & Data Contracts
 
-## 6. Caveats
+### Drizzle schema (`#/database/schema`)
 
-- `[C-1]` `getMediaLanguage` silently upserts — callers that only want a read should be aware that a miss triggers
-  a TMDB call and a DB write.
-- `[C-2]` The `language_sync` feature imports the repository directly (not through the service) for its paginated
-  cron sweep. This is the only consumer of the repository that isn't funneled through `metadata.service`. Noted
-  under `project-structure.spec.md` [PI-3] as an intentional exception.
+| Column            | Type                   | Notes                        |
+| ----------------- | ---------------------- | ---------------------------- |
+| tmdbId            | `integer('tmdb_id')`   | PK part                      |
+| type              | `mediaTypeEnum`        | PK part, `'movie' \| 'show'` |
+| title             | `text`                 | not null                     |
+| originalLanguage  | `text({ enum: ISO1 })` | not null                     |
+| preferredLanguage | `text({ enum: ISO1 })` | not null                     |
 
-## 7. High-Level Components
+### Repository (`repositories/media.repository.ts`)
 
-| Component        | Module type                                                   | Responsibility                                 | Public API surface                                                                                 |
-| ---------------- | ------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Metadata service | Module (`src/domains/media/services/metadata.service.ts`)     | TMDB lookup + read-through/write-behind upsert | `getMediaLanguage`, `getCompleteMediaDetails`, `extractTmdbIdFromPath`, `buildMediaTitle`          |
-| Media repository | Module (`src/domains/media/repositories/media.repository.ts`) | Typed Drizzle queries on the `media` table     | `getMediaByIdAndType`, `createdOrUpdatedMedia`, `getMediaByTypeWithPagination`, `countMediaByType` |
-| Errors           | Module (`src/domains/media/errors.ts`)                        | Domain error subclasses                        | `FileNotFoundError`, `TmdbIdNotFoundError`                                                         |
+- `countMediaByType(type)` — returns row count for a given media type.
+- `createdOrUpdatedMedia({ tmdbId, type, title, originalLanguage })` — upsert on `(tmdbId, type)`; sets `preferredLanguage = originalLanguage` and updates `title` / `originalLanguage` on conflict.
+- `getMediaByIdAndType(tmdbId, type)` — returns the row or `undefined`.
+- `getMediaByTypeWithPagination(type, page, pageSize)` — ordered by `title asc`, offset/limit pagination.
 
-## 8. Detailed Design
+### Metadata service (`services/metadata.service.ts`)
 
-> Condensed after implementation. See source code for full detail.
+- `extractTmdbIdFromPath(filePath)` — parses `{tmdb-<id>}`, returns `number | undefined`.
+- `buildMediaTitle(grandparentTitle?, parentTitle?, title?)` — joins defined parts with `-`.
+- `getMediaLanguage(tmdbId, mediaType)` — DB cache → TMDB fallback → upsert; defaults to `en` on TMDB miss.
+- `getCompleteMediaDetails(ratingKey)` — Plex lookup, file-path tmdbId extraction, language resolution; returns `{ file, mediaTitle, mediaType, originalLanguage, preferredLanguage, partsId, streams, tmdbId }` or a tagged error.
 
-| Component        | Module                            | Entry point                                                                                                                |
-| ---------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Metadata service | `src/domains/media/services/`     | `metadata.service.ts` (`getMediaLanguage`, `getCompleteMediaDetails`, `extractTmdbIdFromPath`, `buildMediaTitle`)          |
-| Media repository | `src/domains/media/repositories/` | `media.repository.ts` (`getMediaByIdAndType`, `createdOrUpdatedMedia`, `getMediaByTypeWithPagination`, `countMediaByType`) |
-| Errors           | `src/domains/media/`              | `errors.ts` (`FileNotFoundError`, `TmdbIdNotFoundError`)                                                                   |
+### Errors (`errors.ts`)
 
-## 9. Verification Criteria
+- `FileNotFoundError` — Plex item has no `Media[0].Part[0]` file.
+- `TmdbIdNotFoundError` — file path lacks the `{tmdb-<id>}` token.
 
-- `[VC-1]` `getMediaLanguage` returns the stored row on hit; on miss calls TMDB, persists via `createdOrUpdatedMedia`,
-  and returns the new row — **PASS** (`tests/domains/media/services/metadata.service.spec.ts`).
-- `[VC-2]` Repository queries behave correctly: `getMediaByIdAndType` returns `undefined` on miss; `createdOrUpdatedMedia`
-  upserts on `(tmdbId, type)` conflict; `getMediaByTypeWithPagination` orders by `title`; `countMediaByType` counts
-  per type — **PASS** (`tests/domains/media/repositories/media.repository.spec.ts`).
-- `[VC-3]` `extractTmdbIdFromPath` parses `{tmdb-<id>}` from a Plex file path — **PASS** (`tests/domains/media/services/metadata.service.spec.ts`).
-- `[VC-4]` Domain imports satisfy `project-structure.spec.md` [VC-8]: no `#/features/*`, no `#/providers/*`, no
-  `#/domains/<other>/*` — verified by the cross-cutting spec's grep check.
+## 5. Acceptance Criteria
 
-## 10. Open Questions
+- **AC-001**: Given an existing `(tmdbId, type)` row, when `getMediaByIdAndType` runs, then the row is returned; otherwise `undefined`.
+- **AC-002**: Given `getMediaLanguage` is called for an unknown id, when TMDB returns data, then `createdOrUpdatedMedia` is called and the resolved language is returned.
+- **AC-003**: Given `createdOrUpdatedMedia` is called with a code outside `ISO1`, then the database rejects the write via the `text` enum constraint.
+- **AC-004**: Given `getCompleteMediaDetails` runs against an episode, then `mediaType` is normalised to `'show'`.
+- **AC-005**: Given a Plex file path without a `{tmdb-<id>}` token, then `getCompleteMediaDetails` returns a `TmdbIdNotFoundError`.
 
-N/A
+## 6. Test Automation Strategy
+
+- Unit-test pure helpers (`extractTmdbIdFromPath`, `buildMediaTitle`) against representative path fixtures.
+- Mock `TMDB_CLIENT` and `PLEX_CLIENT` via the container to test `getMediaLanguage` and `getCompleteMediaDetails` branches (cache hit, TMDB miss, missing file, missing tmdbId, episode normalisation).
+- Repository tests run against a real Postgres (Vitest) to exercise the upsert and enum constraint.
+
+## 7. Rationale & Context
+
+Promoted to a domain because the language store is read by `language_sync` and the title/path helpers are reused by `transcoding`; combined with the TMDB integration, this clears the "2 features + 1 integration" bar in the project rule. Keeping the upsert and TMDB enrichment together avoids each consumer reinventing the cache-first lookup and re-implementing path parsing.
+
+## 8. Dependencies & External Integrations
+
+### External Systems
+
+- **EXT-001**: TMDB API — language and title source.
+- **EXT-002**: Plex API — ratingKey → metadata, file path source.
+
+### Internal Dependencies
+
+- **DEP-001**: `#/database` (Drizzle schema, types).
+- **DEP-002**: `#/integrations/tmdb` (TMDB client interface).
+- **DEP-003**: `#/integrations/plex` (Plex client interface, `MediaType`).
+- **DEP-004**: `#/config/db` (Drizzle instance).
+- **DEP-005**: `#/core/container` (DI tokens for TMDB and Plex clients).
+- **DEP-006**: `#/shared/types/iso_codes` (`ISO1`, `ISOCode1`).
+
+### Data Dependencies
+
+- **DAT-001**: `media` table — Drizzle migrations under `./migrations`.
+
+## 9. Examples & Edge Cases
+
+- File path `"/movies/Inception {tmdb-27205}/file.mkv"` → `tmdbId = 27205`.
+- TMDB returns `original_language = 'fr'` for an unknown row → upsert with both languages set to `'fr'`.
+- TMDB returns `data: undefined` → defaults `'en'/'en'`, no row written.
+- Plex item with `type === 'episode'` → normalised to `'show'` before lookup.
+
+## 10. Validation Criteria
+
+- `vp check` enforces the import boundary via `oxlint` rules (no `#/features`, `#/providers`, sibling-domain imports).
+- `vp test` covers repository upsert behaviour, language resolution branches, and path parsing.
+
+## 11. Related Specifications / Further Reading
+
+- ../../../docs/project_structure.spec.md
+- ../../features/language_sync/language_sync.spec.md
+- ../../features/transcoding/transcoding.spec.md

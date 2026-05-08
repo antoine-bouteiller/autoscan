@@ -1,143 +1,168 @@
 ---
 title: Feature Registration
-status: condensed
-author: Antoine Bouteiller
-date: 2026-04-17
-related:
-  [
-    docs/project_structure.spec.md,
-    src/providers/http/http.spec.md,
-    src/providers/scheduler/scheduler.spec.md,
-    src/providers/telegram/telegram.spec.md,
-    src/features/transcoding/transcoding.spec.md,
-    src/features/language_sync/language_sync.spec.md,
-    src/features/queue_cleanup/queue_cleanup.spec.md,
-    src/features/dynamic_dns/dynamic_dns.spec.md,
-    src/features/trakt_sync/trakt_sync.spec.md,
-    src/features/send_message/send_message.spec.md,
-  ]
+version: 1.0
+date_created: 2026-05-08
+last_updated: 2026-05-08
+tags: [architecture, features, registration]
 ---
 
-## 2. Problem Statement
+# Introduction
 
-A feature wires runtime behaviour to three providers: the HTTP provider (webhook routes), the scheduler (cron jobs),
-and the Telegram provider (commands and conversations). Without a shared registration surface, each feature would
-need to:
+Features are declarative bundles of routes, jobs, Telegram commands, and conversations. At startup `registerFeatures`
+walks an explicit list and wires each declaration into the matching provider. There is no decorator scan, no glob
+import, and no runtime discovery.
 
-1. Resolve provider instances from the DI container (`container.resolve(TOKENS.HTTP_PROVIDER)`, etc.).
-2. Wrap its wiring in an imperative function whose body is 90% configuration data.
-3. Be hand-imported and hand-invoked in `src/core/bootstrap.ts`, growing that file by one line per feature for the
-   import and one line for the invocation.
+## 1. Purpose & Scope
 
-Feature registration exists to keep per-feature wiring declarative, concentrate provider resolution in one place,
-and make the feature inventory — not bootstrap — the list that grows when a feature is added.
+Specify the contract every feature must satisfy and the single registration path used by the runtime. In scope:
+the `Feature` shape, the `defineFeature` / `postRoute` helpers, the `registerFeatures` entry point, and the steps
+required to add a new feature. Out of scope: the internals of HTTP, scheduler, and Telegram providers (covered by
+their own specs).
 
-- `[G-1]` Per-feature registration is a single declarative object — no container access, no helper function body.
-- `[G-2]` Adding a feature is a one-file change: create the feature folder, export its declaration, done.
-- `[G-3]` The declarative shape covers every wiring capability (HTTP routes with validators, cron jobs, Telegram
-  commands, Telegram conversations) with no loss of type safety.
-- `[G-4]` The `Feature` type is the only wiring surface. New registration needs extend the type — features never
-  bypass `registerFeatures` with ad-hoc container access.
+## 2. Definitions
 
-## 3. Key Design Decisions
+- **Feature** — Declarative record describing what a slice of the app contributes to the runtime.
+- **FeatureRoute** — `(http: HttpProvider) => void`. Registers one HTTP endpoint when invoked.
+- **FeatureJob** — `{ name, pattern, handler }`. A scheduled task driven by a cron expression.
+- **CommandHandler** — Telegram bot handler keyed by command (`/foo`).
+- **Conversation** — Multi-step Telegram flow keyed by its entry command.
+- **defineFeature** — Identity function typed as `(feature: Feature) => Feature`. Exists purely for type inference.
+- **registerFeatures** — Iterates a `readonly Feature[]` and registers each route, job, command, and conversation
+  against the resolved providers.
+- **postRoute** — Helper that builds a `FeatureRoute` from `(path, zodValidator, handler)` and calls `http.post`.
 
-| Decision                    | Choice                                                                                                                                                                           | Rationale                                                                                                                                                                                  |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `[KD-1]` Feature shape      | Declarative `Feature` object exported from `src/features/<name>/feature.ts`, built via `defineFeature({ ... })`                                                                  | Data is easier to read, diff, and lint than imperative code; the common case has no moving parts                                                                                           |
-| `[KD-2]` Primitives surface | Four optional fields: `routes`, `jobs`, `commands`, `conversations`                                                                                                              | Exhaustively covers the six existing features; each maps 1:1 to an existing provider method                                                                                                |
-| `[KD-3]` Loader             | Single `registerFeatures(features: Feature[])` in `src/core/feature.ts` resolves providers once and iterates                                                                     | The DI container boilerplate concentrates in one place instead of being copy-pasted per feature                                                                                            |
-| `[KD-4]` Bootstrap wiring   | Hand-maintained `src/features/index.ts` barrel imports every `<name>Feature` and re-exports them as a single `features` array; `bootstrap.ts` calls `registerFeatures(features)` | Adding a feature edits exactly two files; `bootstrap.ts` itself never changes. No codegen — the barrel is short and review-visible. Named array avoids `eslint-plugin-import/no-namespace` |
-| `[KD-5]` File naming        | Per-feature declaration lives in `src/features/<name>/feature.ts`; the exported constant is `<name>Feature`                                                                      | Filename and suffix signal the declarative shape — the file is data, not procedure                                                                                                         |
-| `[KD-6]` Route shape        | `FeatureRoute` is `(http: HttpProvider) => void`; features build entries via `postRoute(path, validator, handler)` and `getRoute(path, handler)` helpers                         | Keeps the `HttpProvider.post` generic that links validator output to handler body type; a homogeneous array of object literals cannot carry a per-element generic without internal casts   |
+## 3. Requirements, Constraints & Guidelines
 
-## 4. Principles & Intents
+- **REQ-001** — Every feature lives in `src/features/<feature>/feature.ts` and exports a `Feature` returned by
+  `defineFeature(...)`.
+- **REQ-002** — `src/features/index.ts` exports a `features` array containing every feature. This array is the
+  only registration list consumed by the bootstrap.
+- **REQ-003** — `bootstrap.ts` must register every provider and integration client in the container before calling
+  `registerFeatures`. Resolution failures inside features always trace back to a missing prior `container.register`.
+- **CON-001** — No dynamic discovery. Features are not auto-imported from the filesystem; adding one requires editing
+  `src/features/index.ts`.
+- **CON-002** — `feature.ts` must be a pure declaration. No network calls, timers, or container resolutions at module
+  import time. All I/O happens inside route, job, command, or conversation handlers.
+- **CON-003** — Feature order in the array does not affect runtime behavior. Routes, jobs, commands, and conversations
+  are registered independently and must not assume sibling features are already wired.
+- **GUD-001** — Use `postRoute(path, validator, handler)` instead of writing `(http) => http.post(...)` by hand.
+- **GUD-002** — Keep the `Feature` object literal flat and declarative. Move logic into `commands/`, `jobs/`,
+  `webhooks/`, or `conversations/` subfolders alongside `feature.ts`.
+- **PAT-001** — `FeatureJob.pattern` is a 6-field cron expression `s m h dom mon dow` matching the scheduler provider's
+  parser (see `scheduler.spec.md`).
 
-- `[PI-1]` **Declaration over invocation.** A feature's wiring should read as data. If writing a declaration requires
-  more than a one-line helper call, the primitive set is missing something — add a primitive, do not add a bespoke
-  function body to a feature.
-- `[PI-2]` **One place, one resolve.** The three runtime providers (HTTP, scheduler, Telegram) are resolved exactly
-  once per process, inside `registerFeatures`. A feature's `feature.ts` never touches `container` or `TOKENS`.
-  Integration clients (Plex, Radarr, Sonarr, TMDB, Trakt, Cloudflare, FFmpeg, Telegram client) stay resolved at the
-  call site in services/webhooks/jobs — that is the existing DI pattern and is out of scope for this spec.
-- `[PI-3]` **Bootstrap is the list.** `bootstrap.ts` contains DI registrations and a single call to
-  `registerFeatures`. It must not grow when features are added.
-- `[PI-4]` **Type safety stays strict.** The `Feature` type is a discriminated-field record; route validators remain
-  tied to their handler's body type via the existing `z.output<TSchema>` inference in `HttpProvider.post`.
-- `[PI-5]` **Extensions change the type.** If a feature needs wiring not covered by the current primitives, extend
-  the `Feature` type and the loader. There is no per-feature escape hatch — every feature goes through
-  `registerFeatures`.
+## 4. Interfaces & Data Contracts
 
-## 5. Non-Goals
+```ts
+type FeatureRoute = (http: HttpProvider) => void
 
-- `[NG-1]` The DI container (`src/core/container.ts`) is out of scope — tokens, factories, and resolution semantics
-  are not feature-registration concerns.
-- `[NG-2]` Provider public APIs (`HttpProvider.post`, `SchedulerProvider.register`,
-  `TelegramProvider.registerCommand`, `TelegramProvider.registerConversation`) are out of scope. Feature registration
-  is a caller-side concern only.
-- `[NG-3]` No auto-discovery via filesystem glob. Features are explicitly exported from `src/features/index.ts`; the
-  barrel is the inventory.
-- `[NG-4]` Test-time provider resolution does not diverge from production: tests invoke `registerFeatures(...)` via
-  the same entry used at boot (`tests/http_fixture.ts` for HTTP-route tests).
-- `[NG-5]` No feature flags, lazy loading, conditional registration, or per-feature escape hatches. If a real need
-  appears, extend the `Feature` type.
+interface FeatureJob {
+  readonly handler: () => Promise<void> | void
+  readonly name: string
+  readonly pattern: string
+}
 
-## 6. Caveats
+interface Feature {
+  readonly commands?: Readonly<Record<string, CommandHandler>>
+  readonly conversations?: Readonly<Record<string, Conversation>>
+  readonly jobs?: readonly FeatureJob[]
+  readonly name: string
+  readonly routes?: readonly FeatureRoute[]
+}
 
-- `[C-1]` The four primitives (`routes`, `jobs`, `commands`, `conversations`) cover every current feature. A future
-  feature that needs e.g. a WebSocket handler or a queue consumer extends the `Feature` type and the loader — there
-  is no per-feature escape hatch.
+declare const defineFeature: (feature: Feature) => Feature
 
-## 7. High-Level Components
+declare const postRoute: <TSchema extends z.ZodType>(path: string, validator: TSchema, handler: RouteHandler<z.output<TSchema>>) => FeatureRoute
 
-| Component        | Module type         | Responsibility                                              | Public API surface (exports)                                            |
-| ---------------- | ------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Feature core     | Server module       | Define the `Feature` shape and the single loader            | `Feature`, `defineFeature`, `postRoute`, `getRoute`, `registerFeatures` |
-| Features barrel  | Server module       | Aggregate every feature declaration into one import surface | `features`                                                              |
-| Per-feature file | Feature declaration | Declare the feature's routes, jobs, commands, conversations | `<name>Feature`                                                         |
+declare const registerFeatures: (features: readonly Feature[]) => void
+```
 
-## 8. Detailed Design
+`registerFeatures` resolves `HTTP_PROVIDER`, `SCHEDULER_PROVIDER`, and `TELEGRAM_PROVIDER`, then for each feature
+calls every `route(http)`, `scheduler.register(job)`, `telegram.registerCommand(name, handler)`, and
+`telegram.registerConversation(name, conversation)`.
 
-> Condensed after implementation. See source code for full detail.
+## 5. Acceptance Criteria
 
-| Component        | Module                                        | Entry point                                                                                                                       |
-| ---------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Feature core     | `src/core/feature.ts`                         | `Feature`, `defineFeature`, `postRoute`, `getRoute`, `registerFeatures`                                                           |
-| Features barrel  | `src/features/index.ts`                       | `features` array                                                                                                                  |
-| Bootstrap wiring | `src/core/bootstrap.ts`                       | `registerFeatures(features)` call at end of file                                                                                  |
-| Telegram types   | `src/providers/telegram/telegram.provider.ts` | Exports `CommandHandler` and `Conversation` for reference by the `Feature` type                                                   |
-| Per-feature file | `src/features/<name>/feature.ts` (six files)  | `dynamicDnsFeature`, `languageSyncFeature`, `queueCleanupFeature`, `sendMessageFeature`, `traktSyncFeature`, `transcodingFeature` |
-| Test wiring      | `tests/utils.ts` (`testWithHttpProvider`)     | Calls `registerFeatures([transcodingFeature, sendMessageFeature])` for HTTP-route tests                                           |
+- **AC-001** — Given a new feature `fooFeature` exported from `src/features/foo/feature.ts`, When it is appended to the
+  `features` array in `src/features/index.ts`, Then on next startup all of its routes, jobs, commands, and
+  conversations are wired without further changes.
+- **AC-002** — Given a feature that omits `routes`, `jobs`, `commands`, or `conversations`, When `registerFeatures` runs,
+  Then it skips the missing categories without error.
+- **AC-003** — Given `bootstrap.ts` calls `registerFeatures` before registering a required client token, When a feature
+  handler resolves that token, Then the runtime throws with a clear unregistered-token error.
 
-## 9. Verification Criteria
+## 6. Test Automation Strategy
 
-- `[VC-1]` Every `src/features/<name>/feature.ts` exports a single `<name>Feature` constant typed as `Feature`.
-  **PASS** — static (see the six `src/features/*/feature.ts` files).
-- `[VC-2]` `src/core/bootstrap.ts` contains exactly one call to `registerFeatures` and no direct reference to any
-  per-feature symbol. **PASS** — static (`src/core/bootstrap.ts`).
-- `[VC-3]` `src/features/index.ts` aggregates every feature declaration into one `features` array and exports nothing
-  else. **PASS** — static (`src/features/index.ts`).
-- `[VC-4]` No `src/features/<name>/feature.ts` imports from `#/core/container`; each `feature.ts` imports from
-  `#/core/feature` only the helpers `defineFeature`, `postRoute`, and `getRoute`. (Service/webhook/job files keep
-  `#/core/container` access for integration clients — out of scope for this spec, see `[PI-2]`.) **PASS** — static.
-- `[VC-5]` Type check, lint, and format all pass: `vp check`. **PASS**.
-- `[VC-6]` All existing unit and integration tests pass: `vp test`. **PASS** — 148/148.
-- `[VC-7]` HTTP, scheduler, and Telegram behavioural tests produce the expected registrations (routes, cron patterns,
-  command keys) for every feature. **PASS** (`tests/features/transcoding/webhooks/radarr.spec.ts`,
-  `tests/features/transcoding/webhooks/sonarr.spec.ts`, `tests/features/send_message/webhooks/send_message.spec.ts`).
-- `[VC-8]` Adding a new feature requires edits to exactly two files: the new feature folder (`feature.ts` plus its
-  internal files) and `src/features/index.ts` (one import line and one array entry). **PASS** — by design.
+- **Unit** — Import a feature module and assert on the declarative shape: `name`, route count, job names and patterns,
+  command keys, conversation keys. No provider needed.
+- **Integration** — Build a test container, register stub providers, call `registerFeatures([feature])`, then assert
+  the stubs received the expected `post`, `register`, `registerCommand`, and `registerConversation` calls.
+- **End-to-end** — Run `bootstrap.ts` against a sandbox, hit registered routes, and trigger a job manually through
+  the scheduler provider's test API.
 
-## 10. Open Questions
+## 7. Rationale & Context
 
-N/A
+Declarative wiring keeps each feature self-describing and trivially testable: the file is data, not a startup script.
+A central `registerFeatures` step is the only place that knows the order of provider resolution, which keeps feature
+authors out of container-lifecycle concerns. Explicit listing in `src/features/index.ts` makes the active feature set
+greppable and reviewable in PRs — a regression that filesystem-glob discovery would silently allow.
 
-## Changelog
+## 8. Dependencies & External Integrations
 
-| Date       | Amendment                                                                                                         | Sections affected     | Reason                                                                                                                                                                                      |
-| ---------- | ----------------------------------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-04-17 | `FeatureRoute` switched from object literal to closure; `postRoute`/`getRoute` helpers added                      | 3 (KD-6), 4 (PI-1), 8 | TS cannot link a per-element validator-to-handler generic in a homogeneous array of object literals without internal casts                                                                  |
-| 2026-04-17 | Barrel exports a single `features` array instead of per-feature re-exports; `bootstrap.ts` imports `{ features }` | 3 (KD-4), 8.3, 8.4, 9 | `eslint-plugin-import/no-namespace` blocks `import * as features`; a named aggregate keeps bootstrap stable while satisfying the lint rule                                                  |
-| 2026-04-17 | Exported `CommandHandler` and `Conversation` from `telegram.provider.ts`                                          | 8 (new 8.1 note), 8.7 | `Feature` must reference these types; they were previously file-local                                                                                                                       |
-| 2026-04-17 | Narrowed `[PI-2]` and `[VC-4]` scope to `feature.ts` files                                                        | 4, 9                  | Original wording over-reached to ban any `#/core/container` import under `src/features/`; integration-client resolution in services/webhooks/jobs is a separate DI pattern and out of scope |
-| 2026-04-17 | Verification complete                                                                                             | 1 (status)            | All `[VC-N]` criteria pass                                                                                                                                                                  |
-| 2026-04-17 | Condensed                                                                                                         | 7, 8, 9               | Post-implementation condensation — design intent preserved, implementation details removed                                                                                                  |
+- `HTTP_PROVIDER` — consumes `FeatureRoute` callbacks via `http.post`.
+- `SCHEDULER_PROVIDER` — consumes `FeatureJob` records via `scheduler.register`.
+- `TELEGRAM_PROVIDER` — consumes commands and conversations via `registerCommand` and `registerConversation`.
+- All three tokens MUST be registered in the container before `registerFeatures` runs (see `bootstrap.ts`).
+- Feature handlers may resolve any other registered client (Radarr, Sonarr, Plex, TMDB, Trakt, Cloudflare, Ffmpeg,
+  Telegram). Those clients must be registered earlier in `bootstrap.ts` as well.
+
+## 9. Examples & Edge Cases
+
+Routes-only feature:
+
+```ts
+export const sendMessageFeature = defineFeature({
+  name: 'send_message',
+  routes: [postRoute('/send_message', sendMessageValidator, sendMessageWebhook)],
+})
+```
+
+Jobs + conversations, no routes or commands:
+
+```ts
+export const languageSyncFeature = defineFeature({
+  conversations: { '/setlanguage': setLanguageConversation },
+  jobs: [{ handler: updatePlexSelectedLanguages, name: 'Language Sync', pattern: '0 0 */12 * * *' }],
+  name: 'language_sync',
+})
+```
+
+Full surface (routes, jobs, commands):
+
+```ts
+export const transcodingFeature = defineFeature({
+  commands: { '/subtitlescan': subtitleScanCommand, '/transcode': transcodeCommand },
+  jobs: [{ handler: runTranscodeProcess, name: 'Transcode', pattern: '0 0 */12 * * *' }],
+  name: 'transcoding',
+  routes: [postRoute('/radarr', radarrValidator, radarrWebhook), postRoute('/sonarr', sonarrValidator, sonarrWebhook)],
+})
+```
+
+Edge cases: a feature MAY register zero of any category; duplicate route paths, command names, or job names across
+features fall through to the underlying provider's collision rules and MUST be avoided by convention.
+
+## 10. Validation Criteria
+
+- `vp check` passes — `defineFeature` enforces the `Feature` shape at compile time.
+- `vp test` covers each feature's declarative shape and the `registerFeatures` dispatch.
+- `src/features/index.ts` exports every `feature.ts` in `src/features/*/`.
+- No feature module triggers I/O or container resolution at import time (verifiable by importing in a unit test
+  without registering any provider).
+
+## 11. Related Specifications / Further Reading
+
+- `docs/architecture/container.spec.md` — token lifecycle and resolution.
+- `docs/project_structure.spec.md` — folder layout for features.
+- `src/providers/http/http.spec.md` — `http.post` contract used by `postRoute`.
+- `src/providers/scheduler/scheduler.spec.md` — cron pattern grammar for `FeatureJob.pattern`.
+- `src/providers/telegram/telegram.spec.md` — command and conversation registration semantics.

@@ -1,99 +1,149 @@
 ---
-title: HTTP Provider — core runtime
-status: condensed
-author: Antoine Bouteiller
-date: 2026-04-17
-related: [docs/specs/architecture.spec.md]
+title: HTTP Provider
+version: 1.0
+date_created: 2026-05-08
+last_updated: 2026-05-08
+tags: [provider, http, runtime]
 ---
 
-## 2. Problem Statement
+# Introduction
 
-Autoscan needs a tiny HTTP surface to receive webhooks and trigger feature workflows. The HTTP provider is a **core
-runtime provider**: it owns the socket, the route table, body parsing, validation, and the response envelope. It
-exposes a small programmatic API so features can attach their own routes at boot. The provider itself knows nothing
-about any specific route, path, or domain.
+The HTTP provider is the runtime host for incoming HTTP requests (webhooks, manual triggers).
+It wraps Node's built-in `node:http` server with route registration, Zod validation, and a
+framework-neutral request/reply abstraction.
 
-- `[G-1]` Expose a minimal, framework-free HTTP server driven by `node:http`.
-- `[G-2]` Offer a route-registration API (`get`, `post`) that integrates Zod validation with handler typing.
-- `[G-3]` Provide a uniform response envelope so all consumers return the same shape for success and failure.
-- `[G-4]` Provide a test-only `inject()` path so routes can be exercised without binding a socket.
-- `[G-5]` Stay feature-agnostic — the provider registers zero application routes of its own.
+## 1. Purpose & Scope
 
-## 3. Key Design Decisions
+In scope: lifecycle, route registration, body parsing, validation, response shaping, error mapping.
+Out of scope: authentication, rate limiting, TLS termination (handled upstream by Cloudflare).
 
-| Decision                   | Choice                                                                              | Rationale                                                                                  |
-| -------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `[KD-1]` Server            | Native `node:http.createServer`                                                     | Zero framework, small bundle (see commit 3fd6395)                                          |
-| `[KD-2]` Route store       | `Map<"METHOD:path", RouteHandler>`                                                  | Exact-match only — no params, no wildcards, fast lookup                                    |
-| `[KD-3]` Validation        | `post()` wraps registration with `validator.safeParse(body)` before calling handler | Handler's body param is `z.output<TSchema>`, no manual parse in consumers                  |
-| `[KD-4]` Response envelope | `{ success, data?, error?, meta: { timestamp } }`                                   | One shape for success and failure; clients parse `success` first                           |
-| `[KD-5]` Body parsing      | Read raw, `JSON.parse` for `POST`/`PUT`/`PATCH`; `400 BAD_REQUEST` on parse failure | Avoids a third-party body-parser                                                           |
-| `[KD-6]` Authentication    | None at app layer                                                                   | Deploy behind a reverse proxy that does auth — single-user homelab context                 |
-| `[KD-7]` `inject()`        | In-memory dispatcher that returns `{ statusCode, json() }`                          | Enables route tests without TCP — avoids race conditions and port conflicts in test runner |
-| `[KD-8]` Feature-agnostic  | Provider exposes only the registration API; routes are attached by callers          | Keeps the provider decoupled from any specific feature or domain                           |
+## 2. Definitions
 
-## 4. Principles & Intents
+- **Provider**: long-lived singleton resolved from the DI container at `TOKENS.HTTP_PROVIDER`.
+- **Route**: a `METHOD:path` key mapping to a single `RouteHandler`.
+- **Handler**: an async function `(request, reply) => void` running per request.
+- **Validator**: a `z.ZodType` schema parsed against `request.body` before the handler runs.
 
-- `[PI-1]` **Provider owns transport, not routes.** `HttpProvider` never hard-codes a path. Consumers register routes
-  by calling `get()` / `post()`.
-- `[PI-2]` **Zod schema is the source of truth** for `post()` — handler body types are inferred via
-  `z.output<TSchema>`; no manual parsing inside handlers.
-- `[PI-3]` **All responses go through `success()` or `badRequest()`** from `response.ts` — handlers never call
-  `reply.send()` with a bare object.
-- `[PI-4]` **Handlers return a value only for type convenience** — the reply is sent via side-effect on `reply`;
-  returns are ignored by the server.
+## 3. Requirements, Constraints & Guidelines
 
-## 5. Non-Goals
+- **REQ-001** Lifecycle: `start()` binds to host:port, `stop()` closes the server gracefully.
+- **REQ-002** Routes are registered before `start()`; the route map is immutable at runtime in practice.
+- **REQ-003** `post()` requires a Zod validator; `get()` does not validate.
+- **REQ-004** Port and hostname come from the constructor; bootstrap passes `{ port: 3030 }` and defaults `hostname` to `0.0.0.0`.
+- **REQ-005** Bodies are accepted only for `POST`, `PUT`, `PATCH`; parsed as JSON.
+- **CON-001** Single route per `METHOD:path` key; later registrations overwrite earlier ones silently.
+- **CON-002** No path parameters or query string parsing; routes match on exact `req.url`.
+- **CON-003** No middleware chain; handlers run directly.
+- **GUD-001** Use `postRoute()` from `#/core/feature` to declare routes; do not call `http.post()` directly outside a feature.
+- **GUD-002** Use `success()` / `badRequest()` from `response.ts` to shape replies; do not write `reply.send` ad hoc.
+- **PAT-001** Thin wrapper over `node:http` keeps the dependency surface minimal and the contract stable across framework swaps.
 
-- `[NG-1]` No path params (`/:id`), query strings, wildcards, or middlewares — exact `METHOD:path` match only.
-- `[NG-2]` No cookies, sessions, CORS, or auth — out of scope for this service.
-- `[NG-3]` No multipart, streaming, or large-body handling — webhook bodies are small JSON documents.
-- `[NG-4]` No dynamic route discovery — the provider does not scan the filesystem; routes become active only when a
-  caller invokes `get()` / `post()`.
-- `[NG-5]` No built-in routes — the provider ships with an empty route table.
+## 4. Interfaces & Data Contracts
 
-## 6. Caveats
+```ts
+class HttpProvider {
+  constructor(options: { hostname?: string; port?: number })
+  get(path: string, handler: RouteHandler): void
+  post<TSchema extends z.ZodType>(path: string, validator: TSchema, handler: RouteHandler<z.output<TSchema>>): void
+  inject(options: { method: string; payload?: unknown; url: string }): Promise<InjectResponse>
+  start(): Promise<void>
+  stop(): Promise<void>
+}
 
-- `[C-1]` `HttpProvider.get()` has no validator hook — `GET` is uninstrumented for payloads.
-- `[C-2]` The live server's `400 BAD_REQUEST` for JSON-parse failures omits `meta.timestamp`; all other error paths
-  include it. See `http.provider.ts`.
-- `[C-3]` Handler exceptions are caught and converted to `500 INTERNAL_ERROR`; `res.headersSent` is checked so a
-  partially-written response isn't double-written.
-- `[C-4]` The route map is global per `HttpProvider` instance — re-registering the same `METHOD:path` silently
-  overwrites the previous handler.
+type RouteHandler<TBody = unknown> = (
+  request: { body: TBody },
+  reply: { status(code: number): AppReply; send(data: unknown): void }
+) => Promise<void> | void
+```
 
-## 7. High-Level Components
+Response envelope (from `response.ts`):
 
-| Component        | Module type                                   | Responsibility                                                 | Public API surface                                                                                                                                           |
-| ---------------- | --------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| HttpProvider     | Class (`src/providers/http/http.provider.ts`) | Server lifecycle, route registry, body parsing, error envelope | `new HttpProvider({ port, hostname })`, `.get(path, handler)`, `.post(path, validator, handler)`, `.start()`, `.stop()`, `.inject({ method, url, payload })` |
-| Response helpers | Module (`src/providers/http/response.ts`)     | Success / failure envelope builders                            | `success(reply, data, status=200)`, `badRequest(reply, message, details?)`                                                                                   |
-| Types            | Module (`src/providers/http/types.ts`)        | Request / reply contracts                                      | `AppRequest<TBody>`, `AppReply`, `RouteHandler<TBody>`                                                                                                       |
+```json
+{ "data": ..., "error": { "code", "message", "details" }, "meta": { "timestamp" }, "success": true }
+```
 
-## 8. Detailed Design
+| Condition                   | Status | `error.code`     | Source                           |
+| --------------------------- | ------ | ---------------- | -------------------------------- |
+| Unknown route               | 404    | `NOT_FOUND`      | `start()` dispatcher             |
+| Malformed JSON body         | 400    | `BAD_REQUEST`    | `start()` body parser            |
+| Zod validation failure      | 400    | `BAD_REQUEST`    | `post()` wrapper, `badRequest()` |
+| Unhandled handler exception | 500    | `INTERNAL_ERROR` | `start()` catch block            |
+| Handler success             | 200    | n/a              | `success()` helper               |
 
-> Condensed after implementation. See source code for full detail.
+`HttpError` and `ValidationError` (from `#/shared/errors/`) are tagged errors thrown by integrations
+or feature code; the provider does not inspect their tags — it logs via `logError` and returns 500.
+Map specific errors to 4xx by catching them inside the handler and calling `badRequest(reply, ...)`.
 
-| Component        | Module                | Entry point                                                              |
-| ---------------- | --------------------- | ------------------------------------------------------------------------ |
-| HttpProvider     | `src/providers/http/` | `src/providers/http/http.provider.ts` (`HttpProvider`)                   |
-| Response helpers | `src/providers/http/` | `src/providers/http/response.ts` (`success`, `badRequest`)               |
-| Types            | `src/providers/http/` | `src/providers/http/types.ts` (`AppRequest`, `AppReply`, `RouteHandler`) |
+## 5. Acceptance Criteria
 
-## 9. Verification Criteria
+- **AC-001** Given a route registered via `post(path, schema, handler)`, when a valid POST arrives, then the handler runs with `request.body` typed as `z.output<TSchema>`.
+- **AC-002** Given an invalid body, when POST arrives, then the response is 400 with `error.code = BAD_REQUEST` and `error.details` containing the Zod tree.
+- **AC-003** Given `stop()` is called, then the listening socket closes and pending connections drain before the promise resolves.
+- **AC-004** Given a request to an unregistered path, then 404 is returned without invoking any handler.
+- **AC-005** Given `inject({ method, url, payload })`, then the response mirrors a real HTTP call without binding a socket.
 
-- `[VC-1]` Registering a `POST` route with a Zod validator forwards parsed `body` (typed as `z.output<TSchema>`) to
-  the handler on valid input.
-- `[VC-2]` An invalid body returns `400` with `error.code === 'BAD_REQUEST'` and `z.treeifyError` details.
-- `[VC-3]` Malformed JSON on `POST`/`PUT`/`PATCH` returns `400` with `error.code === 'BAD_REQUEST'`.
-- `[VC-4]` An unknown route returns `404` with `error.code === 'NOT_FOUND'`.
-- `[VC-5]` A handler that throws returns `500` with `error.code === 'INTERNAL_ERROR'` and a `meta.timestamp`.
-- `[VC-6]` `inject({ method, url, payload })` dispatches the same handler pipeline as the live server and returns
-  `{ statusCode, json() }` without opening a socket.
-- `[VC-7]` `start()` binds to the configured `hostname:port`; `stop()` closes the server cleanly.
-- `[VC-8]` `src/providers/http/**` contains no hard-coded application paths — routes only appear when callers invoke
-  `get()` / `post()`.
+## 6. Test Automation Strategy
 
-## 10. Open Questions
+- Unit-test `post()` validation by calling `inject()` with valid and invalid payloads; assert `statusCode` and `json()`.
+- Unit-test `response.ts` helpers in isolation against a fake `AppReply`.
+- Integration-test `start()`/`stop()` by binding to an ephemeral port (`{ port: 0 }`) and issuing real `fetch` calls.
 
-N/A
+## 7. Rationale & Context
+
+A thin wrapper over `node:http` (no Hono, no Express) keeps the dependency surface minimal and lets
+features depend on the `RouteHandler` / `AppReply` contract instead of a third-party framework. The
+provider owns body parsing, validation, and error shaping so feature code stays focused on domain logic.
+The framework can be swapped without touching feature code as long as `RouteHandler` and `AppReply` hold.
+
+## 8. Dependencies & External Integrations
+
+### Technology Platform Dependencies
+
+- **PLT-001** Node.js (`node:http`, `createServer`, `Server`).
+- **PLT-002** No HTTP framework — direct `node:http` server with a manual route map.
+- **PLT-003** Zod (`safeParse`, `treeifyError`) for per-route body validation.
+
+## 9. Examples & Edge Cases
+
+Feature-side declaration:
+
+```ts
+import { z } from 'zod'
+import { defineFeature, postRoute } from '#/core/feature'
+import { success } from '#/providers/http/response'
+
+const schema = z.object({ id: z.string() })
+
+export const myFeature = defineFeature({
+  name: 'my-feature',
+  routes: [
+    postRoute('/webhook', schema, async ({ body }, reply) => {
+      success(reply, { received: body.id })
+    }),
+  ],
+})
+```
+
+Request and response:
+
+```sh
+curl -X POST http://localhost:3030/webhook -d '{"id":"abc"}'
+# 200 { "data": { "received": "abc" }, "meta": { "timestamp": "..." }, "success": true }
+
+curl -X POST http://localhost:3030/webhook -d '{}'
+# 400 { "error": { "code": "BAD_REQUEST", "details": { ... }, "message": "invalid request" }, ... }
+```
+
+Edge cases: empty body on POST yields `request.body = undefined` (Zod will reject unless schema allows it);
+duplicate `post(path, ...)` registrations silently overwrite; `stop()` before `start()` resolves immediately.
+
+## 10. Validation Criteria
+
+- `vp check` and `vp test` pass.
+- A booted process responds 404 on unknown routes and 400 on malformed JSON without crashing.
+- `SIGINT` triggers `stop()` and the process exits with code 0.
+
+## 11. Related Specifications / Further Reading
+
+- ../../../docs/architecture/container.spec.md
+- ../../../docs/architecture/feature_registration.spec.md
