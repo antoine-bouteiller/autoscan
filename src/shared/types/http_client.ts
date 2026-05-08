@@ -24,7 +24,7 @@ export interface HttpClientOptions {
   serviceName: string
 }
 
-export type HttpClientError = HttpError | NetworkError | ValidationError
+type HttpClientError = HttpError | NetworkError | ValidationError
 
 export type HttpClientVoidResult = HttpClientError | undefined
 

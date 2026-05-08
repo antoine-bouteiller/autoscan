@@ -378,7 +378,7 @@ export const ISO2T = [
 
 // ISO 639-2/B (3-character bibliographic codes)
 // Only includes languages where B and T codes differ
-export const ISO2B = [
+const ISO2B = [
   'alb',
   'arm',
   'baq',
@@ -402,7 +402,7 @@ export const ISO2B = [
 ] as const
 
 // ISO 639-2/B to ISO 639-2/T mapping
-export const iso2BToIso2T = {
+const iso2BToIso2T = {
   alb: 'sqi',
   arm: 'hye',
   baq: 'eus',

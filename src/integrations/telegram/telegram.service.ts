@@ -3,12 +3,12 @@ import { type InlineKeyboardMarkup } from '#/providers/telegram/types'
 import { isError, logError } from '#/shared/utils/error'
 import { httpClient } from '#/shared/utils/http_client'
 
-export interface SendMessageOptions {
+interface SendMessageOptions {
   replyMarkup?: InlineKeyboardMarkup
   parseMode?: string
 }
 
-export interface EditMessageOptions {
+interface EditMessageOptions {
   text: string
   replyMarkup?: InlineKeyboardMarkup
   parseMode?: string
