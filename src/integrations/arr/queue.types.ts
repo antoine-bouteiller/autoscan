@@ -12,6 +12,10 @@ const queueItemValidator = z.object({
       })
     )
     .optional(),
+  timeleft: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? undefined),
   title: z.string(),
   trackedDownloadStatus: z.string().optional(),
 })

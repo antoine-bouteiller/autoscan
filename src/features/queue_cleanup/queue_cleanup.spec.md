@@ -23,6 +23,8 @@ jobs-only feature: no HTTP routes, no Telegram commands.
 - **arr**: Radarr (movies) or Sonarr (series).
 - **queue**: list of in-flight downloads tracked by an arr instance (`GET /api/v3/queue`).
 - **stalled**: download with `status='warning'` and `errorMessage='The download is stalled with no connections'`.
+- **no download speed**: download with `status='downloading'` and a missing/null `timeleft` — covers torrent
+  clients that never surface a `warning` status when a download stops progressing.
 - **blocklist**: arr-side flag that prevents the same release from being grabbed again.
 
 ## 3. Requirements, Constraints & Guidelines
@@ -30,8 +32,9 @@ jobs-only feature: no HTTP routes, no Telegram commands.
 - **REQ-001** Run on cron `0 */10 * * * *` (every 10 minutes) under job name `Cleanup`.
 - **REQ-002** Remove an item immediately when its `statusMessages` contain `No files found are eligible for import`
   or `Caution: Found potentially dangerous file with extension:`.
-- **REQ-003** For stalled items (`status='warning'` and the stalled `errorMessage`), increment a per-item strike
-  counter; remove once strikes reach `STRIKE_COUNT = 5` (i.e. ~50 minutes).
+- **REQ-003** For stalled items (`status='warning'` and the stalled `errorMessage`) **or** items with no download
+  speed (`status='downloading'` and `timeleft` missing/null), increment a per-item strike counter; remove once
+  strikes reach `STRIKE_COUNT = 5` (i.e. ~50 minutes).
 - **REQ-004** Removal calls `DELETE queue/{id}?blocklist=true&removeFromClient=true` on both Radarr and Sonarr.
 - **REQ-005** Process Radarr and Sonarr concurrently via `Promise.all`.
 - **REQ-006** After each pass, drop strike counters for items no longer present in the queue.
@@ -52,7 +55,7 @@ jobs-only feature: no HTTP routes, no Telegram commands.
   - `getQueue(): Promise<QueueResponse | undefined>`
   - `removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }): Promise<void>`
 - **`QueueResponse`**: `{ records: QueueItem[]; totalRecords: number }`.
-- **`QueueItem`**: `{ id, title, status, errorMessage?, statusMessages?: { title, messages }[], trackedDownloadStatus? }`.
+- **`QueueItem`**: `{ id, title, status, errorMessage?, statusMessages?: { title, messages }[], timeleft?, trackedDownloadStatus? }`.
 
 ## 5. Acceptance Criteria
 
@@ -61,6 +64,8 @@ jobs-only feature: no HTTP routes, no Telegram commands.
   `Removing download: <title>` is emitted.
 - **AC-002 — Given** an item stalled with no connections seen on five consecutive runs, **When** the fifth run
   completes, **Then** the item is removed and its strike entry is deleted.
+- **AC-002b — Given** an item with `status='downloading'` and a missing/null `timeleft` seen on five consecutive
+  runs, **When** the fifth run completes, **Then** the item is removed and its strike entry is deleted.
 - **AC-003 — Given** an item that disappears from the queue before reaching 5 strikes, **When** the next run
   executes, **Then** its strike counter is purged from memory.
 - **AC-004 — Given** a queue item missing `title` or `status`, **When** the cleanup job runs, **Then** it is logged
@@ -69,8 +74,8 @@ jobs-only feature: no HTTP routes, no Telegram commands.
 ## 6. Test Automation Strategy
 
 - Unit-test `removeStalledDownloads` against a fake `QueueService` covering: ineligible-files removal,
-  dangerous-extension removal, strike accumulation up to threshold, strike eviction on disappearance, and
-  malformed-item skip.
+  dangerous-extension removal, strike accumulation up to threshold (both stalled-warning and no-download-speed
+  paths), strike eviction on disappearance, and malformed-item skip.
 - Reset module state between cases (the `strikeCounts` map is module-scoped).
 - Run via `vp test`.
 
@@ -80,6 +85,11 @@ Stalled torrents and malformed releases routinely block arr queues. Radarr/Sonar
 queue API, so a polling job is the simplest reliable option. The strike threshold avoids removing items that
 recover within a few minutes; the immediate removal for ineligible-files / dangerous-extension messages reflects
 that those states never self-heal. Blocklisting on removal prevents the same release from being grabbed again.
+
+Some torrent clients (e.g. Deluge in certain configurations) never report a stalled `status='warning'` to the arr
+even when a download stops making progress. To catch those cases, the job also strikes items whose `timeleft` is
+missing/null while `status='downloading'` — when there is no ETA, the effective download speed is null/zero. The
+status guard prevents striking healthy `queued`, `paused`, or `completed` items that legitimately lack a `timeleft`.
 
 ## 8. Dependencies & External Integrations
 
