@@ -22,7 +22,7 @@ export class SonarrClient extends ArrClient implements ISonarrClient {
     super({
       apiKey: config.apiKey,
       baseUrl: `${config.apiUrl}/api/v3`,
-      serviceName: 'Radarr',
+      serviceName: 'Sonarr',
     })
   }
 

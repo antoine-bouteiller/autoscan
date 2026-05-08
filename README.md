@@ -69,9 +69,9 @@ Configure Radarr and Sonarr to send `Download` webhooks to:
 - `POST /radarr`
 - `POST /sonarr`
 
-Trigger a full library transcode manually:
+Trigger a full library transcode manually from the Telegram bot:
 
-- `POST /transcode/all`
+- `/transcode`
 
 ### Scheduled jobs
 
@@ -88,7 +88,7 @@ Requires [Node.js](https://nodejs.org) and FFmpeg.
 
 ```bash
 pnpm install      # Install dependencies
-pnpm run dev      # Development with watch mode (Telegram disabled)
+pnpm run dev      # Development with watch mode
 pnpm test         # Run tests
 pnpm run lint     # Lint with oxlint
 pnpm run format   # Format with oxfmt
