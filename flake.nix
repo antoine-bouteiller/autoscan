@@ -24,7 +24,7 @@
 
           nativeBuildInputs = [
             pkgs.nodejs
-            pkgs.pnpm_10
+            pkgs.pnpm_11
             pkgs.pnpmConfigHook
             pkgs.makeWrapper
           ];
@@ -33,7 +33,7 @@
             pname = "autoscan";
             version = "unstable";
             src = pkgs.lib.cleanSource ./.;
-            hash = "sha256-cxyuCi0vEAZXfVj11KI1QQxoQ8j2wf0ZPop2gP8+WaU=";
+            hash = "sha256-QTKSQTCS8TawtojAc13GpBriO5L4KsF4gF97XDKOUIw=";
             fetcherVersion = 3;
           };
 
