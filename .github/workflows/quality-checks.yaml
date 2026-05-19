@@ -88,10 +88,10 @@ jobs:
 
       - name: Commit and push updated hash
         run: |
-          git diff --quiet flake.nix && exit 0
+          git diff --quiet flake.nix flake.lock && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add flake.nix
+          git add flake.nix flake.lock
           git commit -m "chore: update nix pnpmDeps hash"
           git push
           exit 1
