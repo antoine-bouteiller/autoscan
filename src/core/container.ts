@@ -1,6 +1,5 @@
 import { type IRadarrClient } from '#/integrations/arr/radarr.service'
 import { type ISonarrClient } from '#/integrations/arr/sonarr.service'
-import { type ICloudflareClient } from '#/integrations/cloudflare/cloudflare.service'
 import { type FfmpegClient } from '#/integrations/ffmpeg/ffmpeg.service'
 import { type IPlexClient } from '#/integrations/plex/plex.service'
 import { type ITelegramClient } from '#/integrations/telegram/telegram.service'
@@ -20,7 +19,6 @@ type Factory<TValue> = () => TValue
 const createToken = <TValue>(key: string): Token<TValue> => ({ key })
 
 export const TOKENS = {
-  CLOUDFLARE_CLIENT: createToken<ICloudflareClient>('cloudflareClient'),
   FFMPEG_CLIENT: createToken<FfmpegClient>('ffmpegClient'),
   HTTP_PROVIDER: createToken<HttpProvider>('httpProvider'),
   PLEX_CLIENT: createToken<IPlexClient>('plexClient'),

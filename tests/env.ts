@@ -1,6 +1,4 @@
 Object.assign(process.env, {
-  CLOUDFLARE_TOKEN: 'test-token',
-  DOMAIN: 'example.com',
   NODE_ENV: 'test',
   PLEX_TOKEN: 'test-plex-token',
   PLEX_URL: 'http://plex.test',

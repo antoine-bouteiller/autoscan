@@ -5,7 +5,6 @@ import { join } from 'node:path'
 
 import { expect, it } from 'vite-plus/test'
 
-export { MockCloudflareClient } from './mocks/cloudflare.mock.ts'
 export { MockPlexClient } from './mocks/plex.mock.ts'
 export { MockRadarrClient } from './mocks/radarr.mock.ts'
 export { MockSonarrClient } from './mocks/sonarr.mock.ts'

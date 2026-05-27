@@ -1,8 +1,7 @@
-import { dynamicDnsFeature } from './dynamic_dns/feature.js'
 import { languageSyncFeature } from './language_sync/feature.js'
 import { queueCleanupFeature } from './queue_cleanup/feature.js'
 import { sendMessageFeature } from './send_message/feature.js'
 import { traktSyncFeature } from './trakt_sync/feature.js'
 import { transcodingFeature } from './transcoding/feature.js'
 
-export const features = [dynamicDnsFeature, languageSyncFeature, queueCleanupFeature, sendMessageFeature, traktSyncFeature, transcodingFeature]
+export const features = [languageSyncFeature, queueCleanupFeature, sendMessageFeature, traktSyncFeature, transcodingFeature]

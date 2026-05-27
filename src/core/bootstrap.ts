@@ -4,7 +4,6 @@ import { registerFeatures } from '#/core/feature'
 import { features } from '#/features/index'
 import { RadarrClient } from '#/integrations/arr/radarr.service'
 import { SonarrClient } from '#/integrations/arr/sonarr.service'
-import { CloudflareClient } from '#/integrations/cloudflare/cloudflare.service'
 import { FfmpegClient } from '#/integrations/ffmpeg/ffmpeg.service'
 import { PlexClient } from '#/integrations/plex/plex.service'
 import { TelegramClient } from '#/integrations/telegram/telegram.service'
@@ -61,14 +60,6 @@ container.register(
     new TmdbClient({
       apiToken: env.TMDB_API_TOKEN,
       apiUrl: env.TMDB_API_URL,
-    })
-)
-
-container.register(
-  TOKENS.CLOUDFLARE_CLIENT,
-  () =>
-    new CloudflareClient({
-      token: env.CLOUDFLARE_TOKEN,
     })
 )
 

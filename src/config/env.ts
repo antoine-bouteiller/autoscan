@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { safeReadFileSync } from '#/shared/utils/fs'
 
 const FILE_SECRET_KEYS = [
-  'CLOUDFLARE_TOKEN',
   'PLEX_TOKEN',
   'RADARR_API_KEY',
   'SONARR_API_KEY',
@@ -39,8 +38,6 @@ export const urlString = z.string().refine((value) => {
 }, 'Expected URL')
 
 const baseSchema = z.object({
-  CLOUDFLARE_TOKEN: z.string(),
-  DOMAIN: z.string(),
   PLEX_TOKEN: z.string(),
   PLEX_URL: urlString,
   RADARR_API_KEY: z.string(),
