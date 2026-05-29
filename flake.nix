@@ -152,7 +152,6 @@
             telegramChatIdFile = lib.mkOption {type = lib.types.path;};
             plexTokenFile = lib.mkOption {type = lib.types.path;};
             telegramTokenFile = lib.mkOption {type = lib.types.path;};
-            cloudflareTokenFile = lib.mkOption {type = lib.types.path;};
             tmdbApiTokenFile = lib.mkOption {type = lib.types.path;};
             sonarrApiKeyFile = lib.mkOption {type = lib.types.path;};
             radarrApiKeyFile = lib.mkOption {type = lib.types.path;};
@@ -215,7 +214,6 @@
                 TELEGRAM_CHAT_ID_FILE = toString cfg.secrets.telegramChatIdFile;
                 PLEX_TOKEN_FILE = toString cfg.secrets.plexTokenFile;
                 TELEGRAM_TOKEN_FILE = toString cfg.secrets.telegramTokenFile;
-                CLOUDFLARE_TOKEN_FILE = toString cfg.secrets.cloudflareTokenFile;
                 TMDB_API_TOKEN_FILE = toString cfg.secrets.tmdbApiTokenFile;
                 SONARR_API_KEY_FILE = toString cfg.secrets.sonarrApiKeyFile;
                 RADARR_API_KEY_FILE = toString cfg.secrets.radarrApiKeyFile;
