@@ -28,7 +28,7 @@
     "@types/node": "25.9.1",
     "@vitest/coverage-v8": "4.1.7",
     "drizzle-kit": "1.0.0-beta.22-41a7d21",
-    "knip": "6.14.2",
+    "knip": "6.15.0",
     "tsx": "4.22.4",
     "typescript": "6.0.3",
     "vite-plus": "0.1.23"
