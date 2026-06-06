@@ -1,0 +1,19 @@
+commit-msg:
+  commands:
+    lint-commit-msg:
+      run: pnpm commitlint --edit
+pre-commit:
+  parallel: true
+  jobs:
+    - name: Check Lockfile
+      run: pnpm i --frozen-lockfile --silent
+    - name: Check
+      glob: '*'
+      run: pnpm check {staged_files}
+      stage_fixed: true
+    - name: Check Nix Hash
+      glob: 'pnpm-lock.yaml'
+      run: bash scripts/update_nix_hash.sh
+      stage_fixed: true
+    - name: Knip
+      run: pnpm knip

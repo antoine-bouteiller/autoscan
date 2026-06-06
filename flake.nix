@@ -16,6 +16,27 @@
       packages = forAllSystems (system: let
         pkgs = nixpkgs.legacyPackages.${system};
 
+        pnpm = pkgs.pnpm_11.overrideAttrs (_: {
+          version = "11.5.2";
+          src = pkgs.fetchurl {
+            url = "https://registry.npmjs.org/pnpm/-/pnpm-11.5.2.tgz";
+            hash = "sha256-dJ3FT709zenkFLquMsF3yoR3DT/NaciBbVea3D5qLJk=";
+          };
+          # On macOS arm64, Worker threads default to trackUnmanagedFds: true.
+          # pnpm's graceful-fs EAGAIN retry loop causes fd churn; fd numbers get
+          # recycled by libuv for internal pipes. When Workers exit, Node.js cleanup
+          # closes all tracked-but-unclosed fds — which now belong to libuv internals
+          # — causing a crash that presents as SIGKILL.
+          # Fix: disable trackUnmanagedFds on the WorkerPool constructor.
+          # See https://github.com/nodejs/node/commit/7603c7e50c
+          postPatch = ''
+            substituteInPlace dist/pnpm.mjs \
+              --replace-fail \
+                'resourceLimits: this._workerResourceLimits' \
+                'resourceLimits: this._workerResourceLimits, trackUnmanagedFds: false'
+          '';
+        });
+
         autoscan = pkgs.stdenvNoCC.mkDerivation {
           pname = "autoscan";
           version = "unstable";
@@ -24,7 +45,7 @@
 
           nativeBuildInputs = [
             pkgs.nodejs
-            pkgs.pnpm_11
+            pnpm
             pkgs.pnpmConfigHook
             pkgs.makeWrapper
           ];
@@ -33,8 +54,9 @@
             pname = "autoscan";
             version = "unstable";
             src = pkgs.lib.cleanSource ./.;
-            hash = "sha256-0YZJ3TESJbKNDAoqWmaJKqMwlejBy5fVz9S0iVy2Kz8=";
+            hash = "sha256-dJ3FT709zenkFLquMsF3yoR3DT/NaciBbVea3D5qLJk=";
             fetcherVersion = 3;
+            inherit pnpm;
           };
 
           buildPhase = ''

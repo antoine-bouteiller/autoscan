@@ -84,10 +84,6 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  staged: {
-    '*': 'vp check --fix',
-    'pnpm-lock.yaml': 'bash scripts/update_nix_hash.sh',
-  },
   test: {
     coverage: {
       exclude: ['**/integrations/**', '**/providers/**', '**/errors/**', '**/core/**', '**/tests/**'],
