@@ -44,16 +44,11 @@ importers:
         specifier: 1.0.0-beta.22-41a7d21
         version: 1.0.0-beta.22-41a7d21
       knip:
-<<<<<<< HEAD
         specifier: 6.15.0
         version: 6.15.0
-=======
-        specifier: 6.14.2
-        version: 6.14.2(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
       lefthook:
         specifier: 2.1.9
         version: 2.1.9
->>>>>>> a2a9b1a (chore(precommit): go back to lefthook and fix pnpm 11 build issue)
       tsx:
         specifier: 4.22.4
         version: 4.22.4
