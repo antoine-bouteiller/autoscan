@@ -47,6 +47,7 @@
             pkgs.nodejs
             pnpm
             pkgs.pnpmConfigHook
+            pkgs.cacert
             pkgs.makeWrapper
           ];
 
