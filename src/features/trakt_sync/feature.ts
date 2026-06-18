@@ -8,6 +8,6 @@ export const traktSyncFeature = defineFeature({
     '/synctrakt': syncTraktCommand,
     '/trakt': traktAuthCommand,
   },
-  jobs: [{ handler: traktSyncJob, name: 'Trakt Sync', pattern: '0 0 */12 * * *' }],
+  jobs: [{ handler: traktSyncJob, name: 'Trakt Sync', pattern: '0 */12 * * *' }],
   name: 'trakt_sync',
 })

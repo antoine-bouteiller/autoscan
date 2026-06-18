@@ -7,6 +7,6 @@ export const languageSyncFeature = defineFeature({
   conversations: {
     '/setlanguage': setLanguageConversation,
   },
-  jobs: [{ handler: updatePlexSelectedLanguages, name: 'Language Sync', pattern: '0 0 */12 * * *' }],
+  jobs: [{ handler: updatePlexSelectedLanguages, name: 'Language Sync', pattern: '0 */12 * * *' }],
   name: 'language_sync',
 })

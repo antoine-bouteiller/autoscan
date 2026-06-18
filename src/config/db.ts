@@ -1,23 +1,23 @@
-import { type PgliteDatabase } from 'drizzle-orm/pglite'
-import { type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { type PgAsyncDatabase, type PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import env, { isEnvironmentEnv } from '#/config/env'
 import { safeExistsSync, safeMkdirSync } from '#/shared/utils/fs'
 
-type Database = PostgresJsDatabase | PgliteDatabase
+// Both the bun-sql (production) and pglite (dev/test) databases extend `PgAsyncDatabase`; typing against this pg-core base keeps `db` dialect-neutral and avoids importing the bun-sql driver (which pulls in the native `bun` module) under the Node-based Vitest runner.
+type Database = PgAsyncDatabase<PgQueryResultHKT>
 
 const initDatabase = async (): Promise<Database> => {
   if (isEnvironmentEnv(env, 'production')) {
-    const { drizzle } = await import('drizzle-orm/postgres-js')
-    const { migrate } = await import('drizzle-orm/postgres-js/migrator')
+    const { drizzle } = await import('drizzle-orm/bun-sql')
+    const { migrate } = await import('drizzle-orm/bun-sql/migrator')
 
     const db = drizzle({
       connection: {
         database: env.POSTGRES_DATABASE,
-        host: env.POSTGRES_HOST,
+        hostname: env.POSTGRES_HOST,
         password: env.POSTGRES_PASSWORD,
         port: env.POSTGRES_PORT,
-        user: env.POSTGRES_USERNAME,
+        username: env.POSTGRES_USERNAME,
       },
     })
     await migrate(db, { migrationsFolder: './migrations' })
