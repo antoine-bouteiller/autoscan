@@ -8,6 +8,19 @@ Cross-cutting specs live in [docs/](../docs) — start with
 [project_structure.spec.md](../docs/project_structure.spec.md). Feature specs are co-located with each feature
 under `src/features/<feature>/<feature>.spec.md`.
 
+## Runtime & packaging
+
+- **Bun is the runtime and package manager.** Run the app with `bun src/index.ts`
+  (`bun run dev` for watch mode) and manage dependencies with `bun install` /
+  `bun add` / `bun remove`. The HTTP server uses `Bun.serve` and subprocesses use
+  `Bun.spawn`.
+- **Vite+ (`vp`) is kept only for lint, format, and tests** — use `vp check`,
+  `vp lint`, `vp fmt`, and `vp test`. Do not use `vp` to install dependencies or
+  run the app.
+- **Nix packaging uses [bun2nix](https://github.com/nix-community/bun2nix).** The
+  `bun.nix` dependency manifest is regenerated from `bun.lock` by the `postinstall`
+  script (`bunx bun2nix -o bun.nix`); commit it alongside `bun.lock`.
+
 <!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web

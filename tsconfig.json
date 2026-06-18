@@ -3,11 +3,15 @@
   "include": ["./"],
   "compilerOptions": {
     "lib": ["es2024", "ESNext.Array", "ESNext.Collection", "ESNext.Iterator", "ESNext.Promise"],
+    "types": ["bun", "node"],
     "module": "nodenext",
     "target": "esnext",
     "strict": true,
     "esModuleInterop": true,
     "rootDir": ".",
+    "paths": {
+      "#/*": ["./src/*"]
+    },
     "skipLibCheck": true,
     "moduleResolution": "nodenext",
     "outDir": "./build",

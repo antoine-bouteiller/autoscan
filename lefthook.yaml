@@ -1,19 +1,19 @@
 commit-msg:
   commands:
     lint-commit-msg:
-      run: pnpm commitlint --edit
+      run: bunx commitlint --edit
 pre-commit:
   parallel: true
   jobs:
     - name: Check Lockfile
-      run: pnpm i --frozen-lockfile --silent
+      run: bun install --frozen-lockfile --silent
     - name: Check
       glob: '*'
-      run: pnpm check {staged_files}
+      run: bun run check {staged_files}
       stage_fixed: true
-    - name: Check Nix Hash
-      glob: 'pnpm-lock.yaml'
-      run: bash scripts/update_nix_hash.sh
+    - name: Update bun.nix
+      glob: 'bun.lock'
+      run: bunx bun2nix -o bun.nix
       stage_fixed: true
     - name: Knip
-      run: pnpm knip
+      run: bun run knip

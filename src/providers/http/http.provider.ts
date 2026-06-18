@@ -1,5 +1,3 @@
-import { type IncomingMessage, type Server, type ServerResponse, createServer } from 'node:http'
-
 import { z } from 'zod'
 
 import { logger } from '#/config/logger'
@@ -30,31 +28,10 @@ interface InjectResponse {
   statusCode: number
 }
 
-const readBody = (req: IncomingMessage): Promise<string> =>
-  new Promise((resolve) => {
-    const chunks: Buffer[] = []
-    req.on('data', (chunk: Buffer) => chunks.push(chunk))
-    req.on('end', () => resolve(Buffer.concat(chunks).toString()))
-  })
-
-const createReply = (res: ServerResponse): AppReply => {
-  let statusCode = 200
-
-  return {
-    send(data: unknown) {
-      const body = JSON.stringify(data)
-      res.writeHead(statusCode, { 'Content-Type': 'application/json' })
-      res.end(body)
-    },
-    status(code: number) {
-      statusCode = code
-      return this
-    },
-  }
-}
+const jsonResponse = (data: unknown, statusCode: number): Response => Response.json(data, { status: statusCode })
 
 export class HttpProvider {
-  private server?: Server
+  private server?: ReturnType<typeof Bun.serve>
   private readonly options: Required<HttpProviderOptions>
   private readonly routes = new Map<string, RouteHandler>()
 
@@ -126,65 +103,70 @@ export class HttpProvider {
     }
   }
 
-  async start(): Promise<void> {
-    this.server = createServer(async (req, res) => {
-      const url = req.url ?? '/'
-      const method = req.method ?? 'GET'
-      const handler = this.routes.get(`${method}:${url}`)
+  private async handle(req: Request): Promise<Response> {
+    const url = new URL(req.url)
+    const { method } = req
+    const handler = this.routes.get(`${method}:${url.pathname}`)
 
-      if (!handler) {
-        res.writeHead(404, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }))
-        return
-      }
+    if (!handler) {
+      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }, 404)
+    }
 
-      const request: AppRequest = { body: undefined }
+    const request: AppRequest = { body: undefined }
 
-      if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
-        try {
-          const raw = await readBody(req)
-          request.body = raw ? JSON.parse(raw) : undefined
-        } catch {
-          res.writeHead(400, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON' }, success: false }))
-          return
-        }
-      }
-
-      const reply = createReply(res)
-
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
       try {
-        await handler(request, reply)
-      } catch (error) {
-        logError(error)
-        if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'application/json' })
-          res.end(
-            JSON.stringify({
-              error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
-              meta: { timestamp: new Date().toISOString() },
-              success: false,
-            })
-          )
-        }
+        const raw = await req.text()
+        request.body = raw ? JSON.parse(raw) : undefined
+      } catch {
+        return jsonResponse({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON' }, success: false }, 400)
       }
-    })
+    }
 
-    await new Promise<void>((resolve) => {
-      this.server?.listen(this.options.port, this.options.hostname, () => resolve())
+    let statusCode = 200
+    let payload: unknown
+
+    const reply: AppReply = {
+      send(data: unknown) {
+        payload = data
+      },
+      status(code: number) {
+        statusCode = code
+        return this
+      },
+    }
+
+    try {
+      await handler(request, reply)
+    } catch (error) {
+      logError(error)
+      return jsonResponse(
+        {
+          error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+          meta: { timestamp: new Date().toISOString() },
+          success: false,
+        },
+        500
+      )
+    }
+
+    return jsonResponse(payload, statusCode)
+  }
+
+  async start(): Promise<void> {
+    this.server = Bun.serve({
+      fetch: (req) => this.handle(req),
+      hostname: this.options.hostname,
+      port: this.options.port,
     })
 
     logger.info(`Server running at http://${this.options.hostname}:${this.options.port}/`, 'HTTP')
+
+    await Promise.resolve()
   }
 
   async stop(): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      if (!this.server) {
-        resolve()
-        return
-      }
-      this.server.close((error) => (error ? reject(error) : resolve()))
-    })
+    await this.server?.stop()
     logger.info('Server stopped', 'HTTP')
   }
 }

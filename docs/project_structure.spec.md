@@ -32,8 +32,8 @@ its own spec).
   under `src/providers/<name>/`.
 - **Kind suffix**: the dot-segment in a filename indicating its role (e.g. `.service.ts`,
   `.job.ts`).
-- **Subpath import**: a Node.js path alias declared in `package.json#imports`. This project uses
-  `#/*` -> `./src/*.js`.
+- **Subpath import**: a path alias for `src/`. This project uses `#/*` -> `./src/*`, resolved by
+  Bun and Vite+ via the `paths` entry in `tsconfig.json` (mirrored by `package.json#imports`).
 
 ## 3. Requirements, Constraints & Guidelines
 
@@ -146,9 +146,9 @@ between modules rather than any single module.
 
 ### Technology Platform Dependencies
 
-- **PLT-001** Node.js with native ESM and subpath imports (`#/*` -> `./src/*.js`).
-- **PLT-002** Vite+ unified toolchain: oxlint, oxfmt, Vitest, tsdown, invoked exclusively via the
-  `vp` CLI.
+- **PLT-001** Bun runtime and package manager with native ESM and subpath imports (`#/*` -> `./src/*`).
+- **PLT-002** Vite+ toolchain (oxlint, oxfmt, Vitest) for lint, format, and tests, invoked via the
+  `vp` CLI; Bun runs the app and manages dependencies, and Nix packaging uses bun2nix.
 - **PLT-003** TypeScript with strict mode; Zod for runtime validation at every external boundary.
 - **PLT-004** Drizzle ORM for schema and queries.
 

@@ -9,7 +9,7 @@ tags: [provider, http, runtime]
 # Introduction
 
 The HTTP provider is the runtime host for incoming HTTP requests (webhooks, manual triggers).
-It wraps Node's built-in `node:http` server with route registration, Zod validation, and a
+It wraps Bun's built-in `Bun.serve` server with route registration, Zod validation, and a
 framework-neutral request/reply abstraction.
 
 ## 1. Purpose & Scope
@@ -36,7 +36,7 @@ Out of scope: authentication, rate limiting, TLS termination (handled upstream b
 - **CON-003** No middleware chain; handlers run directly.
 - **GUD-001** Use `postRoute()` from `#/core/feature` to declare routes; do not call `http.post()` directly outside a feature.
 - **GUD-002** Use `success()` / `badRequest()` from `response.ts` to shape replies; do not write `reply.send` ad hoc.
-- **PAT-001** Thin wrapper over `node:http` keeps the dependency surface minimal and the contract stable across framework swaps.
+- **PAT-001** Thin wrapper over `Bun.serve` keeps the dependency surface minimal and the contract stable across framework swaps.
 
 ## 4. Interfaces & Data Contracts
 
@@ -90,7 +90,7 @@ Map specific errors to 4xx by catching them inside the handler and calling `badR
 
 ## 7. Rationale & Context
 
-A thin wrapper over `node:http` (no Hono, no Express) keeps the dependency surface minimal and lets
+A thin wrapper over `Bun.serve` (no Hono, no Express) keeps the dependency surface minimal and lets
 features depend on the `RouteHandler` / `AppReply` contract instead of a third-party framework. The
 provider owns body parsing, validation, and error shaping so feature code stays focused on domain logic.
 The framework can be swapped without touching feature code as long as `RouteHandler` and `AppReply` hold.
@@ -99,8 +99,8 @@ The framework can be swapped without touching feature code as long as `RouteHand
 
 ### Technology Platform Dependencies
 
-- **PLT-001** Node.js (`node:http`, `createServer`, `Server`).
-- **PLT-002** No HTTP framework — direct `node:http` server with a manual route map.
+- **PLT-001** Bun (`Bun.serve`, `Server`).
+- **PLT-002** No HTTP framework — direct `Bun.serve` server with a manual route map.
 - **PLT-003** Zod (`safeParse`, `treeifyError`) for per-route body validation.
 
 ## 9. Examples & Edge Cases

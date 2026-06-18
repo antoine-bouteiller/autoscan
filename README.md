@@ -80,15 +80,23 @@ Trigger a full library transcode manually from the Telegram bot:
 
 ## Development
 
-Requires [Node.js](https://nodejs.org) and FFmpeg.
+Requires [Bun](https://bun.sh) and FFmpeg. Lint, format, and tests run through
+[Vite+](https://vite.plus) (`vp`).
 
 ```bash
-pnpm install      # Install dependencies
-pnpm run dev      # Development with watch mode
-pnpm test         # Run tests
-pnpm run lint     # Lint with oxlint
-pnpm run format   # Format with oxfmt
-pnpm run typecheck # Type check
-pnpm run build    # Bundle with tsdown
-pnpm run build:sea # Build single-file executable (Node.js SEA)
+bun install       # Install dependencies
+bun run dev       # Development with watch mode (Bun)
+vp test           # Run tests
+vp lint           # Lint with oxlint
+vp fmt            # Format with oxfmt
+vp check          # Format, lint, and type checks
+```
+
+The application runs on Bun (`bun src/index.ts`). The Nix package is built with
+[bun2nix](https://github.com/nix-community/bun2nix); the `bun.nix` dependency
+manifest is regenerated from `bun.lock` on every `bun install` via the
+`postinstall` script.
+
+```bash
+nix build         # Build the bun2nix package
 ```

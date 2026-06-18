@@ -1,14 +1,32 @@
-import { spawn } from 'node:child_process'
-
 import { CommandExecutionError } from '#/shared/errors/command'
 
 interface SpawnOptions {
   cwd?: string
-  env?: NodeJS.ProcessEnv
+  env?: Record<string, string | undefined>
 }
 
-export const spawnPromise = (command: string, args: string[] = [], options: SpawnOptions = {}): Promise<CommandExecutionError | string> =>
-  new Promise((resolve) => {
+const spawnWithBun = async (command: string, args: string[], options: SpawnOptions): Promise<CommandExecutionError | string> => {
+  const proc = Bun.spawn([command, ...args], {
+    cwd: options.cwd,
+    env: options.env,
+    stderr: 'pipe',
+    stdin: 'ignore',
+    stdout: 'pipe',
+  })
+
+  const [stdout, stderr, exitCode] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited])
+
+  if (exitCode !== 0) {
+    return new CommandExecutionError({ command: `${command} ${args.join(' ')}`, exitCode: exitCode || 1, stderr })
+  }
+
+  return stdout
+}
+
+const spawnWithNode = async (command: string, args: string[], options: SpawnOptions): Promise<CommandExecutionError | string> => {
+  const { spawn } = await import('node:child_process')
+
+  return new Promise((resolve) => {
     const proc = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options })
 
     const stdoutChunks: Buffer[] = []
@@ -29,3 +47,7 @@ export const spawnPromise = (command: string, args: string[] = [], options: Spaw
       resolve(stdout)
     })
   })
+}
+
+export const spawnPromise = (command: string, args: string[] = [], options: SpawnOptions = {}): Promise<CommandExecutionError | string> =>
+  typeof Bun === 'undefined' ? spawnWithNode(command, args, options) : spawnWithBun(command, args, options)

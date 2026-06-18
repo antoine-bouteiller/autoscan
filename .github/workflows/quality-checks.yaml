@@ -17,13 +17,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.11'
+
       - uses: voidzero-dev/setup-vp@2dec1e33f4ab2c6d5bce1b0c4607961bb1a3f7a1 # v1.12.0
         with:
           node-version: '24'
           cache: true
 
       - name: Install dependencies
-        run: vp install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run linter
         run: vp check
@@ -50,13 +54,17 @@ jobs:
           sudo apt-get install -y --download-only ffmpeg
           sudo apt-get install -y ffmpeg
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.11'
+
       - uses: voidzero-dev/setup-vp@2dec1e33f4ab2c6d5bce1b0c4607961bb1a3f7a1 # v1.12.0
         with:
           node-version: '24'
           cache: true
 
       - name: Install dependencies
-        run: vp install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run tests with coverage
         run: vp run test:coverage
@@ -68,8 +76,8 @@ jobs:
           path: coverage/
           retention-days: 7
 
-  nix-hash:
-    name: Nix Hash
+  bun-nix:
+    name: Bun Nix
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -83,16 +91,23 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
 
-      - name: Update pnpmDeps hash
-        run: bash scripts/update_nix_hash.sh
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.11'
 
-      - name: Commit and push updated hash
+      - name: Regenerate bun.nix from the lockfile
+        run: bunx bun2nix -o bun.nix
+
+      - name: Lock flake inputs
+        run: nix flake lock
+
+      - name: Commit and push regenerated bun.nix
         run: |
-          git diff --quiet flake.nix flake.lock && exit 0
+          git diff --quiet flake.lock bun.nix && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add flake.nix flake.lock
-          git commit -m "chore: update nix pnpmDeps hash"
+          git add flake.lock bun.nix
+          git commit -m "chore: regenerate bun.nix and lock flake inputs"
           git push
           exit 1
 
@@ -103,13 +118,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.11'
+
       - uses: voidzero-dev/setup-vp@2dec1e33f4ab2c6d5bce1b0c4607961bb1a3f7a1 # v1.12.0
         with:
           node-version: '24'
           cache: true
 
       - name: Install dependencies
-        run: vp install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run knip
-        run: vp run knip
+        run: bun run knip
