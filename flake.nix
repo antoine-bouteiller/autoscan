@@ -55,7 +55,7 @@
             pname = "autoscan";
             version = "unstable";
             src = pkgs.lib.cleanSource ./.;
-            hash = "sha256-CF72yCJuaCcDK02HgkBcXn95nTYv6X8wijYtakvL8pw=";
+            hash = "sha256-5b6vKb+Zglm7FQOXAmxVK/kYiVPp4hINQkjHf7E+qwA=";
             fetcherVersion = 3;
             inherit pnpm;
           };
