@@ -24,8 +24,8 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@commitlint/cli": "21.0.2",
-    "@commitlint/config-conventional": "21.0.2",
+    "@commitlint/cli": "21.1.0",
+    "@commitlint/config-conventional": "21.1.0",
     "@electric-sql/pglite": "0.5.3",
     "@types/node": "25.9.4",
     "@vitest/coverage-v8": "4.1.9",
