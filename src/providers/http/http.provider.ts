@@ -33,7 +33,7 @@ const jsonResponse = (data: unknown, statusCode: number): Response => Response.j
 export class HttpProvider {
   private server?: ReturnType<typeof Bun.serve>
   private readonly options: Required<HttpProviderOptions>
-  private readonly routes = new Map<string, RouteHandler>()
+  private readonly routes: Record<string, Record<string, (req: Request) => Promise<Response>>> = {}
 
   constructor(options: HttpProviderOptions) {
     this.options = {
@@ -43,11 +43,11 @@ export class HttpProvider {
   }
 
   get(path: string, handler: RouteHandler): void {
-    this.routes.set(`GET:${path}`, handler)
+    this.register('GET', path, handler)
   }
 
   post<TSchema extends z.ZodType>(path: string, validator: TSchema, handler: RouteHandler<z.output<TSchema>>): void {
-    this.routes.set(`POST:${path}`, async (request: AppRequest, reply: AppReply) => {
+    this.register('POST', path, async (request: AppRequest, reply: AppReply) => {
       const result = validator.safeParse(request.body)
 
       if (!result.success) {
@@ -61,57 +61,34 @@ export class HttpProvider {
   }
 
   async inject(options: InjectOptions): Promise<InjectResponse> {
-    const handler = this.routes.get(`${options.method}:${options.url}`)
-
-    const result: { body: InjectResponseBody; statusCode: number } = {
-      body: { success: false },
-      statusCode: 200,
-    }
-
-    const reply: AppReply = {
-      send(data: unknown) {
-        Object.assign(result, { body: data })
-      },
-      status(code: number) {
-        result.statusCode = code
-        return this
-      },
-    }
-
-    const request: AppRequest = { body: options.payload }
-
-    if (handler) {
-      try {
-        await handler(request, reply)
-      } catch (error) {
-        logError(error)
-        result.statusCode = 500
-        result.body = {
-          error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
-          meta: { timestamp: new Date().toISOString() },
-          success: false,
-        }
-      }
-    } else {
-      result.statusCode = 404
-      result.body = { error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }
-    }
-
-    return {
-      json: () => result.body,
-      statusCode: result.statusCode,
-    }
-  }
-
-  private async handle(req: Request): Promise<Response> {
-    const url = new URL(req.url)
-    const { method } = req
-    const handler = this.routes.get(`${method}:${url.pathname}`)
+    const handler = this.routes[options.url]?.[options.method]
 
     if (!handler) {
-      return jsonResponse({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }, 404)
+      return {
+        json: () => ({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }),
+        statusCode: 404,
+      }
     }
 
+    const response = await handler(
+      new Request(`http://localhost${options.url}`, {
+        body: options.payload === undefined ? undefined : JSON.stringify(options.payload),
+        headers: { 'content-type': 'application/json' },
+        method: options.method,
+      })
+    )
+    const body: InjectResponseBody = JSON.parse(await response.text())
+
+    return { json: () => body, statusCode: response.status }
+  }
+
+  private register(method: string, path: string, handler: RouteHandler): void {
+    this.routes[path] ??= {}
+    this.routes[path][method] = (req) => this.execute(handler, req)
+  }
+
+  private async execute(handler: RouteHandler, req: Request): Promise<Response> {
+    const { method } = req
     const request: AppRequest = { body: undefined }
 
     if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
@@ -155,9 +132,10 @@ export class HttpProvider {
 
   async start(): Promise<void> {
     this.server = Bun.serve({
-      fetch: (req) => this.handle(req),
+      fetch: () => jsonResponse({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }, 404),
       hostname: this.options.hostname,
       port: this.options.port,
+      routes: this.routes,
     })
 
     logger.info(`Server running at http://${this.options.hostname}:${this.options.port}/`, 'HTTP')
