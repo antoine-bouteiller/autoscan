@@ -15,11 +15,11 @@ interface EditMessageOptions {
 }
 
 export interface ITelegramClient {
-  getUpdates(offset?: number): Promise<TelegramUpdate[] | Error>
-  sendMessage(chatId: number, text: string, options?: SendMessageOptions): Promise<number | undefined>
-  editMessageText(chatId: number, messageId: number, options: EditMessageOptions): Promise<void>
-  deleteMessage(chatId: number, messageId: number): Promise<void>
-  answerCallbackQuery(callbackQueryId: string): Promise<void>
+  getUpdates: (offset?: number) => Promise<TelegramUpdate[] | Error>
+  sendMessage: (chatId: number, text: string, options?: SendMessageOptions) => Promise<number | undefined>
+  editMessageText: (chatId: number, messageId: number, options: EditMessageOptions) => Promise<void>
+  deleteMessage: (chatId: number, messageId: number) => Promise<void>
+  answerCallbackQuery: (callbackQueryId: string) => Promise<void>
 }
 
 const UPDATE_TIMEOUT = 30

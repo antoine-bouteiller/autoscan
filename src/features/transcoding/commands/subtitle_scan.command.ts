@@ -43,9 +43,9 @@ export const parseStartTimestamps = (srtFilePath: string): number[] => {
   const timestamps: number[] = []
 
   for (const block of blocks) {
-    const match = /(\d{2}:\d{2}:\d{2},\d{3})\s*-->/.exec(block)
-    if (match) {
-      timestamps.push(parseTimestampMs(match[1]))
+    const match = /(?<start>\d{2}:\d{2}:\d{2},\d{3})\s*-->/.exec(block)
+    if (match?.groups) {
+      timestamps.push(parseTimestampMs(match.groups['start']))
     }
   }
 

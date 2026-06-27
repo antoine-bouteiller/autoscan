@@ -6,8 +6,11 @@ import { type ISOCode1 } from '#/shared/types/iso_codes'
 import { isError } from '#/shared/utils/error'
 
 export const extractTmdbIdFromPath = (filePath: string): number | undefined => {
-  const match = /{tmdb-(.*?)}/g.exec(filePath)
-  return match ? Number(match[1]) : undefined
+  const match = /{tmdb-(?<id>.*?)}/g.exec(filePath)
+  if (match && match.groups) {
+    return Number(match.groups['id'])
+  }
+  return undefined
 }
 
 export const buildMediaTitle = (grandparentTitle?: string, parentTitle?: string, title?: string): string =>

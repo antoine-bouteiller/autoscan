@@ -3,11 +3,11 @@ import { type TaggedErrorClass } from '#/shared/types/error'
 
 const parseVariables = (message: string): string[] => {
   const vars: string[] = []
-  const regex = /\$([a-zA-Z_][a-zA-Z0-9_]*)/g
+  const regex = /\$(?<name>[a-zA-Z_][a-zA-Z0-9_]*)/g
   let match
   while ((match = regex.exec(message)) !== null) {
-    if (match[1] !== undefined) {
-      vars.push(match[1])
+    if (match.groups?.['name'] !== undefined) {
+      vars.push(match.groups['name'])
     }
   }
   return vars
@@ -24,7 +24,7 @@ const safeStringify = (value: unknown): string => {
 }
 
 const interpolateMessage = (template: string, values: Record<string, unknown>): string =>
-  template.replaceAll(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, (_match, varName) => {
+  template.replaceAll(/\$(?<name>[a-zA-Z_][a-zA-Z0-9_]*)/g, (_match, varName) => {
     const value = values[varName]
 
     return value === undefined ? `$${varName}` : safeStringify(value)
