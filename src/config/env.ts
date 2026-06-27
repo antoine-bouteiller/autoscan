@@ -78,4 +78,4 @@ type Env = typeof env
 export const isEnvironmentEnv = <TEnv extends Env['NODE_ENV']>(
   _envToValidate: Env,
   envName: TEnv
-): _envToValidate is Extract<typeof env, { NODE_ENV: TEnv }> => process.env['NODE_ENV'] === envName
+): _envToValidate is Extract<typeof env, { NODE_ENV: TEnv }> => process.env.NODE_ENV === envName

@@ -3,11 +3,16 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    bun2nix = {
+      url = "github:nix-community/bun2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
+    bun2nix,
   }: let
     supportedSystems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -16,77 +21,38 @@
       packages = forAllSystems (system: let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        pnpm = pkgs.pnpm_11.overrideAttrs (_: {
-          version = "11.5.2";
-          src = pkgs.fetchurl {
-            url = "https://registry.npmjs.org/pnpm/-/pnpm-11.5.2.tgz";
-            hash = "sha256-dJ3FT709zenkFLquMsF3yoR3DT/NaciBbVea3D5qLJk=";
-          };
-          # On macOS arm64, Worker threads default to trackUnmanagedFds: true.
-          # pnpm's graceful-fs EAGAIN retry loop causes fd churn; fd numbers get
-          # recycled by libuv for internal pipes. When Workers exit, Node.js cleanup
-          # closes all tracked-but-unclosed fds — which now belong to libuv internals
-          # — causing a crash that presents as SIGKILL.
-          # Fix: disable trackUnmanagedFds on the WorkerPool constructor.
-          # See https://github.com/nodejs/node/commit/7603c7e50c
-          postPatch = ''
-            substituteInPlace dist/pnpm.mjs \
-              --replace-fail \
-                'resourceLimits: this._workerResourceLimits' \
-                'resourceLimits: this._workerResourceLimits, trackUnmanagedFds: false'
-          '';
-        });
+        # The bun2nix binary carries its `mkDerivation` / `fetchBunDeps` /
+        # `writeBunApplication` helpers in its passthru.
+        inherit (bun2nix.packages.${system}.default) writeBunApplication fetchBunDeps;
 
-        autoscan = pkgs.stdenvNoCC.mkDerivation {
+        # Autoscan runs from source under Bun (it needs the original `src`
+        # directory and a valid `node_modules` for the drizzle migrations
+        # folder and dynamic imports), so `writeBunApplication` is a better
+        # fit than compiling a standalone binary.
+        autoscan = writeBunApplication {
           pname = "autoscan";
           version = "unstable";
 
           src = pkgs.lib.cleanSource ./.;
 
-          nativeBuildInputs = [
-            pkgs.nodejs
-            pnpm
-            pkgs.pnpmConfigHook
-            pkgs.cacert
-            pkgs.makeWrapper
-          ];
+          # Run directly from TypeScript source — no bundling step.
+          dontUseBunBuild = true;
+          dontUseBunCheck = true;
+          # Lifecycle scripts (lefthook git hooks, our bun2nix postinstall) are
+          # irrelevant inside the sandbox and would fail without a git repo.
+          dontRunLifecycleScripts = true;
 
-          pnpmDeps = pkgs.fetchPnpmDeps {
-            pname = "autoscan";
-            version = "unstable";
-            src = pkgs.lib.cleanSource ./.;
-            hash = "sha256-07a/aywAI/zT29slg7wIrAMTkjl9MuDemZJrDNBNXX4=";
-            fetcherVersion = 3;
-            inherit pnpm;
-          };
+          runtimeInputs = [pkgs.ffmpeg];
 
-          buildPhase = ''
-            runHook preBuild
-            pnpm run pack
-            runHook postBuild
+          startScript = ''
+            exec bun ./src/index.ts "$@"
           '';
 
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out/lib/autoscan $out/bin
-
-            cp dist/index.mjs $out/lib/autoscan/
-            cp -r migrations $out/lib/autoscan/
-            cp -r node_modules $out/lib/autoscan/
-
-            makeWrapper ${pkgs.nodejs}/bin/node $out/bin/autoscan \
-              --add-flags "$out/lib/autoscan/index.mjs" \
-              --run "cd $out/lib/autoscan"
-            runHook postInstall
-          '';
-
-          meta = with pkgs.lib; {
-            description = "Media automation service integrating Radarr, Sonarr, Plex, and TMDB";
-            homepage = "https://github.com/antoine-bouteiller/autoscan";
-            license = licenses.mit;
-            platforms = platforms.all;
-            mainProgram = "autoscan";
+          bunDeps = fetchBunDeps {
+            bunNix = ./bun.nix;
           };
+          # `bun2nix.mkDerivation` already sets `meta.mainProgram = pname`
+          # ("autoscan"), which is what the NixOS module's ExecStart relies on.
         };
       in {
         default = autoscan;

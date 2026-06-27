@@ -4,22 +4,22 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/tes
 import { logger } from '#/config/logger'
 
 describe('logger', () => {
-  const originalEnv = process.env['NODE_ENV']
+  const originalEnv = process.env.NODE_ENV
 
   beforeEach(() => {
-    process.env['NODE_ENV'] = 'development'
+    process.env.NODE_ENV = 'development'
     vi.spyOn(console, 'info').mockImplementation(() => undefined)
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
   })
 
   afterEach(() => {
-    process.env['NODE_ENV'] = originalEnv
+    process.env.NODE_ENV = originalEnv
     vi.restoreAllMocks()
   })
 
   test('should suppress output when NODE_ENV is test', () => {
-    process.env['NODE_ENV'] = 'test'
+    process.env.NODE_ENV = 'test'
     logger.info('hello')
     logger.warn('hello')
     logger.error('hello')

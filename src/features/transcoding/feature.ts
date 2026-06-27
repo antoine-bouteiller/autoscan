@@ -13,7 +13,7 @@ export const transcodingFeature = defineFeature({
     '/subtitlescan': subtitleScanCommand,
     '/transcode': transcodeCommand,
   },
-  jobs: [{ handler: runTranscodeProcess, name: 'Transcode', pattern: '0 0 */12 * * *' }],
+  jobs: [{ handler: runTranscodeProcess, name: 'Transcode', pattern: '0 */12 * * *' }],
   name: 'transcoding',
   routes: [postRoute('/radarr', radarrValidator, radarrWebhook), postRoute('/sonarr', sonarrValidator, sonarrWebhook)],
 })
