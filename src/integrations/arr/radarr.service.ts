@@ -7,9 +7,9 @@ import { isError, logError } from '#/shared/utils/error'
 import { ArrClient } from './arr.service.js'
 
 export interface IRadarrClient extends QueueService {
-  refreshMovie(movieId: number): Promise<void>
-  renameMovie(movieId: number): Promise<void>
-  getMovieByPath(filePath: string): Promise<number | undefined>
+  refreshMovie: (movieId: number) => Promise<void>
+  renameMovie: (movieId: number) => Promise<void>
+  getMovieByPath: (filePath: string) => Promise<number | undefined>
 }
 
 interface RadarrClientConfig {

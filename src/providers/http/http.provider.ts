@@ -24,7 +24,7 @@ interface InjectResponseBody {
 }
 
 interface InjectResponse {
-  json(): InjectResponseBody
+  json: () => InjectResponseBody
   statusCode: number
 }
 

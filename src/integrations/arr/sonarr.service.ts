@@ -7,9 +7,9 @@ import { isError, logError } from '#/shared/utils/error'
 import { ArrClient } from './arr.service.js'
 
 export interface ISonarrClient extends QueueService {
-  refreshSeries(seriesId: number): Promise<void>
-  renameSeries(seriesId: number): Promise<void>
-  getSeriesByPath(filePath: string): Promise<number | undefined>
+  refreshSeries: (seriesId: number) => Promise<void>
+  renameSeries: (seriesId: number) => Promise<void>
+  getSeriesByPath: (filePath: string) => Promise<number | undefined>
 }
 
 interface SonarrClientConfig {

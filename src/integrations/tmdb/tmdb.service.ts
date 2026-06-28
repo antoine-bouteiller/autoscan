@@ -4,9 +4,9 @@ import { isError, logError } from '#/shared/utils/error'
 import { httpClient } from '#/shared/utils/http_client'
 
 export interface ITmdbClient {
-  getTmdbMedia(tmdbId: number, mediaType: MediaType): Promise<TmdbMedia>
-  getTmdbTvShow(tmdbId: number): Promise<TmdbTV | undefined>
-  getTmdbMovie(tmdbId: number): Promise<TmdbMovie | undefined>
+  getTmdbMedia: (tmdbId: number, mediaType: MediaType) => Promise<TmdbMedia>
+  getTmdbTvShow: (tmdbId: number) => Promise<TmdbTV | undefined>
+  getTmdbMovie: (tmdbId: number) => Promise<TmdbMovie | undefined>
 }
 
 interface TmdbClientConfig {

@@ -11,13 +11,13 @@ import { httpClient } from '#/shared/utils/http_client'
 export type MediaType = 'movie' | 'show'
 
 export interface IPlexClient {
-  getPlexMetadata(ratingKey: number): Promise<PlexMedia | HttpError | NetworkError | ValidationError | PlexError>
-  getBasicMediaInfo(plexMedia: PlexMedia): { file: string | undefined; ratingKey: string; type: string }
-  getSectionMedia(id: number, sectionType: 'movie' | 'show'): Promise<PlexMedia[]>
-  getSections(): Promise<{ key: number; title: string; type: 'movie' | 'show' }[]>
-  refreshSection(id: number, filePath: string): Promise<void>
-  refreshSections(filePath: string, mediaType: MediaType): Promise<void>
-  updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle'): Promise<void>
+  getPlexMetadata: (ratingKey: number) => Promise<PlexMedia | HttpError | NetworkError | ValidationError | PlexError>
+  getBasicMediaInfo: (plexMedia: PlexMedia) => { file: string | undefined; ratingKey: string; type: string }
+  getSectionMedia: (id: number, sectionType: 'movie' | 'show') => Promise<PlexMedia[]>
+  getSections: () => Promise<{ key: number; title: string; type: 'movie' | 'show' }[]>
+  refreshSection: (id: number, filePath: string) => Promise<void>
+  refreshSections: (filePath: string, mediaType: MediaType) => Promise<void>
+  updateStream: (partsId: number, streamId: number, type: 'audio' | 'subtitle') => Promise<void>
 }
 
 interface PlexClientConfig {

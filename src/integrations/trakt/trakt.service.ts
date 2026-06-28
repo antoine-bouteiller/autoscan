@@ -28,14 +28,14 @@ export interface TraktShowPayload {
 }
 
 export interface ITraktClient {
-  getDeviceCode(): Promise<TraktDeviceCodeResponse | HttpError | NetworkError | ValidationError>
-  pollDeviceToken(deviceCode: string): Promise<TraktTokenResponse | HttpError | NetworkError | ValidationError>
-  refreshToken(refreshToken: string): Promise<TraktTokenResponse | HttpError | NetworkError | ValidationError>
-  syncWatchedHistory(
+  getDeviceCode: () => Promise<TraktDeviceCodeResponse | HttpError | NetworkError | ValidationError>
+  pollDeviceToken: (deviceCode: string) => Promise<TraktTokenResponse | HttpError | NetworkError | ValidationError>
+  refreshToken: (refreshToken: string) => Promise<TraktTokenResponse | HttpError | NetworkError | ValidationError>
+  syncWatchedHistory: (
     accessToken: string,
     movies: TraktMoviePayload[],
     shows: TraktShowPayload[]
-  ): Promise<TraktSyncResponse | HttpError | NetworkError | ValidationError>
+  ) => Promise<TraktSyncResponse | HttpError | NetworkError | ValidationError>
 }
 
 interface TraktClientConfig {
