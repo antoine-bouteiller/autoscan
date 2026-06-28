@@ -1201,9 +1201,9 @@
     url = "https://registry.npmjs.org/jws/-/jws-4.0.1.tgz";
     hash = "sha512-EKI/M/yqPncGUUh44xz0PxSidXFr/+r0pA70+gIYhjv+et7yxM+s29Y+VGDkovRofQem0fs7Uvf4+YmAdyRduA==";
   };
-  "knip@6.21.0" = fetchurl {
-    url = "https://registry.npmjs.org/knip/-/knip-6.21.0.tgz";
-    hash = "sha512-q7K9VGSFfdVaCjhj9u+5aI2t5CZt3edZeLi+1wjnGAvYB2WfW6+T9UWAREsTR88aB8YeDqkKVZiVMV7va3oTmg==";
+  "knip@6.22.0" = fetchurl {
+    url = "https://registry.npmjs.org/knip/-/knip-6.22.0.tgz";
+    hash = "sha512-HTqtalzPNERFiyTj/3pERGss8oBzgxL9ZWiEQ29N9/+cTMZ1guIIEtcczrYpaoE76//XSHO11uuc66O9feY8wA==";
   };
   "lefthook-darwin-arm64@2.1.9" = fetchurl {
     url = "https://registry.npmjs.org/lefthook-darwin-arm64/-/lefthook-darwin-arm64-2.1.9.tgz";
