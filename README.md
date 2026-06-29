@@ -1,5 +1,7 @@
 # Autoscan
 
+[![codecov](https://codecov.io/github/antoine-bouteiller/autoscan/graph/badge.svg?token=O2HLEE8XOI)](https://codecov.io/github/antoine-bouteiller/autoscan)
+
 Media automation service that integrates Radarr, Sonarr, Plex, and TMDB to automatically transcode, clean up, and manage media libraries.
 
 ## Features

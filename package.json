@@ -16,7 +16,7 @@
     "db:generate": "drizzle-kit generate",
     "knip": "knip",
     "test": "bun test ./tests",
-    "test:coverage": "bun test ./tests --coverage",
+    "test:coverage": "bun test ./tests --coverage --reporter=junit --reporter-outfile=./junit.xml",
     "test:watch": "bun test ./tests --watch",
     "postinstall": "bun2nix -o bun.nix"
   },

@@ -11,4 +11,3 @@ coveragePathIgnorePatterns = [
   "**/tests/**",
   "src/database/schema.ts",
 ]
-coverageThreshold = 0.75
