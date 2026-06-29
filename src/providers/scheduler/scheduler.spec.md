@@ -144,7 +144,7 @@ Edge cases:
 
 ## 10. Validation Criteria
 
-- `vp check` and `vp test` pass with the scheduler module touched.
+- `bun run check` and `bun run test` pass with the scheduler module touched.
 - Registered job count at boot equals the sum of `feature.jobs?.length` across features.
 - `SIGINT` shutdown logs `All cron jobs stopped` and the process exits cleanly.
 

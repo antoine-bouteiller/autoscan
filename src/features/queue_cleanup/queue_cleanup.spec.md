@@ -77,7 +77,7 @@ jobs-only feature: no HTTP routes, no Telegram commands.
   dangerous-extension removal, strike accumulation up to threshold (both stalled-warning and no-download-speed
   paths), strike eviction on disappearance, and malformed-item skip.
 - Reset module state between cases (the `strikeCounts` map is module-scoped).
-- Run via `vp test`.
+- Run via `bun run test`.
 
 ## 7. Rationale & Context
 
@@ -116,7 +116,7 @@ status guard prevents striking healthy `queued`, `paused`, or `completed` items 
 
 ## 10. Validation Criteria
 
-- `vp check` and `vp test` pass.
+- `bun run check` and `bun run test` pass.
 - The job appears in scheduler startup logs with pattern `0 */10 * * * *`.
 - Manual smoke: induce a stalled torrent in Radarr, observe five strike logs over ~50 min, then a removal log and
   the item gone from `GET /queue`.

@@ -153,8 +153,8 @@ features fall through to the underlying provider's collision rules and MUST be a
 
 ## 10. Validation Criteria
 
-- `vp check` passes — `defineFeature` enforces the `Feature` shape at compile time.
-- `vp test` covers each feature's declarative shape and the `registerFeatures` dispatch.
+- `bun run check` passes — `defineFeature` enforces the `Feature` shape at compile time.
+- `bun run test` covers each feature's declarative shape and the `registerFeatures` dispatch.
 - `src/features/index.ts` exports every `feature.ts` in `src/features/*/`.
 - No feature module triggers I/O or container resolution at import time (verifiable by importing in a unit test
   without registering any provider).

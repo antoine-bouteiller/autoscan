@@ -164,7 +164,7 @@ per-rating-key idempotency persisted in PostgreSQL.
 
 ## 10. Validation Criteria
 
-- `vp check` and `vp test` pass.
+- `bun run check` and `bun run test` pass.
 - After running `/synctrakt`, `select count(*) from trakt_sync_history` increases by exactly the
   number of unique rating keys submitted.
 - `select count(*) from trakt_tokens` is always 0 or 1.

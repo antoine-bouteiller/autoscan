@@ -125,7 +125,7 @@ interface UpdateLanguageParams {
 - **Conversation tests** — drive `setLanguageConversation.onCommand` and `.onCallback` with fake state and
   callback payloads; assert produced state transitions, edited message text, and that `selectLanguage`
   issues the expected `db.update`.
-- **Run** via `vp test`; lint/typecheck via `vp check` per the project review checklist.
+- **Run** via `bun run test`; lint/typecheck via `bun run check` per the project review checklist.
 
 ## 7. Rationale & Context
 
@@ -170,8 +170,8 @@ cleared for French because that is the operator's only consistently-subtitled au
 
 ## 10. Validation Criteria
 
-- `vp check` passes (oxlint, oxfmt, tsc).
-- `vp test` covers AC-001..AC-005 with mocked Plex/TMDB clients.
+- `bun run check` passes (oxlint, oxfmt, tsc).
+- `bun run test` covers AC-001..AC-005 with mocked Plex/TMDB clients.
 - Manual: trigger `/setlanguage`, set a media to `fr`, then run the job and confirm via Plex UI that the
   audio track switched and subtitles are off.
 

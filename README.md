@@ -80,16 +80,16 @@ Trigger a full library transcode manually from the Telegram bot:
 
 ## Development
 
-Requires [Bun](https://bun.sh) and FFmpeg. Lint, format, and tests run through
-[Vite+](https://vite.plus) (`vp`).
+Requires [Bun](https://bun.sh) and FFmpeg. Everything runs through Bun;
+lint and format use [oxlint](https://oxc.rs) and oxfmt directly.
 
 ```bash
 bun install       # Install dependencies
 bun run dev       # Development with watch mode (Bun)
-vp test           # Run tests
-vp lint           # Lint with oxlint
-vp fmt            # Format with oxfmt
-vp check          # Format, lint, and type checks
+bun run test      # Run tests
+bun run lint      # Lint with oxlint
+bun run fmt       # Format with oxfmt
+bun run check     # Verify format + lint + type-check
 ```
 
 The application runs on Bun (`bun src/index.ts`). The Nix package is built with

@@ -134,7 +134,7 @@ Edge cases:
 ## 10. Validation Criteria
 
 - The route appears in the `HttpProvider` route map as `POST:/send_message` after `registerFeatures` runs.
-- `vp check` and `vp test` pass for the feature directory.
+- `bun run check` and `bun run test` pass for the feature directory.
 - A POST with a valid body produces a Telegram message in the configured chat in a smoke environment.
 
 ## 11. Related Specifications / Further Reading

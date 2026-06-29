@@ -33,7 +33,7 @@ its own spec).
 - **Kind suffix**: the dot-segment in a filename indicating its role (e.g. `.service.ts`,
   `.job.ts`).
 - **Subpath import**: a path alias for `src/`. This project uses `#/*` -> `./src/*`, resolved by
-  Bun and Vite+ via the `paths` entry in `tsconfig.json` (mirrored by `package.json#imports`).
+  Bun via the `paths` entry in `tsconfig.json` (mirrored by `package.json#imports`).
 
 ## 3. Requirements, Constraints & Guidelines
 
@@ -108,14 +108,14 @@ extension, e.g. `import { foo } from '#/shared/utils/array.js'`.
 ## 5. Acceptance Criteria
 
 - **AC-001** Given a new feature `foo`, when its files are placed under `src/features/foo/` with
-  `feature.ts` and any subfolders for `services/`, `jobs/`, etc., then `vp lint` passes and
+  `feature.ts` and any subfolders for `services/`, `jobs/`, etc., then `bun run lint` passes and
   `src/features/index.ts` exports `fooFeature` in the `features` array.
 - **AC-002** Given a source file `src/features/foo/services/foo.service.ts`, when its test is
-  placed at `tests/features/foo/services/foo.spec.ts`, then `vp test` discovers and runs it.
+  placed at `tests/features/foo/services/foo.spec.ts`, then `bun run test` discovers and runs it.
 - **AC-003** Given an attempt to add `import { x } from '#/features/bar/services/bar.service.js'`
   inside `src/features/foo/`, when the import is reviewed, then the change is rejected and the
   shared logic is promoted to `domains/`, `shared/`, `integrations/`, or `providers/`.
-- **AC-004** Given a file named `Foo.Service.ts` or `foo-service.ts`, when `vp lint` runs, then
+- **AC-004** Given a file named `Foo.Service.ts` or `foo-service.ts`, when `bun run lint` runs, then
   `unicorn/filename-case` reports an error.
 - **AC-005** Given a relative import `../../features/...` crossing a top-level boundary, when
   reviewed, then the change is rejected in favour of the `#/` alias.
@@ -128,7 +128,7 @@ extension, e.g. `import { foo } from '#/shared/utils/array.js'`.
   the `tests/` root. Test helpers are imported via the `#tests/*` alias, not relative paths.
 - The runner is Bun's native `bun test` (config in `bunfig.toml`) via `bun run test` (one-shot),
   `bun run test:watch` (watch mode), and `bun run test:coverage` (coverage + global gate).
-- Linting (`vp lint`) and type-checking (`vp check`) MUST pass on every change. Filename casing,
+- Linting (`bun run lint`) and type-checking (`bun run check`) MUST pass on every change. Filename casing,
   import boundaries, and unused-export pruning (knip) are enforced by tooling, not by review.
 
 ## 7. Rationale & Context
@@ -147,7 +147,7 @@ between modules rather than any single module.
 ### Technology Platform Dependencies
 
 - **PLT-001** Bun runtime and package manager with native ESM and subpath imports (`#/*` -> `./src/*`).
-- **PLT-002** Vite+ toolchain (oxlint, oxfmt) for lint and format, invoked via the `vp` CLI; tests
+- **PLT-002** oxlint and oxfmt for lint and format, invoked directly via `bun run lint` / `bun run fmt`; tests
   run on Bun's native `bun test`. Bun runs the app and manages dependencies, and Nix packaging uses bun2nix.
 - **PLT-003** TypeScript with strict mode; Zod for runtime validation at every external boundary.
 - **PLT-004** Drizzle ORM for schema and queries.
@@ -193,8 +193,8 @@ import from there in both features.
 ## 10. Validation Criteria
 
 - `find src -maxdepth 1 -type d` returns only the eight directories listed in REQ-001.
-- `vp lint` passes (`unicorn/filename-case`, import boundary rules, no unused exports).
-- `vp check` passes (format + type-check).
+- `bun run lint` passes (`unicorn/filename-case`, import boundary rules, no unused exports).
+- `bun run check` passes (format + type-check).
 - `grep -RInE "from '#/features/[^']+'" src/features/<a>/` returns no hits referencing a sibling
   feature `<b>`.
 - `grep -RInE "from '\\.\\./\\.\\./" src` returns no hits crossing a top-level boundary.

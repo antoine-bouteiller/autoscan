@@ -115,8 +115,8 @@ Promoted to a domain because the language store is read by `language_sync` and t
 
 ## 10. Validation Criteria
 
-- `vp check` enforces the import boundary via `oxlint` rules (no `#/features`, `#/providers`, sibling-domain imports).
-- `vp test` covers repository upsert behaviour, language resolution branches, and path parsing.
+- `bun run check` enforces the import boundary via `oxlint` rules (no `#/features`, `#/providers`, sibling-domain imports).
+- `bun run test` covers repository upsert behaviour, language resolution branches, and path parsing.
 
 ## 11. Related Specifications / Further Reading
 

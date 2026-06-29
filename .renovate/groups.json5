@@ -8,9 +8,9 @@
       versioning: 'docker',
     },
     {
-      description: 'Vite+ Group',
-      groupName: 'vite-plus',
-      matchPackageNames: ['vite-plus', '@vitest/coverage-v8'],
+      description: 'Oxc Group',
+      groupName: 'oxc',
+      matchPackageNames: ['oxlint', 'oxfmt'],
     },
   ],
 }

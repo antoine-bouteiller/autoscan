@@ -188,7 +188,7 @@ Decision examples:
 
 ## 10. Validation Criteria
 
-- `vp check` and `vp test` succeed.
+- `bun run check` and `bun run test` succeed.
 - Webhook validators round-trip every documented `eventType`.
 - `getTranscodeCommand` returns `undefined` for an already-conformant file (no queue entry, no ffmpeg invocation).
 - Post-process leaves the `${TRANSCODE_PATH}/<name>/` directory empty (deleted) regardless of success or failure.

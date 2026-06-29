@@ -162,7 +162,7 @@ await http.start()
 
 ## 10. Validation Criteria
 
-- `vp check` and `vp test` pass.
+- `bun run check` and `bun run test` pass.
 - No file outside `src/core/bootstrap.ts` and tests instantiates a registered
   provider or client directly.
 - Every key in `TOKENS` has a matching `container.register` call in

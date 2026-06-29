@@ -139,7 +139,7 @@ duplicate `post(path, ...)` registrations silently overwrite; `stop()` before `s
 
 ## 10. Validation Criteria
 
-- `vp check` and `vp test` pass.
+- `bun run check` and `bun run test` pass.
 - A booted process responds 404 on unknown routes and 400 on malformed JSON without crashing.
 - `SIGINT` triggers `stop()` and the process exits with code 0.
 

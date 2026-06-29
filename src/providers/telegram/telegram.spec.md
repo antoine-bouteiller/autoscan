@@ -168,7 +168,7 @@ dropped silently.
 
 ## 10. Validation Criteria
 
-`vp check` and `vp test` pass. The dev script (`bun run dev` →
+`bun run check` and `bun run test` pass. The dev script (`bun run dev` →
 `bun --watch src/index.ts`) starts the provider whenever `.env` provides
 `TELEGRAM_TOKEN` and `TELEGRAM_CHAT_ID`; omitting either fails zod parsing in
 `src/config/env.ts` before `start()` is reached.
