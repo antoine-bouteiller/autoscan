@@ -37,9 +37,14 @@ export const urlString = z.string().refine((value) => {
   }
 }, 'Expected URL')
 
-const baseSchema = z.object({
+const envSchema = z.object({
   PLEX_TOKEN: z.string(),
   PLEX_URL: urlString,
+  POSTGRES_DATABASE: z.string(),
+  POSTGRES_HOST: z.string(),
+  POSTGRES_PASSWORD: z.string().optional(),
+  POSTGRES_PORT: z.coerce.number(),
+  POSTGRES_USERNAME: z.string(),
   RADARR_API_KEY: z.string(),
   RADARR_API_URL: urlString,
   SONARR_API_KEY: z.string(),
@@ -53,29 +58,6 @@ const baseSchema = z.object({
   TRANSCODE_PATH: z.string(),
 })
 
-const envSchema = baseSchema.and(
-  z.discriminatedUnion('NODE_ENV', [
-    z.object({ DATABASE_URL: z.string(), NODE_ENV: z.literal('development') }),
-    z.object({
-      NODE_ENV: z.literal('production'),
-      POSTGRES_DATABASE: z.string(),
-      POSTGRES_HOST: z.string(),
-      POSTGRES_PASSWORD: z.string().optional(),
-      POSTGRES_PORT: z.coerce.number(),
-      POSTGRES_USERNAME: z.string(),
-    }),
-    z.object({
-      NODE_ENV: z.literal('test'),
-    }),
-  ])
-)
-
 const env = envSchema.parse(process.env)
 
 export default env
-type Env = typeof env
-
-export const isEnvironmentEnv = <TEnv extends Env['NODE_ENV']>(
-  _envToValidate: Env,
-  envName: TEnv
-): _envToValidate is Extract<typeof env, { NODE_ENV: TEnv }> => process.env.NODE_ENV === envName
