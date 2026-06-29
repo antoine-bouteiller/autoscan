@@ -1,5 +1,6 @@
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+
 import { and, eq } from 'drizzle-orm'
-import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test'
 
 import { db } from '#/config/db'
 import { container, TOKENS } from '#/core/container'
@@ -16,16 +17,16 @@ import {
 } from '#/features/language_sync/services/language.service'
 import { type PlexMediaStream } from '#/integrations/plex/plex.validator'
 import { iso1ToIso2T } from '#/shared/types/iso_codes'
-
-import { updateStreamMock } from '../../../mocks/plex.mock.js'
-import { editMessageTextMock } from '../../../mocks/telegram.mock.js'
+import { updateStreamMock } from '#tests/mocks/plex.mock'
+import { editMessageTextMock } from '#tests/mocks/telegram.mock'
 import {
   mockAudioStreamFrench,
   mockAudioStreamNotMatching,
   mockAudioStreams,
   mockAudioStreamSelected,
   mockNonAudioStreams,
-} from '../../../resources/fixtures/media.fixtures.js'
+} from '#tests/resources/fixtures/media.fixtures'
+
 import '../../../utils.ts'
 
 const makeMedia = (count: number): Media[] =>

@@ -1,14 +1,13 @@
-import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, jest, test } from 'bun:test'
 
 import { db } from '#/config/db'
 import { traktSyncHistory, traktTokens } from '#/database/schema'
 import { syncTraktCommand, traktAuthCommand } from '#/features/trakt_sync/commands/trakt.command'
 import { type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
 import { HttpError } from '#/shared/errors/http'
-
-import { sendMessageMock } from '../../../mocks/telegram.mock.js'
-import { getDeviceCodeMock, syncWatchedHistoryMock } from '../../../mocks/trakt.mock.js'
-import { MockTelegramClient } from '../../../utils.ts'
+import { sendMessageMock } from '#tests/mocks/telegram.mock'
+import { getDeviceCodeMock, syncWatchedHistoryMock } from '#tests/mocks/trakt.mock'
+import { MockTelegramClient } from '#tests/utils'
 
 const makeMessage = (chatId: number): TelegramMessageIn => ({
   chat: { id: chatId },
@@ -21,7 +20,7 @@ describe('traktAuthCommand', () => {
   const client = new MockTelegramClient()
 
   beforeEach(async () => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     await db.delete(traktTokens)
   })
 
@@ -71,7 +70,7 @@ describe('syncTraktCommand', () => {
   const client = new MockTelegramClient()
 
   beforeEach(async () => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     await db.delete(traktTokens)
     await db.delete(traktSyncHistory)
   })

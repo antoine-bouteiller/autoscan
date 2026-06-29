@@ -1,14 +1,12 @@
-import { copyFileSync } from 'node:fs'
+import { describe, expect, test } from 'bun:test'
+import { copyFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-
-import { describe, expect } from 'vite-plus/test'
 
 import { container, TOKENS } from '#/core/container'
 import { isForcedSubtitle, processSubtitleStreams } from '#/features/transcoding/services/helpers/subtitle'
 import { type ISOCode1 } from '#/shared/types/iso_codes'
 import { isOk } from '#/shared/utils/error'
-
-import { testWithTestDir, videosPath } from '../../../../utils.ts'
+import { makeTestDir, videosPath } from '#tests/utils'
 
 interface TestCase {
   file: string
@@ -45,22 +43,29 @@ const dataset: TestCase[] = [
 ]
 
 describe('Extract subtitles', () => {
-  testWithTestDir.for(dataset)('$title', async ({ file, originalLanguage, streamToKeep }, { testDir }) => {
-    copyFileSync(join(videosPath, file), join(testDir, file))
+  for (const { file, originalLanguage, streamToKeep, title } of dataset) {
+    test(title, async () => {
+      const testDir = makeTestDir()
+      try {
+        copyFileSync(join(videosPath, file), join(testDir, file))
 
-    const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-    const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
-    expect(isOk(probeResult)).toBe(true)
-    if (!isOk(probeResult)) {
-      return
-    }
+        const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
+        const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
+        expect(isOk(probeResult)).toBe(true)
+        if (!isOk(probeResult)) {
+          return
+        }
 
-    const subtitleStreams = probeResult.streams.filter((stream) => stream.codec_type === 'subtitle')
+        const subtitleStreams = probeResult.streams.filter((stream) => stream.codec_type === 'subtitle')
 
-    const streamsKepts = await processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
+        const streamsKepts = await processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
 
-    expect(streamsKepts.length).toBe(streamToKeep.length)
-  })
+        expect(streamsKepts.length).toBe(streamToKeep.length)
+      } finally {
+        rmSync(testDir, { recursive: true })
+      }
+    })
+  }
 })
 
 interface ForcedTestCase {
@@ -83,22 +88,29 @@ const forcedDataset: ForcedTestCase[] = [
 ]
 
 describe('Forced subtitle detection', () => {
-  testWithTestDir.for(forcedDataset)('$title', async ({ expected, file }, { testDir }) => {
-    copyFileSync(join(videosPath, file), join(testDir, file))
+  for (const { expected, file, title } of forcedDataset) {
+    test(title, async () => {
+      const testDir = makeTestDir()
+      try {
+        copyFileSync(join(videosPath, file), join(testDir, file))
 
-    const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-    const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
-    expect(isOk(probeResult)).toBe(true)
-    if (!isOk(probeResult)) {
-      return
-    }
+        const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
+        const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
+        expect(isOk(probeResult)).toBe(true)
+        if (!isOk(probeResult)) {
+          return
+        }
 
-    expect(probeResult.duration).toBeDefined()
+        expect(probeResult.duration).toBeDefined()
 
-    const srtPath = join(testDir, 'test.srt')
-    const extractResult = await ffmpegClient.execute('-i', join(testDir, file), '-map', '0:s:0', '-c:s', 'srt', srtPath)
-    expect(isOk(extractResult)).toBe(true)
+        const srtPath = join(testDir, 'test.srt')
+        const extractResult = await ffmpegClient.execute('-i', join(testDir, file), '-map', '0:s:0', '-c:s', 'srt', srtPath)
+        expect(isOk(extractResult)).toBe(true)
 
-    expect(isForcedSubtitle(srtPath, probeResult.duration)).toBe(expected)
-  })
+        expect(isForcedSubtitle(srtPath, probeResult.duration)).toBe(expected)
+      } finally {
+        rmSync(testDir, { recursive: true })
+      }
+    })
+  }
 })

@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "tags": ["-lintignore"],
-  "entry": ["tests/**/*.spec.ts", "tests/setup.ts", "tests/env.ts", "tests/global_setup.ts", "vite.config.ts"],
+  "entry": ["tests/**/*.spec.ts", "vite.config.ts"],
   "project": ["src/**/*.ts", "tests/**/*.ts"],
-  "ignoreDependencies": ["@vitest/coverage-istanbul", "@commitlint/cli", "lefthook"]
+  "ignoreDependencies": ["@commitlint/cli", "lefthook"]
 }

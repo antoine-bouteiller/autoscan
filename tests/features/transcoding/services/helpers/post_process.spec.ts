@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 
 import { container, TOKENS } from '#/core/container'
 import { handlePostTranscode } from '#/features/transcoding/services/helpers/post_process'
+import { refreshSectionsMock } from '#tests/mocks/plex.mock'
 
-import { refreshSectionsMock } from '../../../../mocks/plex.mock.js'
 import '../../../../utils.ts'
 
 describe('handlePostTranscode', () => {
@@ -12,13 +12,13 @@ describe('handlePostTranscode', () => {
   const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   test('movie: should refresh and rename when Radarr returns movieId', async () => {
-    const getMovieByPath = vi.spyOn(radarrClient, 'getMovieByPath').mockResolvedValue(7)
-    const refreshMovie = vi.spyOn(radarrClient, 'refreshMovie').mockResolvedValue()
-    const renameMovie = vi.spyOn(radarrClient, 'renameMovie').mockResolvedValue()
+    const getMovieByPath = spyOn(radarrClient, 'getMovieByPath').mockResolvedValue(7)
+    const refreshMovie = spyOn(radarrClient, 'refreshMovie').mockResolvedValue()
+    const renameMovie = spyOn(radarrClient, 'renameMovie').mockResolvedValue()
 
     await handlePostTranscode({ filePath: '/movies/file.mp4', mediaTitle: 'Title', mediaType: 'movie' })
 
@@ -29,8 +29,8 @@ describe('handlePostTranscode', () => {
   })
 
   test('movie: should skip refresh when Radarr has no movie for path', async () => {
-    vi.spyOn(radarrClient, 'getMovieByPath').mockResolvedValue(undefined)
-    const refreshMovie = vi.spyOn(radarrClient, 'refreshMovie').mockResolvedValue()
+    spyOn(radarrClient, 'getMovieByPath').mockResolvedValue(undefined)
+    const refreshMovie = spyOn(radarrClient, 'refreshMovie').mockResolvedValue()
 
     await handlePostTranscode({ filePath: '/movies/file.mp4', mediaTitle: 'Title', mediaType: 'movie' })
 
@@ -39,9 +39,9 @@ describe('handlePostTranscode', () => {
   })
 
   test('show: should refresh and rename when Sonarr returns seriesId', async () => {
-    const getSeriesByPath = vi.spyOn(sonarrClient, 'getSeriesByPath').mockResolvedValue(9)
-    const refreshSeries = vi.spyOn(sonarrClient, 'refreshSeries').mockResolvedValue()
-    const renameSeries = vi.spyOn(sonarrClient, 'renameSeries').mockResolvedValue()
+    const getSeriesByPath = spyOn(sonarrClient, 'getSeriesByPath').mockResolvedValue(9)
+    const refreshSeries = spyOn(sonarrClient, 'refreshSeries').mockResolvedValue()
+    const renameSeries = spyOn(sonarrClient, 'renameSeries').mockResolvedValue()
 
     await handlePostTranscode({ filePath: '/shows/ep.mp4', mediaTitle: 'Title', mediaType: 'show' })
 
@@ -52,8 +52,8 @@ describe('handlePostTranscode', () => {
   })
 
   test('show: should skip refresh when Sonarr has no series for path', async () => {
-    vi.spyOn(sonarrClient, 'getSeriesByPath').mockResolvedValue(undefined)
-    const refreshSeries = vi.spyOn(sonarrClient, 'refreshSeries').mockResolvedValue()
+    spyOn(sonarrClient, 'getSeriesByPath').mockResolvedValue(undefined)
+    const refreshSeries = spyOn(sonarrClient, 'refreshSeries').mockResolvedValue()
 
     await handlePostTranscode({ filePath: '/shows/ep.mp4', mediaTitle: 'Title', mediaType: 'show' })
 
@@ -62,8 +62,8 @@ describe('handlePostTranscode', () => {
   })
 
   test('should not touch plex.refreshSections when cleanup returns early', async () => {
-    vi.spyOn(radarrClient, 'getMovieByPath').mockResolvedValue(undefined)
-    vi.spyOn(plexClient, 'refreshSections')
+    spyOn(radarrClient, 'getMovieByPath').mockResolvedValue(undefined)
+    spyOn(plexClient, 'refreshSections')
 
     await handlePostTranscode({ filePath: '/movies/missing.mp4', mediaTitle: 'Title', mediaType: 'movie' })
 

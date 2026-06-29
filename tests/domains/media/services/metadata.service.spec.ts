@@ -1,5 +1,6 @@
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+
 import { and, eq } from 'drizzle-orm'
-import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test'
 
 import { db } from '#/config/db'
 import { container, TOKENS } from '#/core/container'
@@ -8,8 +9,8 @@ import { FileNotFoundError, TmdbIdNotFoundError } from '#/domains/media/errors'
 import { isOk } from '#/shared/utils/error'
 
 import '../../../utils.ts'
-import { type MockTmdbClient } from '../../../mocks/tmdb.mock.js'
-import { tmdbTvShowResponse } from '../../../resources/fixtures/tmdb.fixtures.js'
+import { type MockTmdbClient } from '#tests/mocks/tmdb.mock'
+import { tmdbTvShowResponse } from '#tests/resources/fixtures/tmdb.fixtures'
 
 const {
   buildMediaTitle,

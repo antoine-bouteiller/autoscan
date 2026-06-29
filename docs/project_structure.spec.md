@@ -124,10 +124,10 @@ extension, e.g. `import { foo } from '#/shared/utils/array.js'`.
 
 - Tests live exclusively under `tests/` and mirror the `src/` tree one-for-one. There are no
   `unit/`, `integration/`, or other layer folders.
-- Shared test infrastructure (`setup.ts`, `env.ts`, `utils.ts`, `mocks/`, `resources/`) lives at
-  the `tests/` root.
-- The default runner is Vitest via `vp test` (one-shot) and `vp test:watch` (watch mode);
-  coverage via `vp test:coverage`.
+- Shared test infrastructure (`preload.ts`, `setup.ts`, `utils.ts`, `mocks/`, `resources/`) lives at
+  the `tests/` root. Test helpers are imported via the `#tests/*` alias, not relative paths.
+- The runner is Bun's native `bun test` (config in `bunfig.toml`) via `bun run test` (one-shot),
+  `bun run test:watch` (watch mode), and `bun run test:coverage` (coverage + global gate).
 - Linting (`vp lint`) and type-checking (`vp check`) MUST pass on every change. Filename casing,
   import boundaries, and unused-export pruning (knip) are enforced by tooling, not by review.
 
@@ -147,8 +147,8 @@ between modules rather than any single module.
 ### Technology Platform Dependencies
 
 - **PLT-001** Bun runtime and package manager with native ESM and subpath imports (`#/*` -> `./src/*`).
-- **PLT-002** Vite+ toolchain (oxlint, oxfmt, Vitest) for lint, format, and tests, invoked via the
-  `vp` CLI; Bun runs the app and manages dependencies, and Nix packaging uses bun2nix.
+- **PLT-002** Vite+ toolchain (oxlint, oxfmt) for lint and format, invoked via the `vp` CLI; tests
+  run on Bun's native `bun test`. Bun runs the app and manages dependencies, and Nix packaging uses bun2nix.
 - **PLT-003** TypeScript with strict mode; Zod for runtime validation at every external boundary.
 - **PLT-004** Drizzle ORM for schema and queries.
 

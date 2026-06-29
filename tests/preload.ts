@@ -1,14 +1,18 @@
-import { inject } from 'vite-plus/test'
+import { afterAll } from 'bun:test'
+
+import { PostgreSqlContainer } from '@testcontainers/postgresql'
+
+const container = await new PostgreSqlContainer('postgres:18-alpine').start()
 
 Object.assign(process.env, {
   NODE_ENV: 'test',
   PLEX_TOKEN: 'test-plex-token',
   PLEX_URL: 'http://plex.test',
-  POSTGRES_DATABASE: inject('POSTGRES_DATABASE'),
-  POSTGRES_HOST: inject('POSTGRES_HOST'),
-  POSTGRES_PASSWORD: inject('POSTGRES_PASSWORD'),
-  POSTGRES_PORT: inject('POSTGRES_PORT'),
-  POSTGRES_USERNAME: inject('POSTGRES_USERNAME'),
+  POSTGRES_DATABASE: container.getDatabase(),
+  POSTGRES_HOST: container.getHost(),
+  POSTGRES_PASSWORD: container.getPassword(),
+  POSTGRES_PORT: String(container.getPort()),
+  POSTGRES_USERNAME: container.getUsername(),
   RADARR_API_KEY: 'test-radarr-key',
   RADARR_API_URL: 'http://radarr.test',
   SONARR_API_KEY: 'test-sonarr-key',
@@ -20,4 +24,8 @@ Object.assign(process.env, {
   TRAKT_CLIENT_ID: 'test-trakt-id',
   TRAKT_CLIENT_SECRET: 'test-trakt-secret',
   TRANSCODE_PATH: 'resources/transcode',
+})
+
+afterAll(async () => {
+  await container.stop()
 })

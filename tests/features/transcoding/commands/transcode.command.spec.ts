@@ -1,11 +1,10 @@
-import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 
 import { container, TOKENS } from '#/core/container'
 import { transcodeCommand } from '#/features/transcoding/commands/transcode.command'
 import { type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
-
-import { sendMessageMock } from '../../../mocks/telegram.mock.js'
-import { MockTelegramClient } from '../../../utils.ts'
+import { sendMessageMock } from '#tests/mocks/telegram.mock'
+import { MockTelegramClient } from '#tests/utils'
 
 const makeMessage = (chatId: number): TelegramMessageIn => ({
   chat: { id: chatId },
@@ -17,11 +16,11 @@ describe('transcodeCommand', () => {
   const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   test('should send "starting" message when not already running', async () => {
-    vi.spyOn(plexClient, 'getSections').mockResolvedValue([])
+    spyOn(plexClient, 'getSections').mockResolvedValue([])
 
     const state = await transcodeCommand(client, makeMessage(42))
 
@@ -31,7 +30,7 @@ describe('transcodeCommand', () => {
 
   test('should tell user process already running when invoked while in progress', async () => {
     let resolveSections: ((value: never[]) => void) | undefined
-    vi.spyOn(plexClient, 'getSections').mockReturnValue(
+    spyOn(plexClient, 'getSections').mockReturnValue(
       new Promise((resolve) => {
         resolveSections = resolve
       })

@@ -1,3 +1,5 @@
+import { afterEach, mock } from 'bun:test'
+
 import { container, TOKENS } from '#/core/container'
 import { FfmpegClient } from '#/integrations/ffmpeg/ffmpeg.service'
 import { HttpProvider } from '#/providers/http/http.provider'
@@ -16,3 +18,7 @@ container.register(TOKENS.TRAKT_CLIENT, () => new MockTraktClient())
 container.register(TOKENS.HTTP_PROVIDER, () => new HttpProvider({}))
 container.register(TOKENS.SCHEDULER_PROVIDER, () => new SchedulerProvider())
 container.register(TOKENS.TELEGRAM_PROVIDER, () => new TelegramProvider())
+
+afterEach(() => {
+  mock.restore()
+})

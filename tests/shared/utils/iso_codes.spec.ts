@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vite-plus/test'
+import { describe, expect, test } from 'bun:test'
 
 import { iso1ToIso2B, normalizeToIso1 } from '#/shared/utils/iso_codes'
 

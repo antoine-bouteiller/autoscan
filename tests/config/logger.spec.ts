@@ -1,5 +1,5 @@
+import { afterEach, beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 /* oxlint-disable no-console */
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test'
 
 import { logger } from '#/config/logger'
 
@@ -8,14 +8,14 @@ describe('logger', () => {
 
   beforeEach(() => {
     process.env.NODE_ENV = 'development'
-    vi.spyOn(console, 'info').mockImplementation(() => undefined)
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    spyOn(console, 'info').mockImplementation(() => undefined)
+    spyOn(console, 'warn').mockImplementation(() => undefined)
+    spyOn(console, 'error').mockImplementation(() => undefined)
   })
 
   afterEach(() => {
     process.env.NODE_ENV = originalEnv
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
   })
 
   test('should suppress output when NODE_ENV is test', () => {

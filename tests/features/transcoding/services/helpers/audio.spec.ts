@@ -1,14 +1,12 @@
-import { copyFileSync } from 'node:fs'
+import { describe, expect, test } from 'bun:test'
+import { copyFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-
-import { describe, expect } from 'vite-plus/test'
 
 import { container, TOKENS } from '#/core/container'
 import { processAudioStreams } from '#/features/transcoding/services/helpers/audio'
 import { type ISOCode1 } from '#/shared/types/iso_codes'
 import { isOk } from '#/shared/utils/error'
-
-import { testWithTestDir, videosPath } from '../../../../utils.ts'
+import { makeTestDir, videosPath } from '#tests/utils'
 
 interface TestCase {
   expectedCommand: string[]
@@ -51,23 +49,30 @@ const dataset: TestCase[] = [
 ]
 
 describe('Clean audio', () => {
-  testWithTestDir.for(dataset)('$title', async ({ expectedCommand, file, language }, { testDir }) => {
-    copyFileSync(join(videosPath, file), join(testDir, file))
+  for (const { expectedCommand, file, language, title } of dataset) {
+    test(title, async () => {
+      const testDir = makeTestDir()
+      try {
+        copyFileSync(join(videosPath, file), join(testDir, file))
 
-    const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-    const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
-    expect(isOk(probeResult)).toBe(true)
-    if (!isOk(probeResult)) {
-      return
-    }
+        const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
+        const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
+        expect(isOk(probeResult)).toBe(true)
+        if (!isOk(probeResult)) {
+          return
+        }
 
-    const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
-    const result = processAudioStreams(audioStreams, language, 'test')
-    expect(isOk(result)).toBe(true)
-    if (!isOk(result)) {
-      return
-    }
+        const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
+        const result = processAudioStreams(audioStreams, language, 'test')
+        expect(isOk(result)).toBe(true)
+        if (!isOk(result)) {
+          return
+        }
 
-    expect(result.command).toEqual(expectedCommand)
-  })
+        expect(result.command).toEqual(expectedCommand)
+      } finally {
+        rmSync(testDir, { recursive: true })
+      }
+    })
+  }
 })

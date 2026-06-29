@@ -1,9 +1,8 @@
+import { afterEach, describe, expect, test } from 'bun:test'
 import { randomUUID } from 'node:crypto'
 import { existsSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-
-import { afterEach, describe, expect, test } from 'vite-plus/test'
 
 import env, { loadFileSecrets, urlString } from '#/config/env'
 
@@ -15,8 +14,8 @@ const writeTempSecret = (value: string): string => {
 
 describe('env', () => {
   test('should expose required keys from process.env', () => {
-    expect(env.PLEX_TOKEN).toBe(process.env['PLEX_TOKEN'])
-    expect(env.TRANSCODE_PATH).toBe(process.env['TRANSCODE_PATH'])
+    expect(process.env['PLEX_TOKEN']).toBe(env.PLEX_TOKEN)
+    expect(process.env['TRANSCODE_PATH']).toBe(env.TRANSCODE_PATH)
   })
 
   test('should coerce TELEGRAM_CHAT_ID to a number', () => {

@@ -1,14 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test'
 
 import { db } from '#/config/db'
 import { media as mediaTable, type Media } from '#/database/schema'
 import { setLanguageConversation } from '#/features/language_sync/commands/language.command'
 import { type TelegramCallbackQuery, type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
 import { type ConversationState } from '#/providers/telegram/types'
-
-import { updateStreamMock } from '../../../mocks/plex.mock.js'
-import { answerCallbackQueryMock, editMessageTextMock, sendMessageMock } from '../../../mocks/telegram.mock.js'
-import { MockTelegramClient } from '../../../utils.ts'
+import { updateStreamMock } from '#tests/mocks/plex.mock'
+import { answerCallbackQueryMock, editMessageTextMock, sendMessageMock } from '#tests/mocks/telegram.mock'
+import { MockTelegramClient } from '#tests/utils'
 
 const makeMessage = (chatId: number): TelegramMessageIn => ({
   chat: { id: chatId },
@@ -30,7 +29,7 @@ describe('setLanguageConversation', () => {
   const client = new MockTelegramClient()
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   afterEach(async () => {

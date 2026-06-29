@@ -1,9 +1,9 @@
-import { describe, expect } from 'vite-plus/test'
+import { describe, expect, test } from 'bun:test'
 
-import { testWithHttpProvider } from '../../../http_fixture.ts'
+import { http } from '#tests/http_fixture'
 
 describe('POST /sonarr', () => {
-  testWithHttpProvider('should return 200 for Test event', async ({ http }) => {
+  test('should return 200 for Test event', async () => {
     const response = await http.inject({
       method: 'POST',
       payload: { eventType: 'Test' },
@@ -16,7 +16,7 @@ describe('POST /sonarr', () => {
     expect(body.data).toEqual({ message: 'ok' })
   })
 
-  testWithHttpProvider('should return 400 for invalid payload', async ({ http }) => {
+  test('should return 400 for invalid payload', async () => {
     const response = await http.inject({
       method: 'POST',
       payload: { eventType: 'InvalidEvent' },
@@ -29,7 +29,7 @@ describe('POST /sonarr', () => {
     expect(body.error?.code).toBe('BAD_REQUEST')
   })
 
-  testWithHttpProvider('should return 200 for Download event', async ({ http }) => {
+  test('should return 200 for Download event', async () => {
     const response = await http.inject({
       method: 'POST',
       payload: {
@@ -45,7 +45,7 @@ describe('POST /sonarr', () => {
     expect(response.json().success).toBe(true)
   })
 
-  testWithHttpProvider('should return 200 for SeriesDelete event', async ({ http }) => {
+  test('should return 200 for SeriesDelete event', async () => {
     const response = await http.inject({
       method: 'POST',
       payload: {
@@ -59,7 +59,7 @@ describe('POST /sonarr', () => {
     expect(response.json().success).toBe(true)
   })
 
-  testWithHttpProvider('should return 200 for Rename event', async ({ http }) => {
+  test('should return 200 for Rename event', async () => {
     const response = await http.inject({
       method: 'POST',
       payload: {
@@ -73,7 +73,7 @@ describe('POST /sonarr', () => {
     expect(response.json().success).toBe(true)
   })
 
-  testWithHttpProvider('should return 400 for empty body', async ({ http }) => {
+  test('should return 400 for empty body', async () => {
     const response = await http.inject({
       method: 'POST',
       payload: {},

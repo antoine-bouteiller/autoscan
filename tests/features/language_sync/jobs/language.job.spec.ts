@@ -1,26 +1,26 @@
-import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 
 import { container, TOKENS } from '#/core/container'
 import { updatePlexSelectedLanguages } from '#/features/language_sync/jobs/language.job'
 import { type PlexMedia } from '#/integrations/plex/plex.validator'
+import { updateStreamMock } from '#tests/mocks/plex.mock'
 
-import { updateStreamMock } from '../../../mocks/plex.mock.js'
 import '../../../utils.ts'
 
 const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
 describe('updatePlexSelectedLanguages', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   test('should iterate sections without throwing', async () => {
-    vi.spyOn(plexClient, 'getSections').mockResolvedValue([])
-    await expect(updatePlexSelectedLanguages()).resolves.toBeUndefined()
+    spyOn(plexClient, 'getSections').mockResolvedValue([])
+    expect(await updatePlexSelectedLanguages()).toBeUndefined()
   })
 
   test('should skip media with invalid metadata and continue', async () => {
-    vi.spyOn(plexClient, 'getSections').mockResolvedValue([{ key: 1, title: 'Movies', type: 'movie' as const }])
+    spyOn(plexClient, 'getSections').mockResolvedValue([{ key: 1, title: 'Movies', type: 'movie' as const }])
     const badMedia: PlexMedia[] = [
       {
         Media: [],
@@ -31,14 +31,14 @@ describe('updatePlexSelectedLanguages', () => {
         year: 2023,
       },
     ]
-    vi.spyOn(plexClient, 'getSectionMedia').mockResolvedValue(badMedia)
+    spyOn(plexClient, 'getSectionMedia').mockResolvedValue(badMedia)
 
-    await expect(updatePlexSelectedLanguages()).resolves.toBeUndefined()
+    expect(await updatePlexSelectedLanguages()).toBeUndefined()
     expect(updateStreamMock).not.toHaveBeenCalled()
   })
 
   test('should invoke handleUpdateLanguage for valid metadata', async () => {
-    vi.spyOn(plexClient, 'getSections').mockResolvedValue([{ key: 1, title: 'Movies', type: 'movie' as const }])
+    spyOn(plexClient, 'getSections').mockResolvedValue([{ key: 1, title: 'Movies', type: 'movie' as const }])
     const validMedia: PlexMedia[] = [
       {
         Media: [{ Part: [{ Stream: [], file: '/path/to/{tmdb-12345}/movie.mkv', id: 456 }] }],
@@ -49,7 +49,7 @@ describe('updatePlexSelectedLanguages', () => {
         year: 2023,
       },
     ]
-    vi.spyOn(plexClient, 'getSectionMedia').mockResolvedValue(validMedia)
+    spyOn(plexClient, 'getSectionMedia').mockResolvedValue(validMedia)
 
     await updatePlexSelectedLanguages()
 

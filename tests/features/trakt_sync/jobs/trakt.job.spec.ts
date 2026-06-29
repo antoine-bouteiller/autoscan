@@ -1,15 +1,15 @@
-import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, jest, test } from 'bun:test'
 
 import { db } from '#/config/db'
 import { traktSyncHistory, traktTokens } from '#/database/schema'
 import { traktSyncJob } from '#/features/trakt_sync/jobs/trakt.job'
+import { syncWatchedHistoryMock } from '#tests/mocks/trakt.mock'
 
-import { syncWatchedHistoryMock } from '../../../mocks/trakt.mock.js'
 import '../../../utils.ts'
 
 describe('traktSyncJob', () => {
   beforeEach(async () => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     await db.delete(traktTokens)
     await db.delete(traktSyncHistory)
   })

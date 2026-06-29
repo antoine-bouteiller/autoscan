@@ -1,10 +1,10 @@
-import { vi } from 'vite-plus/test'
+import { jest } from 'bun:test'
 
 import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from '#/integrations/trakt/trakt.service'
 
-export const getDeviceCodeMock = vi.fn()
-export const refreshTokenMock = vi.fn()
-export const syncWatchedHistoryMock = vi.fn<ITraktClient['syncWatchedHistory']>().mockResolvedValue({
+export const getDeviceCodeMock = jest.fn()
+export const refreshTokenMock = jest.fn()
+export const syncWatchedHistoryMock = jest.fn<ITraktClient['syncWatchedHistory']>().mockResolvedValue({
   added: { episodes: 1, movies: 1 },
   not_found: {
     episodes: [],

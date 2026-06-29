@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vite-plus/test'
+import { describe, expect, test } from 'bun:test'
 
 import { sendMessageValidator } from '#/features/send_message/validators/send_message.validator'
 

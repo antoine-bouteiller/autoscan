@@ -1,9 +1,9 @@
-import { vi } from 'vite-plus/test'
+import { jest } from 'bun:test'
 
 import { type IRadarrClient } from '#/integrations/arr/radarr.service'
 
-export const mockRadarrQueue = vi.fn<IRadarrClient['getQueue']>()
-export const mockRadarrRemoveQueueItem = vi.fn<IRadarrClient['removeQueueItem']>()
+export const mockRadarrQueue = jest.fn<IRadarrClient['getQueue']>()
+export const mockRadarrRemoveQueueItem = jest.fn<IRadarrClient['removeQueueItem']>()
 
 export class MockRadarrClient implements IRadarrClient {
   getQueue = mockRadarrQueue

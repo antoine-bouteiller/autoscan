@@ -1,10 +1,10 @@
-import { vi } from 'vite-plus/test'
+import { jest } from 'bun:test'
 
 import { type ITelegramClient } from '#/integrations/telegram/telegram.service'
 
-export const editMessageTextMock = vi.fn().mockResolvedValue(undefined)
-export const sendMessageMock = vi.fn().mockResolvedValue(100)
-export const answerCallbackQueryMock = vi.fn().mockResolvedValue(undefined)
+export const editMessageTextMock = jest.fn().mockResolvedValue(undefined)
+export const sendMessageMock = jest.fn().mockResolvedValue(100)
+export const answerCallbackQueryMock = jest.fn().mockResolvedValue(undefined)
 
 export class MockTelegramClient implements ITelegramClient {
   editMessageText = editMessageTextMock

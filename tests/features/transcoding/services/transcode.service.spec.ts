@@ -1,15 +1,13 @@
-import { copyFileSync, existsSync } from 'node:fs'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { copyFileSync, existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-
-import { describe, expect, test } from 'vite-plus/test'
 
 import { container, TOKENS } from '#/core/container'
 import { transcodeFile, transcodeQueue } from '#/features/transcoding/services/transcode.service'
 import { type FFprobeStream } from '#/integrations/ffmpeg/ffmpeg.validator'
 import { isOk } from '#/shared/utils/error'
-
-import { refreshSectionsMock } from '../../../mocks/plex.mock.js'
-import { testWithTestDir, videosPath } from '../../../utils.ts'
+import { refreshSectionsMock } from '#tests/mocks/plex.mock'
+import { makeTestDir, videosPath } from '#tests/utils'
 
 const waitForQueueCompletion = async (): Promise<void> =>
   new Promise((resolve) => {
@@ -81,44 +79,54 @@ const dataset: FileDataset[] = [
   },
 ]
 
+let testDir: string
+beforeEach(() => {
+  testDir = makeTestDir()
+})
+afterEach(() => {
+  rmSync(testDir, { recursive: true })
+})
+
 describe('Transcode', () => {
-  testWithTestDir.for(dataset)('$title', async ({ filename, outputStreams, shouldExecute }, { testDir }) => {
-    copyFileSync(join(videosPath, filename), join(testDir, filename))
+  for (const { filename, outputStreams, shouldExecute, title } of dataset) {
+    test(title, async () => {
+      copyFileSync(join(videosPath, filename), join(testDir, filename))
 
-    const executed = await transcodeFile({ file: join(testDir, filename), mediaTitle: 'test', mediaType: 'movie', originalLanguage: 'en' })
+      const executed = await transcodeFile({ file: join(testDir, filename), mediaTitle: 'test', mediaType: 'movie', originalLanguage: 'en' })
 
-    expect(executed).toBe(shouldExecute)
+      expect(executed).toBe(shouldExecute)
 
-    if (!executed) {
-      expect(existsSync(join(testDir, filename))).toBe(true)
-      return
-    }
-
-    await waitForQueueCompletion()
-
-    const outputFileName = filename.replace('.mkv', '.mp4')
-    expect(existsSync(join(testDir, outputFileName))).toBe(true)
-    expect(existsSync(join(testDir, outputFileName.replace('.mp4', '.en.srt')))).toBe(true)
-
-    if (outputFileName !== filename) {
-      expect(existsSync(join(testDir, filename))).toBe(false)
-    }
-
-    const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-    const probeResult = await ffmpegClient.ffprobe(join(testDir, outputFileName))
-    expect(isOk(probeResult)).toBe(true)
-    if (!isOk(probeResult)) {
-      return
-    }
-
-    for (const stream of outputStreams) {
-      expect(probeResult.streams[stream.index]?.codec_type).toBe(stream.codecType)
-      expect(probeResult.streams[stream.index]?.codec_name).toBe(stream.codecName)
-      if (stream.language) {
-        expect(probeResult.streams[stream.index]?.tags?.language).toBe(stream.language)
+      if (!executed) {
+        expect(existsSync(join(testDir, filename))).toBe(true)
+        return
       }
-    }
-  })
+
+      await waitForQueueCompletion()
+
+      const outputFileName = filename.replace('.mkv', '.mp4')
+      expect(existsSync(join(testDir, outputFileName))).toBe(true)
+      expect(existsSync(join(testDir, outputFileName.replace('.mp4', '.en.srt')))).toBe(true)
+
+      if (outputFileName !== filename) {
+        expect(existsSync(join(testDir, filename))).toBe(false)
+      }
+
+      const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
+      const probeResult = await ffmpegClient.ffprobe(join(testDir, outputFileName))
+      expect(isOk(probeResult)).toBe(true)
+      if (!isOk(probeResult)) {
+        return
+      }
+
+      for (const stream of outputStreams) {
+        expect(probeResult.streams[stream.index]?.codec_type).toBe(stream.codecType)
+        expect(probeResult.streams[stream.index]?.codec_name).toBe(stream.codecName)
+        if (stream.language) {
+          expect(probeResult.streams[stream.index]?.tags?.language).toBe(stream.language)
+        }
+      }
+    })
+  }
 
   test('Should refresh section when file not found', async () => {
     const executed = await transcodeFile({ file: 'unkown file.mp4', mediaTitle: 'test', mediaType: 'movie', originalLanguage: 'en' })

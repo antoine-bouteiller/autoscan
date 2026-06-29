@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vite-plus/test'
+import { describe, expect, test } from 'bun:test'
 
 import { processVideoStreams } from '#/features/transcoding/services/helpers/video'
 import { type FFprobeStream } from '#/integrations/ffmpeg/ffmpeg.validator'

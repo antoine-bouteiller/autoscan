@@ -1,14 +1,13 @@
-import { vi } from 'vite-plus/test'
+import { jest } from 'bun:test'
 
 import { PlexError } from '#/integrations/plex/plex.errors'
 import { type IPlexClient } from '#/integrations/plex/plex.service'
 import { type PlexMedia } from '#/integrations/plex/plex.validator'
+import { plexMetadata } from '#tests/resources/fixtures/plex.fixtures'
 
-import { plexMetadata } from '../resources/fixtures/plex.fixtures.js'
-
-export const updateStreamMock = vi.fn()
-const refreshSectionMock = vi.fn()
-export const refreshSectionsMock = vi.fn()
+export const updateStreamMock = jest.fn()
+const refreshSectionMock = jest.fn()
+export const refreshSectionsMock = jest.fn()
 
 const movies = [
   {

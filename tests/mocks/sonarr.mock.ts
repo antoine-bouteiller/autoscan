@@ -1,9 +1,9 @@
-import { vi } from 'vite-plus/test'
+import { jest } from 'bun:test'
 
 import { type ISonarrClient } from '#/integrations/arr/sonarr.service'
 
-export const mockSonarrQueue = vi.fn<ISonarrClient['getQueue']>()
-export const mockSonarrRemoveQueueItem = vi.fn<ISonarrClient['removeQueueItem']>()
+export const mockSonarrQueue = jest.fn<ISonarrClient['getQueue']>()
+export const mockSonarrRemoveQueueItem = jest.fn<ISonarrClient['removeQueueItem']>()
 
 export class MockSonarrClient implements ISonarrClient {
   getQueue = mockSonarrQueue

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from 'vite-plus/test'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
 import { db } from '#/config/db'
 import { traktSyncHistory, traktTokens } from '#/database/schema'

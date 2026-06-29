@@ -1,7 +1,6 @@
-import { writeFileSync } from 'node:fs'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-
-import { describe, expect, test } from 'vite-plus/test'
 
 import {
   areSubtitlesOutOfSync,
@@ -11,12 +10,19 @@ import {
   parseStartTimestamps,
   parseTimestampMs,
 } from '#/features/transcoding/commands/subtitle_scan.command'
-
-import { testWithTestDir } from '../../../utils.ts'
+import { makeTestDir } from '#tests/utils'
 
 const SRT_BLOCK_IN_SYNC = '1\n00:00:01,000 --> 00:00:03,000\nHello\n\n2\n00:00:05,000 --> 00:00:07,000\nWorld'
 const SRT_BLOCK_OFFSET_500MS = '1\n00:00:01,500 --> 00:00:03,500\nBonjour\n\n2\n00:00:05,500 --> 00:00:07,500\nMonde'
 const SRT_BLOCK_OFFSET_100MS = '1\n00:00:01,100 --> 00:00:03,000\nBonjour\n\n2\n00:00:05,100 --> 00:00:07,000\nMonde'
+
+let testDir: string
+beforeEach(() => {
+  testDir = makeTestDir()
+})
+afterEach(() => {
+  rmSync(testDir, { recursive: true })
+})
 
 describe('parseTimestampMs', () => {
   test('should convert "00:00:00,000" to 0', () => {
@@ -33,7 +39,7 @@ describe('parseTimestampMs', () => {
 })
 
 describe('findLangSrt', () => {
-  testWithTestDir('should return the srt path when it exists', ({ testDir }) => {
+  test('should return the srt path when it exists', () => {
     const mediaFile = join(testDir, 'movie.mkv')
     const srtFile = join(testDir, 'movie.en.srt')
     writeFileSync(mediaFile, '')
@@ -42,7 +48,7 @@ describe('findLangSrt', () => {
     expect(findLangSrt(mediaFile, 'en')).toBe(srtFile)
   })
 
-  testWithTestDir('should return undefined when the srt is missing', ({ testDir }) => {
+  test('should return undefined when the srt is missing', () => {
     const mediaFile = join(testDir, 'movie.mkv')
     writeFileSync(mediaFile, '')
 
@@ -51,33 +57,33 @@ describe('findLangSrt', () => {
 })
 
 describe('countLines', () => {
-  testWithTestDir('should count blocks separated by blank lines', ({ testDir }) => {
+  test('should count blocks separated by blank lines', () => {
     const srtFile = join(testDir, 'count.srt')
     writeFileSync(srtFile, SRT_BLOCK_IN_SYNC)
 
     expect(countLines(srtFile)).toBe(2)
   })
 
-  testWithTestDir('should return 0 for a missing file', ({ testDir }) => {
+  test('should return 0 for a missing file', () => {
     expect(countLines(join(testDir, 'does-not-exist.srt'))).toBe(0)
   })
 })
 
 describe('parseStartTimestamps', () => {
-  testWithTestDir('should extract start timestamps in order', ({ testDir }) => {
+  test('should extract start timestamps in order', () => {
     const srtFile = join(testDir, 'stamps.srt')
     writeFileSync(srtFile, SRT_BLOCK_IN_SYNC)
 
     expect(parseStartTimestamps(srtFile)).toEqual([1000, 5000])
   })
 
-  testWithTestDir('should return empty array for a missing file', ({ testDir }) => {
+  test('should return empty array for a missing file', () => {
     expect(parseStartTimestamps(join(testDir, 'missing.srt'))).toEqual([])
   })
 })
 
 describe('areSubtitlesOutOfSync', () => {
-  testWithTestDir('should return false for identical timestamps', ({ testDir }) => {
+  test('should return false for identical timestamps', () => {
     const pathA = join(testDir, 'a.srt')
     const pathB = join(testDir, 'b.srt')
     writeFileSync(pathA, SRT_BLOCK_IN_SYNC)
@@ -86,7 +92,7 @@ describe('areSubtitlesOutOfSync', () => {
     expect(areSubtitlesOutOfSync(pathA, pathB)).toBe(false)
   })
 
-  testWithTestDir('should return true when majority of timestamps are > 300ms apart', ({ testDir }) => {
+  test('should return true when majority of timestamps are > 300ms apart', () => {
     const pathA = join(testDir, 'a.srt')
     const pathB = join(testDir, 'b.srt')
     writeFileSync(pathA, SRT_BLOCK_IN_SYNC)
@@ -95,7 +101,7 @@ describe('areSubtitlesOutOfSync', () => {
     expect(areSubtitlesOutOfSync(pathA, pathB)).toBe(true)
   })
 
-  testWithTestDir('should return false when offset is within 300ms threshold', ({ testDir }) => {
+  test('should return false when offset is within 300ms threshold', () => {
     const pathA = join(testDir, 'a.srt')
     const pathB = join(testDir, 'b.srt')
     writeFileSync(pathA, SRT_BLOCK_IN_SYNC)
@@ -104,7 +110,7 @@ describe('areSubtitlesOutOfSync', () => {
     expect(areSubtitlesOutOfSync(pathA, pathB)).toBe(false)
   })
 
-  testWithTestDir('should return false when either file is empty / missing timestamps', ({ testDir }) => {
+  test('should return false when either file is empty / missing timestamps', () => {
     const pathA = join(testDir, 'a.srt')
     const pathB = join(testDir, 'b.srt')
     writeFileSync(pathA, '')

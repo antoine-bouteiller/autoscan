@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, jest, test } from 'bun:test'
 
 import { Container, type Token } from '#/core/container'
 
@@ -17,7 +17,7 @@ describe('Container', () => {
   })
 
   test('runs factory lazily on first resolve', () => {
-    const factory = vi.fn(() => ({ value: 1 }))
+    const factory = jest.fn(() => ({ value: 1 }))
     container.register(counterToken, factory)
 
     expect(factory).not.toHaveBeenCalled()
@@ -29,7 +29,7 @@ describe('Container', () => {
   })
 
   test('returns cached instance on subsequent resolves', () => {
-    const factory = vi.fn(() => ({ value: 42 }))
+    const factory = jest.fn(() => ({ value: 42 }))
     container.register(counterToken, factory)
 
     const first = container.resolve(counterToken)
@@ -44,7 +44,7 @@ describe('Container', () => {
   })
 
   test('reset clears instances but keeps factories', () => {
-    const factory = vi.fn(() => ({ value: 1 }))
+    const factory = jest.fn(() => ({ value: 1 }))
     container.register(counterToken, factory)
 
     container.resolve(counterToken)
@@ -62,7 +62,7 @@ describe('Container', () => {
   })
 
   test('caches falsy return values so the factory runs only once', () => {
-    const factory = vi.fn<() => Counter | undefined>(() => undefined)
+    const factory = jest.fn<() => Counter | undefined>(() => undefined)
     container.register(nullableToken, factory)
 
     const first = container.resolve(nullableToken)
@@ -74,7 +74,7 @@ describe('Container', () => {
   })
 
   test('does not cache when the factory throws and retries on next resolve', () => {
-    const factory = vi
+    const factory = jest
       .fn<() => Counter>()
       .mockImplementationOnce(() => {
         throw new Error('boom')

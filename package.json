@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#/*": "./src/*.js"
+    "#/*": "./src/*.js",
+    "#tests/*": "./tests/*.js"
   },
   "scripts": {
     "check": "vp check --fix",
@@ -14,9 +15,9 @@
     "pack": "vp pack",
     "db:generate": "drizzle-kit generate",
     "knip": "knip",
-    "test": "bun --bun vitest run",
-    "test:coverage": "bun --bun vitest run --coverage",
-    "test:watch": "bun --bun vitest",
+    "test": "bun test ./tests",
+    "test:coverage": "bun test ./tests --coverage && bun scripts/coverage_gate.ts",
+    "test:watch": "bun test ./tests --watch",
     "postinstall": "bun2nix -o bun.nix"
   },
   "dependencies": {

@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test'
+
 import { z } from 'zod'
 
 import { HttpError } from '#/shared/errors/http'
@@ -10,7 +11,7 @@ import { httpClient } from '#/shared/utils/http_client'
 const originalFetch = globalThis.fetch
 
 describe('httpClient', () => {
-  const mockFetch = vi.fn<typeof fetch>()
+  const mockFetch = jest.fn<typeof fetch>()
 
   beforeEach(() => {
     mockFetch.mockReset()

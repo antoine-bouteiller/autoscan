@@ -1,18 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test'
 
 import { db } from '#/config/db'
 import { container, TOKENS } from '#/core/container'
 import { traktSyncHistory, traktTokens } from '#/database/schema'
 import { TraktTokenExpiredError } from '#/features/trakt_sync/errors'
 import { collectWatchedItems, getValidAccessToken, syncPlexToTrakt } from '#/features/trakt_sync/services/plextraktsync.service'
-
-import { refreshTokenMock, syncWatchedHistoryMock } from '../../../mocks/trakt.mock.js'
+import { refreshTokenMock, syncWatchedHistoryMock } from '#tests/mocks/trakt.mock'
 
 describe('TraktService', () => {
   const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
   beforeEach(async () => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     await db.delete(traktTokens)
     await db.delete(traktSyncHistory)
   })
@@ -103,7 +102,7 @@ describe('TraktService', () => {
         refreshToken: 'refresh',
       })
 
-      vi.spyOn(plexClient, 'getSections').mockResolvedValue([])
+      spyOn(plexClient, 'getSections').mockResolvedValue([])
 
       const result = await syncPlexToTrakt()
       expect(result).toEqual({ episodes: 0, movies: 0 })

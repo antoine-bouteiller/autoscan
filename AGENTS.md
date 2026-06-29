@@ -16,9 +16,12 @@ under `src/features/<feature>/<feature>.spec.md`.
   `Bun.spawn`.
 - **Vite+ (`vp`) is kept only for lint and format** — use `vp check`, `vp lint`,
   and `vp fmt`. Do not use `vp` to install dependencies or run the app.
-- **Run tests with `bun run test`, not `vp test`.** Tests use the
-  `drizzle-orm/bun-sql` driver, which needs the Bun runtime, so the `test` script
-  invokes `bun --bun vitest run`.
+- **Tests run on Bun's native runner (`bun test`), not vitest.** Use `bun run test`
+  (and `bun run test:coverage`). Import test APIs from `bun:test` (`describe`, `test`,
+  `expect`, `spyOn`, `jest`, `mock`). Config lives in `bunfig.toml`: it preloads
+  `tests/preload.ts` (starts the shared Postgres testcontainer, sets env) and
+  `tests/setup.ts` (registers mock clients). Coverage thresholds are enforced by
+  `scripts/coverage_gate.ts` since Bun's own threshold is per-file, not global.
 - **Nix packaging uses [bun2nix](https://github.com/nix-community/bun2nix).** The
   `bun.nix` dependency manifest is regenerated from `bun.lock` by the `postinstall`
   script (`bunx bun2nix -o bun.nix`); commit it alongside `bun.lock`.

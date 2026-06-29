@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vite-plus/test'
+import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 
 import { container, TOKENS } from '#/core/container'
 import { getTranscodingStatus, runTranscodeProcess } from '#/features/transcoding/jobs/transcode.job'
@@ -9,17 +9,17 @@ describe('transcode.job', () => {
   const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   test('runTranscodeProcess should resolve without throwing when no sections', async () => {
-    vi.spyOn(plexClient, 'getSections').mockResolvedValue([])
-    await expect(runTranscodeProcess()).resolves.toBeUndefined()
+    spyOn(plexClient, 'getSections').mockResolvedValue([])
+    expect(await runTranscodeProcess()).toBeUndefined()
   })
 
   test('runTranscodeProcess should skip media with invalid metadata', async () => {
-    vi.spyOn(plexClient, 'getSections').mockResolvedValue([{ key: 1, title: 'Movies', type: 'movie' as const }])
-    vi.spyOn(plexClient, 'getSectionMedia').mockResolvedValue([
+    spyOn(plexClient, 'getSections').mockResolvedValue([{ key: 1, title: 'Movies', type: 'movie' as const }])
+    spyOn(plexClient, 'getSectionMedia').mockResolvedValue([
       {
         Media: [],
         key: 'unknown-key',
@@ -30,7 +30,7 @@ describe('transcode.job', () => {
       },
     ])
 
-    await expect(runTranscodeProcess()).resolves.toBeUndefined()
+    expect(await runTranscodeProcess()).toBeUndefined()
   })
 
   test('getTranscodingStatus should return a boolean', () => {

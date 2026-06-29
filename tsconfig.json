@@ -10,7 +10,8 @@
     "esModuleInterop": true,
     "rootDir": ".",
     "paths": {
-      "#/*": ["./src/*"]
+      "#/*": ["./src/*"],
+      "#tests/*": ["./tests/*"]
     },
     "skipLibCheck": true,
     "moduleResolution": "nodenext",

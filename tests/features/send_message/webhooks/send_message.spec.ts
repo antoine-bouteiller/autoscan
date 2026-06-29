@@ -1,9 +1,9 @@
-import { describe, expect } from 'vite-plus/test'
+import { describe, expect, test } from 'bun:test'
 
-import { testWithHttpProvider } from '../../../http_fixture.ts'
+import { http } from '#tests/http_fixture'
 
 describe('POST /send_message', () => {
-  testWithHttpProvider('should return 200 and send message', async ({ http }) => {
+  test('should return 200 and send message', async () => {
     const response = await http.inject({
       method: 'POST',
       payload: { text: 'Hello world' },
@@ -16,7 +16,7 @@ describe('POST /send_message', () => {
     expect(body.data).toEqual({ message: 'ok' })
   })
 
-  testWithHttpProvider('should return 400 for missing text', async ({ http }) => {
+  test('should return 400 for missing text', async () => {
     const response = await http.inject({
       method: 'POST',
       payload: {},
@@ -29,7 +29,7 @@ describe('POST /send_message', () => {
     expect(body.error?.code).toBe('BAD_REQUEST')
   })
 
-  testWithHttpProvider('should return 400 for empty body', async ({ http }) => {
+  test('should return 400 for empty body', async () => {
     const response = await http.inject({
       method: 'POST',
       payload: {},
