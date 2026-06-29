@@ -1,7 +1,14 @@
+import { inject } from 'vite-plus/test'
+
 Object.assign(process.env, {
   NODE_ENV: 'test',
   PLEX_TOKEN: 'test-plex-token',
   PLEX_URL: 'http://plex.test',
+  POSTGRES_DATABASE: inject('POSTGRES_DATABASE'),
+  POSTGRES_HOST: inject('POSTGRES_HOST'),
+  POSTGRES_PASSWORD: inject('POSTGRES_PASSWORD'),
+  POSTGRES_PORT: inject('POSTGRES_PORT'),
+  POSTGRES_USERNAME: inject('POSTGRES_USERNAME'),
   RADARR_API_KEY: 'test-radarr-key',
   RADARR_API_URL: 'http://radarr.test',
   SONARR_API_KEY: 'test-sonarr-key',

@@ -87,7 +87,8 @@ export default defineConfig({
   test: {
     coverage: {
       exclude: ['**/integrations/**', '**/providers/**', '**/errors/**', '**/core/**', '**/tests/**'],
-      provider: 'v8',
+      // Tests run under the Bun runtime, which does not expose the V8 coverage APIs, so use the source-instrumenting istanbul provider.
+      provider: 'istanbul',
       reporter: ['lcov'],
       thresholds: {
         functions: 90,
@@ -95,6 +96,14 @@ export default defineConfig({
       },
     },
     isolate: false,
+    // Bun's loader mishandles zod's `import * as z; export { z }` re-export when the
+    // dep is externalized, leaving `z` undefined. Inlining lets vite transform it.
+    server: { deps: { inline: ['zod'] } },
+    // All test files share a single Postgres container (see tests/global_setup.ts)
+    // and the module-singleton `db`, so run them sequentially in one worker to
+    // avoid cross-file interference on the shared database.
+    fileParallelism: false,
+    globalSetup: ['./tests/global_setup.ts'],
     include: ['tests/**/*.spec.ts'],
     setupFiles: ['./tests/env.ts', './tests/setup.ts'],
   },

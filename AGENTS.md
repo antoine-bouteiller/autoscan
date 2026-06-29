@@ -14,9 +14,11 @@ under `src/features/<feature>/<feature>.spec.md`.
   (`bun run dev` for watch mode) and manage dependencies with `bun install` /
   `bun add` / `bun remove`. The HTTP server uses `Bun.serve` and subprocesses use
   `Bun.spawn`.
-- **Vite+ (`vp`) is kept only for lint, format, and tests** — use `vp check`,
-  `vp lint`, `vp fmt`, and `vp test`. Do not use `vp` to install dependencies or
-  run the app.
+- **Vite+ (`vp`) is kept only for lint and format** — use `vp check`, `vp lint`,
+  and `vp fmt`. Do not use `vp` to install dependencies or run the app.
+- **Run tests with `bun run test`, not `vp test`.** Tests use the
+  `drizzle-orm/bun-sql` driver, which needs the Bun runtime, so the `test` script
+  invokes `bun --bun vitest run`.
 - **Nix packaging uses [bun2nix](https://github.com/nix-community/bun2nix).** The
   `bun.nix` dependency manifest is regenerated from `bun.lock` by the `postinstall`
   script (`bunx bun2nix -o bun.nix`); commit it alongside `bun.lock`.
@@ -95,5 +97,5 @@ These commands map to their corresponding tools. For example, `vp dev --port 300
 ## Review Checklist for Agents
 
 - [ ] Run `vp install` after pulling remote changes and before getting started.
-- [ ] Run `vp check` and `vp test` to validate changes.
+- [ ] Run `vp check` and `bun run test` to validate changes.
 <!--VITE PLUS END-->
