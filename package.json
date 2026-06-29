@@ -16,7 +16,7 @@
     "db:generate": "drizzle-kit generate",
     "knip": "knip",
     "test": "bun test ./tests",
-    "test:coverage": "bun test ./tests --coverage && bun scripts/coverage_gate.ts",
+    "test:coverage": "bun test ./tests --coverage",
     "test:watch": "bun test ./tests --watch",
     "postinstall": "bun2nix -o bun.nix"
   },

@@ -53,6 +53,15 @@ describe('isStreamWanted', () => {
     expect(isStreamWanted(criteria)(stream)).toBe(true)
   })
 
+  test('should require a matching include term in the title', () => {
+    const criteria: Criteria = { include: ['sdh'], language: 'en' }
+    const matching = makeStream({ tags: { language: 'en', title: 'English SDH' } })
+    const nonMatching = makeStream({ tags: { language: 'en', title: 'English' } })
+
+    expect(isStreamWanted(criteria)(matching)).toBe(true)
+    expect(isStreamWanted(criteria)(nonMatching)).toBe(false)
+  })
+
   test('should filter by wanted encodings', () => {
     const criteria: Criteria = { language: 'en', wantedEncodings: ['aac', 'ac3'] }
     const aacStream = makeStream({ codec_name: 'aac', tags: { language: 'en' } })
