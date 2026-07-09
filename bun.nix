@@ -25,9 +25,9 @@
     url = "https://registry.npmjs.org/@balena/dockerignore/-/dockerignore-1.0.2.tgz";
     hash = "sha512-wMue2Sy4GAVTk6Ic4tJVcnfdau+gx2EnG7S+uAEe+TWJFqE4YoWN4/H8MSLj4eYJKxGg26lZwboEniNiNwZQ6Q==";
   };
-  "@commitlint/cli@21.2.0" = fetchurl {
-    url = "https://registry.npmjs.org/@commitlint/cli/-/cli-21.2.0.tgz";
-    hash = "sha512-4GLVIhUaT3c3GBlQ0GB80/5H3xXdn/Tgw4lrsuoOQVDu2wl4Xw0GuzSar8xZKSMv4H3xaKaQXmvH91GmdyYBZA==";
+  "@commitlint/cli@21.2.1" = fetchurl {
+    url = "https://registry.npmjs.org/@commitlint/cli/-/cli-21.2.1.tgz";
+    hash = "sha512-blsZGe29hJ72VGEFVl72IVYX+1vsfINpjA9yWQA6i7OKD/McGEOXg08sKIRKjFk4JvzhV/9n0l3i6NooPLTNfg==";
   };
   "@commitlint/config-conventional@21.2.0" = fetchurl {
     url = "https://registry.npmjs.org/@commitlint/config-conventional/-/config-conventional-21.2.0.tgz";
@@ -69,9 +69,9 @@
     url = "https://registry.npmjs.org/@commitlint/parse/-/parse-21.2.0.tgz";
     hash = "sha512-QHWxG4d0PLTF634/AdyZ0MQS+CLn5YOuJlCFhMMlSGKFxzYGUetkHBj18xgBD+6fVzUrA2lrCdi/vlS2f/oYXg==";
   };
-  "@commitlint/read@21.2.0" = fetchurl {
-    url = "https://registry.npmjs.org/@commitlint/read/-/read-21.2.0.tgz";
-    hash = "sha512-ELx8Ovh/JoAw5lpvDgxc6Y0We9skf2IPI2RFN+gnYgDGjRdMSF8zeodxhZmcclLWzfUIF7hXLOa8gOlllYcvBA==";
+  "@commitlint/read@21.2.1" = fetchurl {
+    url = "https://registry.npmjs.org/@commitlint/read/-/read-21.2.1.tgz";
+    hash = "sha512-hUW7EJQnNTL0vPOmVMNK4CrnrNBN0nN+JJHReFkdHO5y4iyHeEmTBwuC15OCqUTjxWo7idnH1LftfpWVIaPWIA==";
   };
   "@commitlint/resolve-extends@21.2.0" = fetchurl {
     url = "https://registry.npmjs.org/@commitlint/resolve-extends/-/resolve-extends-21.2.0.tgz";
@@ -93,9 +93,9 @@
     url = "https://registry.npmjs.org/@commitlint/types/-/types-21.2.0.tgz";
     hash = "sha512-7zVFCDB2reMvJH5dmbKnOQPjZEvjdJTH8jc0U/PIPU1r3/+vf5pD1HlfitV2MWsWXrvu7u39iY1lyLUPOaN0Gw==";
   };
-  "@conventional-changelog/git-client@2.7.0" = fetchurl {
-    url = "https://registry.npmjs.org/@conventional-changelog/git-client/-/git-client-2.7.0.tgz";
-    hash = "sha512-j7A8/LBEQ+3rugMzPXoKYzyUPpw/0CBQCyvtTR7Lmu4olG4yRC/Tfkq79Mr3yuPs0SUitlO2HwGP3gitMJnRFw==";
+  "@conventional-changelog/git-client@3.1.0" = fetchurl {
+    url = "https://registry.npmjs.org/@conventional-changelog/git-client/-/git-client-3.1.0.tgz";
+    hash = "sha512-Tqa/gHco2WJWa740NRjOrfKVvzIqxkZpecb8bemaQ8sKM5PXb1UK4uTyTb/1wIqNuOVaDOFxyBdhTIQZn6gdjQ==";
   };
   "@conventional-changelog/template@1.2.0" = fetchurl {
     url = "https://registry.npmjs.org/@conventional-changelog/template/-/template-1.2.0.tgz";
@@ -637,13 +637,9 @@
     url = "https://registry.npmjs.org/@protobufjs/utf8/-/utf8-1.1.1.tgz";
     hash = "sha512-oOAWABowe8EAbMyWKM0tYDKi8Yaox52D+HWZhAIJqQXbqe0xI/GV7FhLWqlEKreMkfDjshR5FKgi3mnle0h6Eg==";
   };
-  "@simple-libs/child-process-utils@1.0.2" = fetchurl {
-    url = "https://registry.npmjs.org/@simple-libs/child-process-utils/-/child-process-utils-1.0.2.tgz";
-    hash = "sha512-/4R8QKnd/8agJynkNdJmNw2MBxuFTRcNFnE5Sg/G+jkSsV8/UBgULMzhizWWW42p8L5H7flImV2ATi79Ove2Tw==";
-  };
-  "@simple-libs/stream-utils@1.2.0" = fetchurl {
-    url = "https://registry.npmjs.org/@simple-libs/stream-utils/-/stream-utils-1.2.0.tgz";
-    hash = "sha512-KxXvfapcixpz6rVEB6HPjOUZT22yN6v0vI0urQSk1L8MlEWPDFCZkhw2xmkyoTGYeFw7tWTZd7e3lVzRZRN/EA==";
+  "@simple-libs/child-process-utils@2.0.0" = fetchurl {
+    url = "https://registry.npmjs.org/@simple-libs/child-process-utils/-/child-process-utils-2.0.0.tgz";
+    hash = "sha512-dvNoRKLijXnD0XoJAz94pbNuB5GQgDr55UhpSPhffDkTT0Cmcqh9jSCOtwfT2d4H6MI9E7c4SgtMuJXZ6F3c6A==";
   };
   "@simple-libs/stream-utils@2.0.0" = fetchurl {
     url = "https://registry.npmjs.org/@simple-libs/stream-utils/-/stream-utils-2.0.0.tgz";
@@ -849,10 +845,6 @@
     url = "https://registry.npmjs.org/conventional-changelog-conventionalcommits/-/conventional-changelog-conventionalcommits-10.2.0.tgz";
     hash = "sha512-UtlM9GqolY7OmlQh5L/UEVoKsTUpTgUVy1PU8JN5gl5Ydaejb7WRklGliG1SKPxxj7hzA173eG3Kt5fYWE2pmg==";
   };
-  "conventional-commits-parser@6.4.0" = fetchurl {
-    url = "https://registry.npmjs.org/conventional-commits-parser/-/conventional-commits-parser-6.4.0.tgz";
-    hash = "sha512-tvRg7FIBNlyPzjdG8wWRlPHQJJHI7DylhtRGeU9Lq+JuoPh5BKpPRX83ZdLrvXuOSu5Eo/e7SzOQhU4Hd2Miuw==";
-  };
   "conventional-commits-parser@7.0.0" = fetchurl {
     url = "https://registry.npmjs.org/conventional-commits-parser/-/conventional-commits-parser-7.0.0.tgz";
     hash = "sha512-dZe/p+FgGQLNJFqaCgNdl8j6a7gI8xuaN30Wy5g7nvyK3jqOpNUEUZ3pGJ5D68h89uRh038FtkeOk/bnGmYkmg==";
@@ -1009,10 +1001,6 @@
     url = "https://registry.npmjs.org/get-tsconfig/-/get-tsconfig-4.14.0.tgz";
     hash = "sha512-yTb+8DXzDREzgvYmh6s9vHsSVCHeC0G3PI5bEXNBHtmshPnO+S5O7qgLEOn0I5QvMy6kpZN8K1NKGyilLb93wA==";
   };
-  "git-raw-commits@5.0.1" = fetchurl {
-    url = "https://registry.npmjs.org/git-raw-commits/-/git-raw-commits-5.0.1.tgz";
-    hash = "sha512-Y+csSm2GD/PCSh6Isd/WiMjNAydu0VBiG9J7EdQsNA5P9uXvLayqjmTsNlK5Gs9IhblFZqOU0yid5Il5JPoLiQ==";
-  };
   "glob@10.5.0" = fetchurl {
     url = "https://registry.npmjs.org/glob/-/glob-10.5.0.tgz";
     hash = "sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==";
@@ -1168,10 +1156,6 @@
   "lru-cache@10.4.3" = fetchurl {
     url = "https://registry.npmjs.org/lru-cache/-/lru-cache-10.4.3.tgz";
     hash = "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==";
-  };
-  "meow@13.2.0" = fetchurl {
-    url = "https://registry.npmjs.org/meow/-/meow-13.2.0.tgz";
-    hash = "sha512-pxQJQzB6djGPXh08dacEloMFopsOqGVRKFPYvPOt9XDZ1HasbgDZA74CJGreSU4G3Ak7EFJGoiH2auq+yXISgA==";
   };
   "meow@14.1.0" = fetchurl {
     url = "https://registry.npmjs.org/meow/-/meow-14.1.0.tgz";
