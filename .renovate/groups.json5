@@ -10,7 +10,7 @@
     {
       description: 'Oxc Group',
       groupName: 'oxc',
-      matchPackageNames: ['oxlint', 'oxfmt'],
+      matchPackageNames: ['oxlint', 'oxfmt', 'oxlint-tsgolint'],
     },
   ],
 }
