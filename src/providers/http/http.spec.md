@@ -34,7 +34,7 @@ Out of scope: authentication, rate limiting, TLS termination (handled upstream b
 - **CON-001** Single route per `METHOD:path` key; later registrations overwrite earlier ones silently.
 - **CON-002** No path parameters or query string parsing; routes match on exact `req.url`.
 - **CON-003** No middleware chain; handlers run directly.
-- **GUD-001** Use `postRoute()` from `#/core/feature` to declare routes; do not call `http.post()` directly outside a feature.
+- **GUD-001** Use `postRoute()` from `@/core/feature` to declare routes; do not call `http.post()` directly outside a feature.
 - **GUD-002** Use `success()` / `badRequest()` from `response.ts` to shape replies; do not write `reply.send` ad hoc.
 - **PAT-001** Thin wrapper over `Bun.serve` keeps the dependency surface minimal and the contract stable across framework swaps.
 
@@ -70,7 +70,7 @@ Response envelope (from `response.ts`):
 | Unhandled handler exception | 500    | `INTERNAL_ERROR` | `start()` catch block            |
 | Handler success             | 200    | n/a              | `success()` helper               |
 
-`HttpError` and `ValidationError` (from `#/shared/errors/`) are tagged errors thrown by integrations
+`HttpError` and `ValidationError` (from `@/shared/errors/`) are tagged errors thrown by integrations
 or feature code; the provider does not inspect their tags — it logs via `logError` and returns 500.
 Map specific errors to 4xx by catching them inside the handler and calling `badRequest(reply, ...)`.
 
@@ -109,8 +109,8 @@ Feature-side declaration:
 
 ```ts
 import { z } from 'zod'
-import { defineFeature, postRoute } from '#/core/feature'
-import { success } from '#/providers/http/response'
+import { defineFeature, postRoute } from '@/core/feature'
+import { success } from '@/providers/http/response'
 
 const schema = z.object({ id: z.string() })
 

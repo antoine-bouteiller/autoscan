@@ -2,17 +2,18 @@ import { afterEach, beforeEach, describe, expect, jest, spyOn, test } from 'bun:
 import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { container, TOKENS } from '#/core/container'
-import { FileNotFoundError } from '#/domains/media/errors'
+import { sendMessageMock } from '@tests/mocks/telegram.mock'
+import { makeTestDir, MockTelegramClient } from '@tests/utils'
+
+import { container, TOKENS } from '@/core/container'
+import { FileNotFoundError } from '@/domains/media/errors'
 // oxlint-disable-next-line import/no-namespace -- namespace import required to spy on the named export
-import * as metadataService from '#/domains/media/services/metadata.service'
-import { subtitleScanCommand } from '#/features/transcoding/commands/subtitle_scan.command'
-import { type MediaType } from '#/integrations/plex/plex.service'
-import { type PlexMedia } from '#/integrations/plex/plex.validator'
-import { type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
-import { type ISOCode1 } from '#/shared/types/iso_codes'
-import { sendMessageMock } from '#tests/mocks/telegram.mock'
-import { makeTestDir, MockTelegramClient } from '#tests/utils'
+import * as metadataService from '@/domains/media/services/metadata.service'
+import { subtitleScanCommand } from '@/features/transcoding/commands/subtitle_scan.command'
+import { type MediaType } from '@/integrations/plex/plex.service'
+import { type PlexMedia } from '@/integrations/plex/plex.validator'
+import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
+import { type ISOCode1 } from '@/shared/types/iso_codes'
 
 const makeMessage = (chatId: number): TelegramMessageIn => ({
   chat: { id: chatId },

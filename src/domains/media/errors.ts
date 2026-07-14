@@ -1,4 +1,4 @@
-import { createTaggedError } from '#/shared/utils/error'
+import { createTaggedError } from '@/shared/utils/error'
 
 export class FileNotFoundError extends createTaggedError({
   message: '[$mediaTitle] No file found',

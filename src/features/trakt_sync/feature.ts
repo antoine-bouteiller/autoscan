@@ -1,4 +1,4 @@
-import { defineFeature } from '#/core/feature'
+import { defineFeature } from '@/core/feature'
 
 import { syncTraktCommand, traktAuthCommand } from './commands/trakt.command.js'
 import { traktSyncJob } from './jobs/trakt.job.js'

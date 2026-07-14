@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { isInArray } from '#/shared/utils/array'
+import { isInArray } from '@/shared/utils/array'
 
 describe('isInArray', () => {
   const fruits = ['apple', 'banana', 'cherry'] as const

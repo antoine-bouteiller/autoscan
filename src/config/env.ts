@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { safeReadFileSync } from '#/shared/utils/fs'
+import { safeReadFileSync } from '@/shared/utils/fs'
 
 const FILE_SECRET_KEYS = [
   'PLEX_TOKEN',

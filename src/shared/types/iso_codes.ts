@@ -1,4 +1,4 @@
-import { inversedEntriesOf } from '#/shared/utils/object'
+import { inversedEntriesOf } from '@/shared/utils/object'
 
 // ISO 639-1 (2-character codes)
 export const ISO1 = [

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { logError } from '#/shared/utils/error'
+import { logError } from '@/shared/utils/error'
 
 describe('logError', () => {
   test('should not throw for Error instances', () => {

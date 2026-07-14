@@ -3,10 +3,6 @@
   "version": "1.5.0",
   "private": true,
   "type": "module",
-  "imports": {
-    "#/*": "./src/*.js",
-    "#tests/*": "./tests/*.js"
-  },
   "scripts": {
     "fmt": "oxfmt -c oxfmt.config.ts",
     "lint": "oxlint -c oxlint.config.ts --type-aware --type-check --fix --fix-suggestions",

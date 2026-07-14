@@ -1,10 +1,10 @@
 import { afterEach, mock } from 'bun:test'
 
-import { container, TOKENS } from '#/core/container'
-import { FfmpegClient } from '#/integrations/ffmpeg/ffmpeg.service'
-import { HttpProvider } from '#/providers/http/http.provider'
-import { SchedulerProvider } from '#/providers/scheduler/scheduler.provider'
-import { TelegramProvider } from '#/providers/telegram/telegram.provider'
+import { container, TOKENS } from '@/core/container'
+import { FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
+import { HttpProvider } from '@/providers/http/http.provider'
+import { SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
+import { TelegramProvider } from '@/providers/telegram/telegram.provider'
 
 import { MockPlexClient, MockRadarrClient, MockSonarrClient, MockTelegramClient, MockTmdbClient, MockTraktClient } from './utils.ts'
 

@@ -2,14 +2,14 @@ import { afterEach, describe, expect, test } from 'bun:test'
 
 import { and, eq } from 'drizzle-orm'
 
-import { db } from '#/config/db'
-import { media, type Media } from '#/database/schema'
+import { db } from '@/config/db'
+import { media, type Media } from '@/database/schema'
 import {
   countMediaByType,
   createdOrUpdatedMedia,
   getMediaByIdAndType,
   getMediaByTypeWithPagination,
-} from '#/domains/media/repositories/media.repository'
+} from '@/domains/media/repositories/media.repository'
 
 describe('MediaService', () => {
   afterEach(async () => {

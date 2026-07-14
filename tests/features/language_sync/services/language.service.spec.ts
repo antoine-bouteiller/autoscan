@@ -1,10 +1,19 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
+import { updateStreamMock } from '@tests/mocks/plex.mock'
+import { editMessageTextMock } from '@tests/mocks/telegram.mock'
+import {
+  mockAudioStreamFrench,
+  mockAudioStreamNotMatching,
+  mockAudioStreams,
+  mockAudioStreamSelected,
+  mockNonAudioStreams,
+} from '@tests/resources/fixtures/media.fixtures'
 import { and, eq } from 'drizzle-orm'
 
-import { db } from '#/config/db'
-import { container, TOKENS } from '#/core/container'
-import { type Media, media as mediaTable } from '#/database/schema'
+import { db } from '@/config/db'
+import { container, TOKENS } from '@/core/container'
+import { type Media, media as mediaTable } from '@/database/schema'
 import {
   buildLanguageKeyboard,
   buildMediaKeyboard,
@@ -14,18 +23,9 @@ import {
   selectLanguage,
   selectMedia,
   selectMediaType,
-} from '#/features/language_sync/services/language.service'
-import { type PlexMediaStream } from '#/integrations/plex/plex.validator'
-import { iso1ToIso2T } from '#/shared/types/iso_codes'
-import { updateStreamMock } from '#tests/mocks/plex.mock'
-import { editMessageTextMock } from '#tests/mocks/telegram.mock'
-import {
-  mockAudioStreamFrench,
-  mockAudioStreamNotMatching,
-  mockAudioStreams,
-  mockAudioStreamSelected,
-  mockNonAudioStreams,
-} from '#tests/resources/fixtures/media.fixtures'
+} from '@/features/language_sync/services/language.service'
+import { type PlexMediaStream } from '@/integrations/plex/plex.validator'
+import { iso1ToIso2T } from '@/shared/types/iso_codes'
 
 import '../../../utils.ts'
 

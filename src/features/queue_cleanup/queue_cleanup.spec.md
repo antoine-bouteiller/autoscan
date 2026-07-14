@@ -51,7 +51,7 @@ jobs-only feature: no HTTP routes, no Telegram commands.
 - **`runCleanupProcess()`** (`jobs/cleanup.job.ts`) — thin wrapper that awaits `cleanupAll()`.
 - **`cleanupAll(): Promise<void>`** (`services/cleanup.service.ts`) — resolves Sonarr and Radarr clients from
   `container` and runs `removeStalledDownloads` on both.
-- **`QueueService`** (`#/integrations/arr/queue.types`):
+- **`QueueService`** (`@/integrations/arr/queue.types`):
   - `getQueue(): Promise<QueueResponse | undefined>`
   - `removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }): Promise<void>`
 - **`QueueResponse`**: `{ records: QueueItem[]; totalRecords: number }`.
@@ -100,10 +100,10 @@ status guard prevents striking healthy `queued`, `paused`, or `completed` items 
 
 ### Internal Dependencies
 
-- **DEP-001** `#/integrations/arr` — `RadarrClient` and `SonarrClient` (both implement `QueueService`).
-- **DEP-002** `#/providers/scheduler` — registers the cron job from `defineFeature({ jobs })`.
-- **DEP-003** `#/core/container` — resolves `TOKENS.SONARR_CLIENT` and `TOKENS.RADARR_CLIENT`.
-- **DEP-004** `#/config/logger` — tagged logging (`Cleanup`, `Sonarr` | `Radarr`).
+- **DEP-001** `@/integrations/arr` — `RadarrClient` and `SonarrClient` (both implement `QueueService`).
+- **DEP-002** `@/providers/scheduler` — registers the cron job from `defineFeature({ jobs })`.
+- **DEP-003** `@/core/container` — resolves `TOKENS.SONARR_CLIENT` and `TOKENS.RADARR_CLIENT`.
+- **DEP-004** `@/config/logger` — tagged logging (`Cleanup`, `Sonarr` | `Radarr`).
 
 ## 9. Examples & Edge Cases
 

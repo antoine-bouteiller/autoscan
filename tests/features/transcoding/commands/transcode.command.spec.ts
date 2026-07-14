@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 
-import { container, TOKENS } from '#/core/container'
-import { transcodeCommand } from '#/features/transcoding/commands/transcode.command'
-import { type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
-import { sendMessageMock } from '#tests/mocks/telegram.mock'
-import { MockTelegramClient } from '#tests/utils'
+import { sendMessageMock } from '@tests/mocks/telegram.mock'
+import { MockTelegramClient } from '@tests/utils'
+
+import { container, TOKENS } from '@/core/container'
+import { transcodeCommand } from '@/features/transcoding/commands/transcode.command'
+import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
 
 const makeMessage = (chatId: number): TelegramMessageIn => ({
   chat: { id: chatId },

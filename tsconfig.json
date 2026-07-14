@@ -4,17 +4,17 @@
   "compilerOptions": {
     "lib": ["es2024", "ESNext.Array", "ESNext.Collection", "ESNext.Iterator", "ESNext.Promise"],
     "types": ["bun", "node"],
-    "module": "nodenext",
+    "module": "esnext",
     "target": "esnext",
     "strict": true,
     "esModuleInterop": true,
     "rootDir": ".",
     "paths": {
-      "#/*": ["./src/*"],
-      "#tests/*": ["./tests/*"]
+      "@/*": ["./src/*"],
+      "@tests/*": ["./tests/*"]
     },
     "skipLibCheck": true,
-    "moduleResolution": "nodenext",
+    "moduleResolution": "bundler",
     "outDir": "./build",
     "noUnusedLocals": true,
     "noUnusedParameters": true,

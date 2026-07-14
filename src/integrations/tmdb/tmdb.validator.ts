@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { ISO1 } from '#/shared/types/iso_codes'
+import { ISO1 } from '@/shared/types/iso_codes'
 
 export const tmdbMovieResponse = z.object({
   original_language: z.enum(ISO1),

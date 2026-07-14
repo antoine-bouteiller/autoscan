@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, jest, test } from 'bun:test'
 
-import { Container, type Token } from '#/core/container'
+import { Container, type Token } from '@/core/container'
 
 interface Counter {
   value: number

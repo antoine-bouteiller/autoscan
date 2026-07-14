@@ -1,7 +1,7 @@
-import { getUpdatesResponseSchema, sendMessageResponseSchema, type TelegramUpdate } from '#/integrations/telegram/telegram.validator'
-import { type InlineKeyboardMarkup } from '#/providers/telegram/types'
-import { isError, logError } from '#/shared/utils/error'
-import { httpClient } from '#/shared/utils/http_client'
+import { getUpdatesResponseSchema, sendMessageResponseSchema, type TelegramUpdate } from '@/integrations/telegram/telegram.validator'
+import { type InlineKeyboardMarkup } from '@/providers/telegram/types'
+import { isError, logError } from '@/shared/utils/error'
+import { httpClient } from '@/shared/utils/http_client'
 
 interface SendMessageOptions {
   replyMarkup?: InlineKeyboardMarkup

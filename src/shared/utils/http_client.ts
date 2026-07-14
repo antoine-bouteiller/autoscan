@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { HttpError } from '#/shared/errors/http'
-import { NetworkError } from '#/shared/errors/network'
-import { ValidationError } from '#/shared/errors/validation'
+import { HttpError } from '@/shared/errors/http'
+import { NetworkError } from '@/shared/errors/network'
+import { ValidationError } from '@/shared/errors/validation'
 import {
   type AnySchema,
   type GetOptionWithoutResponse,
@@ -14,7 +14,7 @@ import {
   type RequestOptions,
   type RequestParams,
   type RequestWithoutResponseOption,
-} from '#/shared/types/http_client'
+} from '@/shared/types/http_client'
 
 const defaultFormatter = (body: unknown): string => (typeof body === 'string' ? body : JSON.stringify(body))
 

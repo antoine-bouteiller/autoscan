@@ -2,12 +2,12 @@ import { join } from 'node:path'
 
 import { type z } from 'zod'
 
-import { container, TOKENS } from '#/core/container'
-import { getMediaLanguage } from '#/domains/media/services/metadata.service'
-import { transcodeFile } from '#/features/transcoding/services/transcode.service'
-import { type sonarrValidator } from '#/integrations/arr/sonarr.validator'
-import { success } from '#/providers/http/response'
-import { type AppReply, type AppRequest } from '#/providers/http/types'
+import { container, TOKENS } from '@/core/container'
+import { getMediaLanguage } from '@/domains/media/services/metadata.service'
+import { transcodeFile } from '@/features/transcoding/services/transcode.service'
+import { type sonarrValidator } from '@/integrations/arr/sonarr.validator'
+import { success } from '@/providers/http/response'
+import { type AppReply, type AppRequest } from '@/providers/http/types'
 
 export const sonarrWebhook = async (request: AppRequest<z.infer<typeof sonarrValidator>>, reply: AppReply) => {
   const { eventType } = request.body

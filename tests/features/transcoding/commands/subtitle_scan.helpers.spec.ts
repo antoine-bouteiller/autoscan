@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { makeTestDir } from '@tests/utils'
+
 import {
   areSubtitlesOutOfSync,
   countLines,
@@ -9,8 +11,7 @@ import {
   formatReport,
   parseStartTimestamps,
   parseTimestampMs,
-} from '#/features/transcoding/commands/subtitle_scan.command'
-import { makeTestDir } from '#tests/utils'
+} from '@/features/transcoding/commands/subtitle_scan.command'
 
 const SRT_BLOCK_IN_SYNC = '1\n00:00:01,000 --> 00:00:03,000\nHello\n\n2\n00:00:05,000 --> 00:00:07,000\nWorld'
 const SRT_BLOCK_OFFSET_500MS = '1\n00:00:01,500 --> 00:00:03,500\nBonjour\n\n2\n00:00:05,500 --> 00:00:07,500\nMonde'

@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test'
 
-import { db } from '#/config/db'
-import { media as mediaTable, type Media } from '#/database/schema'
-import { setLanguageConversation } from '#/features/language_sync/commands/language.command'
-import { type TelegramCallbackQuery, type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
-import { type ConversationState } from '#/providers/telegram/types'
-import { updateStreamMock } from '#tests/mocks/plex.mock'
-import { answerCallbackQueryMock, editMessageTextMock, sendMessageMock } from '#tests/mocks/telegram.mock'
-import { MockTelegramClient } from '#tests/utils'
+import { updateStreamMock } from '@tests/mocks/plex.mock'
+import { answerCallbackQueryMock, editMessageTextMock, sendMessageMock } from '@tests/mocks/telegram.mock'
+import { MockTelegramClient } from '@tests/utils'
+
+import { db } from '@/config/db'
+import { media as mediaTable, type Media } from '@/database/schema'
+import { setLanguageConversation } from '@/features/language_sync/commands/language.command'
+import { type TelegramCallbackQuery, type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
+import { type ConversationState } from '@/providers/telegram/types'
 
 const makeMessage = (chatId: number): TelegramMessageIn => ({
   chat: { id: chatId },

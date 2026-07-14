@@ -1,5 +1,5 @@
-import { logger } from '#/config/logger'
-import { logError } from '#/shared/utils/error'
+import { logger } from '@/config/logger'
+import { logError } from '@/shared/utils/error'
 
 interface JobConfig {
   handler: () => Promise<void> | void

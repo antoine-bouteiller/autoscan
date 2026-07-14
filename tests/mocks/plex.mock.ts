@@ -1,9 +1,10 @@
 import { jest } from 'bun:test'
 
-import { PlexError } from '#/integrations/plex/plex.errors'
-import { type IPlexClient } from '#/integrations/plex/plex.service'
-import { type PlexMedia } from '#/integrations/plex/plex.validator'
-import { plexMetadata } from '#tests/resources/fixtures/plex.fixtures'
+import { plexMetadata } from '@tests/resources/fixtures/plex.fixtures'
+
+import { PlexError } from '@/integrations/plex/plex.errors'
+import { type IPlexClient } from '@/integrations/plex/plex.service'
+import { type PlexMedia } from '@/integrations/plex/plex.validator'
 
 export const updateStreamMock = jest.fn()
 const refreshSectionMock = jest.fn()

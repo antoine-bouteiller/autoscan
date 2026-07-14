@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
-import { db } from '#/config/db'
-import { traktSyncHistory, traktTokens } from '#/database/schema'
-import { getSyncedRatingKeys, getToken, markManyAsSynced, upsertTokens } from '#/features/trakt_sync/repositories/trakt.repository'
+import { db } from '@/config/db'
+import { traktSyncHistory, traktTokens } from '@/database/schema'
+import { getSyncedRatingKeys, getToken, markManyAsSynced, upsertTokens } from '@/features/trakt_sync/repositories/trakt.repository'
 
 import '../../../utils.ts'
 

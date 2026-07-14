@@ -31,15 +31,15 @@ The `media` domain owns the cross-feature persistence of catalogued media items 
 - **REQ-003**: The repository exposes: `countMediaByType`, `createdOrUpdatedMedia`, `getMediaByIdAndType`, `getMediaByTypeWithPagination`. No other module performs direct writes against `media`.
 - **REQ-004**: `metadata.service` MUST resolve language with cache-first semantics (DB hit short-circuits TMDB) and persist via the repository on TMDB hit.
 - **REQ-005**: `metadata.service` defaults to `'en' / 'en'` when TMDB returns no data; nothing is persisted in that case.
-- **CON-001**: This domain MUST NOT import from `#/features/*`, `#/providers/*`, or sibling domains.
-- **CON-002**: Allowed dependencies: `#/shared`, `#/config`, `#/database`, `#/integrations`, `#/core/container`.
+- **CON-001**: This domain MUST NOT import from `@/features/*`, `@/providers/*`, or sibling domains.
+- **CON-002**: Allowed dependencies: `@/shared`, `@/config`, `@/database`, `@/integrations`, `@/core/container`.
 - **CON-003**: `preferredLanguage` is initialised to `originalLanguage` on insert/upsert; future divergence is a feature concern (language_sync), not a domain concern.
 - **GUD-001**: Repository functions return Drizzle query builders (no `await`) so callers can chain or transact; only `getMediaByIdAndType` resolves eagerly.
 - **PAT-001**: Errors are tagged classes from `errors.ts` (`FileNotFoundError`, `TmdbIdNotFoundError`); callers detect them with `isError`.
 
 ## 4. Interfaces & Data Contracts
 
-### Drizzle schema (`#/database/schema`)
+### Drizzle schema (`@/database/schema`)
 
 | Column            | Type                   | Notes                        |
 | ----------------- | ---------------------- | ---------------------------- |
@@ -95,12 +95,12 @@ Promoted to a domain because the language store is read by `language_sync` and t
 
 ### Internal Dependencies
 
-- **DEP-001**: `#/database` (Drizzle schema, types).
-- **DEP-002**: `#/integrations/tmdb` (TMDB client interface).
-- **DEP-003**: `#/integrations/plex` (Plex client interface, `MediaType`).
-- **DEP-004**: `#/config/db` (Drizzle instance).
-- **DEP-005**: `#/core/container` (DI tokens for TMDB and Plex clients).
-- **DEP-006**: `#/shared/types/iso_codes` (`ISO1`, `ISOCode1`).
+- **DEP-001**: `@/database` (Drizzle schema, types).
+- **DEP-002**: `@/integrations/tmdb` (TMDB client interface).
+- **DEP-003**: `@/integrations/plex` (Plex client interface, `MediaType`).
+- **DEP-004**: `@/config/db` (Drizzle instance).
+- **DEP-005**: `@/core/container` (DI tokens for TMDB and Plex clients).
+- **DEP-006**: `@/shared/types/iso_codes` (`ISO1`, `ISOCode1`).
 
 ### Data Dependencies
 
@@ -115,7 +115,7 @@ Promoted to a domain because the language store is read by `language_sync` and t
 
 ## 10. Validation Criteria
 
-- `bun run check` enforces the import boundary via `oxlint` rules (no `#/features`, `#/providers`, sibling-domain imports).
+- `bun run check` enforces the import boundary via `oxlint` rules (no `@/features`, `@/providers`, sibling-domain imports).
 - `bun run test` covers repository upsert behaviour, language resolution branches, and path parsing.
 
 ## 11. Related Specifications / Further Reading

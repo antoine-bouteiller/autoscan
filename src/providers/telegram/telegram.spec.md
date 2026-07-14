@@ -16,7 +16,7 @@ and conversations.
 
 Wrap the `ITelegramClient` HTTP wrapper, hold the routing tables for commands and
 multi-step conversations, and own the long-running poll loop. Out of scope: low-level
-HTTP, schema validation (delegated to `#/integrations/telegram`), and feature business
+HTTP, schema validation (delegated to `@/integrations/telegram`), and feature business
 logic.
 
 ## 2. Definitions
@@ -126,7 +126,7 @@ authorization, and lifecycle concerns out of every feature. Features stay declar
 
 A raw HTTP poll loop was chosen over Telegraf/grammY because the surface needed
 (`getUpdates`, `sendMessage`, `editMessageText`, `answerCallbackQuery`) is small and
-already validated with zod in `#/integrations/telegram`.
+already validated with zod in `@/integrations/telegram`.
 
 ## 8. Dependencies & External Integrations
 
@@ -137,7 +137,7 @@ already validated with zod in `#/integrations/telegram`.
 
 ### Technology Platform Dependencies
 
-- **PLT-001** Internal `httpClient` (`#/shared/utils/http_client`) — no third-party bot
+- **PLT-001** Internal `httpClient` (`@/shared/utils/http_client`) — no third-party bot
   SDK.
 - **PLT-002** Node.js (timers, async iteration).
 

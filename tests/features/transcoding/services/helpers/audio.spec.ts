@@ -2,11 +2,12 @@ import { describe, expect, test } from 'bun:test'
 import { copyFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { container, TOKENS } from '#/core/container'
-import { processAudioStreams } from '#/features/transcoding/services/helpers/audio'
-import { type ISOCode1 } from '#/shared/types/iso_codes'
-import { isOk } from '#/shared/utils/error'
-import { makeTestDir, videosPath } from '#tests/utils'
+import { makeTestDir, videosPath } from '@tests/utils'
+
+import { container, TOKENS } from '@/core/container'
+import { processAudioStreams } from '@/features/transcoding/services/helpers/audio'
+import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { isOk } from '@/shared/utils/error'
 
 interface TestCase {
   expectedCommand: string[]

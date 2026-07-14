@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
-import { runCleanupProcess } from '#/features/queue_cleanup/jobs/cleanup.job'
+import { mockRadarrQueue, mockRadarrRemoveQueueItem } from '@tests/mocks/radarr.mock'
+import { mockSonarrQueue, mockSonarrRemoveQueueItem } from '@tests/mocks/sonarr.mock'
+import { mockQueueResponseWithNoEligibleFiles } from '@tests/resources/fixtures/queue.fixtures'
+
+import { runCleanupProcess } from '@/features/queue_cleanup/jobs/cleanup.job'
 
 import '../../../utils.ts'
-import { mockRadarrQueue, mockRadarrRemoveQueueItem } from '#tests/mocks/radarr.mock'
-import { mockSonarrQueue, mockSonarrRemoveQueueItem } from '#tests/mocks/sonarr.mock'
-import { mockQueueResponseWithNoEligibleFiles } from '#tests/resources/fixtures/queue.fixtures'
 
 describe('runCleanupProcess', () => {
   beforeEach(() => {

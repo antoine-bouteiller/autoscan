@@ -4,7 +4,7 @@ import { existsSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import env, { loadFileSecrets, urlString } from '#/config/env'
+import env, { loadFileSecrets, urlString } from '@/config/env'
 
 const writeTempSecret = (value: string): string => {
   const filePath = join(tmpdir(), `autoscan-test-${randomUUID()}.txt`)

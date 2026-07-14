@@ -1,10 +1,10 @@
 import { join, resolve } from 'node:path'
 
-import env from '#/config/env'
-import { logger } from '#/config/logger'
-import { container, TOKENS } from '#/core/container'
-import { isError, logError } from '#/shared/utils/error'
-import { safeCopyFileSync, safeExistsSync, safeReaddirSync, safeRmSync } from '#/shared/utils/fs'
+import env from '@/config/env'
+import { logger } from '@/config/logger'
+import { container, TOKENS } from '@/core/container'
+import { isError, logError } from '@/shared/utils/error'
+import { safeCopyFileSync, safeExistsSync, safeReaddirSync, safeRmSync } from '@/shared/utils/fs'
 
 const cleanUp = async (inputFile: string, mediaTitle: string): Promise<void> => {
   const fileName = inputFile.slice(0, inputFile.lastIndexOf('.')).split('/').pop()

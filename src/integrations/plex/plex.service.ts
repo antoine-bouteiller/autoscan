@@ -1,12 +1,12 @@
 import { resolve } from 'node:path'
 
-import { PlexError } from '#/integrations/plex/plex.errors'
-import { plexResponseValidator, type PlexMedia } from '#/integrations/plex/plex.validator'
-import { type HttpError } from '#/shared/errors/http'
-import { type NetworkError } from '#/shared/errors/network'
-import { type ValidationError } from '#/shared/errors/validation'
-import { isError, logError } from '#/shared/utils/error'
-import { httpClient } from '#/shared/utils/http_client'
+import { PlexError } from '@/integrations/plex/plex.errors'
+import { plexResponseValidator, type PlexMedia } from '@/integrations/plex/plex.validator'
+import { type HttpError } from '@/shared/errors/http'
+import { type NetworkError } from '@/shared/errors/network'
+import { type ValidationError } from '@/shared/errors/validation'
+import { isError, logError } from '@/shared/utils/error'
+import { httpClient } from '@/shared/utils/http_client'
 
 export type MediaType = 'movie' | 'show'
 

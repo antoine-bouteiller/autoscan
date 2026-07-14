@@ -1,9 +1,9 @@
 import { type z } from 'zod'
 
-import { container, TOKENS } from '#/core/container'
-import { type HttpProvider } from '#/providers/http/http.provider'
-import { type RouteHandler } from '#/providers/http/types'
-import { type CommandHandler, type Conversation } from '#/providers/telegram/telegram.provider'
+import { container, TOKENS } from '@/core/container'
+import { type HttpProvider } from '@/providers/http/http.provider'
+import { type RouteHandler } from '@/providers/http/types'
+import { type CommandHandler, type Conversation } from '@/providers/telegram/telegram.provider'
 
 type FeatureRoute = (http: HttpProvider) => void
 

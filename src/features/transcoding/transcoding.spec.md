@@ -55,8 +55,8 @@ acceleration, custom quality profiles, GPU selection.
 
 | Method | Path      | Validator                             | Accepted `eventType`                                              |
 | ------ | --------- | ------------------------------------- | ----------------------------------------------------------------- |
-| POST   | `/radarr` | `#/integrations/arr/radarr.validator` | `Test`, `Download`, `MovieFileDelete`, `MovieDelete`              |
-| POST   | `/sonarr` | `#/integrations/arr/sonarr.validator` | `Test`, `Download`, `EpisodeFileDelete`, `Rename`, `SeriesDelete` |
+| POST   | `/radarr` | `@/integrations/arr/radarr.validator` | `Test`, `Download`, `MovieFileDelete`, `MovieDelete`              |
+| POST   | `/sonarr` | `@/integrations/arr/sonarr.validator` | `Test`, `Download`, `EpisodeFileDelete`, `Rename`, `SeriesDelete` |
 
 Only `Download` triggers transcoding. Other event types are accepted by the validator and ignored by the handler
 (returns `{ message: 'ok' }`). When `transcodeFile` returns `false` (no work to do), the webhook falls back to
@@ -155,14 +155,14 @@ the output has both video and audio streams.
 
 ### Internal Dependencies
 
-- **DEP-001** `#/integrations/arr` - Radarr/Sonarr clients + webhook validators.
-- **DEP-002** `#/integrations/ffmpeg` - `FfmpegClient`, `FFprobeStream` validator.
-- **DEP-003** `#/integrations/plex`, `#/integrations/tmdb`, `#/integrations/telegram`.
-- **DEP-004** `#/providers/http` - `postRoute`, request/reply types, `success`.
-- **DEP-005** `#/providers/scheduler` - cron registration via `defineFeature`.
-- **DEP-006** `#/providers/telegram` - command registration via `defineFeature`.
-- **DEP-007** `#/domains/media/services/metadata.service` - `getMediaLanguage`, `getCompleteMediaDetails`.
-- **DEP-008** `#/config/env` - `TRANSCODE_PATH` (required string).
+- **DEP-001** `@/integrations/arr` - Radarr/Sonarr clients + webhook validators.
+- **DEP-002** `@/integrations/ffmpeg` - `FfmpegClient`, `FFprobeStream` validator.
+- **DEP-003** `@/integrations/plex`, `@/integrations/tmdb`, `@/integrations/telegram`.
+- **DEP-004** `@/providers/http` - `postRoute`, request/reply types, `success`.
+- **DEP-005** `@/providers/scheduler` - cron registration via `defineFeature`.
+- **DEP-006** `@/providers/telegram` - command registration via `defineFeature`.
+- **DEP-007** `@/domains/media/services/metadata.service` - `getMediaLanguage`, `getCompleteMediaDetails`.
+- **DEP-008** `@/config/env` - `TRANSCODE_PATH` (required string).
 
 ## 9. Examples & Edge Cases
 

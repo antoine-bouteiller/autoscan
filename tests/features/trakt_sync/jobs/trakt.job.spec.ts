@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, jest, test } from 'bun:test'
 
-import { db } from '#/config/db'
-import { traktSyncHistory, traktTokens } from '#/database/schema'
-import { traktSyncJob } from '#/features/trakt_sync/jobs/trakt.job'
-import { syncWatchedHistoryMock } from '#tests/mocks/trakt.mock'
+import { syncWatchedHistoryMock } from '@tests/mocks/trakt.mock'
+
+import { db } from '@/config/db'
+import { traktSyncHistory, traktTokens } from '@/database/schema'
+import { traktSyncJob } from '@/features/trakt_sync/jobs/trakt.job'
 
 import '../../../utils.ts'
 

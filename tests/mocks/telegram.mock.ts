@@ -1,6 +1,6 @@
 import { jest } from 'bun:test'
 
-import { type ITelegramClient } from '#/integrations/telegram/telegram.service'
+import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 
 export const editMessageTextMock = jest.fn().mockResolvedValue(undefined)
 export const sendMessageMock = jest.fn().mockResolvedValue(100)

@@ -112,9 +112,9 @@ each feature while centralising the lifecycle (start on boot, stop on `SIGINT`).
 
 ### Internal Dependencies
 
-- INT-001: `#/config/logger` for `logger.info` / `logger.warn`.
-- INT-002: `#/shared/utils/error` `logError` for caught construction and handler errors.
-- INT-003: `#/core/container` registers the singleton under `TOKENS.SCHEDULER_PROVIDER`.
+- INT-001: `@/config/logger` for `logger.info` / `logger.warn`.
+- INT-002: `@/shared/utils/error` `logError` for caught construction and handler errors.
+- INT-003: `@/core/container` registers the singleton under `TOKENS.SCHEDULER_PROVIDER`.
 
 ## 9. Examples & Edge Cases
 

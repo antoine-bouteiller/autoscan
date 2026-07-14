@@ -2,12 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { copyFileSync, existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { container, TOKENS } from '#/core/container'
-import { transcodeFile, transcodeQueue } from '#/features/transcoding/services/transcode.service'
-import { type FFprobeStream } from '#/integrations/ffmpeg/ffmpeg.validator'
-import { isOk } from '#/shared/utils/error'
-import { refreshSectionsMock } from '#tests/mocks/plex.mock'
-import { makeTestDir, videosPath } from '#tests/utils'
+import { refreshSectionsMock } from '@tests/mocks/plex.mock'
+import { makeTestDir, videosPath } from '@tests/utils'
+
+import { container, TOKENS } from '@/core/container'
+import { transcodeFile, transcodeQueue } from '@/features/transcoding/services/transcode.service'
+import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
+import { isOk } from '@/shared/utils/error'
 
 const waitForQueueCompletion = async (): Promise<void> =>
   new Promise((resolve) => {

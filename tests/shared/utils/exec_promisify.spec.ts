@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
-import { CommandExecutionError } from '#/shared/errors/command'
-import { spawnPromise } from '#/shared/utils/exec_promisify'
+import { CommandExecutionError } from '@/shared/errors/command'
+import { spawnPromise } from '@/shared/utils/exec_promisify'
 
 describe('spawnPromise', () => {
   test('should resolve with stdout when the command succeeds', async () => {

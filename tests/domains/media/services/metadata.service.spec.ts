@@ -1,23 +1,23 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
+import { type MockTmdbClient } from '@tests/mocks/tmdb.mock'
+import { tmdbTvShowResponse } from '@tests/resources/fixtures/tmdb.fixtures'
 import { and, eq } from 'drizzle-orm'
 
-import { db } from '#/config/db'
-import { container, TOKENS } from '#/core/container'
-import { media } from '#/database/schema'
-import { FileNotFoundError, TmdbIdNotFoundError } from '#/domains/media/errors'
-import { isOk } from '#/shared/utils/error'
+import { db } from '@/config/db'
+import { container, TOKENS } from '@/core/container'
+import { media } from '@/database/schema'
+import { FileNotFoundError, TmdbIdNotFoundError } from '@/domains/media/errors'
+import { isOk } from '@/shared/utils/error'
 
 import '../../../utils.ts'
-import { type MockTmdbClient } from '#tests/mocks/tmdb.mock'
-import { tmdbTvShowResponse } from '#tests/resources/fixtures/tmdb.fixtures'
 
 const {
   buildMediaTitle,
   extractTmdbIdFromPath,
   getCompleteMediaDetails,
   getMediaLanguage: getOriginalLanguage,
-} = await import('#/domains/media/services/metadata.service')
+} = await import('@/domains/media/services/metadata.service')
 
 describe('MetadataService', () => {
   let mockTmdbClient: MockTmdbClient

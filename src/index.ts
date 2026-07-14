@@ -1,6 +1,6 @@
-import { logger } from '#/config/logger'
-import '#/core/bootstrap'
-import { container, TOKENS } from '#/core/container'
+import { logger } from '@/config/logger'
+import '@/core/bootstrap'
+import { container, TOKENS } from '@/core/container'
 
 const httpProvider = container.resolve(TOKENS.HTTP_PROVIDER)
 const schedulerProvider = container.resolve(TOKENS.SCHEDULER_PROVIDER)

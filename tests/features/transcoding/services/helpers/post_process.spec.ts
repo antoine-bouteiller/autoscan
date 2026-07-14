@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 
-import { container, TOKENS } from '#/core/container'
-import { handlePostTranscode } from '#/features/transcoding/services/helpers/post_process'
-import { refreshSectionsMock } from '#tests/mocks/plex.mock'
+import { refreshSectionsMock } from '@tests/mocks/plex.mock'
+
+import { container, TOKENS } from '@/core/container'
+import { handlePostTranscode } from '@/features/transcoding/services/helpers/post_process'
 
 import '../../../../utils.ts'
 

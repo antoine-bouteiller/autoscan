@@ -1,4 +1,4 @@
-import { CommandExecutionError } from '#/shared/errors/command'
+import { CommandExecutionError } from '@/shared/errors/command'
 
 interface SpawnOptions {
   cwd?: string

@@ -1,4 +1,4 @@
-import { type AppReply } from '#/providers/http/types'
+import { type AppReply } from '@/providers/http/types'
 
 interface ApiResponse<Data> {
   data?: Data

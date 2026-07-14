@@ -1,4 +1,4 @@
-import { type MediaType } from '#/integrations/plex/plex.service'
+import { type MediaType } from '@/integrations/plex/plex.service'
 
 export type ConversationState =
   | { step: 'idle' }

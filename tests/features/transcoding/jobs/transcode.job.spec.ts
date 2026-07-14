@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 
-import { container, TOKENS } from '#/core/container'
-import { getTranscodingStatus, runTranscodeProcess } from '#/features/transcoding/jobs/transcode.job'
+import { container, TOKENS } from '@/core/container'
+import { getTranscodingStatus, runTranscodeProcess } from '@/features/transcoding/jobs/transcode.job'
 
 import '../../../utils.ts'
 

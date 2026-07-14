@@ -1,4 +1,4 @@
-import { type QueueResponse } from '#/integrations/arr/queue.types'
+import { type QueueResponse } from '@/integrations/arr/queue.types'
 
 export const mockQueueResponseWithNoEligibleFiles: QueueResponse = {
   records: [
@@ -12,6 +12,7 @@ export const mockQueueResponseWithNoEligibleFiles: QueueResponse = {
           title: 'Error',
         },
       ],
+      timeleft: undefined,
       title: 'Test Movie',
     },
   ],
@@ -30,6 +31,7 @@ export const mockQueueResponseWithDangerousFiles: QueueResponse = {
           title: 'Warning',
         },
       ],
+      timeleft: undefined,
       title: 'Test Movie',
     },
   ],
@@ -43,6 +45,7 @@ export const mockQueueResponseWithStalledWarning: QueueResponse = {
       id: 3,
       status: 'warning',
       statusMessages: [],
+      timeleft: undefined,
       title: 'Test Movie',
     },
   ],
@@ -61,6 +64,7 @@ export const mockQueueResponseNormal: QueueResponse = {
       id: 6,
       status: 'completed',
       statusMessages: [],
+      timeleft: undefined,
       title: 'Test Movie',
     },
   ],

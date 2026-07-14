@@ -1,4 +1,4 @@
-import { defineFeature, postRoute } from '#/core/feature'
+import { defineFeature, postRoute } from '@/core/feature'
 
 import { sendMessageValidator } from './validators/send_message.validator.js'
 import { sendMessageWebhook } from './webhooks/send_message.webhook.js'

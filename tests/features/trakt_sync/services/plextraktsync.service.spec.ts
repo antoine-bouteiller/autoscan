@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test'
 
-import { db } from '#/config/db'
-import { container, TOKENS } from '#/core/container'
-import { traktSyncHistory, traktTokens } from '#/database/schema'
-import { TraktTokenExpiredError } from '#/features/trakt_sync/errors'
-import { collectWatchedItems, getValidAccessToken, syncPlexToTrakt } from '#/features/trakt_sync/services/plextraktsync.service'
-import { refreshTokenMock, syncWatchedHistoryMock } from '#tests/mocks/trakt.mock'
+import { refreshTokenMock, syncWatchedHistoryMock } from '@tests/mocks/trakt.mock'
+
+import { db } from '@/config/db'
+import { container, TOKENS } from '@/core/container'
+import { traktSyncHistory, traktTokens } from '@/database/schema'
+import { TraktTokenExpiredError } from '@/features/trakt_sync/errors'
+import { collectWatchedItems, getValidAccessToken, syncPlexToTrakt } from '@/features/trakt_sync/services/plextraktsync.service'
 
 describe('TraktService', () => {
   const plexClient = container.resolve(TOKENS.PLEX_CLIENT)

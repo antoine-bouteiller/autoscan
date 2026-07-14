@@ -1,9 +1,9 @@
-import { container, TOKENS } from '#/core/container'
-import { FileNotFoundError, TmdbIdNotFoundError } from '#/domains/media/errors'
-import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '#/domains/media/repositories/media.repository'
-import { type MediaType } from '#/integrations/plex/plex.service'
-import { type ISOCode1 } from '#/shared/types/iso_codes'
-import { isError } from '#/shared/utils/error'
+import { container, TOKENS } from '@/core/container'
+import { FileNotFoundError, TmdbIdNotFoundError } from '@/domains/media/errors'
+import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/domains/media/repositories/media.repository'
+import { type MediaType } from '@/integrations/plex/plex.service'
+import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { isError } from '@/shared/utils/error'
 
 export const extractTmdbIdFromPath = (filePath: string): number | undefined => {
   const match = /{tmdb-(?<id>.*?)}/g.exec(filePath)

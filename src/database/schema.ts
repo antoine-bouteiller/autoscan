@@ -1,6 +1,6 @@
 import { integer, pgEnum, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
-import { ISO1 } from '#/shared/types/iso_codes'
+import { ISO1 } from '@/shared/types/iso_codes'
 
 export const mediaTypeEnum = pgEnum('media_type', ['movie', 'show'])
 

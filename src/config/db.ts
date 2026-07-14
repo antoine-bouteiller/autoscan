@@ -1,4 +1,4 @@
-import env from '#/config/env'
+import env from '@/config/env'
 
 const initDatabase = async () => {
   const { drizzle } = await import('drizzle-orm/bun-sql')

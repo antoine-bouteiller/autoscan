@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { inversedEntriesOf, isKeyOf, isValueOf, typedEntriesOf, typedKeyOf } from '#/shared/utils/object'
+import { inversedEntriesOf, isKeyOf, isValueOf, typedEntriesOf, typedKeyOf } from '@/shared/utils/object'
 
 const sample = { alpha: 1, beta: 2, gamma: 3 } as const
 

@@ -1,6 +1,6 @@
 import { jest } from 'bun:test'
 
-import { type ISonarrClient } from '#/integrations/arr/sonarr.service'
+import { type ISonarrClient } from '@/integrations/arr/sonarr.service'
 
 export const mockSonarrQueue = jest.fn<ISonarrClient['getQueue']>()
 export const mockSonarrRemoveQueueItem = jest.fn<ISonarrClient['removeQueueItem']>()

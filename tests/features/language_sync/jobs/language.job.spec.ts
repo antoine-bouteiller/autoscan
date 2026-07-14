@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 
-import { container, TOKENS } from '#/core/container'
-import { updatePlexSelectedLanguages } from '#/features/language_sync/jobs/language.job'
-import { type PlexMedia } from '#/integrations/plex/plex.validator'
-import { updateStreamMock } from '#tests/mocks/plex.mock'
+import { updateStreamMock } from '@tests/mocks/plex.mock'
+
+import { container, TOKENS } from '@/core/container'
+import { updatePlexSelectedLanguages } from '@/features/language_sync/jobs/language.job'
+import { type PlexMedia } from '@/integrations/plex/plex.validator'
 
 import '../../../utils.ts'
 

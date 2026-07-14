@@ -144,12 +144,12 @@ per-rating-key idempotency persisted in PostgreSQL.
 
 ### Internal Dependencies
 
-- **DEP-001** `#/integrations/trakt` (TraktClient), `#/integrations/plex` (PlexClient).
-- **DEP-002** `#/database`, `#/config/db` — Drizzle schema + connection.
-- **DEP-003** `#/providers/scheduler` — cron registration via `defineFeature.jobs`.
-- **DEP-004** `#/providers/telegram` — command registration via `defineFeature.commands`.
-- **DEP-005** `#/domains/media/services/metadata.service` (`extractTmdbIdFromPath`).
-- **DEP-006** `#/core/container` for `TRAKT_CLIENT`, `PLEX_CLIENT` resolution.
+- **DEP-001** `@/integrations/trakt` (TraktClient), `@/integrations/plex` (PlexClient).
+- **DEP-002** `@/database`, `@/config/db` — Drizzle schema + connection.
+- **DEP-003** `@/providers/scheduler` — cron registration via `defineFeature.jobs`.
+- **DEP-004** `@/providers/telegram` — command registration via `defineFeature.commands`.
+- **DEP-005** `@/domains/media/services/metadata.service` (`extractTmdbIdFromPath`).
+- **DEP-006** `@/core/container` for `TRAKT_CLIENT`, `PLEX_CLIENT` resolution.
 
 ## 9. Examples & Edge Cases
 

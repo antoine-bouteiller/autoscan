@@ -20,8 +20,8 @@ to the operator.
 ## 2. Definitions
 
 - **Route-only feature**: a feature whose only registration surface is `routes` (no jobs, commands, conversations).
-- **Telegram client**: low-level HTTP wrapper over the Telegram Bot API (`#/integrations/telegram`).
-- **Telegram provider**: high-level long-polling/dispatch layer (`#/providers/telegram`) — NOT used here.
+- **Telegram client**: low-level HTTP wrapper over the Telegram Bot API (`@/integrations/telegram`).
+- **Telegram provider**: high-level long-polling/dispatch layer (`@/providers/telegram`) — NOT used here.
 
 ## 3. Requirements, Constraints & Guidelines
 
@@ -32,7 +32,7 @@ to the operator.
 - **CON-001** The destination chat id is fixed: it MUST come from `env.TELEGRAM_CHAT_ID`, never from the request body.
 - **CON-002** The endpoint is unauthenticated; deployment MUST keep it on a private network.
 - **GUD-001** Keep the validator co-located here — the body shape is defined by this feature (producer-owned schema).
-- **GUD-002** Use the `success` / `badRequest` helpers from `#/providers/http/response`; do not hand-roll envelopes.
+- **GUD-002** Use the `success` / `badRequest` helpers from `@/providers/http/response`; do not hand-roll envelopes.
 - **PAT-001** Follow the route-only feature pattern: export a `defineFeature({ name, routes: [postRoute(...)] })`.
 
 ## 4. Interfaces & Data Contracts
@@ -107,10 +107,10 @@ Status codes: `200` on success, `400` on validation failure, `404` if route not 
 
 ### Internal Dependencies
 
-- **DEP-001** `#/integrations/telegram` — `TelegramClient.sendMessage(chatId, text)` resolved via `TOKENS.TELEGRAM_CLIENT`.
-- **DEP-002** `#/providers/http` — `HttpProvider.post` registers the route; `success`/`badRequest` build the envelope.
-- **DEP-003** `#/core/feature` — `defineFeature` and `postRoute` helpers.
-- **DEP-004** `#/config/env` — `TELEGRAM_CHAT_ID` (coerced number) and `TELEGRAM_TOKEN` (consumed by the client).
+- **DEP-001** `@/integrations/telegram` — `TelegramClient.sendMessage(chatId, text)` resolved via `TOKENS.TELEGRAM_CLIENT`.
+- **DEP-002** `@/providers/http` — `HttpProvider.post` registers the route; `success`/`badRequest` build the envelope.
+- **DEP-003** `@/core/feature` — `defineFeature` and `postRoute` helpers.
+- **DEP-004** `@/config/env` — `TELEGRAM_CHAT_ID` (coerced number) and `TELEGRAM_TOKEN` (consumed by the client).
 
 ## 9. Examples & Edge Cases
 

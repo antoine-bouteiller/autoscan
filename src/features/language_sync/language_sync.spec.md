@@ -9,7 +9,7 @@ tags: [feature, plex, tmdb, telegram, scheduler]
 # Introduction
 
 The `language_sync` feature keeps each Plex item playing back in the user's preferred audio language. A
-scheduled job walks every Plex section, resolves the preferred language for each item via `#/domains/media`,
+scheduled job walks every Plex section, resolves the preferred language for each item via `@/domains/media`,
 and instructs Plex to switch the audio (and, for French, subtitle) stream selection. A Telegram conversation
 lets the user override the per-media preferred language interactively.
 
@@ -17,14 +17,14 @@ lets the user override the per-media preferred language interactively.
 
 In scope: scheduled enforcement of the per-media preferred audio/subtitle stream on Plex, and the
 `/setlanguage` Telegram conversation that updates the `media.preferred_language` column. Out of scope:
-populating media rows (handled by `#/domains/media`), language detection, and Plex library refresh.
+populating media rows (handled by `@/domains/media`), language detection, and Plex library refresh.
 
 ## 2. Definitions
 
 - **Preferred language**: ISO 639-1 code stored in `media.preferred_language`; defaults to the TMDB
   `original_language` on first ingest.
 - **Stream selection**: Plex `library/parts/{partsId}` PUT call setting `audioStreamID` or `subtitleStreamID`.
-- **Conversation state**: per-chat finite state machine maintained by `#/providers/telegram`.
+- **Conversation state**: per-chat finite state machine maintained by `@/providers/telegram`.
 
 ## 3. Requirements, Constraints & Guidelines
 
@@ -43,14 +43,14 @@ populating media rows (handled by `#/domains/media`), language detection, and Pl
 - **REQ-007** `/setlanguage` MUST persist the chosen ISO 639-1 code to `media.preferred_language` keyed by
   `(tmdbId, type)`.
 - **CON-001** Stream language codes returned by Plex are ISO 639-2; comparison goes through `normalizeToIso1`
-  (see `#/shared/utils/iso_codes`) using the mappings in `#/shared/types/iso_codes`.
+  (see `@/shared/utils/iso_codes`) using the mappings in `@/shared/types/iso_codes`.
 - **CON-002** Errors returned by `getCompleteMediaDetails` (`FileNotFoundError`, `TmdbIdNotFoundError`, Plex
   HTTP errors) MUST NOT abort the loop; log via `logError` and continue with the next media.
 - **CON-003** When no matching audio stream exists the job logs a warning and skips the item. It MUST NOT
   fall back to another language.
 - **GUD-001** All Plex/TMDB clients are resolved through the DI container (`TOKENS.PLEX_CLIENT`,
   `TOKENS.TMDB_CLIENT`); never instantiate clients directly.
-- **GUD-002** Read and write media rows exclusively through `#/domains/media` repositories and services.
+- **GUD-002** Read and write media rows exclusively through `@/domains/media` repositories and services.
 - **PAT-001** Job follows the cron-handler pattern described in
   `../../providers/scheduler/scheduler.spec.md`; conversation follows the callback-driven state-machine
   pattern in `../../providers/telegram/telegram.spec.md`.
@@ -131,7 +131,7 @@ interface UpdateLanguageParams {
 
 Plex stream selection is a per-part mutation, so the job iterates `Media[0].Part[0]` via the metadata
 service rather than Plex's section endpoints. Reusing `getCompleteMediaDetails` keeps TMDB lookups, the
-`media` row upsert, and stream extraction in one place owned by `#/domains/media`. The 12-hour cadence
+`media` row upsert, and stream extraction in one place owned by `@/domains/media`. The 12-hour cadence
 balances catching newly-imported items quickly against avoiding unnecessary Plex churn. Subtitles are only
 cleared for French because that is the operator's only consistently-subtitled audio path.
 
@@ -146,15 +146,15 @@ cleared for French because that is the operator's only consistently-subtitled au
 
 ### Internal Dependencies
 
-- **DEP-001** `#/domains/media` — the feature reads and writes media rows through this domain
+- **DEP-001** `@/domains/media` — the feature reads and writes media rows through this domain
   (`getCompleteMediaDetails`, `getMediaByTypeWithPagination`, and the `media` schema). The feature does not
   query Plex/TMDB metadata directly.
-- **DEP-002** `#/providers/scheduler` — registers and executes the `Language Sync` cron job.
-- **DEP-003** `#/providers/telegram` — hosts the `/setlanguage` conversation, conversation state, and inline
+- **DEP-002** `@/providers/scheduler` — registers and executes the `Language Sync` cron job.
+- **DEP-003** `@/providers/telegram` — hosts the `/setlanguage` conversation, conversation state, and inline
   keyboard rendering.
-- **DEP-004** `#/shared/types/iso_codes` and `#/shared/utils/iso_codes` — ISO 639-1 ↔ 639-2 mappings used to
+- **DEP-004** `@/shared/types/iso_codes` and `@/shared/utils/iso_codes` — ISO 639-1 ↔ 639-2 mappings used to
   normalize Plex stream `languageCode` values for comparison with `preferredLanguage`.
-- **DEP-005** `#/core/container` — DI tokens `PLEX_CLIENT` and `TMDB_CLIENT`.
+- **DEP-005** `@/core/container` — DI tokens `PLEX_CLIENT` and `TMDB_CLIENT`.
 
 ## 9. Examples & Edge Cases
 

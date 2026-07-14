@@ -1,6 +1,6 @@
 import { jest } from 'bun:test'
 
-import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from '#/integrations/trakt/trakt.service'
+import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from '@/integrations/trakt/trakt.service'
 
 export const getDeviceCodeMock = jest.fn()
 export const refreshTokenMock = jest.fn()

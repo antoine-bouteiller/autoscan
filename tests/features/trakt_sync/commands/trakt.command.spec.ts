@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, jest, test } from 'bun:test'
 
-import { db } from '#/config/db'
-import { traktSyncHistory, traktTokens } from '#/database/schema'
-import { syncTraktCommand, traktAuthCommand } from '#/features/trakt_sync/commands/trakt.command'
-import { type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
-import { HttpError } from '#/shared/errors/http'
-import { sendMessageMock } from '#tests/mocks/telegram.mock'
-import { getDeviceCodeMock, syncWatchedHistoryMock } from '#tests/mocks/trakt.mock'
-import { MockTelegramClient } from '#tests/utils'
+import { sendMessageMock } from '@tests/mocks/telegram.mock'
+import { getDeviceCodeMock, syncWatchedHistoryMock } from '@tests/mocks/trakt.mock'
+import { MockTelegramClient } from '@tests/utils'
+
+import { db } from '@/config/db'
+import { traktSyncHistory, traktTokens } from '@/database/schema'
+import { syncTraktCommand, traktAuthCommand } from '@/features/trakt_sync/commands/trakt.command'
+import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
+import { HttpError } from '@/shared/errors/http'
 
 const makeMessage = (chatId: number): TelegramMessageIn => ({
   chat: { id: chatId },

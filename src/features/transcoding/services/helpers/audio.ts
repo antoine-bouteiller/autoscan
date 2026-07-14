@@ -1,8 +1,8 @@
-import { logger } from '#/config/logger'
-import { AudioStreamNotFoundError, NoStreamsKeptError } from '#/features/transcoding/errors'
-import { type FFprobeStream } from '#/integrations/ffmpeg/ffmpeg.validator'
-import { type ISOCode1 } from '#/shared/types/iso_codes'
-import { iso1ToIso2B } from '#/shared/utils/iso_codes'
+import { logger } from '@/config/logger'
+import { AudioStreamNotFoundError, NoStreamsKeptError } from '@/features/transcoding/errors'
+import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
+import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { iso1ToIso2B } from '@/shared/utils/iso_codes'
 
 import { isStreamWanted, type Criteria } from './utils.js'
 

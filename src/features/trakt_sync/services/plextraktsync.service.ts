@@ -1,11 +1,11 @@
-import { container, TOKENS } from '#/core/container'
-import { extractTmdbIdFromPath } from '#/domains/media/services/metadata.service'
-import { TraktTokenExpiredError } from '#/features/trakt_sync/errors'
-import { getSyncedRatingKeys, getToken, markManyAsSynced, upsertTokens } from '#/features/trakt_sync/repositories/trakt.repository'
-import { type IPlexClient } from '#/integrations/plex/plex.service'
-import { type PlexMedia } from '#/integrations/plex/plex.validator'
-import { type TraktMoviePayload, type TraktShowPayload } from '#/integrations/trakt/trakt.service'
-import { isError, logError } from '#/shared/utils/error'
+import { container, TOKENS } from '@/core/container'
+import { extractTmdbIdFromPath } from '@/domains/media/services/metadata.service'
+import { TraktTokenExpiredError } from '@/features/trakt_sync/errors'
+import { getSyncedRatingKeys, getToken, markManyAsSynced, upsertTokens } from '@/features/trakt_sync/repositories/trakt.repository'
+import { type IPlexClient } from '@/integrations/plex/plex.service'
+import { type PlexMedia } from '@/integrations/plex/plex.validator'
+import { type TraktMoviePayload, type TraktShowPayload } from '@/integrations/trakt/trakt.service'
+import { isError, logError } from '@/shared/utils/error'
 
 export const getValidAccessToken = async () => {
   const tokens = await getToken()

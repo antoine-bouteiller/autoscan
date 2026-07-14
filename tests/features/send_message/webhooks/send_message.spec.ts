@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { http } from '#tests/http_fixture'
+import { http } from '@tests/http_fixture'
 
 describe('POST /send_message', () => {
   test('should return 200 and send message', async () => {

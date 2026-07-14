@@ -16,7 +16,7 @@ feature-local logic.
 ## 1. Purpose & Scope
 
 Applies to every TypeScript source and test file under the single Autoscan package. Covers the
-top-level layout under `src/`, suffix conventions, the `#/*` import alias, the test mirror under
+top-level layout under `src/`, suffix conventions, the `@/*` import alias, the test mirror under
 `tests/`, and the rules that govern cross-feature reuse. Out of scope: runtime behaviour of any
 specific feature, container internals, and the feature registration lifecycle (each documented in
 its own spec).
@@ -32,7 +32,7 @@ its own spec).
   under `src/providers/<name>/`.
 - **Kind suffix**: the dot-segment in a filename indicating its role (e.g. `.service.ts`,
   `.job.ts`).
-- **Subpath import**: a path alias for `src/`. This project uses `#/*` -> `./src/*`, resolved by
+- **Subpath import**: a path alias for `src/`. This project uses `@/*` -> `./src/*`, resolved by
   Bun via the `paths` entry in `tsconfig.json` (mirrored by `package.json#imports`).
 
 ## 3. Requirements, Constraints & Guidelines
@@ -48,12 +48,12 @@ its own spec).
   `errors.ts`, `types.ts`, and `<feature>.spec.md`.
 - **REQ-006** Every feature MUST be exported from `src/features/index.ts` as a `<name>Feature`
   binding and listed in the `features` array.
-- **REQ-007** Internal imports MUST use the `#/*` alias resolving to `src/`. Relative parent
+- **REQ-007** Internal imports MUST use the `@/*` alias resolving to `src/`. Relative parent
   imports (`../`) MUST NOT cross a top-level boundary.
 - **REQ-008** Tests MUST mirror `src/` under `tests/`: a source file `src/<path>/<name>.<kind>.ts`
   has its test at `tests/<path>/<name>.spec.ts`.
-- **CON-001** A feature MUST NOT import from a sibling feature (`#/features/a` from
-  `#/features/b`). Shared logic MUST be promoted to `domains/`, `shared/`, `integrations/`, or
+- **CON-001** A feature MUST NOT import from a sibling feature (`@/features/a` from
+  `@/features/b`). Shared logic MUST be promoted to `domains/`, `shared/`, `integrations/`, or
   `providers/`.
 - **CON-002** `src/core/` MUST contain only DI plumbing and bootstrap wiring. No business logic,
   no integration calls, no scheduling.
@@ -102,8 +102,8 @@ its own spec).
 | `.provider.ts`   | (root)             | Runtime host class implementing a lifecycle |
 | `.errors.ts`     | (root or per kind) | Typed error classes                         |
 
-Import alias: `#/*` resolves to `./src/*.js` (Node subpath imports). Imports MUST use the `.js`
-extension, e.g. `import { foo } from '#/shared/utils/array.js'`.
+Import alias: `@/*` resolves to `./src/*.js` (Node subpath imports). Imports MUST use the `.js`
+extension, e.g. `import { foo } from '@/shared/utils/array.js'`.
 
 ## 5. Acceptance Criteria
 
@@ -112,20 +112,20 @@ extension, e.g. `import { foo } from '#/shared/utils/array.js'`.
   `src/features/index.ts` exports `fooFeature` in the `features` array.
 - **AC-002** Given a source file `src/features/foo/services/foo.service.ts`, when its test is
   placed at `tests/features/foo/services/foo.spec.ts`, then `bun run test` discovers and runs it.
-- **AC-003** Given an attempt to add `import { x } from '#/features/bar/services/bar.service.js'`
+- **AC-003** Given an attempt to add `import { x } from '@/features/bar/services/bar.service.js'`
   inside `src/features/foo/`, when the import is reviewed, then the change is rejected and the
   shared logic is promoted to `domains/`, `shared/`, `integrations/`, or `providers/`.
 - **AC-004** Given a file named `Foo.Service.ts` or `foo-service.ts`, when `bun run lint` runs, then
   `unicorn/filename-case` reports an error.
 - **AC-005** Given a relative import `../../features/...` crossing a top-level boundary, when
-  reviewed, then the change is rejected in favour of the `#/` alias.
+  reviewed, then the change is rejected in favour of the `@/` alias.
 
 ## 6. Test Automation Strategy
 
 - Tests live exclusively under `tests/` and mirror the `src/` tree one-for-one. There are no
   `unit/`, `integration/`, or other layer folders.
 - Shared test infrastructure (`preload.ts`, `setup.ts`, `utils.ts`, `mocks/`, `resources/`) lives at
-  the `tests/` root. Test helpers are imported via the `#tests/*` alias, not relative paths.
+  the `tests/` root. Test helpers are imported via the `@tests/*` alias, not relative paths.
 - The runner is Bun's native `bun test` (config in `bunfig.toml`) via `bun run test` (one-shot),
   `bun run test:watch` (watch mode), and `bun run test:coverage` (coverage + global gate).
 - Linting (`bun run lint`) and type-checking (`bun run check`) MUST pass on every change. Filename casing,
@@ -146,7 +146,7 @@ between modules rather than any single module.
 
 ### Technology Platform Dependencies
 
-- **PLT-001** Bun runtime and package manager with native ESM and subpath imports (`#/*` -> `./src/*`).
+- **PLT-001** Bun runtime and package manager with native ESM and subpath imports (`@/*` -> `./src/*`).
 - **PLT-002** oxlint and oxfmt for lint and format, invoked directly via `bun run lint` / `bun run fmt`; tests
   run on Bun's native `bun test`. Bun runs the app and manages dependencies, and Nix packaging uses bun2nix.
 - **PLT-003** TypeScript with strict mode; Zod for runtime validation at every external boundary.
@@ -183,7 +183,7 @@ Forbidden cross-feature import:
 
 ```ts
 // src/features/transcoding/services/transcoding.service.ts
-import { syncLanguages } from '#/features/language_sync/services/language_sync.service.js' // CON-001 violation
+import { syncLanguages } from '@/features/language_sync/services/language_sync.service.js' // CON-001 violation
 ```
 
 Allowed promotion path: extract the shared helper to `src/domains/media/services/media.service.ts`
@@ -195,7 +195,7 @@ import from there in both features.
 - `find src -maxdepth 1 -type d` returns only the eight directories listed in REQ-001.
 - `bun run lint` passes (`unicorn/filename-case`, import boundary rules, no unused exports).
 - `bun run check` passes (format + type-check).
-- `grep -RInE "from '#/features/[^']+'" src/features/<a>/` returns no hits referencing a sibling
+- `grep -RInE "from '@/features/[^']+'" src/features/<a>/` returns no hits referencing a sibling
   feature `<b>`.
 - `grep -RInE "from '\\.\\./\\.\\./" src` returns no hits crossing a top-level boundary.
 - `grep -RInE "^export \\* from" src/features/` returns no hits (no barrels).
