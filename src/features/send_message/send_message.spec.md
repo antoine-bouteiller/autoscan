@@ -63,9 +63,7 @@ Response envelope (validation failure, 400):
   "error": {
     "code": "BAD_REQUEST",
     "message": "invalid request",
-    "details": {
-      /* z.treeifyError */
-    }
+    "details": {/* z.treeifyError */}
   },
   "success": false,
   "meta": { "timestamp": "<ISO-8601>" }
