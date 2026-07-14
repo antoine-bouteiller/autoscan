@@ -8,7 +8,6 @@
     "#tests/*": "./tests/*.js"
   },
   "scripts": {
-    "check": "oxfmt -c oxfmt.config.ts --check && oxlint -c oxlint.config.ts --type-aware --type-check",
     "fmt": "oxfmt -c oxfmt.config.ts",
     "lint": "oxlint -c oxlint.config.ts --type-aware --type-check --fix --fix-suggestions",
     "dev": "bun --watch src/index.ts",

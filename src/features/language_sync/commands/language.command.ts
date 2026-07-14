@@ -5,7 +5,6 @@ import {
   selectMedia,
   selectMediaType,
 } from '#/features/language_sync/services/language.service'
-import { type MediaType } from '#/integrations/plex/plex.service'
 import { type ITelegramClient } from '#/integrations/telegram/telegram.service'
 import { type TelegramCallbackQuery, type TelegramMessageIn } from '#/integrations/telegram/telegram.validator'
 import { type ConversationState } from '#/providers/telegram/types'
@@ -33,7 +32,7 @@ const handleSetLanguageCallback = async (
     if (data !== 'movie' && data !== 'show') {
       return state
     }
-    return selectMediaType(client, chatId, { mediaType: data as MediaType, state })
+    return selectMediaType(client, chatId, { mediaType: data, state })
   }
 
   if (state.step === 'awaiting_media_selection') {
