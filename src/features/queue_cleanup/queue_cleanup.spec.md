@@ -37,8 +37,11 @@ jobs-only feature: no HTTP routes, no Telegram commands.
   strikes reach `STRIKE_COUNT = 5` (i.e. ~50 minutes).
 - **REQ-004** Removal calls `DELETE queue/{id}?blocklist=true&removeFromClient=true` on both Radarr and Sonarr.
 - **REQ-005** Process Radarr and Sonarr concurrently via `Promise.all`.
-- **REQ-006** After each pass, drop strike counters for items no longer present in the queue.
-- **CON-001** Strike state is held in an in-memory `Map<number, number>`; a process restart resets all counters.
+- **REQ-006** After each pass, drop strike counters for items no longer present in **that arr's** queue.
+- **REQ-007** Strike counters are scoped per arr. Queue ids are only unique within one arr, so Radarr and Sonarr
+  must never read, increment, or evict each other's counters.
+- **CON-001** Strike state is held in an in-memory `Map<string, Map<number, number>>` keyed by service name;
+  a process restart resets all counters.
 - **CON-002** Items missing `title` or `status` are skipped with a warning log; they are never removed.
 - **CON-003** `getQueue` failures resolve to `undefined`; that arr is skipped for the run, the other still proceeds.
 - **GUD-001** Log every strike increment, every removal, and every skipped malformed item with the `Cleanup` tag
@@ -68,6 +71,10 @@ jobs-only feature: no HTTP routes, no Telegram commands.
   runs, **When** the fifth run completes, **Then** the item is removed and its strike entry is deleted.
 - **AC-003 — Given** an item that disappears from the queue before reaching 5 strikes, **When** the next run
   executes, **Then** its strike counter is purged from memory.
+- **AC-003b — Given** a stalled Sonarr item and an empty Radarr queue, **When** five runs complete, **Then** the
+  Sonarr item is removed — the Radarr pass must not evict Sonarr's counters.
+- **AC-003c — Given** a stalled Sonarr item and a stalled Radarr item sharing the same queue id, **When** four runs
+  complete, **Then** neither is removed — the two arrs must not double-count a single counter.
 - **AC-004 — Given** a queue item missing `title` or `status`, **When** the cleanup job runs, **Then** it is logged
   with `warn` and never removed.
 
@@ -75,8 +82,9 @@ jobs-only feature: no HTTP routes, no Telegram commands.
 
 - Unit-test `removeStalledDownloads` against a fake `QueueService` covering: ineligible-files removal,
   dangerous-extension removal, strike accumulation up to threshold (both stalled-warning and no-download-speed
-  paths), strike eviction on disappearance, and malformed-item skip.
-- Reset module state between cases (the `strikeCounts` map is module-scoped).
+  paths), strike eviction on disappearance, cross-arr counter isolation (empty peer queue and colliding queue id),
+  and malformed-item skip.
+- Reset module state between cases (the strike map is module-scoped).
 - Run via `bun run test`.
 
 ## 7. Rationale & Context
@@ -111,8 +119,10 @@ status guard prevents striking healthy `queued`, `paused`, or `completed` items 
 - An item can satisfy both rules (ineligible-files _and_ stalled). The ineligible-files branch wins because it is
   evaluated together with the strike threshold in the same `if`, and the strike map entry is then cleared.
 - If `getQueue` returns `undefined`, the loop iterates over `[]` and no removals or strikes happen for that arr.
-- Strike eviction iterates current `strikeCounts.keys()` after the await — items removed during the pass are
+- Strike eviction iterates that arr's own counter keys after the await — items removed during the pass are
   already deleted from the map and cannot leak.
+- Radarr and Sonarr run concurrently over shared module state. Before per-arr scoping, each pass evicted every key
+  absent from its own queue, so the two arrs wiped each other's strikes every run and no item ever passed 1 strike.
 
 ## 10. Validation Criteria
 

@@ -6,7 +6,21 @@ const STRIKE_COUNT = 5
 
 type QueueItem = QueueResponse['records'][number]
 
-const strikeCounts = new Map<number, number>()
+const strikeCountsByService = new Map<string, Map<number, number>>()
+
+// Queue ids are only unique per arr: sharing one map lets each service's eviction drop the other's strikes.
+const getStrikeCounts = (serviceName: string): Map<number, number> => {
+  const existing = strikeCountsByService.get(serviceName)
+
+  if (existing) {
+    return existing
+  }
+
+  const created = new Map<number, number>()
+  strikeCountsByService.set(serviceName, created)
+
+  return created
+}
 
 const hasUnimportableFiles = (item: QueueItem): boolean =>
   item.statusMessages
@@ -22,6 +36,8 @@ const isStalled = (item: QueueItem): boolean => item.status === 'warning' && ite
 const hasNoDownloadSpeed = (item: QueueItem): boolean => item.status === 'downloading' && item.timeleft === undefined
 
 const processItem = (item: QueueItem, serviceName: string): boolean => {
+  const strikeCounts = getStrikeCounts(serviceName)
+
   if (isStalled(item) || hasNoDownloadSpeed(item)) {
     strikeCounts.set(item.id, (strikeCounts.get(item.id) ?? 0) + 1)
     logger.info(`Item ${item.title} has ${strikeCounts.get(item.id)} strikes`, `Cleanup`, serviceName)
@@ -33,6 +49,7 @@ const processItem = (item: QueueItem, serviceName: string): boolean => {
 const removeStalledDownloads = async (service: QueueService, serviceName: string): Promise<void> => {
   const queue = await service.getQueue()
 
+  const strikeCounts = getStrikeCounts(serviceName)
   const promises = []
   const currentIds = new Set<number>()
 

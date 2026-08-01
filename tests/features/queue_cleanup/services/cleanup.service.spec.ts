@@ -7,12 +7,15 @@ import {
   mockQueueResponseNormal,
   mockQueueResponseWithDangerousFiles,
   mockQueueResponseWithNoEligibleFiles,
+  mockQueueResponseWithPersistentStall,
   mockQueueResponseWithStalledWarning,
 } from '@tests/resources/fixtures/queue.fixtures'
 
 import '../../../utils.ts'
 
 const { cleanupAll } = await import('@/features/queue_cleanup/services/cleanup.service')
+
+const STRIKE_COUNT = 5
 
 describe('CleanupService', () => {
   beforeEach(() => {
@@ -78,6 +81,38 @@ describe('CleanupService', () => {
 
   test('should skip items with missing title or status', async () => {
     await cleanupAll()
+
+    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
+    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+  })
+
+  test('should keep accumulating strikes for one arr while the other queue is empty', async () => {
+    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithPersistentStall)
+    mockRadarrQueue.mockResolvedValue(mockQueueResponseEmpty)
+
+    for (let run = 0; run < STRIKE_COUNT - 1; run++) {
+      await cleanupAll()
+    }
+
+    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
+
+    await cleanupAll()
+
+    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
+    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledWith(99, {
+      blocklist: true,
+      removeFromClient: true,
+    })
+    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+  })
+
+  test('should not let the two arrs share strikes for a colliding queue id', async () => {
+    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
+    mockRadarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
+
+    for (let run = 0; run < STRIKE_COUNT - 1; run++) {
+      await cleanupAll()
+    }
 
     expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
     expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()

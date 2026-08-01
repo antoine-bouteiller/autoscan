@@ -52,6 +52,20 @@ export const mockQueueResponseWithStalledWarning: QueueResponse = {
   totalRecords: 1,
 }
 
+export const mockQueueResponseWithPersistentStall: QueueResponse = {
+  records: [
+    {
+      errorMessage: 'The download is stalled with no connections',
+      id: 99,
+      status: 'warning',
+      statusMessages: [],
+      timeleft: undefined,
+      title: 'Slow.Horses.S03E03.1080p.WEB-DL',
+    },
+  ],
+  totalRecords: 1,
+}
+
 export const mockQueueResponseEmpty: QueueResponse = {
   records: [],
   totalRecords: 0,
