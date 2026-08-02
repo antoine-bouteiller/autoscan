@@ -8,11 +8,11 @@ pre-commit:
     - name: Check Lockfile
       run: bun install --frozen-lockfile --silent
     - name: Check
-      glob: '*.{ts,js,mjs,cjs}'
-      run: bunx oxlint -c oxlint.config.ts --type-aware --type-check --fix --fix-suggestions {staged_files}
+      glob: '*.{ts,js,mjs,cjs},!oxlint.config.ts,!oxfmt.config.ts'
+      run: bunx oxlint --fix --fix-suggestions {staged_files}
       stage_fixed: true
     - name: Format
-      run: bunx oxfmt -c oxfmt.config.ts {staged_files}
+      run: bunx oxfmt {staged_files}
       stage_fixed: true
     - name: Update bun.nix
       glob: 'bun.lock'

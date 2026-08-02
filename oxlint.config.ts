@@ -12,6 +12,10 @@ export default defineConfig({
     commonjs: true,
     node: true,
   },
+  options: {
+    typeAware: true,
+    typeCheck: true,
+  },
   ignorePatterns: ['oxlint.config.ts', 'oxfmt.config.ts'],
   plugins: ['typescript', 'unicorn', 'import', 'node'],
   rules: {

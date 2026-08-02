@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "fmt": "oxfmt -c oxfmt.config.ts",
-    "lint": "oxlint -c oxlint.config.ts --type-aware --type-check --fix --fix-suggestions",
+    "fmt": "oxfmt",
+    "lint": "oxlint --fix --fix-suggestions",
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "db:generate": "drizzle-kit generate",
