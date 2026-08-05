@@ -1,50 +1,39 @@
-import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
-import { sendMessageMock } from '@tests/mocks/telegram.mock'
-import { MockTelegramClient } from '@tests/utils'
+import { runTest } from '@tests/effect'
+import { MockPlexClient } from '@tests/mocks/plex.mock'
+import { MockTelegramClient, sendMessageMock } from '@tests/utils'
+import { Effect } from 'effect'
 
-import { container, TOKENS } from '@/core/container'
 import { transcodeCommand } from '@/features/transcoding/commands/transcode.command'
-import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
 
-const makeMessage = (chatId: number): TelegramMessageIn => ({
-  chat: { id: chatId },
-  message_id: 1,
-})
+class SlowPlexClient extends MockPlexClient {
+  override getSections() {
+    return Effect.never
+  }
+}
+
+const client = new MockTelegramClient()
+const message = { chat: { id: 1 }, message_id: 1, text: '/transcode' }
 
 describe('transcodeCommand', () => {
-  const client = new MockTelegramClient()
-  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
-
   beforeEach(() => {
-    jest.clearAllMocks()
+    sendMessageMock.mockClear().mockResolvedValue(100)
   })
 
-  test('should send "starting" message when not already running', async () => {
-    spyOn(plexClient, 'getSections').mockResolvedValue([])
-
-    const state = await transcodeCommand(client, makeMessage(42))
-
-    expect(state).toEqual({ step: 'idle' })
-    expect(sendMessageMock).toHaveBeenCalledWith(42, 'Starting transcode process...')
+  test('starts a scan', async () => {
+    expect(await runTest(transcodeCommand(client, message), { plex: new SlowPlexClient() })).toEqual({ step: 'idle' })
+    expect(sendMessageMock).toHaveBeenCalledWith(1, 'Starting transcode process...', undefined)
   })
 
-  test('should tell user process already running when invoked while in progress', async () => {
-    let resolveSections: ((value: never[]) => void) | undefined
-    spyOn(plexClient, 'getSections').mockReturnValue(
-      new Promise((resolve) => {
-        resolveSections = resolve
-      })
+  test('rejects a duplicate scan', async () => {
+    await runTest(
+      Effect.gen(function* () {
+        yield* transcodeCommand(client, message)
+        yield* transcodeCommand(client, message)
+      }),
+      { plex: new SlowPlexClient() }
     )
-
-    await transcodeCommand(client, makeMessage(42))
-    sendMessageMock.mockClear()
-
-    const state = await transcodeCommand(client, makeMessage(42))
-
-    expect(state).toEqual({ step: 'idle' })
-    expect(sendMessageMock).toHaveBeenCalledWith(42, 'Transcode process is already running.')
-
-    resolveSections?.([])
+    expect(sendMessageMock).toHaveBeenLastCalledWith(1, 'Transcode process is already running.', undefined)
   })
 })

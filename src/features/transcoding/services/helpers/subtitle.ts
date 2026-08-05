@@ -107,7 +107,7 @@ const findMatchingStreams = (
   return results
 }
 
-export const processSubtitleStreams = async (subtitleStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
+export const processSubtitleStreams = (subtitleStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
   if (subtitleStreams.length === 0) {
     return []
   }

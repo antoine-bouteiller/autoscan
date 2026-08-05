@@ -3,11 +3,11 @@ import { copyFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { makeTestDir, videosPath } from '@tests/utils'
+import { Effect } from 'effect'
 
-import { container, TOKENS } from '@/core/container'
 import { processAudioStreams } from '@/features/transcoding/services/helpers/audio'
+import { FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
-import { isOk } from '@/shared/utils/error'
 
 interface TestCase {
   expectedCommand: string[]
@@ -56,21 +56,13 @@ describe('Clean audio', () => {
       try {
         copyFileSync(join(videosPath, file), join(testDir, file))
 
-        const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-        const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
-        expect(isOk(probeResult)).toBe(true)
-        if (!isOk(probeResult)) {
-          return
-        }
-
+        const probeResult = await Effect.runPromise(new FfmpegClient().ffprobe(join(testDir, file)))
         const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
         const result = processAudioStreams(audioStreams, language, 'test')
-        expect(isOk(result)).toBe(true)
-        if (!isOk(result)) {
-          return
+        expect(result).not.toBeInstanceOf(Error)
+        if (!(result instanceof Error)) {
+          expect(result.command).toEqual(expectedCommand)
         }
-
-        expect(result.command).toEqual(expectedCommand)
       } finally {
         rmSync(testDir, { recursive: true })
       }

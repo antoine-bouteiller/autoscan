@@ -1,8 +1,11 @@
+import { type Effect } from 'effect'
+
 import { logger } from '@/config/logger'
+import { type AppRequirements } from '@/core/runtime.service'
 import { logError } from '@/shared/utils/error'
 
 interface JobConfig {
-  handler: () => Promise<void> | void
+  handler: Effect.Effect<void, unknown, AppRequirements>
   name: string
   pattern: string
 }
@@ -11,36 +14,45 @@ interface ScheduledJob {
   stop: () => void
 }
 
+interface SchedulerProviderOptions {
+  cron?: (pattern: string, handler: () => Promise<void>) => ScheduledJob
+  runPromise: <Success, Error>(effect: Effect.Effect<Success, Error, AppRequirements>) => Promise<Success>
+}
+
 export class SchedulerProvider {
+  private accepting = true
+  private readonly cron: NonNullable<SchedulerProviderOptions['cron']>
   private readonly jobs = new Map<string, ScheduledJob>()
+  private readonly runPromise: SchedulerProviderOptions['runPromise']
+
+  constructor(options: SchedulerProviderOptions) {
+    this.cron = options.cron ?? ((pattern, handler) => Bun.cron(pattern, handler))
+    this.runPromise = options.runPromise
+  }
 
   register(config: JobConfig): void {
-    const { handler, name, pattern } = config
-
-    if (this.jobs.has(name)) {
-      logger.warn(`job "${name}" already exists, skipping...`, 'Scheduler')
+    if (!this.accepting) {
+      logger.warn(`scheduler is stopped, skipping job "${config.name}"`, 'Scheduler')
       return
     }
-
-    // `Bun.cron` is only available under the Bun runtime. Tests run on Node via
-    // Vitest, where scheduled jobs must not fire — register a no-op there.
-    if (typeof Bun === 'undefined') {
-      this.jobs.set(name, { stop: () => undefined })
+    if (this.jobs.has(config.name)) {
+      logger.warn(`job "${config.name}" already exists, skipping...`, 'Scheduler')
       return
     }
 
     try {
-      // In-process schedule (Bun >= 1.3.12) sharing app state, with Bun's no-overlap guarantee; errors are caught so a failing run logs and reschedules.
-      const job = Bun.cron(pattern, async () => {
+      const job = this.cron(config.pattern, async () => {
+        if (!this.accepting) {
+          return
+        }
         try {
-          await handler()
+          await this.runPromise(config.handler)
         } catch (error) {
           logError(error, 'Scheduler')
         }
       })
-
-      this.jobs.set(name, job)
-      logger.info(`Registered cron job: ${name} (${pattern})`, 'Scheduler')
+      this.jobs.set(config.name, job)
+      logger.info(`Registered cron job: ${config.name} (${config.pattern})`, 'Scheduler')
     } catch (error) {
       logError(error, 'Scheduler')
     }
@@ -53,8 +65,13 @@ export class SchedulerProvider {
   }
 
   stopAll(): void {
-    for (const [, job] of this.jobs) {
-      job.stop()
+    this.accepting = false
+    for (const job of this.jobs.values()) {
+      try {
+        job.stop()
+      } catch (error) {
+        logError(error, 'Scheduler')
+      }
     }
     logger.info('All cron jobs stopped', 'Scheduler')
   }

@@ -27,7 +27,7 @@ to the operator.
 
 - **REQ-001** Register exactly one route: `POST /send_message` via `postRoute` in `feature.ts`.
 - **REQ-002** Validate the request body with `sendMessageValidator` (Zod) before invoking the handler.
-- **REQ-003** Resolve `TOKENS.TELEGRAM_CLIENT` from the container and call `sendMessage(env.TELEGRAM_CHAT_ID, body.text)`.
+- **REQ-003** Yield the Telegram Effect service and call `sendMessage(env.TELEGRAM_CHAT_ID, body.text)`.
 - **REQ-004** Return `success(reply, { message: 'ok' })` (HTTP 200) on completion.
 - **CON-001** The destination chat id is fixed: it MUST come from `env.TELEGRAM_CHAT_ID`, never from the request body.
 - **CON-002** The endpoint is unauthenticated; deployment MUST keep it on a private network.
@@ -78,21 +78,20 @@ Status codes: `200` on success, `400` on validation failure, `404` if route not 
   with `(env.TELEGRAM_CHAT_ID, "hello")` and the response is `200 { data: { message: 'ok' }, success: true }`.
 - **AC-002** Given a body missing `text` or with non-string `text`, When the handler runs, Then the response is
   `400 { error.code: 'BAD_REQUEST', success: false }` and the Telegram client is NOT called.
-- **AC-003** Given the Telegram API returns an error, When `sendMessage` swallows it via `logError` and returns
-  `undefined`, Then the route still resolves with `200 { data: { message: 'ok' } }` (delivery is fire-and-forget).
+- **AC-003** Given the Telegram API returns an unmapped typed failure, the HTTP provider logs once and returns the stable 500 `INTERNAL_ERROR` response.
 - **AC-004** Given a non-JSON request body, When the HTTP server parses it, Then `400 { error.code: 'BAD_REQUEST' }` is
   returned by the provider before the handler runs.
 
 ## 6. Test Automation Strategy
 
-- Unit-test the webhook by mocking `TOKENS.TELEGRAM_CLIENT` in the container and asserting `sendMessage` arguments.
+- Unit-test the webhook with a local Telegram layer and assert `sendMessage` arguments.
 - Integration-test via `HttpProvider.inject({ method: 'POST', url: '/send_message', payload })` to cover the full
   validator + handler path and assert envelope shape and status code.
 - Cover both AC-001 and AC-002 explicitly; AC-003 via a stub client that resolves `undefined`.
 
 ## 7. Rationale & Context
 
-- **Route-only feature**: this is purely a synchronous fan-in webhook; it owns no schedule, command, or conversation, so
+- **Route-only feature**: this is an Effect-based fan-in webhook; it owns no schedule, command, or conversation, so
   registering only `routes` keeps the surface minimal.
 - **Validator co-location**: the request body is defined by this feature, not by an upstream integration, so the Zod
   schema lives under `validators/` per the project's "validators live with the producer" rule.
@@ -107,7 +106,7 @@ Status codes: `200` on success, `400` on validation failure, `404` if route not 
 
 ### Internal Dependencies
 
-- **DEP-001** `@/integrations/telegram` — `TelegramClient.sendMessage(chatId, text)` resolved via `TOKENS.TELEGRAM_CLIENT`.
+- **DEP-001** `@/integrations/telegram` and `@/core/runtime.service` — typed Telegram client service.
 - **DEP-002** `@/providers/http` — `HttpProvider.post` registers the route; `success`/`badRequest` build the envelope.
 - **DEP-003** `@/core/feature` — `defineFeature` and `postRoute` helpers.
 - **DEP-004** `@/config/env` — `TELEGRAM_CHAT_ID` (coerced number) and `TELEGRAM_TOKEN` (consumed by the client).

@@ -1,6 +1,13 @@
-import { createTaggedError } from '@/shared/utils/error'
+import { Data } from 'effect'
 
-export class NetworkError extends createTaggedError({
-  message: '($serviceName) Network Error: $originalMessage',
-  name: 'NetworkError',
-}) {}
+interface NetworkErrorFields {
+  readonly cause?: unknown
+  readonly originalMessage: string
+  readonly serviceName: string
+}
+
+export class NetworkError extends Data.TaggedError('NetworkError')<NetworkErrorFields & { readonly message: string }> {
+  constructor(fields: NetworkErrorFields) {
+    super({ ...fields, message: `(${fields.serviceName}) Network Error: ${fields.originalMessage}` })
+  }
+}

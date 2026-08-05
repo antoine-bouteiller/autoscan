@@ -1,85 +1,89 @@
-import { container, TOKENS } from '@/core/container'
+import { Effect, Result } from 'effect'
+
+import { Database, Trakt } from '@/core/runtime.service'
 import { upsertTokens } from '@/features/trakt_sync/repositories/trakt.repository'
+import { TraktAuthenticationTasks } from '@/features/trakt_sync/services/authentication.service'
 import { getValidAccessToken, syncPlexToTrakt } from '@/features/trakt_sync/services/plextraktsync.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
-import { type ConversationState } from '@/providers/telegram/types'
 import { HttpError } from '@/shared/errors/http'
-import { isError, isOk, logError } from '@/shared/utils/error'
+import { logError } from '@/shared/utils/error'
 
-export const traktAuthCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
-  const traktClient = container.resolve(TOKENS.TRAKT_CLIENT)
-
-  const token = await getValidAccessToken()
-
-  if (isOk(token)) {
-    await client.sendMessage(message.chat.id, 'Already authentified.')
-    return { step: 'idle' }
-  }
-
-  const result = await traktClient.getDeviceCode()
-
-  if (isError(result)) {
-    logError(result, 'Trakt Auth')
-    await client.sendMessage(message.chat.id, 'Failed to initiate Trakt authentication.')
-    return { step: 'idle' }
-  }
-
-  const authMessage = [
-    'To authorize this application, please visit:',
-    result.verification_url,
-    '',
-    `And enter the following code: *${result.user_code}*`,
-  ].join('\n')
-
-  await client.sendMessage(message.chat.id, authMessage, { parseMode: 'Markdown' })
-
-  void (async () => {
-    const start = Date.now()
-    const expiresAt = start + result.expires_in * 1000
-    const interval = result.interval * 1000
-
-    while (Date.now() < expiresAt) {
-      await new Promise((resolve) => setTimeout(resolve, interval))
-
-      const tokenResult = await traktClient.pollDeviceToken(result.device_code)
-
-      if (isError(tokenResult)) {
-        if (tokenResult instanceof HttpError) {
-          if (tokenResult.status === 400) {
-            continue
-          }
-        }
-        break
-      }
-
-      const tokenExpiresAt = Math.floor(Date.now() / 1000) + tokenResult.expires_in
-      await upsertTokens(tokenResult.access_token, tokenResult.refresh_token, tokenExpiresAt)
-
-      await client.sendMessage(message.chat.id, 'Trakt authentication successful!')
-      return
+export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessageIn) =>
+  Effect.gen(function* () {
+    const chatId = message.chat.id
+    const validToken = yield* Effect.result(getValidAccessToken)
+    if (Result.isSuccess(validToken)) {
+      yield* client.sendMessage(chatId, 'Already authentified.')
+      return { step: 'idle' } as const
     }
 
-    await client.sendMessage(message.chat.id, 'Trakt authentication failed or timed out.')
-  })()
+    const tasks = yield* TraktAuthenticationTasks
+    if (yield* tasks.isRunning(chatId)) {
+      yield* client.sendMessage(chatId, 'Trakt authentication is already in progress.')
+      return { step: 'idle' } as const
+    }
 
-  return { step: 'idle' }
-}
+    const traktClient = yield* Trakt
+    const deviceCode = yield* Effect.result(traktClient.getDeviceCode())
+    if (Result.isFailure(deviceCode)) {
+      yield* Effect.sync(() => logError(deviceCode.failure, 'Trakt Auth'))
+      yield* client.sendMessage(chatId, 'Failed to initiate Trakt authentication.')
+      return { step: 'idle' } as const
+    }
 
-export const syncTraktCommand = async (client: ITelegramClient, message: TelegramMessageIn): Promise<ConversationState> => {
-  await client.sendMessage(message.chat.id, 'Starting Trakt sync...')
+    const result = deviceCode.success
+    const authMessage = [
+      'To authorize this application, please visit:',
+      result.verification_url,
+      '',
+      `And enter the following code: *${result.user_code}*`,
+    ].join('\n')
+    yield* client.sendMessage(chatId, authMessage, { parseMode: 'Markdown' })
 
-  const result = await syncPlexToTrakt()
+    const database = yield* Database
+    const polling = Effect.gen(function* () {
+      while (true) {
+        yield* Effect.sleep(result.interval * 1000)
+        const token = yield* traktClient
+          .pollDeviceToken(result.device_code)
+          .pipe(Effect.catch((error) => (error instanceof HttpError && error.status === 400 ? Effect.succeed(undefined) : Effect.fail(error))))
+        if (token === undefined) {
+          continue
+        }
+        const expiresAt = Math.floor((yield* Effect.clockWith((clock) => clock.currentTimeMillis)) / 1000) + token.expires_in
+        yield* upsertTokens(token.access_token, token.refresh_token, expiresAt)
+        yield* client.sendMessage(chatId, 'Trakt authentication successful!')
+        return
+      }
+    }).pipe(
+      Effect.provideService(Database, database),
+      Effect.timeoutOrElse({
+        duration: result.expires_in * 1000,
+        orElse: () => client.sendMessage(chatId, 'Trakt authentication failed or timed out.').pipe(Effect.asVoid),
+      }),
+      Effect.catch((error) =>
+        Effect.sync(() => logError(error, 'Trakt Auth')).pipe(
+          Effect.flatMap(() => client.sendMessage(chatId, 'Trakt authentication failed or timed out.')),
+          Effect.asVoid
+        )
+      )
+    )
 
-  if (isError(result)) {
-    logError(result, 'Trakt Sync Command')
-    await client.sendMessage(message.chat.id, `Trakt sync failed: ${result.message}`)
-    return { step: 'idle' }
-  }
+    yield* tasks.start(chatId, polling)
+    return { step: 'idle' } as const
+  })
 
-  const summary = ['*Trakt Sync Summary*', `Movies added: ${result.movies}`, `Episodes added: ${result.episodes}`].join('\n')
-
-  await client.sendMessage(message.chat.id, summary, { parseMode: 'Markdown' })
-
-  return { step: 'idle' }
-}
+export const syncTraktCommand = (client: ITelegramClient, message: TelegramMessageIn) =>
+  Effect.gen(function* () {
+    yield* client.sendMessage(message.chat.id, 'Starting Trakt sync...')
+    const result = yield* Effect.result(syncPlexToTrakt)
+    if (Result.isFailure(result)) {
+      yield* Effect.sync(() => logError(result.failure, 'Trakt Sync Command'))
+      yield* client.sendMessage(message.chat.id, `Trakt sync failed: ${result.failure.message}`)
+      return { step: 'idle' } as const
+    }
+    const summary = ['*Trakt Sync Summary*', `Movies added: ${result.success.movies}`, `Episodes added: ${result.success.episodes}`].join('\n')
+    yield* client.sendMessage(message.chat.id, summary, { parseMode: 'Markdown' })
+    return { step: 'idle' } as const
+  })

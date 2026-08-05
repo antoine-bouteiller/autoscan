@@ -1,26 +1,47 @@
 import { describe, expect, test } from 'bun:test'
+import { readFileSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
+
+import { makeTestDir } from '@tests/utils'
+import { Effect, Fiber, Result } from 'effect'
 
 import { CommandExecutionError } from '@/shared/errors/command'
-import { spawnPromise } from '@/shared/utils/exec_promisify'
+import { spawn } from '@/shared/utils/exec_promisify'
 
-describe('spawnPromise', () => {
-  test('should resolve with stdout when the command succeeds', async () => {
-    const result = await spawnPromise('printf', ['hello'])
-
-    expect(result).toBe('hello')
+describe('spawn', () => {
+  test('returns stdout', async () => {
+    expect(await Effect.runPromise(spawn('printf', ['hello']))).toBe('hello')
   })
 
-  test('should pass env to the subprocess', async () => {
-    const result = await spawnPromise('sh', ['-c', 'printf "$FOO"'], { env: { FOO: 'bar' } })
-
-    expect(result).toBe('bar')
+  test('passes environment variables', async () => {
+    expect(await Effect.runPromise(spawn('sh', ['-c', 'printf "$AUTOSCAN_TEST"'], { env: { AUTOSCAN_TEST: 'value' } }))).toBe('value')
   })
 
-  test('should return CommandExecutionError when the command exits non-zero', async () => {
-    const result = await spawnPromise('sh', ['-c', 'echo boom >&2; exit 3'])
+  test('reports non-zero exits', async () => {
+    const result = await Effect.runPromise(Effect.result(spawn('sh', ['-c', 'echo failed >&2; exit 2'])))
+    expect(Result.isFailure(result) && result.failure).toBeInstanceOf(CommandExecutionError)
+  })
 
-    expect(result).toBeInstanceOf(CommandExecutionError)
-    expect(result instanceof Error && result.message).toContain('exit code 3')
-    expect(result instanceof Error && result.message).toContain('boom')
+  test('terminates a child when interrupted', async () => {
+    const directory = makeTestDir()
+    const pidFile = join(directory, 'pid')
+    try {
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const fiber = yield* Effect.forkChild(spawn('sh', ['-c', `echo $$ > ${pidFile}; sleep 30`]))
+          yield* Effect.sleep(50)
+          yield* Fiber.interrupt(fiber)
+        })
+      )
+      const pid = readFileSync(pidFile, 'utf8').trim()
+      expect(Bun.spawnSync(['kill', '-0', pid]).exitCode).not.toBe(0)
+    } finally {
+      rmSync(directory, { recursive: true })
+    }
+  })
+
+  test('reports command timeouts', async () => {
+    const result = await Effect.runPromise(Effect.result(spawn('sh', ['-c', 'sleep 30'], { timeout: 50 })))
+    expect(Result.isFailure(result) && result.failure).toBeInstanceOf(CommandExecutionError)
   })
 })

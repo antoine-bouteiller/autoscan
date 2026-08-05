@@ -1,6 +1,8 @@
+import { Effect } from 'effect'
 import { z } from 'zod'
 
 import { logger } from '@/config/logger'
+import { type AppRequirements } from '@/core/runtime.service'
 import { badRequest } from '@/providers/http/response'
 import { type AppReply, type AppRequest, type RouteHandler } from '@/providers/http/types'
 import { logError } from '@/shared/utils/error'
@@ -8,6 +10,7 @@ import { logError } from '@/shared/utils/error'
 interface HttpProviderOptions {
   hostname?: string
   port?: number
+  runPromise: <Success, Error>(effect: Effect.Effect<Success, Error, AppRequirements>) => Promise<Success>
 }
 
 interface InjectOptions {
@@ -32,14 +35,13 @@ const jsonResponse = (data: unknown, statusCode: number): Response => Response.j
 
 export class HttpProvider {
   private server?: ReturnType<typeof Bun.serve>
-  private readonly options: Required<HttpProviderOptions>
-  private readonly routes: Record<string, Record<string, (req: Request) => Promise<Response>>> = {}
+  private readonly options: Required<Omit<HttpProviderOptions, 'runPromise'>>
+  private readonly routes: Record<string, Record<string, (request: Request) => Promise<Response>>> = {}
+  private readonly runPromise: HttpProviderOptions['runPromise']
 
   constructor(options: HttpProviderOptions) {
-    this.options = {
-      hostname: options.hostname ?? '0.0.0.0',
-      port: options.port ?? 3030,
-    }
+    this.options = { hostname: options.hostname ?? '0.0.0.0', port: options.port ?? 3030 }
+    this.runPromise = options.runPromise
   }
 
   get(path: string, handler: RouteHandler): void {
@@ -47,29 +49,23 @@ export class HttpProvider {
   }
 
   post<TSchema extends z.ZodType>(path: string, validator: TSchema, handler: RouteHandler<z.output<TSchema>>): void {
-    this.register('POST', path, async (request: AppRequest, reply: AppReply) => {
+    this.register('POST', path, (request: AppRequest, reply: AppReply) => {
       const result = validator.safeParse(request.body)
-
       if (!result.success) {
-        logError(result.error.issues, path)
-        badRequest(reply, 'invalid request', z.treeifyError(result.error))
-        return
+        return Effect.sync(() => {
+          logError(result.error.issues, path)
+          badRequest(reply, 'invalid request', z.treeifyError(result.error))
+        })
       }
-
-      await handler({ body: result.data }, reply)
+      return handler({ body: result.data }, reply)
     })
   }
 
   async inject(options: InjectOptions): Promise<InjectResponse> {
     const handler = this.routes[options.url]?.[options.method]
-
-    if (!handler) {
-      return {
-        json: () => ({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }),
-        statusCode: 404,
-      }
+    if (handler === undefined) {
+      return { json: () => ({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }), statusCode: 404 }
     }
-
     const response = await handler(
       new Request(`http://localhost${options.url}`, {
         body: options.payload === undefined ? undefined : JSON.stringify(options.payload),
@@ -78,23 +74,20 @@ export class HttpProvider {
       })
     )
     const body: InjectResponseBody = JSON.parse(await response.text())
-
     return { json: () => body, statusCode: response.status }
   }
 
   private register(method: string, path: string, handler: RouteHandler): void {
     this.routes[path] ??= {}
-    this.routes[path][method] = (req) => this.execute(handler, req)
+    this.routes[path][method] = (request) => this.execute(handler, request)
   }
 
-  private async execute(handler: RouteHandler, req: Request): Promise<Response> {
-    const { method } = req
-    const request: AppRequest = { body: undefined }
-
-    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+  private async execute(handler: RouteHandler, request: Request): Promise<Response> {
+    const appRequest: AppRequest = { body: undefined }
+    if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
       try {
-        const raw = await req.text()
-        request.body = raw ? JSON.parse(raw) : undefined
+        const raw = await request.text()
+        appRequest.body = raw ? JSON.parse(raw) : undefined
       } catch {
         return jsonResponse({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON' }, success: false }, 400)
       }
@@ -102,7 +95,6 @@ export class HttpProvider {
 
     let statusCode = 200
     let payload: unknown
-
     const reply: AppReply = {
       send(data: unknown) {
         payload = data
@@ -114,7 +106,7 @@ export class HttpProvider {
     }
 
     try {
-      await handler(request, reply)
+      await this.runPromise(handler(appRequest, reply))
     } catch (error) {
       logError(error)
       return jsonResponse(
@@ -126,25 +118,21 @@ export class HttpProvider {
         500
       )
     }
-
     return jsonResponse(payload, statusCode)
   }
 
-  async start(): Promise<void> {
+  start(): void {
     this.server = Bun.serve({
       fetch: () => jsonResponse({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }, 404),
       hostname: this.options.hostname,
       port: this.options.port,
       routes: this.routes,
     })
-
     logger.info(`Server running at http://${this.options.hostname}:${this.options.port}/`, 'HTTP')
-
-    await Promise.resolve()
   }
 
-  async stop(): Promise<void> {
-    await this.server?.stop()
+  async stop(force = false): Promise<void> {
+    await this.server?.stop(force)
     logger.info('Server stopped', 'HTTP')
   }
 }

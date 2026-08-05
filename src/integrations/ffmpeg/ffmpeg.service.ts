@@ -1,57 +1,76 @@
+import { Effect } from 'effect'
 import { z } from 'zod'
 
 import env from '@/config/env'
-import { FileNotFoundError } from '@/features/transcoding/errors'
-import { ffprobeOutputValidator } from '@/integrations/ffmpeg/ffmpeg.validator'
+import { type FileAccessError, FileNotFoundError } from '@/features/transcoding/errors'
+import { ffprobeOutputValidator, type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
+import { type CommandExecutionError } from '@/shared/errors/command'
 import { ValidationError } from '@/shared/errors/validation'
-import { isError } from '@/shared/utils/error'
-import { spawnPromise } from '@/shared/utils/exec_promisify'
-import { safeExistsSync, safeMkdirSync } from '@/shared/utils/fs'
+import { spawn } from '@/shared/utils/exec_promisify'
+import { exists, mkdir } from '@/shared/utils/fs'
 
-export class FfmpegClient {
+type FfmpegError = CommandExecutionError | FileAccessError | FileNotFoundError | ValidationError
+
+export interface IFfmpegClient {
+  readonly execute: (...command: string[]) => Effect.Effect<string, CommandExecutionError>
+  readonly executeFfmpeg: (params: { command: string[]; folderName: string; input: string; output: string }) => Effect.Effect<string, FfmpegError>
+  readonly ffprobe: (input: string) => Effect.Effect<{ duration: number; streams: FFprobeStream[] }, FfmpegError>
+}
+
+export class FfmpegClient implements IFfmpegClient {
   executeFfmpeg(params: { folderName: string; input: string; output: string; command: string[] }) {
-    if (!safeExistsSync(params.input)) {
-      return new FileNotFoundError({ filePath: params.input })
-    }
+    return Effect.gen(function* () {
+      if (!(yield* exists(params.input))) {
+        return yield* new FileNotFoundError({ filePath: params.input })
+      }
 
-    const dir = `${env.TRANSCODE_PATH}/${params.folderName}`
-    const mkdirResult = safeMkdirSync(dir)
-    if (mkdirResult instanceof Error) {
-      return mkdirResult
-    }
-
-    return spawnPromise('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', params.input, ...params.command, `${dir}/${params.output}`])
+      const directory = `${env.TRANSCODE_PATH}/${params.folderName}`
+      yield* mkdir(directory)
+      return yield* spawn('ffmpeg', [
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-y',
+        '-i',
+        params.input,
+        ...params.command,
+        `${directory}/${params.output}`,
+      ])
+    })
   }
 
-  async ffprobe(input: string) {
-    if (!safeExistsSync(input)) {
-      return new FileNotFoundError({ filePath: input })
-    }
+  ffprobe(input: string) {
+    return Effect.gen(function* () {
+      if (!(yield* exists(input))) {
+        return yield* new FileNotFoundError({ filePath: input })
+      }
 
-    const output = await spawnPromise('ffprobe', [
-      '-loglevel',
-      'error',
-      '-show_entries',
-      'stream=index,codec_name,codec_type,channels,sample_rate:stream_tags=language,title:format=duration',
-      '-print_format',
-      'json',
-      input,
-    ])
-
-    if (isError(output)) {
-      return output
-    }
-
-    const parsedOutput = ffprobeOutputValidator.safeParse(JSON.parse(output))
-
-    if (!parsedOutput.success) {
-      return new ValidationError({ details: JSON.stringify(z.treeifyError(parsedOutput.error)) })
-    }
-
-    return { duration: parsedOutput.data.format?.duration, streams: parsedOutput.data.streams }
+      const output = yield* spawn(
+        'ffprobe',
+        [
+          '-loglevel',
+          'error',
+          '-show_entries',
+          'stream=index,codec_name,codec_type,channels,sample_rate:stream_tags=language,title:format=duration',
+          '-print_format',
+          'json',
+          input,
+        ],
+        { timeout: 120_000 }
+      )
+      const json = yield* Effect.try({
+        catch: (cause) => new ValidationError({ cause, details: 'FFprobe returned invalid JSON' }),
+        try: () => JSON.parse(output),
+      })
+      const parsed = ffprobeOutputValidator.safeParse(json)
+      if (!parsed.success) {
+        return yield* new ValidationError({ details: JSON.stringify(z.treeifyError(parsed.error)) })
+      }
+      return { duration: parsed.data.format?.duration ?? 0, streams: parsed.data.streams }
+    })
   }
 
   execute(...command: string[]) {
-    return spawnPromise('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...command])
+    return spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...command])
   }
 }

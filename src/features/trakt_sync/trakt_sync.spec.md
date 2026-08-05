@@ -43,9 +43,8 @@ per-rating-key idempotency persisted in PostgreSQL.
 - **CON-003** Movies are submitted by TMDB id only; shows nest seasons + episodes with `watched_at`.
 - **GUD-001** All Trakt and Plex calls return tagged errors; surface them via `logError` and bubble
   the original error up so the job logs and the command reply both reflect the failure.
-- **PAT-001** Repository functions are module-level async functions over Drizzle, not a class.
-- **PAT-002** OAuth polling runs in a detached `void (async () => { … })()` so the command handler
-  returns `{ step: 'idle' }` immediately and Telegram does not block.
+- **PAT-001** Repository functions are module-level Effects over the Database service, not a class.
+- **PAT-002** OAuth polling runs in one scoped keyed fiber per chat id so the command returns idle immediately without unowned work.
 
 ## 4. Interfaces & Data Contracts
 
@@ -64,16 +63,16 @@ per-rating-key idempotency persisted in PostgreSQL.
 
 ### Service API (`services/plextraktsync.service.ts`)
 
-- `getValidAccessToken(): Promise<string | TraktTokenExpiredError | HttpError | NetworkError | ValidationError>` — returns a usable token, refreshing if needed.
-- `collectWatchedItems(plexClient, syncedKeys)` — iterates Plex sections, returns `{ movies, shows, ratingKeysToMark }`.
-- `syncPlexToTrakt(): Promise<{ movies: number; episodes: number } | Error>` — orchestrates token, collect, push, mark.
+- `getValidAccessToken` is an Effect that returns a usable token and keeps refresh/database failures typed.
+- `collectWatchedItems(plexClient, syncedKeys)` is an Effect that returns `{ movies, shows, ratingKeysToMark }`.
+- `syncPlexToTrakt` composes token lookup, Plex collection, Trakt push, and persistence as one Effect.
 
 ### Repository API (`repositories/trakt.repository.ts`)
 
-- `getToken(): Promise<TraktToken | undefined>`
-- `upsertTokens(accessToken, refreshToken, expiresAt: number)` — single-row upsert.
-- `getSyncedRatingKeys(): Promise<Set<string>>`
-- `markManyAsSynced(ratingKeys: string[])` — single transaction, `onConflictDoNothing`.
+- `getToken` returns an Effect succeeding with `TraktToken | undefined`.
+- `upsertTokens(accessToken, refreshToken, expiresAt)` is a typed database Effect.
+- `getSyncedRatingKeys` returns an Effect succeeding with `Set<string>`.
+- `markManyAsSynced(ratingKeys)` runs one transaction with `onConflictDoNothing`.
 
 ### Database tables
 
@@ -118,8 +117,7 @@ per-rating-key idempotency persisted in PostgreSQL.
 
 - Unit-test `processWatchedItem`, `processMovie`, `processEpisode` against fixture `PlexMedia`
   values (already-synced, no view, missing tmdb, episode without season/index, movie, episode).
-- Mock `IPlexClient` and `ITraktClient` via the container; assert the payload shape passed to
-  `syncWatchedHistory` and the rating keys passed to `markManyAsSynced`.
+- Provide local Plex and Trakt layers; assert the `syncWatchedHistory` payload and persisted rating keys.
 - Cover `getValidAccessToken` token-refresh branch (expired, near-expiry, valid).
 - Test `/trakt` happy path and 400-keep-polling branch with a fake `traktClient`.
 
@@ -129,8 +127,7 @@ per-rating-key idempotency persisted in PostgreSQL.
 - 300s refresh leeway avoids using a token that expires mid-request.
 - Per-`ratingKey` history (rather than per-(tmdbId, episode)) aligns with Plex's identity model and
   prevents re-pushing if a user re-watches an item (Plex bumps `lastViewedAt` but the key is stable).
-- Detached polling in `/trakt` is required because Telegram conversation handlers must return
-  promptly; the user receives async success/failure messages from the same chat id.
+- `/trakt` starts one scoped `FiberMap` task per authorized chat id so handlers return promptly without detached work.
 
 ## 8. Dependencies & External Integrations
 
@@ -149,7 +146,7 @@ per-rating-key idempotency persisted in PostgreSQL.
 - **DEP-003** `@/providers/scheduler` — cron registration via `defineFeature.jobs`.
 - **DEP-004** `@/providers/telegram` — command registration via `defineFeature.commands`.
 - **DEP-005** `@/domains/media/services/metadata.service` (`extractTmdbIdFromPath`).
-- **DEP-006** `@/core/container` for `TRAKT_CLIENT`, `PLEX_CLIENT` resolution.
+- **DEP-006** `@/core/runtime.service` for Trakt, Plex, and Database services.
 
 ## 9. Examples & Edge Cases
 

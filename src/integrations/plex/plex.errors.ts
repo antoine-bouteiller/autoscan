@@ -1,6 +1,12 @@
-import { createTaggedError } from '@/shared/utils/error'
+import { Data } from 'effect'
 
-export class PlexError extends createTaggedError({
-  message: '(Plex) Not metadata found for media: $ratingKey',
-  name: 'PlexError',
-}) {}
+interface PlexErrorFields {
+  readonly cause?: unknown
+  readonly ratingKey: number
+}
+
+export class PlexError extends Data.TaggedError('PlexError')<PlexErrorFields & { readonly message: string }> {
+  constructor(fields: PlexErrorFields) {
+    super({ ...fields, message: `(Plex) Not metadata found for media: ${fields.ratingKey}` })
+  }
+}

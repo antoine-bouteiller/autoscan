@@ -1,12 +1,14 @@
+import { Effect } from 'effect'
+
 import { type MediaType } from '@/integrations/plex/plex.service'
 import { tmdbMovieResponse, tmdbTvResponse, type TmdbMedia, type TmdbMovie, type TmdbTV } from '@/integrations/tmdb/tmdb.validator'
-import { isError, logError } from '@/shared/utils/error'
+import { type HttpClientError } from '@/shared/types/http_client'
 import { httpClient } from '@/shared/utils/http_client'
 
 export interface ITmdbClient {
-  getTmdbMedia: (tmdbId: number, mediaType: MediaType) => Promise<TmdbMedia>
-  getTmdbTvShow: (tmdbId: number) => Promise<TmdbTV | undefined>
-  getTmdbMovie: (tmdbId: number) => Promise<TmdbMovie | undefined>
+  readonly getTmdbMedia: (tmdbId: number, mediaType: MediaType) => Effect.Effect<TmdbMedia, HttpClientError>
+  readonly getTmdbMovie: (tmdbId: number) => Effect.Effect<TmdbMovie, HttpClientError>
+  readonly getTmdbTvShow: (tmdbId: number) => Effect.Effect<TmdbTV, HttpClientError>
 }
 
 interface TmdbClientConfig {
@@ -20,51 +22,22 @@ export class TmdbClient implements ITmdbClient {
   constructor(config: TmdbClientConfig) {
     this.client = httpClient({
       baseUrl: config.apiUrl,
-      headers: {
-        Authorization: `Bearer ${config.apiToken}`,
-      },
+      headers: { Authorization: `Bearer ${config.apiToken}` },
       serviceName: 'TMDB',
     })
   }
 
-  async getTmdbMedia(tmdbId: number, mediaType: MediaType): Promise<TmdbMedia> {
-    if (mediaType === 'movie') {
-      const data = await this.getTmdbMovie(tmdbId)
-
-      return { data, type: 'movie' }
-    }
-
-    const data = await this.getTmdbTvShow(tmdbId)
-
-    return {
-      data,
-      type: 'tv',
-    }
+  getTmdbMedia(tmdbId: number, mediaType: MediaType) {
+    return mediaType === 'movie'
+      ? this.getTmdbMovie(tmdbId).pipe(Effect.map((data) => ({ data, type: 'movie' as const })))
+      : this.getTmdbTvShow(tmdbId).pipe(Effect.map((data) => ({ data, type: 'tv' as const })))
   }
 
-  async getTmdbTvShow(tmdbId: number): Promise<TmdbTV | undefined> {
-    const result = await this.client.get(`tv/${tmdbId}`, {
-      validator: tmdbTvResponse,
-    })
-
-    if (isError(result)) {
-      logError(result)
-      return undefined
-    }
-
-    return result
+  getTmdbTvShow(tmdbId: number) {
+    return this.client.get(`tv/${tmdbId}`, { validator: tmdbTvResponse })
   }
 
-  async getTmdbMovie(tmdbId: number): Promise<TmdbMovie | undefined> {
-    const result = await this.client.get(`movie/${tmdbId}`, {
-      validator: tmdbMovieResponse,
-    })
-
-    if (isError(result)) {
-      logError(result)
-      return undefined
-    }
-
-    return result
+  getTmdbMovie(tmdbId: number) {
+    return this.client.get(`movie/${tmdbId}`, { validator: tmdbMovieResponse })
   }
 }

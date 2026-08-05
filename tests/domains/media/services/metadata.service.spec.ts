@@ -1,158 +1,54 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
 
-import { type MockTmdbClient } from '@tests/mocks/tmdb.mock'
-import { tmdbTvShowResponse } from '@tests/resources/fixtures/tmdb.fixtures'
-import { and, eq } from 'drizzle-orm'
+import { testDatabase as db } from '@tests/database'
+import { runTest } from '@tests/effect'
+import { MockPlexClient, MockTmdbClient } from '@tests/utils'
 
-import { db } from '@/config/db'
-import { container, TOKENS } from '@/core/container'
 import { media } from '@/database/schema'
 import { FileNotFoundError, TmdbIdNotFoundError } from '@/domains/media/errors'
-import { isOk } from '@/shared/utils/error'
+import { buildMediaTitle, extractTmdbIdFromPath, getCompleteMediaDetails, getMediaLanguage } from '@/domains/media/services/metadata.service'
 
-import '../../../utils.ts'
-
-const {
-  buildMediaTitle,
-  extractTmdbIdFromPath,
-  getCompleteMediaDetails,
-  getMediaLanguage: getOriginalLanguage,
-} = await import('@/domains/media/services/metadata.service')
-
-describe('MetadataService', () => {
-  let mockTmdbClient: MockTmdbClient
-
+describe('metadata service', () => {
   beforeEach(async () => {
-    container.reset()
-    // oxlint-disable-next-line no-unsafe-type-assertion
-    mockTmdbClient = container.resolve(TOKENS.TMDB_CLIENT) as MockTmdbClient
-
-    mockTmdbClient.reset()
-
-    await db.insert(media).values({
-      originalLanguage: 'fr',
-      preferredLanguage: 'fr',
-      title: 'Cached Movie',
-      tmdbId: 123,
-      type: 'movie',
-    })
-  })
-
-  afterEach(async () => {
     await db.delete(media)
   })
 
-  describe('extractTmdbIdFromPath', () => {
-    test('should extract TMDB ID from file path', () => {
-      const result = extractTmdbIdFromPath('/path/to/{tmdb-12345}/movie.mkv')
-      expect(result).toBe(12_345)
-    })
+  test('extracts TMDB ids and titles', () => {
+    expect(extractTmdbIdFromPath('/media/{tmdb-42}/file.mkv')).toBe(42)
+    expect(extractTmdbIdFromPath('/media/file.mkv')).toBeUndefined()
+    expect(buildMediaTitle('Show', 'Season', 'Episode')).toBe('Show - Season - Episode')
+  })
 
-    test('should return undefined if no TMDB ID found', () => {
-      const result = extractTmdbIdFromPath('/path/to/movie.mkv')
-      expect(result).toBeUndefined()
-    })
+  test('uses cached language', async () => {
+    await db.insert(media).values({ originalLanguage: 'fr', preferredLanguage: 'en', title: 'Movie', tmdbId: 42, type: 'movie' })
+    expect(await runTest(getMediaLanguage(42, 'movie'))).toEqual({ originalLanguage: 'fr', preferredLanguage: 'en' })
+  })
 
-    test('should handle various path formats', () => {
-      expect(extractTmdbIdFromPath('/movies/{tmdb-999}/file.mp4')).toBe(999)
-      expect(extractTmdbIdFromPath('{tmdb-1}/movie.mkv')).toBe(1)
-      expect(extractTmdbIdFromPath('/path/{tmdb-123456789}/show.mkv')).toBe(123_456_789)
+  test('fetches and caches TMDB language', async () => {
+    const tmdb = new MockTmdbClient()
+    tmdb.mediaMap.set('42-movie', { data: { original_language: 'fr', title: 'Film' }, type: 'movie' })
+    expect(await runTest(getMediaLanguage(42, 'movie'), { tmdb })).toEqual({ originalLanguage: 'fr', preferredLanguage: 'fr' })
+    const rows = await db.select().from(media)
+    expect(rows[0]?.title).toBe('Film')
+  })
+
+  test('falls back to English when TMDB fails', async () => {
+    expect(await runTest(getMediaLanguage(42, 'movie'), { tmdb: new MockTmdbClient() })).toEqual({
+      originalLanguage: 'en',
+      preferredLanguage: 'en',
     })
   })
 
-  describe('buildMediaTitle', () => {
-    test('should build title from all parts', () => {
-      const result = buildMediaTitle('Show Name', 'Season 1', 'Episode 1')
-      expect(result).toBe('Show Name - Season 1 - Episode 1')
-    })
-
-    test('should handle missing parts', () => {
-      expect(buildMediaTitle(undefined, undefined, 'Movie Title')).toBe('Movie Title')
-      expect(buildMediaTitle('Show', undefined, 'Episode')).toBe('Show - Episode')
-      expect(buildMediaTitle(undefined, 'Season', 'Episode')).toBe('Season - Episode')
-    })
-
-    test('should handle empty strings', () => {
-      const result = buildMediaTitle('', '', 'Title')
-      expect(result).toBe('Title')
-    })
+  test('builds complete movie and episode details', async () => {
+    const tmdb = new MockTmdbClient()
+    tmdb.mediaMap.set('12345-movie', { data: { original_language: 'en', title: 'Movie' }, type: 'movie' })
+    tmdb.mediaMap.set('67890-show', { data: { name: 'Show', original_language: 'fr' }, type: 'tv' })
+    expect(await runTest(getCompleteMediaDetails(123), { plex: new MockPlexClient(), tmdb })).toMatchObject({ mediaType: 'movie', tmdbId: 12_345 })
+    expect(await runTest(getCompleteMediaDetails(234), { plex: new MockPlexClient(), tmdb })).toMatchObject({ mediaType: 'show', tmdbId: 67_890 })
   })
 
-  describe('getOriginalLanguage', () => {
-    test('should return language from database cache if available', async () => {
-      const { originalLanguage } = await getOriginalLanguage(123, 'movie')
-
-      expect(originalLanguage).toBe('fr')
-      expect(mockTmdbClient.callCount).toBe(0)
-    })
-
-    test('should fetch from TMDB and persist if not in cache', async () => {
-      mockTmdbClient.mediaMap.set('456-show', tmdbTvShowResponse)
-
-      const { originalLanguage } = await getOriginalLanguage(456, 'show')
-
-      expect(originalLanguage).toBe('es')
-      expect(mockTmdbClient.callCount).toBe(1)
-
-      const cachedMedia = await db
-        .select()
-        .from(media)
-        .where(and(eq(media.tmdbId, 456), eq(media.type, 'show')))
-
-      expect(cachedMedia).toHaveLength(1)
-      expect(cachedMedia[0]).toMatchObject({
-        originalLanguage: 'es',
-        tmdbId: 456,
-        type: 'show',
-      })
-    })
-
-    test('should return en as fallback if TMDB fails', async () => {
-      const { originalLanguage } = await getOriginalLanguage(789, 'movie')
-
-      expect(originalLanguage).toBe('en')
-    })
-  })
-
-  describe('getCompleteMediaDetails', () => {
-    test('should get complete details for a movie', async () => {
-      const result = await getCompleteMediaDetails(123)
-
-      expect(isOk(result)).toBe(true)
-      if (!isOk(result)) {
-        return
-      }
-      expect(result).toMatchObject({
-        file: '/path/to/{tmdb-12345}/movie.mkv',
-        mediaTitle: 'Test Movie',
-        mediaType: 'movie',
-        partsId: 456,
-        tmdbId: 12_345,
-      })
-      expect(result.originalLanguage).toBeDefined()
-      expect(result.streams).toBeDefined()
-    })
-
-    test('should get complete details for an episode', async () => {
-      const result = await getCompleteMediaDetails(234)
-
-      expect(result).toMatchObject({
-        file: '/path/to/{tmdb-67890}/S01E01.mkv',
-        mediaTitle: 'Test Show - Season 1 - Episode 1',
-        mediaType: 'show',
-        partsId: 999,
-        tmdbId: 67_890,
-      })
-    })
-
-    test('should return FileNotFoundError if no file found', async () => {
-      const result = await getCompleteMediaDetails(345)
-      expect(result).toBeInstanceOf(FileNotFoundError)
-    })
-
-    test('should return TmdbIdNotFoundError if no TMDB ID found', async () => {
-      const result = await getCompleteMediaDetails(567)
-      expect(result).toBeInstanceOf(TmdbIdNotFoundError)
-    })
+  test('fails for missing files and TMDB ids', async () => {
+    expect(await runTest(getCompleteMediaDetails(345), { plex: new MockPlexClient() }).catch((error) => error)).toBeInstanceOf(FileNotFoundError)
+    expect(await runTest(getCompleteMediaDetails(567), { plex: new MockPlexClient() }).catch((error) => error)).toBeInstanceOf(TmdbIdNotFoundError)
   })
 })

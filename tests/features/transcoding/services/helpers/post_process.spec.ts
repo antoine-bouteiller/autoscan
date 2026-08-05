@@ -1,73 +1,148 @@
-import { beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
+import { afterEach, describe, expect, test } from 'bun:test'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFile, open, rename, rm } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 
-import { refreshSectionsMock } from '@tests/mocks/plex.mock'
+import { runTest } from '@tests/effect'
+import { makeTestDir, videosPath } from '@tests/utils'
+import { Effect, Result } from 'effect'
 
-import { container, TOKENS } from '@/core/container'
-import { handlePostTranscode } from '@/features/transcoding/services/helpers/post_process'
+import env from '@/config/env'
+import { FileAccessError } from '@/features/transcoding/errors'
+import { handlePostTranscode, replaceOutputs } from '@/features/transcoding/services/helpers/post_process'
 
-import '../../../../utils.ts'
+const directories: string[] = []
+
+const fsync = async (path: string) => {
+  const handle = await open(path, 'r')
+  try {
+    await handle.sync()
+  } finally {
+    await handle.close()
+  }
+}
+
+afterEach(() => {
+  for (const directory of directories.splice(0)) {
+    rmSync(directory, { force: true, recursive: true })
+  }
+})
 
 describe('handlePostTranscode', () => {
-  const radarrClient = container.resolve(TOKENS.RADARR_CLIENT)
-  const sonarrClient = container.resolve(TOKENS.SONARR_CLIENT)
-  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
-
-  beforeEach(() => {
-    jest.clearAllMocks()
+  test('does nothing when no transcode output exists', async () => {
+    const directory = makeTestDir()
+    directories.push(directory)
+    expect(
+      await runTest(handlePostTranscode({ filePath: join(directory, 'missing.mkv'), mediaTitle: 'Missing', mediaType: 'movie' }))
+    ).toBeUndefined()
   })
 
-  test('movie: should refresh and rename when Radarr returns movieId', async () => {
-    const getMovieByPath = spyOn(radarrClient, 'getMovieByPath').mockResolvedValue(7)
-    const refreshMovie = spyOn(radarrClient, 'refreshMovie').mockResolvedValue()
-    const renameMovie = spyOn(radarrClient, 'renameMovie').mockResolvedValue()
+  test('durably replaces the original with validated output', async () => {
+    const directory = makeTestDir()
+    directories.push(directory)
+    const original = join(directory, 'movie.mkv')
+    writeFileSync(original, 'original')
 
-    await handlePostTranscode({ filePath: '/movies/file.mp4', mediaTitle: 'Title', mediaType: 'movie' })
+    const outputDirectory = join(env.TRANSCODE_PATH, basename(original, '.mkv'))
+    directories.push(outputDirectory)
+    mkdirSync(outputDirectory, { recursive: true })
+    copyFileSync(join(videosPath, 'test_correct_file.mp4'), join(outputDirectory, 'movie.mp4'))
 
-    expect(getMovieByPath).toHaveBeenCalledWith('/movies/file.mp4')
-    expect(refreshMovie).toHaveBeenCalledWith(7)
-    expect(renameMovie).toHaveBeenCalledWith(7)
-    expect(refreshSectionsMock).toHaveBeenCalledWith('/movies/file.mp4', 'movie')
+    await runTest(handlePostTranscode({ filePath: original, mediaTitle: 'Movie', mediaType: 'movie' }))
+
+    expect(existsSync(original)).toBeFalse()
+    expect(existsSync(join(directory, 'movie.mp4'))).toBeTrue()
+    expect(readFileSync(join(directory, 'movie.mp4')).byteLength).toBeGreaterThan(0)
+    expect(existsSync(outputDirectory)).toBeFalse()
   })
 
-  test('movie: should skip refresh when Radarr has no movie for path', async () => {
-    spyOn(radarrClient, 'getMovieByPath').mockResolvedValue(undefined)
-    const refreshMovie = spyOn(radarrClient, 'refreshMovie').mockResolvedValue()
+  test('replaces a colliding destination without leaving backups', async () => {
+    const directory = makeTestDir()
+    directories.push(directory)
+    const original = join(directory, 'movie.mkv')
+    const destination = join(directory, 'movie.mp4')
+    writeFileSync(original, 'original')
+    writeFileSync(destination, 'collision')
 
-    await handlePostTranscode({ filePath: '/movies/file.mp4', mediaTitle: 'Title', mediaType: 'movie' })
+    const outputDirectory = join(env.TRANSCODE_PATH, basename(original, '.mkv'))
+    directories.push(outputDirectory)
+    mkdirSync(outputDirectory, { recursive: true })
+    copyFileSync(join(videosPath, 'test_correct_file.mp4'), join(outputDirectory, 'movie.mp4'))
 
-    expect(refreshMovie).not.toHaveBeenCalled()
-    expect(refreshSectionsMock).not.toHaveBeenCalled()
+    await runTest(handlePostTranscode({ filePath: original, mediaTitle: 'Movie', mediaType: 'movie' }))
+    expect(readFileSync(destination).toString()).not.toBe('collision')
+    expect(readdirSync(directory).some((path) => path.includes('autoscan-backup'))).toBeFalse()
   })
 
-  test('show: should refresh and rename when Sonarr returns seriesId', async () => {
-    const getSeriesByPath = spyOn(sonarrClient, 'getSeriesByPath').mockResolvedValue(9)
-    const refreshSeries = spyOn(sonarrClient, 'refreshSeries').mockResolvedValue()
-    const renameSeries = spyOn(sonarrClient, 'renameSeries').mockResolvedValue()
+  test('keeps the durable installation when backup cleanup fails', async () => {
+    const directory = makeTestDir()
+    const outputDirectory = join(directory, 'output')
+    directories.push(directory)
+    mkdirSync(outputDirectory)
+    const original = join(directory, 'movie.mkv')
+    const destination = join(directory, 'movie.mp4')
+    writeFileSync(original, 'original')
+    writeFileSync(join(outputDirectory, 'movie.mp4'), 'new')
 
-    await handlePostTranscode({ filePath: '/shows/ep.mp4', mediaTitle: 'Title', mediaType: 'show' })
+    const result = await Effect.runPromise(
+      Effect.result(
+        replaceOutputs(original, outputDirectory, {
+          operations: {
+            copyFile,
+            exists: existsSync,
+            fsync,
+            remove: async (path, options) => {
+              if (String(path).includes('autoscan-backup')) {
+                throw new Error('cleanup failed')
+              }
+              await rm(path, options)
+            },
+            rename,
+          },
+          outputFiles: ['movie.mp4'],
+        })
+      )
+    )
 
-    expect(getSeriesByPath).toHaveBeenCalledWith('/shows/ep.mp4')
-    expect(refreshSeries).toHaveBeenCalledWith(9)
-    expect(renameSeries).toHaveBeenCalledWith(9)
-    expect(refreshSectionsMock).toHaveBeenCalledWith('/shows/ep.mp4', 'show')
+    expect(Result.isSuccess(result) && result.success).toBeInstanceOf(FileAccessError)
+    expect(readFileSync(destination, 'utf8')).toBe('new')
+    expect(readdirSync(directory).some((path) => path.includes('autoscan-backup'))).toBeTrue()
   })
 
-  test('show: should skip refresh when Sonarr has no series for path', async () => {
-    spyOn(sonarrClient, 'getSeriesByPath').mockResolvedValue(undefined)
-    const refreshSeries = spyOn(sonarrClient, 'refreshSeries').mockResolvedValue()
+  test('rolls back an installed output when the commit fsync fails', async () => {
+    const directory = makeTestDir()
+    const outputDirectory = join(directory, 'output')
+    directories.push(directory)
+    mkdirSync(outputDirectory)
+    const original = join(directory, 'movie.mkv')
+    const destination = join(directory, 'movie.mp4')
+    writeFileSync(original, 'original')
+    writeFileSync(join(outputDirectory, 'movie.mp4'), 'new')
+    let directorySyncs = 0
 
-    await handlePostTranscode({ filePath: '/shows/ep.mp4', mediaTitle: 'Title', mediaType: 'show' })
+    const result = await Effect.runPromise(
+      Effect.result(
+        replaceOutputs(original, outputDirectory, {
+          operations: {
+            copyFile,
+            exists: existsSync,
+            fsync: async (path) => {
+              if (path === dirname(original) && ++directorySyncs === 3) {
+                throw new Error('commit fsync failed')
+              }
+              await fsync(path)
+            },
+            remove: rm,
+            rename,
+          },
+          outputFiles: ['movie.mp4'],
+        })
+      )
+    )
 
-    expect(refreshSeries).not.toHaveBeenCalled()
-    expect(refreshSectionsMock).not.toHaveBeenCalled()
-  })
-
-  test('should not touch plex.refreshSections when cleanup returns early', async () => {
-    spyOn(radarrClient, 'getMovieByPath').mockResolvedValue(undefined)
-    spyOn(plexClient, 'refreshSections')
-
-    await handlePostTranscode({ filePath: '/movies/missing.mp4', mediaTitle: 'Title', mediaType: 'movie' })
-
-    expect(refreshSectionsMock).not.toHaveBeenCalled()
+    expect(Result.isFailure(result) && result.failure).toBeInstanceOf(FileAccessError)
+    expect(readFileSync(original, 'utf8')).toBe('original')
+    expect(existsSync(destination)).toBeFalse()
+    expect(readdirSync(directory).some((path) => path.includes('autoscan-stage'))).toBeFalse()
   })
 })

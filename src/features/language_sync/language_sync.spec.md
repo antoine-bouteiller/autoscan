@@ -48,8 +48,7 @@ populating media rows (handled by `@/domains/media`), language detection, and Pl
   HTTP errors) MUST NOT abort the loop; log via `logError` and continue with the next media.
 - **CON-003** When no matching audio stream exists the job logs a warning and skips the item. It MUST NOT
   fall back to another language.
-- **GUD-001** All Plex/TMDB clients are resolved through the DI container (`TOKENS.PLEX_CLIENT`,
-  `TOKENS.TMDB_CLIENT`); never instantiate clients directly.
+- **GUD-001** Plex and TMDB dependencies are yielded from their Effect services; construction remains in the composition root.
 - **GUD-002** Read and write media rows exclusively through `@/domains/media` repositories and services.
 - **PAT-001** Job follows the cron-handler pattern described in
   `../../providers/scheduler/scheduler.spec.md`; conversation follows the callback-driven state-machine
@@ -120,8 +119,7 @@ interface UpdateLanguageParams {
 
 ## 6. Test Automation Strategy
 
-- **Unit (Vitest)** — mock `PLEX_CLIENT`, `TMDB_CLIENT`, and `db`. Cover: idempotent path (no update),
-  audio-only update, French audio + subtitle clear, missing-stream warning, error short-circuit per item.
+- **Unit (`bun:test`)** — provide local Plex, TMDB, and Database layers. Cover idempotence, audio updates, French subtitle clearing, missing-stream warnings, and per-item error recovery.
 - **Conversation tests** — drive `setLanguageConversation.onCommand` and `.onCallback` with fake state and
   callback payloads; assert produced state transitions, edited message text, and that `selectLanguage`
   issues the expected `db.update`.
@@ -154,7 +152,7 @@ cleared for French because that is the operator's only consistently-subtitled au
   keyboard rendering.
 - **DEP-004** `@/shared/types/iso_codes` and `@/shared/utils/iso_codes` — ISO 639-1 ↔ 639-2 mappings used to
   normalize Plex stream `languageCode` values for comparison with `preferredLanguage`.
-- **DEP-005** `@/core/container` — DI tokens `PLEX_CLIENT` and `TMDB_CLIENT`.
+- **DEP-005** `@/core/runtime.service` — Plex, TMDB, and Database Effect services.
 
 ## 9. Examples & Edge Cases
 

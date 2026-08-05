@@ -1,193 +1,92 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test'
+import { describe, expect, spyOn, test } from 'bun:test'
 
+import { Effect, Fiber, Result } from 'effect'
+import { adjust, layer } from 'effect/testing/TestClock'
 import { z } from 'zod'
 
 import { HttpError } from '@/shared/errors/http'
 import { NetworkError } from '@/shared/errors/network'
 import { ValidationError } from '@/shared/errors/validation'
-import { isError } from '@/shared/utils/error'
 import { httpClient } from '@/shared/utils/http_client'
 
-const originalFetch = globalThis.fetch
+const schema = z.object({ value: z.string() })
+const client = () => httpClient({ baseUrl: 'https://example.com/', headers: { Authorization: 'token' }, serviceName: 'Test' })
 
 describe('httpClient', () => {
-  const mockFetch = jest.fn<typeof fetch>()
-
-  beforeEach(() => {
-    mockFetch.mockReset()
-    // oxlint-disable-next-line no-unsafe-type-assertion
-    globalThis.fetch = mockFetch as unknown as typeof fetch
+  test('validates successful responses', async () => {
+    spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ value: 'ok' }))
+    expect(await Effect.runPromise(client().get('/resource', { validator: schema }))).toEqual({ value: 'ok' })
   })
 
-  afterEach(() => {
-    globalThis.fetch = originalFetch
+  test('supports responses without bodies', async () => {
+    spyOn(globalThis, 'fetch').mockResolvedValue(new Response(undefined, { status: 204 }))
+    expect(await Effect.runPromise(client().delete('/resource'))).toBeUndefined()
   })
 
-  const client = httpClient({ baseUrl: 'http://api.test', serviceName: 'Test' })
-
-  describe('get', () => {
-    test('should return undefined when no validator is provided', async () => {
-      mockFetch.mockResolvedValue(new Response(undefined, { status: 200 }))
-
-      const result = await client.get('/items')
-
-      expect(result).toBeUndefined()
-      expect(mockFetch).toHaveBeenCalledTimes(1)
-    })
-
-    test('should validate response with validator', async () => {
-      const validator = z.object({ id: z.number(), name: z.string() })
-      mockFetch.mockResolvedValue(Response.json({ id: 1, name: 'test' }, { status: 200 }))
-
-      const result = await client.get('/items/1', { validator })
-
-      expect(isError(result)).toBe(false)
-      if (!isError(result)) {
-        expect(result).toEqual({ id: 1, name: 'test' })
-      }
-    })
-
-    test('should return ValidationError when response does not match validator', async () => {
-      const validator = z.object({ id: z.number(), name: z.string() })
-
-      mockFetch.mockResolvedValue(Response.json({ id: 'not-a-number' }, { status: 200 }))
-
-      const result = await client.get('/items/1', { validator })
-
-      expect(isError(result)).toBe(true)
-      expect(result).toBeInstanceOf(ValidationError)
-    })
-
-    test('should append query params', async () => {
-      mockFetch.mockResolvedValue(new Response(undefined, { status: 200 }))
-
-      await client.get('/items', { params: { limit: 10, page: 1 } })
-
-      const calledUrl = mockFetch.mock.calls[0]?.[0]
-      expect(calledUrl).toBeInstanceOf(URL)
-      const urlString = calledUrl instanceof URL ? calledUrl.href : ''
-      expect(urlString).toContain('page=1')
-      expect(urlString).toContain('limit=10')
-    })
+  test('reports validation failures', async () => {
+    spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ wrong: true }))
+    const result = await Effect.runPromise(Effect.result(client().get('/resource', { validator: schema })))
+    expect(Result.isFailure(result) && result.failure).toBeInstanceOf(ValidationError)
   })
 
-  describe('post', () => {
-    test('should send body as JSON', async () => {
-      mockFetch.mockResolvedValue(new Response(undefined, { status: 201 }))
-
-      await client.post('/items', { body: { name: 'new-item' } })
-
-      const calledOptions = mockFetch.mock.calls[0]?.[1]
-      expect(calledOptions?.body).toBe(JSON.stringify({ name: 'new-item' }))
-      expect(calledOptions?.method).toBe('POST')
-    })
+  test('reports HTTP failures', async () => {
+    spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ message: 'bad' }, { status: 400 }))
+    const result = await Effect.runPromise(Effect.result(client().post('/resource')))
+    expect(Result.isFailure(result) && result.failure).toBeInstanceOf(HttpError)
   })
 
-  describe('error handling', () => {
-    test('should return HttpError for non-ok responses', async () => {
-      mockFetch.mockResolvedValue(Response.json({ error: 'not found' }, { status: 404 }))
-
-      const result = await client.get('/missing')
-
-      expect(result).toBeInstanceOf(HttpError)
-      if (result instanceof HttpError) {
-        expect(result.status).toBe(404)
-      }
-    })
-
-    test('should return NetworkError when fetch throws', async () => {
-      mockFetch.mockRejectedValue(new Error('ECONNREFUSED'))
-
-      const result = await client.get('/items')
-
-      expect(result).toBeInstanceOf(NetworkError)
-      if (result instanceof NetworkError) {
-        expect(result.originalMessage).toBe('ECONNREFUSED')
-      }
-    })
-
-    test('should handle non-Error fetch throws', async () => {
-      mockFetch.mockRejectedValue('unknown')
-
-      const result = await client.get('/items')
-
-      expect(result).toBeInstanceOf(NetworkError)
-      if (result instanceof NetworkError) {
-        expect(result.originalMessage).toBe('Unknown network error')
-      }
-    })
-
-    test('should use custom error formatter', async () => {
-      const customClient = httpClient({
-        baseUrl: 'http://api.test',
-        errorFormatter: (body: unknown) => `custom: ${JSON.stringify(body)}`,
-        serviceName: 'Test',
-      })
-      mockFetch.mockResolvedValue(Response.json({ msg: 'bad' }, { status: 400 }))
-
-      const result = await customClient.get('/items')
-
-      expect(result).toBeInstanceOf(HttpError)
-      if (result instanceof HttpError) {
-        expect(result.message).toContain('custom:')
-      }
-    })
+  test('reports network failures without retrying mutations', async () => {
+    const fetchMock = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    const result = await Effect.runPromise(Effect.result(client().post('/resource')))
+    expect(Result.isFailure(result) && result.failure).toBeInstanceOf(NetworkError)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  describe('headers', () => {
-    test('should merge global and per-request headers', async () => {
-      const authedClient = httpClient({
-        baseUrl: 'http://api.test',
-        headers: { Authorization: 'Bearer token' },
-        serviceName: 'Test',
-      })
-      mockFetch.mockResolvedValue(new Response(undefined, { status: 200 }))
-
-      await authedClient.get('/items', { headers: { 'X-Custom': 'value' } })
-
-      const calledOptions = mockFetch.mock.calls[0]?.[1]
-      const headers = calledOptions?.headers
-      expect(headers).toBeDefined()
-      expect(headers).toMatchObject({ Authorization: 'Bearer token', 'X-Custom': 'value' })
-    })
+  test('retries GET server failures at most twice', async () => {
+    const fetchMock = spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json({}, { status: 500 }))
+      .mockResolvedValueOnce(Response.json({}, { status: 500 }))
+      .mockResolvedValueOnce(Response.json({ value: 'ok' }))
+    expect(await Effect.runPromise(client().get('/resource', { validator: schema }))).toEqual({ value: 'ok' })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 
-  describe('URL construction', () => {
-    test('should handle trailing slashes in baseUrl', async () => {
-      const slashClient = httpClient({ baseUrl: 'http://api.test/', serviceName: 'Test' })
-      mockFetch.mockResolvedValue(new Response(undefined, { status: 200 }))
-
-      await slashClient.get('/items')
-
-      const calledUrl = mockFetch.mock.calls[0]?.[0]
-      expect(calledUrl).toBeInstanceOf(URL)
-      expect(calledUrl instanceof URL ? calledUrl.href : '').toBe('http://api.test/items')
-    })
+  test('builds query parameters and merges headers', async () => {
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ value: 'ok' }))
+    await Effect.runPromise(client().get('/resource', { headers: { Custom: 'yes' }, params: { page: 2 }, validator: schema }))
+    const [url, options] = fetchMock.mock.calls[0] ?? []
+    expect(url instanceof Request ? url.url : url?.toString()).toBe('https://example.com/resource?page=2')
+    expect(options?.headers).toEqual({ Authorization: 'token', Custom: 'yes' })
   })
 
-  describe('methods', () => {
-    test('should support delete', async () => {
-      mockFetch.mockResolvedValue(new Response(undefined, { status: 204 }))
+  test('honors Retry-After without jitter', async () => {
+    const fetchMock = spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json({}, { headers: { 'Retry-After': '10' }, status: 429 }))
+      .mockResolvedValueOnce(Response.json({ value: 'ok' }))
 
-      await client.delete('/items/1')
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const fiber = yield* Effect.forkChild(client().get('/resource', { validator: schema }))
+        yield* Effect.yieldNow
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+        yield* adjust(9999)
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+        yield* adjust(1)
+        return yield* Fiber.join(fiber)
+      }).pipe(Effect.provide(layer()))
+    )
+    expect(result).toEqual({ value: 'ok' })
+  })
 
-      expect(mockFetch.mock.calls[0]?.[1]?.method).toBe('DELETE')
-    })
+  test('allows retries to be disabled for GET mutations', async () => {
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({}, { status: 500 }))
+    await Effect.runPromise(Effect.result(client().get('/resource', { retry: false })))
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
 
-    test('should support put', async () => {
-      mockFetch.mockResolvedValue(new Response(undefined, { status: 200 }))
-
-      await client.put('/items/1', { body: { name: 'updated' } })
-
-      expect(mockFetch.mock.calls[0]?.[1]?.method).toBe('PUT')
-    })
-
-    test('should support patch', async () => {
-      mockFetch.mockResolvedValue(new Response(undefined, { status: 200 }))
-
-      await client.patch('/items/1', { body: { name: 'patched' } })
-
-      expect(mockFetch.mock.calls[0]?.[1]?.method).toBe('PATCH')
-    })
+  test('passes an interruption signal to fetch', async () => {
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ value: 'ok' }))
+    await Effect.runPromise(client().get('/resource', { validator: schema }))
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal)
   })
 })

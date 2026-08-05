@@ -1,32 +1,35 @@
+import { Cause, Effect, Result } from 'effect'
+
 import env from '@/config/env'
 import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
+import { type AppRequirements } from '@/core/runtime.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramCallbackQuery, type TelegramMessageIn, type TelegramUpdate } from '@/integrations/telegram/telegram.validator'
 import { type ConversationState } from '@/providers/telegram/types'
-import { isError, logError } from '@/shared/utils/error'
+import { logError } from '@/shared/utils/error'
 
-export type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Promise<ConversationState>
+export type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Effect.Effect<ConversationState, unknown, AppRequirements>
+
 type CallbackHandler = (
   client: ITelegramClient,
   chatId: number,
   params: { state: ConversationState; callback: TelegramCallbackQuery }
-) => Promise<ConversationState>
+) => Effect.Effect<ConversationState, unknown, AppRequirements>
+
 export interface Conversation {
   onCommand: CommandHandler
   onCallback: CallbackHandler
 }
 
 export class TelegramProvider {
-  private readonly client: ITelegramClient
-  private running = false
   private conversationState: ConversationState = { step: 'idle' }
   private readonly commands = new Map<string, CommandHandler>()
   private readonly conversations = new Map<string, Conversation>()
   private activeConversationKey?: string
+  private readonly client: ITelegramClient
 
-  constructor() {
-    this.client = container.resolve(TOKENS.TELEGRAM_CLIENT)
+  constructor(client: ITelegramClient) {
+    this.client = client
   }
 
   registerCommand(command: string, handler: CommandHandler): this {
@@ -39,114 +42,116 @@ export class TelegramProvider {
     return this
   }
 
-  start(): void {
-    if (this.running) {
-      logger.warn('bot is already running', 'Telegram')
-      return
-    }
-    this.running = true
-    logger.info('bot started', 'Telegram')
-    void this.poll()
+  private recoverHandler(effect: Effect.Effect<ConversationState, unknown, AppRequirements>) {
+    const provider = this
+    return effect.pipe(
+      Effect.catchCause((cause) => {
+        if (Cause.hasInterruptsOnly(cause)) {
+          return Effect.failCause(cause)
+        }
+        return Effect.gen(function* () {
+          provider.conversationState = { step: 'idle' }
+          provider.activeConversationKey = undefined
+          yield* Effect.sync(() => logError(cause, 'Telegram'))
+          yield* provider.client
+            .sendMessage(env.TELEGRAM_CHAT_ID, 'An unexpected error occurred')
+            .pipe(Effect.catch((error) => Effect.sync(() => logError(error, 'Telegram'))))
+          return provider.conversationState
+        })
+      })
+    )
   }
 
-  async stop(): Promise<void> {
-    this.running = false
-    logger.info('bot stopped', 'Telegram')
-  }
-
-  private async poll(): Promise<void> {
-    let offset = 0
-    let errorDelay = 5000
-    const maxErrorDelay = 5 * 60 * 1000
-
-    while (this.running) {
-      const updates = await this.client.getUpdates(offset)
-
-      if (isError(updates)) {
-        logError(updates)
-        await new Promise((resolve) => setTimeout(resolve, errorDelay))
-        errorDelay = Math.min(errorDelay * 2, maxErrorDelay)
-        continue
-      }
-
-      errorDelay = 5000
-
-      for (const update of updates) {
-        offset = update.update_id + 1
-        await this.handleUpdate(update)
-      }
-    }
-  }
-
-  private async handleCancel(chatId: number) {
+  private handleCancel(chatId: number) {
     if (this.conversationState.step === 'idle') {
-      await this.client.sendMessage(chatId, 'No operation in progress')
-    } else {
-      this.conversationState = { step: 'idle' }
-      this.activeConversationKey = undefined
-      await this.client.sendMessage(chatId, 'Cancelled.')
+      return this.client.sendMessage(chatId, 'No operation in progress').pipe(Effect.asVoid)
     }
+    this.conversationState = { step: 'idle' }
+    this.activeConversationKey = undefined
+    return this.client.sendMessage(chatId, 'Cancelled.').pipe(Effect.asVoid)
   }
 
-  private async handleMessage(message: TelegramMessageIn) {
-    const { text } = message
-
-    if (text === undefined) {
-      return
-    }
-
-    const conversation = this.conversations.get(text)
-    if (conversation) {
-      this.activeConversationKey = text
-      this.conversationState = await conversation.onCommand(this.client, message)
-      if (this.conversationState.step === 'idle') {
-        this.activeConversationKey = undefined
+  private handleMessage(message: TelegramMessageIn) {
+    const provider = this
+    return Effect.gen(function* () {
+      if (message.text === undefined) {
+        return
       }
-      return
-    }
-
-    const handler = this.commands.get(text)
-    if (handler) {
-      this.conversationState = await handler(this.client, message)
-    }
-  }
-
-  private async handleCallBack(chatId: number, callback: TelegramCallbackQuery) {
-    if (this.activeConversationKey === undefined) {
-      return
-    }
-
-    const conversation = this.conversations.get(this.activeConversationKey)
-    if (conversation) {
-      this.conversationState = await conversation.onCallback(this.client, chatId, { callback, state: this.conversationState })
-      if (this.conversationState.step === 'idle') {
-        this.activeConversationKey = undefined
+      const conversation = provider.conversations.get(message.text)
+      if (conversation !== undefined) {
+        provider.activeConversationKey = message.text
+        provider.conversationState = yield* provider.recoverHandler(conversation.onCommand(provider.client, message))
+        if (provider.conversationState.step === 'idle') {
+          provider.activeConversationKey = undefined
+        }
+        return
       }
-    }
+      const handler = provider.commands.get(message.text)
+      if (handler !== undefined) {
+        provider.conversationState = yield* provider.recoverHandler(handler(provider.client, message))
+      }
+    })
   }
 
-  private async handleUpdate(update: TelegramUpdate): Promise<void> {
-    const chatId = update.message?.chat.id ?? update.callback_query?.message?.chat.id
+  private handleCallback(chatId: number, callback: TelegramCallbackQuery) {
+    const provider = this
+    return Effect.gen(function* () {
+      if (provider.activeConversationKey === undefined) {
+        return
+      }
+      const conversation = provider.conversations.get(provider.activeConversationKey)
+      if (conversation === undefined) {
+        return
+      }
+      provider.conversationState = yield* provider.recoverHandler(
+        conversation.onCallback(provider.client, chatId, { callback, state: provider.conversationState })
+      )
+      if (provider.conversationState.step === 'idle') {
+        provider.activeConversationKey = undefined
+      }
+    })
+  }
 
-    if (chatId !== env.TELEGRAM_CHAT_ID) {
-      logger.warn(`(Telegram) Unknown chat sender ${chatId}`)
-      return
-    }
+  private handleUpdate(update: TelegramUpdate) {
+    const provider = this
+    return Effect.gen(function* () {
+      const chatId = update.message?.chat.id ?? update.callback_query?.message?.chat.id
+      if (chatId !== env.TELEGRAM_CHAT_ID) {
+        yield* Effect.sync(() => logger.warn(`(Telegram) Unknown chat sender ${chatId}`))
+        return
+      }
+      if (update.message?.text === '/cancel') {
+        yield* provider.handleCancel(chatId)
+      } else if (update.message !== undefined && provider.activeConversationKey === undefined) {
+        yield* provider.handleMessage(update.message)
+      } else if (update.callback_query !== undefined) {
+        yield* provider.handleCallback(chatId, update.callback_query)
+      }
+    })
+  }
 
-    const text = update.message?.text
+  get poll() {
+    const provider = this
+    return Effect.gen(function* () {
+      let offset = 0
+      let errorDelay = 5000
+      yield* Effect.sync(() => logger.info('bot started', 'Telegram'))
 
-    if (text === '/cancel') {
-      await this.handleCancel(chatId)
-      return
-    }
+      while (true) {
+        const updates = yield* Effect.result(provider.client.getUpdates(offset))
+        if (Result.isFailure(updates)) {
+          yield* Effect.sync(() => logError(updates.failure, 'Telegram'))
+          yield* Effect.sleep(errorDelay)
+          errorDelay = Math.min(errorDelay * 2, 5 * 60 * 1000)
+          continue
+        }
 
-    if (update.message && this.activeConversationKey === undefined) {
-      await this.handleMessage(update.message)
-      return
-    }
-
-    if (update.callback_query) {
-      await this.handleCallBack(chatId, update.callback_query)
-    }
+        errorDelay = 5000
+        for (const update of updates.success) {
+          offset = update.update_id + 1
+          yield* provider.handleUpdate(update)
+        }
+      }
+    }).pipe(Effect.ensuring(Effect.sync(() => logger.info('bot stopped', 'Telegram'))))
   }
 }

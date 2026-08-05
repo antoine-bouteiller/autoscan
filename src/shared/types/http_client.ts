@@ -1,17 +1,19 @@
+import { type Effect } from 'effect'
 import { type z } from 'zod'
 
-import { type HttpError, type HttpErrorFormatter } from '@/shared/errors/http'
+import { type HttpError, type HttpErrorFormatter, type RequestTimeoutError } from '@/shared/errors/http'
 import { type NetworkError } from '@/shared/errors/network'
 import { type ValidationError } from '@/shared/errors/validation'
 
 export type AnySchema = z.ZodType
-
-export type RequestParams = Record<string, string | number | boolean>
+export type RequestParams = Record<string, boolean | number | string>
 
 export interface RequestOptions<TSchema extends AnySchema | undefined = undefined> {
   body?: unknown
   headers?: Record<string, string>
   params?: RequestParams
+  retry?: boolean
+  timeout?: number
   validator?: TSchema
 }
 
@@ -24,26 +26,22 @@ export interface HttpClientOptions {
   serviceName: string
 }
 
-type HttpClientError = HttpError | NetworkError | ValidationError
-
-export type HttpClientVoidResult = HttpClientError | undefined
-
-export type HttpClientResult<TSchema extends AnySchema> = HttpClientError | z.infer<TSchema>
-
+export type HttpClientError = HttpError | NetworkError | RequestTimeoutError | ValidationError
+export type HttpClientVoidResult = Effect.Effect<void, HttpClientError>
+export type HttpClientResult<TSchema extends AnySchema> = Effect.Effect<z.infer<TSchema>, HttpClientError>
 export type GetOptions<TSchema extends AnySchema> = Omit<RequestOptions<TSchema>, 'body'>
-
 export type GetOptionWithoutResponse = Omit<RequestWithoutResponseOption, 'body'>
 
 export interface HttpClient {
-  delete: (url: string, opts?: GetOptionWithoutResponse) => Promise<HttpClientVoidResult>
+  delete: (url: string, options?: GetOptionWithoutResponse) => HttpClientVoidResult
   get: {
-    (url: string, opts?: GetOptionWithoutResponse): Promise<HttpClientVoidResult>
-    <TSchema extends AnySchema>(url: string, opts: GetOptions<TSchema>): Promise<HttpClientResult<TSchema>>
+    (url: string, options?: GetOptionWithoutResponse): HttpClientVoidResult
+    <TSchema extends AnySchema>(url: string, options: GetOptions<TSchema>): HttpClientResult<TSchema>
   }
-  patch: (url: string, opts?: RequestWithoutResponseOption) => Promise<HttpClientVoidResult>
+  patch: (url: string, options?: RequestWithoutResponseOption) => HttpClientVoidResult
   post: {
-    (url: string, opts?: RequestWithoutResponseOption): Promise<HttpClientVoidResult>
-    <TSchema extends AnySchema>(url: string, opts: RequestOptions<TSchema>): Promise<HttpClientResult<TSchema>>
+    (url: string, options?: RequestWithoutResponseOption): HttpClientVoidResult
+    <TSchema extends AnySchema>(url: string, options: RequestOptions<TSchema>): HttpClientResult<TSchema>
   }
-  put: (url: string, opts?: RequestWithoutResponseOption) => Promise<HttpClientVoidResult>
+  put: (url: string, options?: RequestWithoutResponseOption) => HttpClientVoidResult
 }

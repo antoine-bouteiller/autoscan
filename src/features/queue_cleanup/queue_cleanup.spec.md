@@ -110,7 +110,7 @@ status guard prevents striking healthy `queued`, `paused`, or `completed` items 
 
 - **DEP-001** `@/integrations/arr` — `RadarrClient` and `SonarrClient` (both implement `QueueService`).
 - **DEP-002** `@/providers/scheduler` — registers the cron job from `defineFeature({ jobs })`.
-- **DEP-003** `@/core/container` — resolves `TOKENS.SONARR_CLIENT` and `TOKENS.RADARR_CLIENT`.
+- **DEP-003** `@/core/runtime.service` — Sonarr and Radarr Effect services.
 - **DEP-004** `@/config/logger` — tagged logging (`Cleanup`, `Sonarr` | `Radarr`).
 
 ## 9. Examples & Edge Cases

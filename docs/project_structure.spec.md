@@ -75,21 +75,21 @@ its own spec).
 - **PAT-001** Wiring pattern: `feature.ts` calls `defineFeature({...})` and exposes `routes`,
   `jobs`, `commands`, `conversations`. `core/bootstrap.ts` runs `registerFeatures(features)` once
   at startup.
-- **PAT-002** DI pattern: every shared dependency is registered against a `TOKENS.*` symbol in
-  `core/container.ts` and resolved via `container.resolve(TOKENS.X)` at the call site.
+- **PAT-002** DI pattern: shared dependencies use `Context.Service` keys from
+  `core/runtime.service.ts`; production and tests provide explicit Effect layers at composition boundaries.
 
 ## 4. Interfaces & Data Contracts
 
 | Folder              | Role                                                                                                             |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `src/config/`       | Env loader (Zod), logger, database init (Postgres / PGlite + Drizzle migrations)                                 |
-| `src/core/`         | DI container, tokens, bootstrap, feature registration helpers                                                    |
+| `src/core/`         | Effect services/layers, bootstrap, lifecycle, and feature registration helpers                                   |
 | `src/database/`     | Drizzle schema (e.g. `media`, `traktTokens`, `traktSyncHistory`)                                                 |
 | `src/domains/`      | Cross-feature business modules (services, repositories)                                                          |
 | `src/features/`     | Business capabilities, one folder per feature, each owning its `feature.ts`                                      |
 | `src/integrations/` | Thin per-vendor clients with Zod validators (`arr`, `cloudflare`, `ffmpeg`, `plex`, `telegram`, `tmdb`, `trakt`) |
 | `src/providers/`    | Runtime hosts with lifecycle (`http`, `scheduler`, `telegram`)                                                   |
-| `src/shared/`       | Pure utilities and types (no I/O, no container access)                                                           |
+| `src/shared/`       | Shared utilities and types with typed I/O boundaries                                                             |
 
 | Kind suffix      | Subfolder          | Purpose                                     |
 | ---------------- | ------------------ | ------------------------------------------- |
@@ -122,8 +122,7 @@ extension, e.g. `import { foo } from '@/shared/utils/array.js'`.
 
 ## 6. Test Automation Strategy
 
-- Tests live exclusively under `tests/` and mirror the `src/` tree one-for-one. There are no
-  `unit/`, `integration/`, or other layer folders.
+- Tests live under `tests/` and mirror `src/` one-for-one. Repository tooling contract tests are the sole exception and live under `tests/tooling/`; there are no `unit/`, `integration/`, or other layer folders.
 - Shared test infrastructure (`preload.ts`, `setup.ts`, `utils.ts`, `mocks/`, `resources/`) lives at
   the `tests/` root. Test helpers are imported via the `@tests/*` alias, not relative paths.
 - The runner is Bun's native `bun test` (config in `bunfig.toml`) via `bun run test` (one-shot),

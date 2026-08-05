@@ -1,15 +1,15 @@
+import { Effect } from 'effect'
 import { z } from 'zod'
 
+import { ArrClient } from '@/integrations/arr/arr.service'
 import { type QueueService } from '@/integrations/arr/queue.types'
 import { movieValidator } from '@/integrations/arr/radarr.validator'
-import { isError, logError } from '@/shared/utils/error'
-
-import { ArrClient } from './arr.service.js'
+import { type HttpClientError } from '@/shared/types/http_client'
 
 export interface IRadarrClient extends QueueService {
-  refreshMovie: (movieId: number) => Promise<void>
-  renameMovie: (movieId: number) => Promise<void>
-  getMovieByPath: (filePath: string) => Promise<number | undefined>
+  readonly getMovieByPath: (filePath: string) => Effect.Effect<number | undefined, HttpClientError>
+  readonly refreshMovie: (movieId: number) => Effect.Effect<void, HttpClientError>
+  readonly renameMovie: (movieId: number) => Effect.Effect<void, HttpClientError>
 }
 
 interface RadarrClientConfig {
@@ -19,51 +19,20 @@ interface RadarrClientConfig {
 
 export class RadarrClient extends ArrClient implements IRadarrClient {
   constructor(config: RadarrClientConfig) {
-    super({
-      apiKey: config.apiKey,
-      baseUrl: `${config.apiUrl}/api/v3`,
-      serviceName: 'Radarr',
-    })
+    super({ apiKey: config.apiKey, baseUrl: `${config.apiUrl}/api/v3`, serviceName: 'Radarr' })
   }
 
-  async refreshMovie(movieId: number): Promise<void> {
-    const result = await this.client.post('command', {
-      body: {
-        movieId,
-        name: 'RefreshMovie',
-      },
-    })
-
-    if (isError(result)) {
-      logError(result)
-    }
+  refreshMovie(movieId: number) {
+    return this.client.post('command', { body: { movieId, name: 'RefreshMovie' } })
   }
 
-  async renameMovie(movieId: number): Promise<void> {
-    const result = await this.client.post('command', {
-      body: {
-        files: [],
-        movieId,
-        name: 'RenameMovie',
-      },
-    })
-
-    if (isError(result)) {
-      logError(result)
-    }
+  renameMovie(movieId: number) {
+    return this.client.post('command', { body: { files: [], movieId, name: 'RenameMovie' } })
   }
 
-  async getMovieByPath(filePath: string): Promise<number | undefined> {
-    const result = await this.client.get('movie', {
-      validator: z.array(movieValidator),
-    })
-
-    if (isError(result)) {
-      logError(result)
-      return undefined
-    }
-
-    const movie = result.find((item) => filePath.startsWith(item.path))
-    return movie?.id
+  getMovieByPath(filePath: string) {
+    return this.client
+      .get('movie', { validator: z.array(movieValidator) })
+      .pipe(Effect.map((movies) => movies.find((movie) => filePath.startsWith(movie.path))?.id))
   }
 }

@@ -1,3 +1,7 @@
+import { type Effect } from 'effect'
+
+import { type AppRequirements } from '@/core/runtime.service'
+
 export interface AppRequest<TBody = unknown> {
   body: TBody
 }
@@ -7,4 +11,4 @@ export interface AppReply {
   send: (data: unknown) => void
 }
 
-export type RouteHandler<TBody = unknown> = (request: AppRequest<TBody>, reply: AppReply) => Promise<void> | void
+export type RouteHandler<TBody = unknown> = (request: AppRequest<TBody>, reply: AppReply) => Effect.Effect<void, unknown, AppRequirements>
