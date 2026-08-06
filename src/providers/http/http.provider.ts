@@ -1,11 +1,11 @@
-import { Effect } from 'effect'
-import { z } from 'zod'
+import { Effect, Result, Schema } from 'effect'
 
 import { logger } from '@/config/logger'
 import { type AppRequirements } from '@/core/runtime.service'
 import { badRequest } from '@/providers/http/response'
 import { type AppReply, type AppRequest, type RouteHandler } from '@/providers/http/types'
 import { logError } from '@/shared/utils/error'
+import { formatSchemaIssue } from '@/shared/utils/schema'
 
 interface HttpProviderOptions {
   hostname?: string
@@ -48,16 +48,17 @@ export class HttpProvider {
     this.register('GET', path, handler)
   }
 
-  post<TSchema extends z.ZodType>(path: string, validator: TSchema, handler: RouteHandler<z.output<TSchema>>): void {
+  post<TSchema extends Schema.ConstraintDecoder<unknown>>(path: string, validator: TSchema, handler: RouteHandler<TSchema['Type']>): void {
     this.register('POST', path, (request: AppRequest, reply: AppReply) => {
-      const result = validator.safeParse(request.body)
-      if (!result.success) {
+      const result = Schema.decodeUnknownResult(validator, { errors: 'all' })(request.body)
+      if (Result.isFailure(result)) {
         return Effect.sync(() => {
-          logError(result.error.issues, path)
-          badRequest(reply, 'invalid request', z.treeifyError(result.error))
+          const details = formatSchemaIssue(result.failure.issue)
+          logError(details, path)
+          badRequest(reply, 'invalid request', details)
         })
       }
-      return handler({ body: result.data }, reply)
+      return handler({ body: result.success }, reply)
     })
   }
 

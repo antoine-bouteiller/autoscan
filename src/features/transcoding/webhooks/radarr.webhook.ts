@@ -1,7 +1,6 @@
 import { join } from 'node:path'
 
 import { Effect } from 'effect'
-import { type z } from 'zod'
 
 import { Plex } from '@/core/runtime.service'
 import { getMediaLanguage } from '@/domains/media/services/metadata.service'
@@ -10,7 +9,7 @@ import { type radarrValidator } from '@/integrations/arr/radarr.validator'
 import { success } from '@/providers/http/response'
 import { type AppReply, type AppRequest } from '@/providers/http/types'
 
-export const radarrWebhook = (request: AppRequest<z.infer<typeof radarrValidator>>, reply: AppReply) =>
+export const radarrWebhook = (request: AppRequest<typeof radarrValidator.Type>, reply: AppReply) =>
   Effect.gen(function* () {
     if (request.body.eventType === 'Download') {
       const file = join(request.body.movie.folderPath, request.body.movieFile.relativePath)

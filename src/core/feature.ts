@@ -1,5 +1,4 @@
-import { type Effect } from 'effect'
-import { type z } from 'zod'
+import { type Effect, type Schema } from 'effect'
 
 import { type AppRequirements } from '@/core/runtime.service'
 import { type HttpProvider } from '@/providers/http/http.provider'
@@ -32,7 +31,7 @@ interface FeatureProviders {
 export const defineFeature = (feature: Feature): Feature => feature
 
 export const postRoute =
-  <TSchema extends z.ZodType>(path: string, validator: TSchema, handler: RouteHandler<z.output<TSchema>>): FeatureRoute =>
+  <TSchema extends Schema.ConstraintDecoder<unknown>>(path: string, validator: TSchema, handler: RouteHandler<TSchema['Type']>): FeatureRoute =>
   (http) =>
     http.post(path, validator, handler)
 

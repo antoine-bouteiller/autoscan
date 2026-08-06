@@ -1,5 +1,4 @@
-import { Clock, Effect, Random } from 'effect'
-import { z } from 'zod'
+import { Clock, Effect, Random, Result, Schema } from 'effect'
 
 import { HttpError, RequestTimeoutError } from '@/shared/errors/http'
 import { NetworkError } from '@/shared/errors/network'
@@ -17,6 +16,7 @@ import {
   type RequestParams,
   type RequestWithoutResponseOption,
 } from '@/shared/types/http_client'
+import { formatSchemaIssue } from '@/shared/utils/schema'
 
 const DEFAULT_TIMEOUT = 30_000
 const RETRY_DELAYS = [250, 500] as const
@@ -144,12 +144,12 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
           catch: (cause) => new ValidationError({ cause, details: 'Response is not valid JSON' }),
           try: () => response.json(),
         })
-        const result = validator.safeParse(json)
-        if (!result.success) {
-          return yield* new ValidationError({ details: JSON.stringify(z.treeifyError(result.error)) })
+        const result = Schema.decodeUnknownResult(validator, { errors: 'all' })(json)
+        if (Result.isFailure(result)) {
+          return yield* new ValidationError({ details: JSON.stringify(formatSchemaIssue(result.failure.issue)) })
         }
 
-        return result.data
+        return result.success
       })
     )
 

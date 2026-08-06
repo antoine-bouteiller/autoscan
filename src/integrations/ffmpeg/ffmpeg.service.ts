@@ -1,5 +1,4 @@
-import { Effect } from 'effect'
-import { z } from 'zod'
+import { Effect, Result, Schema } from 'effect'
 
 import env from '@/config/env'
 import { type FileAccessError, FileNotFoundError } from '@/features/transcoding/errors'
@@ -8,6 +7,7 @@ import { type CommandExecutionError } from '@/shared/errors/command'
 import { ValidationError } from '@/shared/errors/validation'
 import { spawn } from '@/shared/utils/exec_promisify'
 import { exists, mkdir } from '@/shared/utils/fs'
+import { formatSchemaIssue } from '@/shared/utils/schema'
 
 type FfmpegError = CommandExecutionError | FileAccessError | FileNotFoundError | ValidationError
 
@@ -62,11 +62,11 @@ export class FfmpegClient implements IFfmpegClient {
         catch: (cause) => new ValidationError({ cause, details: 'FFprobe returned invalid JSON' }),
         try: () => JSON.parse(output),
       })
-      const parsed = ffprobeOutputValidator.safeParse(json)
-      if (!parsed.success) {
-        return yield* new ValidationError({ details: JSON.stringify(z.treeifyError(parsed.error)) })
+      const parsed = Schema.decodeUnknownResult(ffprobeOutputValidator, { errors: 'all' })(json)
+      if (Result.isFailure(parsed)) {
+        return yield* new ValidationError({ details: JSON.stringify(formatSchemaIssue(parsed.failure.issue)) })
       }
-      return { duration: parsed.data.format?.duration ?? 0, streams: parsed.data.streams }
+      return { duration: parsed.success.format.duration, streams: parsed.success.streams }
     })
   }
 

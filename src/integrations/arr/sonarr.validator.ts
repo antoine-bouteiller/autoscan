@@ -1,41 +1,43 @@
-import { z } from 'zod'
+import { Schema } from 'effect'
 
-const episodeValidator = z.object({
-  title: z.string(),
+import { NumberFromUnknown } from '@/shared/utils/schema'
+
+const episodeValidator = Schema.Struct({
+  title: Schema.String,
 })
 
-const episodeFileValidator = z.object({
-  relativePath: z.string(),
+const episodeFileValidator = Schema.Struct({
+  relativePath: Schema.String,
 })
 
-const seriesPayloadValidator = z.object({
-  path: z.string(),
-  title: z.string(),
-  tmdbId: z.coerce.number(),
+const seriesPayloadValidator = Schema.Struct({
+  path: Schema.String,
+  title: Schema.String,
+  tmdbId: NumberFromUnknown,
 })
 
-export const sonarrValidator = z.union([
-  z.object({
+export const sonarrValidator = Schema.Union([
+  Schema.Struct({
     episodeFile: episodeFileValidator,
-    episodes: z.array(episodeValidator),
-    eventType: z.literal('Download'),
+    episodes: Schema.Array(episodeValidator),
+    eventType: Schema.Literal('Download'),
     series: seriesPayloadValidator,
   }),
-  z.object({
-    episodeFile: episodeFileValidator.optional(),
-    eventType: z.union([z.literal('EpisodeFileDelete'), z.literal('Rename')]),
+  Schema.Struct({
+    episodeFile: Schema.optional(episodeFileValidator),
+    eventType: Schema.Literals(['EpisodeFileDelete', 'Rename']),
     series: seriesPayloadValidator,
   }),
-  z.object({
-    eventType: z.literal('SeriesDelete'),
+  Schema.Struct({
+    eventType: Schema.Literal('SeriesDelete'),
     series: seriesPayloadValidator,
   }),
-  z.object({
-    eventType: z.literal('Test'),
+  Schema.Struct({
+    eventType: Schema.Literal('Test'),
   }),
 ])
 
-export const seriesValidator = z.object({
-  id: z.number(),
-  path: z.string(),
+export const seriesValidator = Schema.Struct({
+  id: Schema.Finite,
+  path: Schema.String,
 })

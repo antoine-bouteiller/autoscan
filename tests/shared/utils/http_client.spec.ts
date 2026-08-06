@@ -1,15 +1,14 @@
 import { describe, expect, spyOn, test } from 'bun:test'
 
-import { Effect, Fiber, Result } from 'effect'
+import { Effect, Fiber, Result, Schema } from 'effect'
 import { adjust, layer } from 'effect/testing/TestClock'
-import { z } from 'zod'
 
 import { HttpError } from '@/shared/errors/http'
 import { NetworkError } from '@/shared/errors/network'
 import { ValidationError } from '@/shared/errors/validation'
 import { httpClient } from '@/shared/utils/http_client'
 
-const schema = z.object({ value: z.string() })
+const schema = Schema.Struct({ value: Schema.String })
 const client = () => httpClient({ baseUrl: 'https://example.com/', headers: { Authorization: 'token' }, serviceName: 'Test' })
 
 describe('httpClient', () => {
@@ -23,10 +22,15 @@ describe('httpClient', () => {
     expect(await Effect.runPromise(client().delete('/resource'))).toBeUndefined()
   })
 
-  test('reports validation failures', async () => {
+  test('reports all validation failures', async () => {
     spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ wrong: true }))
-    const result = await Effect.runPromise(Effect.result(client().get('/resource', { validator: schema })))
+    const validator = Schema.Struct({ count: Schema.Finite, value: Schema.String })
+    const result = await Effect.runPromise(Effect.result(client().get('/resource', { validator })))
     expect(Result.isFailure(result) && result.failure).toBeInstanceOf(ValidationError)
+    if (Result.isFailure(result) && result.failure instanceof ValidationError) {
+      const details = JSON.parse(result.failure.details)
+      expect(details.issues.map((issue: { path: string[] }) => issue.path)).toEqual([['count'], ['value']])
+    }
   })
 
   test('reports HTTP failures', async () => {

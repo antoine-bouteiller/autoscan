@@ -1,8 +1,8 @@
 ---
 title: Project Structure
-version: 1.0
+version: 1.1
 date_created: 2026-05-08
-last_updated: 2026-05-08
+last_updated: 2026-08-06
 tags: [architecture, structure, conventions]
 ---
 
@@ -26,7 +26,7 @@ its own spec).
 - **Feature**: a self-contained business capability under `src/features/<name>/`, wired through a
   single `feature.ts` declaration.
 - **Domain**: cross-feature business module under `src/domains/<name>/` (services, repositories).
-- **Integration**: thin, Zod-validated client to one external vendor under
+- **Integration**: thin, Effect Schema-validated client to one external vendor under
   `src/integrations/<vendor>/`.
 - **Provider**: long-lived runtime host with a lifecycle (HTTP server, scheduler, Telegram bot)
   under `src/providers/<name>/`.
@@ -57,8 +57,8 @@ its own spec).
   `providers/`.
 - **CON-002** `src/core/` MUST contain only DI plumbing and bootstrap wiring. No business logic,
   no integration calls, no scheduling.
-- **CON-003** `src/integrations/<vendor>/` MUST stay thin: typed HTTP/CLI wrappers with Zod
-  validators only. Multi-vendor orchestration belongs in feature services.
+- **CON-003** `src/integrations/<vendor>/` MUST stay thin: typed HTTP/CLI wrappers with Effect
+  Schema validators only. Multi-vendor orchestration belongs in feature services.
 - **CON-004** Feature folders MUST NOT contain barrel `index.ts` re-exports. Each consumer imports
   the specific module it needs.
 - **CON-005** `src/features/index.ts` MUST list features explicitly. Dynamic discovery (filesystem
@@ -67,7 +67,7 @@ its own spec).
   at the repo root.
 - **GUD-001** Promote code to `src/domains/<x>/` only when reused across 3+ features, or 2
   features plus 1 provider/integration. Below that threshold, keep it feature-local.
-- **GUD-002** Place a Zod validator next to the producer of the shape: webhook payload validators
+- **GUD-002** Place an Effect Schema validator next to the producer of the shape: webhook payload validators
   under `integrations/`, request body validators under the feature exposing the route.
 - **GUD-003** Co-locate the spec with the code it describes: `src/<path>/<name>.spec.md` for
   features/providers/domains; cross-cutting specs under `docs/`.
@@ -80,27 +80,27 @@ its own spec).
 
 ## 4. Interfaces & Data Contracts
 
-| Folder              | Role                                                                                                             |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `src/config/`       | Env loader (Zod), logger, database init (Postgres / PGlite + Drizzle migrations)                                 |
-| `src/core/`         | Effect services/layers, bootstrap, lifecycle, and feature registration helpers                                   |
-| `src/database/`     | Drizzle schema (e.g. `media`, `traktTokens`, `traktSyncHistory`)                                                 |
-| `src/domains/`      | Cross-feature business modules (services, repositories)                                                          |
-| `src/features/`     | Business capabilities, one folder per feature, each owning its `feature.ts`                                      |
-| `src/integrations/` | Thin per-vendor clients with Zod validators (`arr`, `cloudflare`, `ffmpeg`, `plex`, `telegram`, `tmdb`, `trakt`) |
-| `src/providers/`    | Runtime hosts with lifecycle (`http`, `scheduler`, `telegram`)                                                   |
-| `src/shared/`       | Shared utilities and types with typed I/O boundaries                                                             |
+| Folder              | Role                                                                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `src/config/`       | Env loader (Effect Schema), logger, database init (Postgres / PGlite + Drizzle migrations)                                 |
+| `src/core/`         | Effect services/layers, bootstrap, lifecycle, and feature registration helpers                                             |
+| `src/database/`     | Drizzle schema (e.g. `media`, `traktTokens`, `traktSyncHistory`)                                                           |
+| `src/domains/`      | Cross-feature business modules (services, repositories)                                                                    |
+| `src/features/`     | Business capabilities, one folder per feature, each owning its `feature.ts`                                                |
+| `src/integrations/` | Thin per-vendor clients with Effect Schema validators (`arr`, `cloudflare`, `ffmpeg`, `plex`, `telegram`, `tmdb`, `trakt`) |
+| `src/providers/`    | Runtime hosts with lifecycle (`http`, `scheduler`, `telegram`)                                                             |
+| `src/shared/`       | Shared utilities and types with typed I/O boundaries                                                                       |
 
-| Kind suffix      | Subfolder          | Purpose                                     |
-| ---------------- | ------------------ | ------------------------------------------- |
-| `.service.ts`    | `services/`        | Stateful or stateless orchestration logic   |
-| `.command.ts`    | `commands/`        | Telegram command handler                    |
-| `.job.ts`        | `jobs/`            | Cron job handler registered with scheduler  |
-| `.webhook.ts`    | `webhooks/`        | HTTP webhook handler                        |
-| `.validator.ts`  | `validators/`      | Zod schema for an external or request shape |
-| `.repository.ts` | `repositories/`    | Database access (Drizzle)                   |
-| `.provider.ts`   | (root)             | Runtime host class implementing a lifecycle |
-| `.errors.ts`     | (root or per kind) | Typed error classes                         |
+| Kind suffix      | Subfolder          | Purpose                                        |
+| ---------------- | ------------------ | ---------------------------------------------- |
+| `.service.ts`    | `services/`        | Stateful or stateless orchestration logic      |
+| `.command.ts`    | `commands/`        | Telegram command handler                       |
+| `.job.ts`        | `jobs/`            | Cron job handler registered with scheduler     |
+| `.webhook.ts`    | `webhooks/`        | HTTP webhook handler                           |
+| `.validator.ts`  | `validators/`      | Effect Schema for an external or request shape |
+| `.repository.ts` | `repositories/`    | Database access (Drizzle)                      |
+| `.provider.ts`   | (root)             | Runtime host class implementing a lifecycle    |
+| `.errors.ts`     | (root or per kind) | Typed error classes                            |
 
 Import alias: `@/*` resolves to `./src/*.js` (Node subpath imports). Imports MUST use the `.js`
 extension, e.g. `import { foo } from '@/shared/utils/array.js'`.
@@ -148,7 +148,7 @@ between modules rather than any single module.
 - **PLT-001** Bun runtime and package manager with native ESM and subpath imports (`@/*` -> `./src/*`).
 - **PLT-002** oxlint and oxfmt for lint and format, invoked directly via `bun run lint` / `bun run fmt`; tests
   run on Bun's native `bun test`. Bun runs the app and manages dependencies, and Nix packaging uses bun2nix.
-- **PLT-003** TypeScript with strict mode; Zod for runtime validation at every external boundary.
+- **PLT-003** TypeScript with strict mode; Effect Schema for runtime validation at every external boundary.
 - **PLT-004** Drizzle ORM for schema and queries.
 
 ### Infrastructure Dependencies

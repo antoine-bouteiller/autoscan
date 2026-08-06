@@ -1,30 +1,33 @@
-import { type Effect } from 'effect'
-import { z } from 'zod'
+import { type Effect, Schema, SchemaGetter } from 'effect'
 
 import { type HttpClientError } from '@/shared/types/http_client'
 
-const queueItemValidator = z.object({
-  errorMessage: z.string().optional(),
-  id: z.number(),
-  status: z.string(),
-  statusMessages: z
-    .array(
-      z.object({
-        messages: z.union([z.string(), z.record(z.string(), z.unknown())]),
-        title: z.string(),
+const timeleftValidator = Schema.NullOr(Schema.String).pipe(
+  Schema.decodeTo(Schema.UndefinedOr(Schema.String), {
+    decode: SchemaGetter.transform((value) => value ?? undefined),
+    encode: SchemaGetter.forbidden(() => 'Encoding is not supported'),
+  })
+)
+
+const queueItemValidator = Schema.Struct({
+  errorMessage: Schema.optional(Schema.String),
+  id: Schema.Finite,
+  status: Schema.String,
+  statusMessages: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        messages: Schema.Union([Schema.String, Schema.Record(Schema.String, Schema.Unknown)]),
+        title: Schema.String,
       })
     )
-    .optional(),
-  timeleft: z
-    .string()
-    .nullish()
-    .transform((value) => value ?? undefined),
-  title: z.string(),
-  trackedDownloadStatus: z.string().optional(),
+  ),
+  timeleft: Schema.optional(timeleftValidator),
+  title: Schema.String,
+  trackedDownloadStatus: Schema.optional(Schema.String),
 })
 
-export const queueResponseValidator = z.object({ records: z.array(queueItemValidator), totalRecords: z.number() })
-export type QueueResponse = z.infer<typeof queueResponseValidator>
+export const queueResponseValidator = Schema.Struct({ records: Schema.Array(queueItemValidator), totalRecords: Schema.Finite })
+export type QueueResponse = typeof queueResponseValidator.Type
 
 export interface QueueService {
   readonly getQueue: () => Effect.Effect<QueueResponse, HttpClientError>

@@ -1,37 +1,37 @@
-import { z } from 'zod'
+import { Schema } from 'effect'
 
-const moviePayloadValidator = z.object({
-  folderPath: z.string(),
-  title: z.string(),
-  tmdbId: z.number(),
+const moviePayloadValidator = Schema.Struct({
+  folderPath: Schema.String,
+  title: Schema.String,
+  tmdbId: Schema.Finite,
 })
 
-const movieFileValidator = z.object({
-  relativePath: z.string(),
+const movieFileValidator = Schema.Struct({
+  relativePath: Schema.String,
 })
 
-export const radarrValidator = z.union([
-  z.object({
-    eventType: z.literal('MovieFileDelete'),
+export const radarrValidator = Schema.Union([
+  Schema.Struct({
+    eventType: Schema.Literal('MovieFileDelete'),
     movie: moviePayloadValidator,
-    movieFile: movieFileValidator.optional(),
+    movieFile: Schema.optional(movieFileValidator),
   }),
-  z.object({
-    deleteFiles: z.boolean(),
-    eventType: z.literal('MovieDelete'),
+  Schema.Struct({
+    deleteFiles: Schema.Boolean,
+    eventType: Schema.Literal('MovieDelete'),
     movie: moviePayloadValidator,
   }),
-  z.object({
-    eventType: z.literal('Download'),
+  Schema.Struct({
+    eventType: Schema.Literal('Download'),
     movie: moviePayloadValidator,
     movieFile: movieFileValidator,
   }),
-  z.object({
-    eventType: z.literal('Test'),
+  Schema.Struct({
+    eventType: Schema.Literal('Test'),
   }),
 ])
 
-export const movieValidator = z.object({
-  id: z.number(),
-  path: z.string(),
+export const movieValidator = Schema.Struct({
+  id: Schema.Finite,
+  path: Schema.String,
 })

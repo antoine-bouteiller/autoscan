@@ -1,8 +1,8 @@
 ---
 title: Send Message Feature
-version: 1.0
+version: 1.1
 date_created: 2026-05-08
-last_updated: 2026-05-08
+last_updated: 2026-08-06
 tags: [feature, http, telegram, webhook]
 ---
 
@@ -26,7 +26,7 @@ to the operator.
 ## 3. Requirements, Constraints & Guidelines
 
 - **REQ-001** Register exactly one route: `POST /send_message` via `postRoute` in `feature.ts`.
-- **REQ-002** Validate the request body with `sendMessageValidator` (Zod) before invoking the handler.
+- **REQ-002** Validate the request body with `sendMessageValidator` (Effect Schema) before invoking the handler.
 - **REQ-003** Yield the Telegram Effect service and call `sendMessage(env.TELEGRAM_CHAT_ID, body.text)`.
 - **REQ-004** Return `success(reply, { message: 'ok' })` (HTTP 200) on completion.
 - **CON-001** The destination chat id is fixed: it MUST come from `env.TELEGRAM_CHAT_ID`, never from the request body.
@@ -44,10 +44,10 @@ POST /send_message
 Content-Type: application/json
 ```
 
-Request body (Zod):
+Request body (Effect Schema):
 
 ```ts
-z.object({ text: z.string() })
+Schema.Struct({ text: Schema.String })
 ```
 
 Response envelope (success, 200):
@@ -63,7 +63,7 @@ Response envelope (validation failure, 400):
   "error": {
     "code": "BAD_REQUEST",
     "message": "invalid request",
-    "details": {/* z.treeifyError */}
+    "details": { "issues": [{ "message": "Missing key", "path": ["text"] }] }
   },
   "success": false,
   "meta": { "timestamp": "<ISO-8601>" }
@@ -93,8 +93,8 @@ Status codes: `200` on success, `400` on validation failure, `404` if route not 
 
 - **Route-only feature**: this is an Effect-based fan-in webhook; it owns no schedule, command, or conversation, so
   registering only `routes` keeps the surface minimal.
-- **Validator co-location**: the request body is defined by this feature, not by an upstream integration, so the Zod
-  schema lives under `validators/` per the project's "validators live with the producer" rule.
+- **Validator co-location**: the request body is defined by this feature, not by an upstream integration, so the Effect
+  Schema lives under `validators/` per the project's "validators live with the producer" rule.
 - **Client over provider**: the feature needs to push a single message, not consume updates or dispatch commands, so it
   resolves the lower-level `TELEGRAM_CLIENT` rather than the long-polling `TELEGRAM_PROVIDER`.
 
@@ -123,10 +123,10 @@ curl -X POST http://localhost:3030/send_message \
 
 Edge cases:
 
-- Empty string `text`: passes validation (`z.string()` accepts `""`); Telegram API rejects empty messages — delivery
+- Empty string `text`: passes validation (`Schema.String` accepts `""`); Telegram API rejects empty messages — delivery
   fails, handler still returns 200.
-- Missing `text` field: `400 BAD_REQUEST` with `z.treeifyError` details.
-- Extra fields in body: silently accepted and dropped by Zod.
+- Missing `text` field: `400 BAD_REQUEST` with Effect Schema issue details.
+- Extra fields in body: silently accepted and dropped by `Schema.Struct`.
 
 ## 10. Validation Criteria
 

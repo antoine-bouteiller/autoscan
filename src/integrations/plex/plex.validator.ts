@@ -1,62 +1,68 @@
-import { z } from 'zod'
+import { Result, Schema, SchemaGetter } from 'effect'
 
 import { ISO2T } from '@/shared/types/iso_codes'
+import { NumberFromUnknown } from '@/shared/utils/schema'
 
-const streamValidator = z.object({
-  id: z.number(),
-  languageCode: z.enum(ISO2T).optional(),
-  selected: z.boolean().optional(),
-  streamType: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-  title: z.string().optional(),
+const streamValidator = Schema.Struct({
+  id: Schema.Finite,
+  languageCode: Schema.optional(Schema.Literals(ISO2T)),
+  selected: Schema.optional(Schema.Boolean),
+  streamType: Schema.Literals([1, 2, 3]),
+  title: Schema.optional(Schema.String),
 })
 
-const plexMediaValidator = z.object({
-  Media: z.array(
-    z.object({
-      Part: z.array(
-        z.object({
-          Stream: z
-            .array(z.unknown())
-            .transform((items) =>
-              items.flatMap((item) => {
-                const result = streamValidator.safeParse(item)
-                return result.success ? [result.data] : []
-              })
-            )
-            .optional(),
-          file: z.string(),
-          id: z.number(),
+const decodeStream = Schema.decodeUnknownResult(streamValidator)
+const streamsValidator = Schema.Array(Schema.Unknown).pipe(
+  Schema.decodeTo(Schema.Array(streamValidator).pipe(Schema.mutable), {
+    decode: SchemaGetter.transform((items) =>
+      items.flatMap((item) => {
+        const result = decodeStream(item)
+        return Result.isSuccess(result) ? [result.success] : []
+      })
+    ),
+    encode: SchemaGetter.transform((items) => items),
+  })
+)
+
+const plexMediaValidator = Schema.Struct({
+  Media: Schema.Array(
+    Schema.Struct({
+      Part: Schema.Array(
+        Schema.Struct({
+          Stream: Schema.optional(streamsValidator),
+          file: Schema.String,
+          id: Schema.Finite,
         })
-      ),
+      ).pipe(Schema.mutable),
     })
-  ),
-  grandparentTitle: z.string().optional(),
-  index: z.number().optional(),
-  key: z.string(),
-  lastViewedAt: z.number().optional(),
-  librarySectionID: z.number().optional(),
-  parentIndex: z.number().optional(),
-  parentTitle: z.string().optional(),
-  primaryExtraKey: z.string().optional(),
-  ratingKey: z.string(),
-  title: z.string(),
-  type: z.union([z.literal('episode'), z.literal('movie')]),
-  viewCount: z.number().optional(),
-  year: z.number(),
+  ).pipe(Schema.mutable),
+  grandparentTitle: Schema.optional(Schema.String),
+  index: Schema.optional(Schema.Finite),
+  key: Schema.String,
+  lastViewedAt: Schema.optional(Schema.Finite),
+  librarySectionID: Schema.optional(Schema.Finite),
+  parentIndex: Schema.optional(Schema.Finite),
+  parentTitle: Schema.optional(Schema.String),
+  primaryExtraKey: Schema.optional(Schema.String),
+  ratingKey: Schema.String,
+  title: Schema.String,
+  type: Schema.Literals(['episode', 'movie']),
+  viewCount: Schema.optional(Schema.Finite),
+  year: Schema.Finite,
 })
 
-const plexDirectoryValidator = z.object({
-  key: z.coerce.number(),
-  title: z.string(),
-  type: z.union([z.literal('movie'), z.literal('show')]),
+const plexDirectoryValidator = Schema.Struct({
+  key: NumberFromUnknown,
+  title: Schema.String,
+  type: Schema.Literals(['movie', 'show']),
 })
 
-export const plexResponseValidator = z.object({
-  MediaContainer: z.object({
-    Directory: z.array(plexDirectoryValidator).optional(),
-    Metadata: z.array(plexMediaValidator).optional(),
+export const plexResponseValidator = Schema.Struct({
+  MediaContainer: Schema.Struct({
+    Directory: Schema.optional(Schema.Array(plexDirectoryValidator).pipe(Schema.mutable)),
+    Metadata: Schema.optional(Schema.Array(plexMediaValidator).pipe(Schema.mutable)),
   }),
 })
 
-export type PlexMediaStream = z.infer<typeof streamValidator>
-export type PlexMedia = z.infer<typeof plexMediaValidator>
+export type PlexMediaStream = typeof streamValidator.Type
+export type PlexMedia = typeof plexMediaValidator.Type

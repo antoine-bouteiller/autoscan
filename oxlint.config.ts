@@ -77,7 +77,7 @@ export default defineConfig({
     'exports-last': 'off',
 
     // Off by design — default-on in standalone oxlint but not pertinent here:
-    // zod schemas nest calls inherently; fs.ts exposes deliberate safe*Sync wrappers.
+    // Effect schemas nest calls inherently; fs.ts exposes deliberate safe*Sync wrappers.
     'unicorn/max-nested-calls': 'off',
     'node/no-sync': 'off',
   },

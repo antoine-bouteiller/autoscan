@@ -1,5 +1,4 @@
-import { Effect } from 'effect'
-import { z } from 'zod'
+import { Effect, Schema } from 'effect'
 
 import { ArrClient } from '@/integrations/arr/arr.service'
 import { type QueueService } from '@/integrations/arr/queue.types'
@@ -32,7 +31,7 @@ export class SonarrClient extends ArrClient implements ISonarrClient {
 
   getSeriesByPath(filePath: string) {
     return this.client
-      .get('series', { validator: z.array(seriesValidator) })
+      .get('series', { validator: Schema.Array(seriesValidator).pipe(Schema.mutable) })
       .pipe(Effect.map((series) => series.find((item) => filePath.startsWith(item.path))?.id))
   }
 }

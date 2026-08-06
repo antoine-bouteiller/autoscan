@@ -1,5 +1,4 @@
-import { Effect } from 'effect'
-import { z } from 'zod'
+import { Effect, Schema } from 'effect'
 
 import { ArrClient } from '@/integrations/arr/arr.service'
 import { type QueueService } from '@/integrations/arr/queue.types'
@@ -32,7 +31,7 @@ export class RadarrClient extends ArrClient implements IRadarrClient {
 
   getMovieByPath(filePath: string) {
     return this.client
-      .get('movie', { validator: z.array(movieValidator) })
+      .get('movie', { validator: Schema.Array(movieValidator).pipe(Schema.mutable) })
       .pipe(Effect.map((movies) => movies.find((movie) => filePath.startsWith(movie.path))?.id))
   }
 }

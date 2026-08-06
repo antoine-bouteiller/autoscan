@@ -1,8 +1,8 @@
 ---
 title: Effect v4 Runtime Contract
-version: 1.0
+version: 1.1
 date_created: 2026-08-05
-last_updated: 2026-08-05
+last_updated: 2026-08-06
 tags: [architecture, effect, runtime, reliability]
 ---
 
@@ -10,11 +10,11 @@ tags: [architecture, effect, runtime, reliability]
 
 Autoscan targets exactly `effect@4.0.0-beta.103` and `@effect/platform-bun@4.0.0-beta.103`. `@effect/tsgo@0.32.1` patches the existing oxlint type-aware engine. Bun remains the runtime, package manager, test runner, HTTP server, cron host, SQL client, and subprocess host.
 
-`BunRuntime.runMain(program)` owns the only root runtime. Environment secret loading and Zod validation remain eager startup trust-boundary checks. Effect owns database acquisition and migration, service composition, scopes, interruption, schedules, typed recoverable failures, and supervised workflows.
+`BunRuntime.runMain(program)` owns the only root runtime. Environment secret loading and Effect Schema validation remain eager startup trust-boundary checks. Effect owns database acquisition and migration, service composition, scopes, interruption, schedules, typed recoverable failures, and supervised workflows.
 
 # Native adapters
 
-- `Bun.serve`, `Bun.cron`, `Bun.spawn`, Bun SQL, Drizzle, and Zod remain native adapters.
+- `Bun.serve`, `Bun.cron`, `Bun.spawn`, Bun SQL, Drizzle, and Effect Schema remain native adapters.
 - Callback providers receive one runner backed by a scoped `FiberSet`; feature and integration modules never create runtimes.
 - Telegram polling is a root-scoped Effect with interruptible long polling and exponential backoff from 5 seconds to 5 minutes.
 - Scheduler callbacks await tracked job completion, preserving Bun's no-overlap behavior.

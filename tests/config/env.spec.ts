@@ -4,6 +4,8 @@ import { existsSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { Result, Schema } from 'effect'
+
 import env, { loadFileSecrets, urlString } from '@/config/env'
 
 const writeTempSecret = (value: string): string => {
@@ -83,22 +85,22 @@ describe('loadFileSecrets', () => {
 
 describe('urlString', () => {
   test('should accept valid http URLs', () => {
-    expect(urlString.safeParse('http://example.com').success).toBe(true)
+    expect(Result.isSuccess(Schema.decodeUnknownResult(urlString)('http://example.com'))).toBe(true)
   })
 
   test('should accept valid https URLs', () => {
-    expect(urlString.safeParse('https://example.com/path?q=1').success).toBe(true)
+    expect(Result.isSuccess(Schema.decodeUnknownResult(urlString)('https://example.com/path?q=1'))).toBe(true)
   })
 
   test('should reject empty strings', () => {
-    expect(urlString.safeParse('').success).toBe(false)
+    expect(Result.isFailure(Schema.decodeUnknownResult(urlString)(''))).toBe(true)
   })
 
   test('should reject non-URL strings', () => {
-    const result = urlString.safeParse('not a url at all')
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('Expected URL')
+    const result = Schema.decodeUnknownResult(urlString)('not a url at all')
+    expect(Result.isFailure(result)).toBe(true)
+    if (Result.isFailure(result)) {
+      expect(result.failure.message).toBe('Expected URL')
     }
   })
 })

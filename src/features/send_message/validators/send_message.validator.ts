@@ -1,5 +1,5 @@
-import { z } from 'zod'
+import { Schema } from 'effect'
 
-export const sendMessageValidator = z.object({
-  text: z.string(),
+export const sendMessageValidator = Schema.Struct({
+  text: Schema.String,
 })

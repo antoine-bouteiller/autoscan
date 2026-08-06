@@ -1,35 +1,35 @@
-import { z } from 'zod'
+import { Schema } from 'effect'
 
-export const deviceCodeResponseValidator = z.object({
-  device_code: z.string(),
-  expires_in: z.number(),
-  interval: z.number(),
-  user_code: z.string(),
-  verification_url: z.string(),
+export const deviceCodeResponseValidator = Schema.Struct({
+  device_code: Schema.String,
+  expires_in: Schema.Finite,
+  interval: Schema.Finite,
+  user_code: Schema.String,
+  verification_url: Schema.String,
 })
 
-export const tokenResponseValidator = z.object({
-  access_token: z.string(),
-  created_at: z.number(),
-  expires_in: z.number(),
-  refresh_token: z.string(),
-  scope: z.string(),
-  token_type: z.string(),
+export const tokenResponseValidator = Schema.Struct({
+  access_token: Schema.String,
+  created_at: Schema.Finite,
+  expires_in: Schema.Finite,
+  refresh_token: Schema.String,
+  scope: Schema.String,
+  token_type: Schema.String,
 })
 
-export const syncResponseValidator = z.object({
-  added: z.object({
-    episodes: z.number(),
-    movies: z.number(),
+export const syncResponseValidator = Schema.Struct({
+  added: Schema.Struct({
+    episodes: Schema.Finite,
+    movies: Schema.Finite,
   }),
-  not_found: z.object({
-    episodes: z.array(z.unknown()),
-    movies: z.array(z.unknown()),
-    seasons: z.array(z.unknown()),
-    shows: z.array(z.unknown()),
+  not_found: Schema.Struct({
+    episodes: Schema.Array(Schema.Unknown),
+    movies: Schema.Array(Schema.Unknown),
+    seasons: Schema.Array(Schema.Unknown),
+    shows: Schema.Array(Schema.Unknown),
   }),
 })
 
-export type TraktDeviceCodeResponse = z.infer<typeof deviceCodeResponseValidator>
-export type TraktTokenResponse = z.infer<typeof tokenResponseValidator>
-export type TraktSyncResponse = z.infer<typeof syncResponseValidator>
+export type TraktDeviceCodeResponse = typeof deviceCodeResponseValidator.Type
+export type TraktTokenResponse = typeof tokenResponseValidator.Type
+export type TraktSyncResponse = typeof syncResponseValidator.Type

@@ -1,32 +1,37 @@
-import { z } from 'zod'
+import { Schema, SchemaGetter } from 'effect'
 
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { ISO1 } from '@/shared/types/iso_codes'
 import { normalizeToIso1 } from '@/shared/utils/iso_codes'
+import { NumberFromUnknown } from '@/shared/utils/schema'
 
-export const ffprobeOutputValidator = z.object({
-  format: z.object({
-    duration: z.coerce.number(),
+const languageValidator = Schema.String.pipe(
+  Schema.decodeTo(Schema.UndefinedOr(Schema.Literals(ISO1)), {
+    decode: SchemaGetter.transform(normalizeToIso1),
+    encode: SchemaGetter.transform((value) => value ?? ''),
+  })
+)
+
+export const ffprobeOutputValidator = Schema.Struct({
+  format: Schema.Struct({
+    duration: NumberFromUnknown,
   }),
-  streams: z.array(
-    z.object({
-      channels: z.number().optional(),
-      codec_name: z.string().optional(),
-      codec_type: z.string().optional(),
-      index: z.number().optional(),
-      sample_rate: z.union([z.number(), z.coerce.number()]).optional(),
-      tags: z
-        .object({
-          language: z
-            .string()
-            .transform((value: string): ISOCode1 | undefined => normalizeToIso1(value))
-            .optional(),
-          title: z.string().optional(),
+  streams: Schema.Array(
+    Schema.Struct({
+      channels: Schema.optional(Schema.Finite),
+      codec_name: Schema.optional(Schema.String),
+      codec_type: Schema.optional(Schema.String),
+      index: Schema.optional(Schema.Finite),
+      sample_rate: Schema.optional(NumberFromUnknown),
+      tags: Schema.optional(
+        Schema.Struct({
+          language: Schema.optional(languageValidator),
+          title: Schema.optional(Schema.String),
         })
-        .optional(),
+      ),
     })
-  ),
+  ).pipe(Schema.mutable),
 })
 
-type FfprobeOutput = z.infer<typeof ffprobeOutputValidator>
+type FfprobeOutput = typeof ffprobeOutputValidator.Type
 
 export type FFprobeStream = FfprobeOutput['streams'][number]

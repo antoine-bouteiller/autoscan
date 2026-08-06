@@ -1,6 +1,7 @@
-import { z } from 'zod'
+import { Schema } from 'effect'
 
 import { safeReadFileSync } from '@/shared/utils/fs'
+import { NumberFromUnknown } from '@/shared/utils/schema'
 
 const FILE_SECRET_KEYS = [
   'PLEX_TOKEN',
@@ -28,36 +29,40 @@ export const loadFileSecrets = (target: Record<string, string | undefined>): voi
 
 loadFileSecrets(process.env)
 
-export const urlString = z.string().refine((value) => {
-  try {
-    const url = new URL(value)
-    return Boolean(url)
-  } catch {
-    return false
-  }
-}, 'Expected URL')
+export const urlString = Schema.String.pipe(
+  Schema.refine(
+    (value): value is string => {
+      try {
+        return Boolean(new URL(value))
+      } catch {
+        return false
+      }
+    },
+    { message: 'Expected URL' }
+  )
+)
 
-const envSchema = z.object({
-  PLEX_TOKEN: z.string(),
+const envSchema = Schema.Struct({
+  PLEX_TOKEN: Schema.String,
   PLEX_URL: urlString,
-  POSTGRES_DATABASE: z.string(),
-  POSTGRES_HOST: z.string(),
-  POSTGRES_PASSWORD: z.string().optional(),
-  POSTGRES_PORT: z.coerce.number(),
-  POSTGRES_USERNAME: z.string(),
-  RADARR_API_KEY: z.string(),
+  POSTGRES_DATABASE: Schema.String,
+  POSTGRES_HOST: Schema.String,
+  POSTGRES_PASSWORD: Schema.optional(Schema.String),
+  POSTGRES_PORT: NumberFromUnknown,
+  POSTGRES_USERNAME: Schema.String,
+  RADARR_API_KEY: Schema.String,
   RADARR_API_URL: urlString,
-  SONARR_API_KEY: z.string(),
+  SONARR_API_KEY: Schema.String,
   SONARR_API_URL: urlString,
-  TELEGRAM_CHAT_ID: z.coerce.number(),
-  TELEGRAM_TOKEN: z.string(),
-  TMDB_API_TOKEN: z.string(),
+  TELEGRAM_CHAT_ID: NumberFromUnknown,
+  TELEGRAM_TOKEN: Schema.String,
+  TMDB_API_TOKEN: Schema.String,
   TMDB_API_URL: urlString,
-  TRAKT_CLIENT_ID: z.string(),
-  TRAKT_CLIENT_SECRET: z.string(),
-  TRANSCODE_PATH: z.string(),
+  TRAKT_CLIENT_ID: Schema.String,
+  TRAKT_CLIENT_SECRET: Schema.String,
+  TRANSCODE_PATH: Schema.String,
 })
 
-const env = envSchema.parse(process.env)
+const env = Schema.decodeUnknownSync(envSchema, { errors: 'all' })(process.env)
 
 export default env
