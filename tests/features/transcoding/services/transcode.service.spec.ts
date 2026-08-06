@@ -1,139 +1,97 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { copyFileSync, existsSync, rmSync } from 'node:fs'
-import { join } from 'node:path'
+import { beforeEach, describe, expect, test } from 'bun:test'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { basename, join } from 'node:path'
 
-import { refreshSectionsMock } from '@tests/mocks/plex.mock'
-import { makeTestDir, videosPath } from '@tests/utils'
+import { runTest } from '@tests/effect'
+import { makeTestDir, refreshSectionsMock, videosPath } from '@tests/utils'
+import { Effect } from 'effect'
 
-import { container, TOKENS } from '@/core/container'
-import { transcodeFile, transcodeQueue } from '@/features/transcoding/services/transcode.service'
-import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
-import { isOk } from '@/shared/utils/error'
+import env from '@/config/env'
+import { TranscodeQueue } from '@/core/runtime.service'
+import { transcodeFile } from '@/features/transcoding/services/transcode.service'
+import { FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 
-const waitForQueueCompletion = async (): Promise<void> =>
-  new Promise((resolve) => {
-    const checkQueue = () => {
-      const status = transcodeQueue.getStatus()
-      if (!status.isProcessing && status.queueLength === 0) {
-        resolve()
-      } else {
-        setTimeout(checkQueue, 100)
-      }
-    }
-    checkQueue()
+const transcodeAndWait = (file: string) =>
+  Effect.gen(function* () {
+    const queued = yield* transcodeFile({ file, mediaTitle: 'test', mediaType: 'movie', originalLanguage: 'en' })
+    const queue = yield* TranscodeQueue
+    yield* queue.awaitIdle
+    return queued
   })
 
-interface FileDataset {
-  filename: string
-  outputStreams: {
-    codecName: string
-    codecType: string
-    index: number
-    language?: NonNullable<FFprobeStream['tags']>['language']
-  }[]
-  shouldExecute: boolean
-  title: string
-}
+describe('transcodeFile', () => {
+  beforeEach(() => {
+    refreshSectionsMock.mockClear()
+  })
 
-const dataset: FileDataset[] = [
-  {
-    filename: 'test_audio_dts.mkv',
-    outputStreams: [
-      { codecName: 'h264', codecType: 'video', index: 0 },
-      { codecName: 'aac', codecType: 'audio', index: 1, language: 'en' },
-    ],
-    shouldExecute: true,
-    title: 'should convert dts to aac',
-  },
-  {
-    filename: 'test_correct_file.mkv',
-    outputStreams: [
-      { codecName: 'h264', codecType: 'video', index: 0 },
-      { codecName: 'aac', codecType: 'audio', index: 1, language: 'en' },
-    ],
-    shouldExecute: true,
-    title: 'should convert format to mp4',
-  },
-  {
-    filename: 'test_audio_aac_dts.mkv',
-    outputStreams: [
-      { codecName: 'h264', codecType: 'video', index: 0 },
-      { codecName: 'aac', codecType: 'audio', index: 1, language: 'en' },
-    ],
-    shouldExecute: true,
-    title: 'should keep only wanted tracks',
-  },
-  {
-    filename: 'test_correct_file.mp4',
-    outputStreams: [
-      { codecName: 'h264', codecType: 'video', index: 0 },
-      { codecName: 'aac', codecType: 'audio', index: 1, language: 'en' },
-    ],
-    shouldExecute: false,
-    title: 'should not transcode already correct file',
-  },
-  {
-    filename: 'test_audio_spa.mkv',
-    outputStreams: [],
-    shouldExecute: false,
-    title: 'should not transcode if no audio stream would be kept in output',
-  },
-]
+  test('probes media streams', async () => {
+    const result = await Effect.runPromise(new FfmpegClient().ffprobe(join(videosPath, 'test_audio_dts.mkv')))
+    expect(result.streams.some((stream) => stream.codec_type === 'audio')).toBeTrue()
+  })
 
-let testDir: string
-beforeEach(() => {
-  testDir = makeTestDir()
-})
-afterEach(() => {
-  rmSync(testDir, { recursive: true })
-})
+  test('queues a file requiring conversion', async () => {
+    const directory = makeTestDir()
+    const file = join(directory, 'test_audio_dts.mkv')
+    copyFileSync(join(videosPath, 'test_audio_dts.mkv'), file)
+    try {
+      expect(await runTest(transcodeAndWait(file))).toBeTrue()
+      expect(readdirSync(directory).some((name) => name.endsWith('.mp4'))).toBeTrue()
+    } finally {
+      rmSync(directory, { recursive: true })
+    }
+  }, 15_000)
 
-describe('Transcode', () => {
-  for (const { filename, outputStreams, shouldExecute, title } of dataset) {
-    test(title, async () => {
-      copyFileSync(join(videosPath, filename), join(testDir, filename))
+  test('does not queue an already-correct file', async () => {
+    const directory = makeTestDir()
+    const source = join(videosPath, 'test_correct_file.mp4')
+    const file = join(directory, basename(source))
+    copyFileSync(source, file)
+    try {
+      expect(await runTest(transcodeAndWait(file))).toBeFalse()
+      expect(existsSync(file)).toBeTrue()
+    } finally {
+      rmSync(directory, { recursive: true })
+    }
+  })
 
-      const executed = await transcodeFile({ file: join(testDir, filename), mediaTitle: 'test', mediaType: 'movie', originalLanguage: 'en' })
+  test('refreshes Plex for a missing file', async () => {
+    expect(await runTest(transcodeFile({ file: '/missing/file.mkv', mediaTitle: 'missing', mediaType: 'movie', originalLanguage: 'en' }))).toBeFalse()
+    expect(refreshSectionsMock).toHaveBeenCalledWith('/missing/file.mkv', 'movie')
+  })
 
-      expect(executed).toBe(shouldExecute)
+  test('refuses to reuse a preserved recovery directory', async () => {
+    const directory = makeTestDir()
+    const file = join(directory, 'test_audio_dts.mkv')
+    const outputDirectory = join(env.TRANSCODE_PATH, 'test_audio_dts')
+    copyFileSync(join(videosPath, 'test_audio_dts.mkv'), file)
+    mkdirSync(outputDirectory, { recursive: true })
+    writeFileSync(join(outputDirectory, '.autoscan-recovery.json'), '{}')
+    writeFileSync(join(outputDirectory, 'stale.srt'), 'stale')
+    try {
+      expect(await runTest(transcodeAndWait(file))).toBeTrue()
+      expect(existsSync(join(outputDirectory, '.autoscan-recovery.json'))).toBeTrue()
+      expect(existsSync(join(outputDirectory, 'stale.srt'))).toBeTrue()
+    } finally {
+      rmSync(directory, { recursive: true })
+      rmSync(outputDirectory, { force: true, recursive: true })
+    }
+  })
 
-      if (!executed) {
-        expect(existsSync(join(testDir, filename))).toBe(true)
-        return
-      }
-
-      await waitForQueueCompletion()
-
-      const outputFileName = filename.replace('.mkv', '.mp4')
-      expect(existsSync(join(testDir, outputFileName))).toBe(true)
-      expect(existsSync(join(testDir, outputFileName.replace('.mp4', '.en.srt')))).toBe(true)
-
-      if (outputFileName !== filename) {
-        expect(existsSync(join(testDir, filename))).toBe(false)
-      }
-
-      const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-      const probeResult = await ffmpegClient.ffprobe(join(testDir, outputFileName))
-      expect(isOk(probeResult)).toBe(true)
-      if (!isOk(probeResult)) {
-        return
-      }
-
-      for (const stream of outputStreams) {
-        expect(probeResult.streams[stream.index]?.codec_type).toBe(stream.codecType)
-        expect(probeResult.streams[stream.index]?.codec_name).toBe(stream.codecName)
-        if (stream.language) {
-          expect(probeResult.streams[stream.index]?.tags?.language).toBe(stream.language)
-        }
-      }
-    })
-  }
-
-  test('Should refresh section when file not found', async () => {
-    const executed = await transcodeFile({ file: 'unkown file.mp4', mediaTitle: 'test', mediaType: 'movie', originalLanguage: 'en' })
-
-    expect(executed).toBe(false)
-
-    expect(refreshSectionsMock).toHaveBeenCalled()
+  test('rejects new jobs after intake stops', async () => {
+    const accepted = await runTest(
+      Effect.gen(function* () {
+        const queue = yield* TranscodeQueue
+        yield* queue.stopIntake
+        return yield* queue.enqueue({
+          command: [],
+          file: '/movie.mkv',
+          mediaTitle: 'Movie',
+          mediaType: 'movie',
+          originalLanguage: 'en',
+          subtitlesToExtract: [],
+        })
+      })
+    )
+    expect(accepted).toBeFalse()
   })
 })

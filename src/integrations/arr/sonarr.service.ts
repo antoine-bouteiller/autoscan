@@ -1,15 +1,15 @@
+import { Effect } from 'effect'
 import { z } from 'zod'
 
+import { ArrClient } from '@/integrations/arr/arr.service'
 import { type QueueService } from '@/integrations/arr/queue.types'
 import { seriesValidator } from '@/integrations/arr/sonarr.validator'
-import { isError, logError } from '@/shared/utils/error'
-
-import { ArrClient } from './arr.service.js'
+import { type HttpClientError } from '@/shared/types/http_client'
 
 export interface ISonarrClient extends QueueService {
-  refreshSeries: (seriesId: number) => Promise<void>
-  renameSeries: (seriesId: number) => Promise<void>
-  getSeriesByPath: (filePath: string) => Promise<number | undefined>
+  readonly getSeriesByPath: (filePath: string) => Effect.Effect<number | undefined, HttpClientError>
+  readonly refreshSeries: (seriesId: number) => Effect.Effect<void, HttpClientError>
+  readonly renameSeries: (seriesId: number) => Effect.Effect<void, HttpClientError>
 }
 
 interface SonarrClientConfig {
@@ -19,50 +19,20 @@ interface SonarrClientConfig {
 
 export class SonarrClient extends ArrClient implements ISonarrClient {
   constructor(config: SonarrClientConfig) {
-    super({
-      apiKey: config.apiKey,
-      baseUrl: `${config.apiUrl}/api/v3`,
-      serviceName: 'Sonarr',
-    })
+    super({ apiKey: config.apiKey, baseUrl: `${config.apiUrl}/api/v3`, serviceName: 'Sonarr' })
   }
 
-  async refreshSeries(seriesId: number): Promise<void> {
-    const result = await this.client.post('command', {
-      body: {
-        name: 'RefreshSeries',
-        seriesId,
-      },
-    })
-
-    if (isError(result)) {
-      logError(result)
-    }
+  refreshSeries(seriesId: number) {
+    return this.client.post('command', { body: { name: 'RefreshSeries', seriesId } })
   }
 
-  async renameSeries(seriesId: number): Promise<void> {
-    const result = await this.client.post('command', {
-      body: {
-        name: 'RenameSeries',
-        seriesIds: [seriesId],
-      },
-    })
-
-    if (isError(result)) {
-      logError(result)
-    }
+  renameSeries(seriesId: number) {
+    return this.client.post('command', { body: { name: 'RenameSeries', seriesIds: [seriesId] } })
   }
 
-  async getSeriesByPath(filePath: string): Promise<number | undefined> {
-    const result = await this.client.get('series', {
-      validator: z.array(seriesValidator),
-    })
-
-    if (isError(result)) {
-      logError(result)
-      return undefined
-    }
-
-    const series = result.find((item) => filePath.startsWith(item.path))
-    return series?.id
+  getSeriesByPath(filePath: string) {
+    return this.client
+      .get('series', { validator: z.array(seriesValidator) })
+      .pipe(Effect.map((series) => series.find((item) => filePath.startsWith(item.path))?.id))
   }
 }

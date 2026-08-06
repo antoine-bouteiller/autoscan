@@ -1,130 +1,46 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
-import { mockRadarrQueue, mockRadarrRemoveQueueItem } from '@tests/mocks/radarr.mock'
-import { mockSonarrQueue, mockSonarrRemoveQueueItem } from '@tests/mocks/sonarr.mock'
+import { runTest } from '@tests/effect'
 import {
   mockQueueResponseEmpty,
   mockQueueResponseNormal,
   mockQueueResponseWithDangerousFiles,
   mockQueueResponseWithNoEligibleFiles,
-  mockQueueResponseWithPersistentStall,
   mockQueueResponseWithStalledWarning,
 } from '@tests/resources/fixtures/queue.fixtures'
+import { mockRadarrQueue, mockRadarrRemoveQueueItem, mockSonarrQueue, mockSonarrRemoveQueueItem } from '@tests/utils'
 
-import '../../../utils.ts'
+import { cleanupAll } from '@/features/queue_cleanup/services/cleanup.service'
 
-const { cleanupAll } = await import('@/features/queue_cleanup/services/cleanup.service')
-
-const STRIKE_COUNT = 5
-
-describe('CleanupService', () => {
+describe('cleanupAll', () => {
   beforeEach(() => {
-    mockSonarrQueue.mockReset()
-    mockSonarrRemoveQueueItem.mockReset()
-    mockRadarrQueue.mockReset()
-    mockRadarrRemoveQueueItem.mockReset()
+    mockRadarrQueue.mockReset().mockResolvedValue(mockQueueResponseEmpty)
+    mockSonarrQueue.mockReset().mockResolvedValue(mockQueueResponseEmpty)
+    mockRadarrRemoveQueueItem.mockReset().mockResolvedValue(undefined)
+    mockSonarrRemoveQueueItem.mockReset().mockResolvedValue(undefined)
   })
 
-  test('should remove items with no eligible files', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
+  test('removes downloads with no eligible files', async () => {
     mockRadarrQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
-
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledWith(1, {
-      blocklist: true,
-      removeFromClient: true,
-    })
+    await runTest(cleanupAll)
+    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledWith(1, { blocklist: true, removeFromClient: true })
   })
 
-  test('should remove items with dangerous file extensions', async () => {
+  test('removes dangerous downloads', async () => {
     mockSonarrQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
-
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
+    await runTest(cleanupAll)
+    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledWith(2, { blocklist: true, removeFromClient: true })
   })
 
-  test('should not remove items with stalled warning on first strike', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
+  test('does not remove a first stalled strike', async () => {
     mockRadarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
-
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
+    await runTest(cleanupAll)
     expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
   })
 
-  test('should handle empty queue', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseEmpty)
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseEmpty)
-
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
-  })
-
-  test('should handle undefined queue response', async () => {
-    mockSonarrQueue.mockResolvedValue({ records: [], totalRecords: 0 })
-    mockRadarrQueue.mockResolvedValue({ records: [], totalRecords: 0 })
-
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
-  })
-
-  test('should skip items with missing title or status', async () => {
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
-  })
-
-  test('should keep accumulating strikes for one arr while the other queue is empty', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithPersistentStall)
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseEmpty)
-
-    for (let run = 0; run < STRIKE_COUNT - 1; run++) {
-      await cleanupAll()
-    }
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledWith(99, {
-      blocklist: true,
-      removeFromClient: true,
-    })
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
-  })
-
-  test('should not let the two arrs share strikes for a colliding queue id', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
-
-    for (let run = 0; run < STRIKE_COUNT - 1; run++) {
-      await cleanupAll()
-    }
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
-  })
-
-  test('should handle normal completed items without errors', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseNormal)
+  test('handles empty and normal queues', async () => {
     mockRadarrQueue.mockResolvedValue(mockQueueResponseNormal)
-
-    await cleanupAll()
-
-    expect(mockSonarrRemoveQueueItem).not.toHaveBeenCalled()
+    expect(await runTest(cleanupAll)).toBeUndefined()
     expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
   })
 })

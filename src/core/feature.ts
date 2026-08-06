@@ -1,14 +1,16 @@
+import { type Effect } from 'effect'
 import { type z } from 'zod'
 
-import { container, TOKENS } from '@/core/container'
+import { type AppRequirements } from '@/core/runtime.service'
 import { type HttpProvider } from '@/providers/http/http.provider'
 import { type RouteHandler } from '@/providers/http/types'
-import { type CommandHandler, type Conversation } from '@/providers/telegram/telegram.provider'
+import { type SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
+import { type CommandHandler, type Conversation, type TelegramProvider } from '@/providers/telegram/telegram.provider'
 
 type FeatureRoute = (http: HttpProvider) => void
 
 interface FeatureJob {
-  readonly handler: () => Promise<void> | void
+  readonly handler: Effect.Effect<void, unknown, AppRequirements>
   readonly name: string
   readonly pattern: string
 }
@@ -21,6 +23,12 @@ interface Feature {
   readonly routes?: readonly FeatureRoute[]
 }
 
+interface FeatureProviders {
+  readonly http: HttpProvider
+  readonly scheduler: SchedulerProvider
+  readonly telegram: TelegramProvider
+}
+
 export const defineFeature = (feature: Feature): Feature => feature
 
 export const postRoute =
@@ -28,23 +36,19 @@ export const postRoute =
   (http) =>
     http.post(path, validator, handler)
 
-export const registerFeatures = (features: readonly Feature[]): void => {
-  const http = container.resolve(TOKENS.HTTP_PROVIDER)
-  const scheduler = container.resolve(TOKENS.SCHEDULER_PROVIDER)
-  const telegram = container.resolve(TOKENS.TELEGRAM_PROVIDER)
-
+export const registerFeatures = (features: readonly Feature[], providers: FeatureProviders): void => {
   for (const feature of features) {
     for (const route of feature.routes ?? []) {
-      route(http)
+      route(providers.http)
     }
     for (const job of feature.jobs ?? []) {
-      scheduler.register(job)
+      providers.scheduler.register(job)
     }
     for (const [command, handler] of Object.entries(feature.commands ?? {})) {
-      telegram.registerCommand(command, handler)
+      providers.telegram.registerCommand(command, handler)
     }
     for (const [command, conversation] of Object.entries(feature.conversations ?? {})) {
-      telegram.registerConversation(command, conversation)
+      providers.telegram.registerConversation(command, conversation)
     }
   }
 }

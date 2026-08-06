@@ -38,13 +38,11 @@ acceleration, custom quality profiles, GPU selection.
   the source file. The source file is removed only on a successful post-process probe.
 - **REQ-005** Output container MUST be `.mp4`. Output audio codecs MUST be in {`aac`, `ac3`, `eac3`}.
 - **REQ-006** Audio streams without a `language` tag MUST be tagged with the original language (ISO-639-2/B).
-- **CON-001** Only one transcode job runs at a time: a process-level `isScanning` guard plus a singleton FIFO
-  `TranscodeQueue` deduplicating by `file`.
+- **CON-001** Only one scan and one transcode job run at a time: an Effect semaphore owns scans and a scoped serial worker deduplicates queued or active files.
 - **CON-002** ffprobe is the source of truth for stream selection; webhook payloads provide path + TMDB id only.
 - **GUD-001** Stream selection is criteria-driven (`Criteria[][]` in `services/helpers/utils.ts`). Add new languages
   by editing audio/subtitle helpers, not by branching in the service.
-- **GUD-002** All filesystem and process calls MUST go through `safe*` helpers (`safeRenameSync`, `safeRmSync`,
-  `safeExistsSync`, `spawnPromise`) so failures are returned as `Error` values, not thrown.
+- **GUD-002** Filesystem and `Bun.spawn` boundaries return typed Effect failures and remain interruptible; pure existence and subtitle parsing checks stay synchronous.
 - **PAT-001** The service is idempotent through `getTranscodeCommand`: when no audio/video transcode is needed, no
   subtitles are extractable, and the extension is already `.mp4`, the function returns `undefined` and the queue is
   not touched.
@@ -79,8 +77,8 @@ Only `Download` triggers transcoding. Other event types are accepted by the vali
 
 - `transcodeFile({ file, mediaTitle, originalLanguage, mediaType })`: Probes the file, computes a command, enqueues a
   job. Returns `true` if a job was enqueued, `false` otherwise (file missing, no work needed, error logged).
-- `transcodeQueue.enqueue(job: TranscodeJob)`: Internal FIFO singleton. Skips identical-file duplicates with a warning.
-- `transcodeQueue.getStatus()`: `{ currentJob?, isProcessing, queueLength }`.
+- `TranscodeQueue.enqueue(job)`: scoped serial worker service that rejects duplicate queued or active files.
+- `TranscodeQueue.status`: `{ currentJob?, isProcessing, queueLength }`; shutdown is scope-owned.
 
 ### `TranscodeJob` Shape
 
@@ -107,8 +105,7 @@ interface TranscodeJob {
 5. Pre-pend `-c copy`, build final command. If extension is not `mp4`, force execution.
 6. Worker extracts each subtitle to `${TRANSCODE_PATH}/<name>/<name>.<lang>.srt`, runs `isForcedSubtitle` to rename
    to `*.forced.srt` when applicable, then runs the main transcode to `${TRANSCODE_PATH}/<name>/<name>.mp4`.
-7. `handlePostTranscode`: re-probe output; on success delete source, copy outputs next to source, refresh
-   Radarr/Sonarr (`refreshMovie`+`renameMovie` / `refreshSeries`+`renameSeries`) then `plexClient.refreshSections`.
+7. `handlePostTranscode`: validate output, durably stage and fsync files, back up collisions, atomically install outputs, roll back on failure, then refresh Radarr/Sonarr and Plex.
 
 ## 5. Acceptance Criteria
 
@@ -117,7 +114,7 @@ interface TranscodeJob {
 - **AC-002** Given a Sonarr `Download` event, when payload validates, then `transcodeFile` is invoked with the joined
   `series.path` + `episodeFile.relativePath`, and `mediaType: 'show'`.
 - **AC-003** Given the cron pattern `0 0 */12 * * *`, the job iterates every Plex section, fetches metadata, and
-  submits each file to the queue; concurrent invocations are skipped via `isScanning`.
+  submits each file to the queue; concurrent invocations are rejected by an Effect semaphore that always releases.
 - **AC-004** Given the `/transcode` Telegram command, when no scan is running it kicks off `runTranscodeProcess`
   asynchronously; otherwise it replies "already running" and exits.
 - **AC-005** Given a file already in `.mp4` with acceptable codecs, language tags, and no extractable subtitles,
@@ -131,8 +128,7 @@ interface TranscodeJob {
 
 - Unit-test helpers (`audio.ts`, `video.ts`, `subtitle.ts`, `utils.ts`, `post_process.ts`) by feeding crafted
   `FFprobeStream[]` arrays and asserting the produced command + `shouldExecute` flag.
-- Mock `FFMPEG_CLIENT`, `PLEX_CLIENT`, `RADARR_CLIENT`, `SONARR_CLIENT` via the container; assert call ordering in
-  `handlePostTranscode`.
+- Provide local FFmpeg, Plex, Radarr, and Sonarr layers; assert replacement durability and vendor call ordering.
 - Validator tests: every `eventType` permutation parses; malformed bodies reject with `ValidationError`.
 
 ## 7. Rationale & Context
@@ -151,7 +147,7 @@ the output has both video and audio streams.
 - **EXT-002** Sonarr - episode webhook source; queried for `getSeriesByPath` / `refreshSeries` / `renameSeries`.
 - **EXT-003** TMDB - resolves `originalLanguage` via `getMediaLanguage(tmdbId, mediaType)`.
 - **EXT-004** Plex - `getSections`, `getSectionMedia`, `refreshSections`.
-- **EXT-005** FFmpeg / FFprobe - subprocess via `spawnPromise`.
+- **EXT-005** FFmpeg / FFprobe - interruptible native `Bun.spawn` adapter.
 
 ### Internal Dependencies
 
@@ -191,7 +187,7 @@ Decision examples:
 - `bun run check` and `bun run test` succeed.
 - Webhook validators round-trip every documented `eventType`.
 - `getTranscodeCommand` returns `undefined` for an already-conformant file (no queue entry, no ffmpeg invocation).
-- Post-process leaves the `${TRANSCODE_PATH}/<name>/` directory empty (deleted) regardless of success or failure.
+- Post-process deletes temporary and backup artifacts only after successful commit or verified rollback; rollback failure preserves recovery artifacts.
 
 ## 11. Related Specifications / Further Reading
 

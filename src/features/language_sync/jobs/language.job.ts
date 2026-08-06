@@ -1,25 +1,30 @@
-import { container, TOKENS } from '@/core/container'
+import { Effect } from 'effect'
+
+import { Plex } from '@/core/runtime.service'
 import { getCompleteMediaDetails } from '@/domains/media/services/metadata.service'
 import { handleUpdateLanguage } from '@/features/language_sync/services/language.service'
-import { isError, logError } from '@/shared/utils/error'
+import { logError } from '@/shared/utils/error'
 
-export const updatePlexSelectedLanguages = async () => {
-  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
-  const sections = await plexClient.getSections()
+export const updatePlexSelectedLanguages = Effect.gen(function* () {
+  const plexClient = yield* Plex
+  const sections = yield* plexClient.getSections()
 
-  for (const section of sections ?? []) {
-    const medias = await plexClient.getSectionMedia(section.key, section.type)
-    for (const media of medias ?? []) {
-      const details = await getCompleteMediaDetails(Number(media.ratingKey))
-
-      if (isError(details)) {
-        logError(details, 'updatePlexSelectedLanguages')
-        continue
-      }
-
-      const { mediaTitle, partsId, preferredLanguage, streams } = details
-
-      await handleUpdateLanguage({ mediaTitle, partsId, preferredLanguage, streams })
-    }
-  }
-}
+  yield* Effect.forEach(
+    sections,
+    (section) =>
+      plexClient.getSectionMedia(section.key, section.type).pipe(
+        Effect.flatMap((medias) =>
+          Effect.forEach(
+            medias,
+            (media) =>
+              getCompleteMediaDetails(Number(media.ratingKey)).pipe(
+                Effect.flatMap((details) => handleUpdateLanguage(details)),
+                Effect.catch((error) => Effect.sync(() => logError(error, 'updatePlexSelectedLanguages')))
+              ),
+            { discard: true }
+          )
+        )
+      ),
+    { discard: true }
+  )
+})

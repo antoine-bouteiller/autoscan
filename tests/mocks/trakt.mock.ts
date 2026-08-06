@@ -1,36 +1,57 @@
 import { jest } from 'bun:test'
 
-import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from '@/integrations/trakt/trakt.service'
+import { Effect } from 'effect'
 
-export const getDeviceCodeMock = jest.fn()
-export const refreshTokenMock = jest.fn()
-export const syncWatchedHistoryMock = jest.fn<ITraktClient['syncWatchedHistory']>().mockResolvedValue({
-  added: { episodes: 1, movies: 1 },
-  not_found: {
-    episodes: [],
-    movies: [],
-    seasons: [],
-    shows: [],
-  },
+import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from '@/integrations/trakt/trakt.service'
+import { type TraktDeviceCodeResponse, type TraktSyncResponse, type TraktTokenResponse } from '@/integrations/trakt/trakt.validator'
+import { NetworkError } from '@/shared/errors/network'
+
+export const getDeviceCodeMock = jest.fn<() => Promise<TraktDeviceCodeResponse>>().mockResolvedValue({
+  device_code: 'device',
+  expires_in: 600,
+  interval: 5,
+  user_code: 'code',
+  verification_url: 'https://example.com',
 })
+export const refreshTokenMock = jest.fn<(refreshToken: string) => Promise<TraktTokenResponse>>().mockResolvedValue({
+  access_token: 'access',
+  created_at: 0,
+  expires_in: 3600,
+  refresh_token: 'refresh',
+  scope: 'scope',
+  token_type: 'bearer',
+})
+export const syncWatchedHistoryMock = jest
+  .fn<(accessToken: string, movies: TraktMoviePayload[], shows: TraktShowPayload[]) => Promise<TraktSyncResponse>>()
+  .mockResolvedValue({
+    added: { episodes: 1, movies: 1 },
+    not_found: { episodes: [], movies: [], seasons: [], shows: [] },
+  })
+
+const fromPromise = <Value>(run: () => Promise<Value>) =>
+  Effect.tryPromise({ catch: (cause) => new NetworkError({ cause, originalMessage: String(cause), serviceName: 'TraktTest' }), try: run })
 
 export class MockTraktClient implements ITraktClient {
-  getDeviceCode = getDeviceCodeMock
+  getDeviceCode() {
+    return fromPromise(() => getDeviceCodeMock())
+  }
 
-  async pollDeviceToken() {
-    return {
+  pollDeviceToken() {
+    return Effect.succeed({
       access_token: 'access_token',
-      created_at: new Date().getTime(),
-      expires_in: new Date().getTime() + 3_600_000,
+      created_at: Date.now(),
+      expires_in: 3600,
       refresh_token: 'refresh_token',
       scope: 'scope',
       token_type: 'token_type',
-    }
+    })
   }
 
-  refreshToken = refreshTokenMock
+  refreshToken(refreshToken: string) {
+    return fromPromise(() => refreshTokenMock(refreshToken))
+  }
 
-  async syncWatchedHistory(accessToken: string, movies: TraktMoviePayload[], shows: TraktShowPayload[]) {
-    return syncWatchedHistoryMock(accessToken, movies, shows)
+  syncWatchedHistory(accessToken: string, movies: TraktMoviePayload[], shows: TraktShowPayload[]) {
+    return fromPromise(() => syncWatchedHistoryMock(accessToken, movies, shows))
   }
 }

@@ -1,218 +1,190 @@
+import { basename, dirname, join } from 'node:path'
+
+import { Cause, Effect, Layer, Queue } from 'effect'
+
 import env from '@/config/env'
 import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
-import { FileNameInvalidError, FileNotFoundError } from '@/features/transcoding/errors'
+import { Ffmpeg, Plex, TranscodeQueue } from '@/core/runtime.service'
+import { FileNameInvalidError, FileNotFoundError, ReplacementRollbackError } from '@/features/transcoding/errors'
 import { type TranscodeJob } from '@/features/transcoding/types'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
-import { isError, logError } from '@/shared/utils/error'
-import { safeExistsSync, safeRenameSync } from '@/shared/utils/fs'
+import { logError } from '@/shared/utils/error'
+import { exists, mkdir, readdir, remove, rename, writeFile } from '@/shared/utils/fs'
 
 import { processAudioStreams } from './helpers/audio.js'
 import { handlePostTranscode } from './helpers/post_process.js'
 import { isForcedSubtitle, processSubtitleStreams } from './helpers/subtitle.js'
 import { processVideoStreams } from './helpers/video.js'
 
-class TranscodeQueue {
-  private currentJob?: TranscodeJob
-  private isProcessing = false
-  private readonly queue: TranscodeJob[] = []
-
-  enqueue(job: TranscodeJob): void {
-    if (this.queue.some((queued) => queued.file === job.file)) {
-      logger.warn(`Media already in queue`, 'Transcode', job.mediaTitle)
+const processJob = (job: TranscodeJob) =>
+  Effect.gen(function* () {
+    const fileName = basename(job.file, job.file.slice(job.file.lastIndexOf('.')))
+    if (fileName.length === 0) {
+      return yield* new FileNameInvalidError({ mediaTitle: job.mediaTitle })
     }
 
-    this.queue.push(job)
-    logger.info(`Added job (${this.queue.length} jobs in queue)`, 'Transcode', job.mediaTitle)
-
-    if (!this.isProcessing) {
-      void this.processQueue()
+    const outputDirectory = `${env.TRANSCODE_PATH}/${fileName}`
+    const recoveryMarker = join(outputDirectory, '.autoscan-recovery.json')
+    const cleanup = Effect.ignore(remove(outputDirectory, { recursive: true }))
+    if (yield* exists(recoveryMarker)) {
+      return yield* new ReplacementRollbackError({
+        artifacts: [outputDirectory, recoveryMarker],
+        cause: new Error('Unresolved replacement marker'),
+      })
     }
-  }
-
-  getStatus(): {
-    currentJob?: TranscodeJob
-    isProcessing: boolean
-    queueLength: number
-  } {
-    return {
-      currentJob: this.currentJob,
-      isProcessing: this.isProcessing,
-      queueLength: this.queue.length,
+    const mediaDirectory = dirname(job.file)
+    const recoveryArtifacts = (yield* readdir(mediaDirectory))
+      .filter((name) => name.includes('autoscan-') && (name.startsWith(`${fileName}.`) || name.startsWith(`.${fileName}.`)))
+      .map((name) => join(mediaDirectory, name))
+    if (recoveryArtifacts.length > 0) {
+      return yield* new ReplacementRollbackError({
+        artifacts: recoveryArtifacts,
+        cause: new Error('Unresolved replacement artifacts'),
+      })
     }
-  }
-
-  private async processQueue(): Promise<void> {
-    if (this.isProcessing || this.queue.length === 0) {
-      return
-    }
-
-    this.isProcessing = true
-
-    while (this.queue.length > 0) {
-      const job = this.queue.shift()
-
-      if (!job) {
-        break
-      }
-
-      this.currentJob = job
-
-      logger.info(`Processing job with command "${job.command.join(' ')}" (${this.queue.length} jobs remaining)`, 'Transcode', job.mediaTitle)
-
-      const fileName = job.file.slice(0, job.file.lastIndexOf('.')).split('/').pop()
-      if (!fileName) {
-        logError(new FileNameInvalidError({ mediaTitle: job.mediaTitle }), 'Queue')
-        this.currentJob = undefined
-        continue
-      }
-
-      const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-
-      let subtitleFailed = false
+    const work = Effect.gen(function* () {
+      yield* cleanup
+      yield* mkdir(outputDirectory)
+      yield* writeFile(recoveryMarker, JSON.stringify({ file: job.file, mediaTitle: job.mediaTitle }))
+      const ffmpeg = yield* Ffmpeg
       for (const subtitle of job.subtitlesToExtract) {
-        logger.info(`Extracting subtitle in ${subtitle.language}`, 'Transcode', job.mediaTitle)
-
         const subtitleOutput = `${fileName}.${subtitle.language}.srt`
-        const subtitleResult = await ffmpegClient.executeFfmpeg({
-          command: [`-map`, `0:s:${subtitle.index}`, `-c:s:${subtitle.index}`, `srt`],
+        yield* ffmpeg.executeFfmpeg({
+          command: ['-map', `0:s:${subtitle.index}`, `-c:s:${subtitle.index}`, 'srt'],
           folderName: fileName,
           input: job.file,
           output: subtitleOutput,
         })
-
-        if (isError(subtitleResult)) {
-          logError(subtitleResult, 'Queue')
-          subtitleFailed = true
-          break
+        const subtitlePath = `${outputDirectory}/${subtitleOutput}`
+        if (job.duration !== undefined && isForcedSubtitle(subtitlePath, job.duration)) {
+          yield* rename(subtitlePath, subtitlePath.replace(`.${subtitle.language}.srt`, `.${subtitle.language}.forced.srt`))
         }
+      }
 
-        const subtitlePath = `${env.TRANSCODE_PATH}/${fileName}/${subtitleOutput}`
-        if (job.duration && isForcedSubtitle(subtitlePath, job.duration)) {
-          const forcedPath = subtitlePath.replace(`.${subtitle.language}.srt`, `.${subtitle.language}.forced.srt`)
-          const renameResult = safeRenameSync(subtitlePath, forcedPath)
-          if (renameResult instanceof Error) {
-            logError(renameResult, 'Queue')
+      yield* ffmpeg.executeFfmpeg({ command: job.command, folderName: fileName, input: job.file, output: `${fileName}.mp4` })
+      yield* handlePostTranscode({ filePath: job.file, mediaTitle: job.mediaTitle, mediaType: job.mediaType })
+    })
+
+    return yield* work.pipe(
+      Effect.catch((error) =>
+        Effect.gen(function* () {
+          if (!(error instanceof ReplacementRollbackError)) {
+            yield* cleanup
           }
-          logger.info(`Renamed forced subtitle to ${subtitle.language}.forced.srt`, 'Transcode', job.mediaTitle)
-        }
-      }
+          return yield* error
+        })
+      ),
+      Effect.catchDefect((defect) => cleanup.pipe(Effect.flatMap(() => Effect.die(defect)))),
+      Effect.onInterrupt(() => cleanup)
+    )
+  })
 
-      if (subtitleFailed) {
-        this.currentJob = undefined
-        continue
-      }
+export const TranscodeQueueLive = Layer.effect(
+  TranscodeQueue,
+  Effect.gen(function* () {
+    const queue = yield* Queue.unbounded<TranscodeJob>()
+    const knownFiles = new Set<string>()
+    let accepting = true
+    let currentJob: TranscodeJob | undefined
+    let isProcessing = false
 
-      const newFileName = `${fileName}.mp4`
-      logger.info(`Executing transcode`, 'Transcode', job.mediaTitle)
-      const transcodeResult = await ffmpegClient.executeFfmpeg({ command: job.command, folderName: fileName, input: job.file, output: newFileName })
+    const worker = Effect.forever(
+      Queue.take(queue).pipe(
+        Effect.tap((job) =>
+          Effect.sync(() => {
+            currentJob = job
+            isProcessing = true
+            logger.info(`Processing job with command "${job.command.join(' ')}"`, 'Transcode', job.mediaTitle)
+          })
+        ),
+        Effect.flatMap(processJob),
+        Effect.catchCause((cause) =>
+          Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.sync(() => logError(cause, 'Transcode Queue'))
+        ),
+        Effect.ensuring(
+          Effect.sync(() => {
+            if (currentJob !== undefined) {
+              knownFiles.delete(currentJob.file)
+            }
+            currentJob = undefined
+            isProcessing = false
+          })
+        )
+      )
+    )
 
-      if (isError(transcodeResult)) {
-        logError(transcodeResult, 'Queue')
-        this.currentJob = undefined
-        continue
-      }
+    yield* Effect.forkScoped(worker)
+    yield* Effect.addFinalizer(() => Queue.shutdown(queue))
 
-      logger.info(`Transcoded successfully`, 'Transcode', job.mediaTitle)
+    const awaitIdle: Effect.Effect<void> = Effect.suspend(() =>
+      isProcessing || knownFiles.size > 0 ? Effect.sleep(10).pipe(Effect.flatMap(() => awaitIdle)) : Effect.void
+    )
 
-      await handlePostTranscode({
-        filePath: job.file,
-        mediaTitle: job.mediaTitle,
-        mediaType: job.mediaType,
-      })
+    return TranscodeQueue.of({
+      awaitIdle,
+      enqueue: (job) =>
+        Effect.suspend(() => {
+          if (!accepting || knownFiles.has(job.file)) {
+            return Effect.succeed(false)
+          }
+          knownFiles.add(job.file)
+          logger.info(`Added job (${knownFiles.size} jobs active or queued)`, 'Transcode', job.mediaTitle)
+          return Queue.offer(queue, job).pipe(Effect.as(true))
+        }),
+      status: Queue.size(queue).pipe(Effect.map((queueLength) => ({ currentJob, isProcessing, queueLength }))),
+      stopIntake: Effect.sync(() => {
+        accepting = false
+      }),
+    })
+  })
+)
 
-      this.currentJob = undefined
+const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage: ISOCode1) =>
+  Effect.gen(function* () {
+    const ffmpeg = yield* Ffmpeg
+    const probe = yield* ffmpeg.ffprobe(file)
+    const video = processVideoStreams(
+      probe.streams.filter((stream) => stream.codec_type === 'video'),
+      mediaTitle
+    )
+    if (video instanceof Error) {
+      return yield* video
+    }
+    const audio = processAudioStreams(
+      probe.streams.filter((stream) => stream.codec_type === 'audio'),
+      originalLanguage,
+      mediaTitle
+    )
+    if (audio instanceof Error) {
+      return yield* audio
+    }
+    const subtitlesToExtract = processSubtitleStreams(
+      probe.streams.filter((stream) => stream.codec_type === 'subtitle'),
+      originalLanguage,
+      mediaTitle
+    )
+    const extension = file.split('.').pop()
+    const shouldExecute = video.shouldExecute || audio.shouldExecute || subtitlesToExtract.length > 0 || extension !== 'mp4'
+    return shouldExecute ? { command: ['-c', 'copy', ...video.command, ...audio.command], duration: probe.duration, subtitlesToExtract } : undefined
+  })
+
+export const transcodeFile = (params: { file: string; mediaTitle: string; originalLanguage: ISOCode1; mediaType: 'movie' | 'show' }) =>
+  Effect.gen(function* () {
+    if (!(yield* exists(params.file))) {
+      const error = new FileNotFoundError({ filePath: params.file })
+      yield* Effect.sync(() => logError(error, 'transcodeFile'))
+      const plex = yield* Plex
+      yield* plex.refreshSections(params.file, params.mediaType)
+      return false
     }
 
-    this.isProcessing = false
-  }
-}
+    const result = yield* getTranscodeCommand(params.file, params.mediaTitle, params.originalLanguage).pipe(
+      Effect.catch((error) => Effect.sync(() => logError(error, 'transcodeFile')).pipe(Effect.as(undefined)))
+    )
+    if (result === undefined) {
+      return false
+    }
 
-export const transcodeQueue = new TranscodeQueue()
-
-const getTranscodeCommand = async (file: string, mediaTitle: string, originalLanguage: ISOCode1) => {
-  const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-  const probeResult = await ffmpegClient.ffprobe(file)
-
-  if (isError(probeResult)) {
-    return probeResult
-  }
-
-  const videoStreams = probeResult.streams.filter((stream) => stream.codec_type === 'video')
-  const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
-  const subtitleStreams = probeResult.streams.filter((stream) => stream.codec_type === 'subtitle')
-  const { duration } = probeResult
-
-  const extension = file.split('.').pop()
-  const fileName = file.slice(0, file.lastIndexOf('.')).split('/').pop()
-
-  if (!fileName) {
-    return new FileNameInvalidError({ mediaTitle })
-  }
-
-  const command: string[] = ['-c', 'copy']
-  let shouldExecute = false
-
-  const videoResult = processVideoStreams(videoStreams, mediaTitle)
-  if (isError(videoResult)) {
-    return videoResult
-  }
-  command.push(...videoResult.command)
-  if (videoResult.shouldExecute) {
-    shouldExecute = true
-  }
-
-  const audioResult = processAudioStreams(audioStreams, originalLanguage, mediaTitle)
-  if (isError(audioResult)) {
-    return audioResult
-  }
-  command.push(...audioResult.command)
-  if (audioResult.shouldExecute) {
-    shouldExecute = true
-  }
-
-  const subtitlesToExtract = await processSubtitleStreams(subtitleStreams, originalLanguage, mediaTitle)
-  if (subtitlesToExtract.length > 0) {
-    shouldExecute = true
-  }
-
-  if (extension !== 'mp4') {
-    shouldExecute = true
-  }
-
-  if (shouldExecute) {
-    return { command, duration, subtitlesToExtract }
-  }
-
-  return undefined
-}
-
-export const transcodeFile = async (params: { file: string; mediaTitle: string; originalLanguage: ISOCode1; mediaType: 'movie' | 'show' }) => {
-  const { file, mediaTitle, originalLanguage, mediaType } = params
-  if (!safeExistsSync(file)) {
-    const error = new FileNotFoundError({ filePath: file })
-    logError(error, 'transcodeFile')
-    const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
-    await plexClient.refreshSections(file, mediaType)
-    return false
-  }
-
-  const result = await getTranscodeCommand(file, mediaTitle, originalLanguage)
-
-  if (isError(result)) {
-    logError(result, 'transcodeFile')
-    return false
-  }
-
-  if (result) {
-    transcodeQueue.enqueue({
-      file,
-      mediaTitle,
-      mediaType,
-      originalLanguage,
-      ...result,
-    })
-    return true
-  }
-  return false
-}
+    const queue = yield* TranscodeQueue
+    return yield* queue.enqueue({ ...params, ...result })
+  })

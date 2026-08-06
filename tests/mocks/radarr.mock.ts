@@ -1,24 +1,31 @@
 import { jest } from 'bun:test'
 
+import { Effect } from 'effect'
+
+import { type QueueResponse } from '@/integrations/arr/queue.types'
 import { type IRadarrClient } from '@/integrations/arr/radarr.service'
 
-export const mockRadarrQueue = jest.fn<IRadarrClient['getQueue']>()
-export const mockRadarrRemoveQueueItem = jest.fn<IRadarrClient['removeQueueItem']>()
+export const mockRadarrQueue = jest.fn<() => Promise<QueueResponse>>().mockResolvedValue({ records: [], totalRecords: 0 })
+export const mockRadarrRemoveQueueItem = jest.fn<(id: number, options: unknown) => Promise<void>>().mockResolvedValue(undefined)
 
 export class MockRadarrClient implements IRadarrClient {
-  getQueue = mockRadarrQueue
-
-  async getMovieByPath() {
-    return undefined
+  getQueue() {
+    return Effect.promise(() => mockRadarrQueue())
   }
 
-  async refreshMovie() {
-    return
+  getMovieByPath() {
+    return Effect.succeed(undefined)
   }
 
-  removeQueueItem = mockRadarrRemoveQueueItem
+  refreshMovie() {
+    return Effect.void
+  }
 
-  async renameMovie() {
-    return
+  removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }) {
+    return Effect.promise(() => mockRadarrRemoveQueueItem(id, options))
+  }
+
+  renameMovie() {
+    return Effect.void
   }
 }

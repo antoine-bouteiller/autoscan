@@ -32,10 +32,10 @@ The `media` domain owns the cross-feature persistence of catalogued media items 
 - **REQ-004**: `metadata.service` MUST resolve language with cache-first semantics (DB hit short-circuits TMDB) and persist via the repository on TMDB hit.
 - **REQ-005**: `metadata.service` defaults to `'en' / 'en'` when TMDB returns no data; nothing is persisted in that case.
 - **CON-001**: This domain MUST NOT import from `@/features/*`, `@/providers/*`, or sibling domains.
-- **CON-002**: Allowed dependencies: `@/shared`, `@/config`, `@/database`, `@/integrations`, `@/core/container`.
+- **CON-002**: Allowed dependencies: `@/shared`, `@/config`, `@/database`, `@/integrations`, and Effect service keys from `@/core/runtime.service`.
 - **CON-003**: `preferredLanguage` is initialised to `originalLanguage` on insert/upsert; future divergence is a feature concern (language_sync), not a domain concern.
-- **GUD-001**: Repository functions return Drizzle query builders (no `await`) so callers can chain or transact; only `getMediaByIdAndType` resolves eagerly.
-- **PAT-001**: Errors are tagged classes from `errors.ts` (`FileNotFoundError`, `TmdbIdNotFoundError`); callers detect them with `isError`.
+- **GUD-001**: Repository functions return Effects with typed database failures and an explicit `Database` requirement.
+- **PAT-001**: Errors are `Data.TaggedError` classes from `errors.ts` and remain in the Effect error channel.
 
 ## 4. Interfaces & Data Contracts
 
@@ -79,8 +79,8 @@ The `media` domain owns the cross-feature persistence of catalogued media items 
 ## 6. Test Automation Strategy
 
 - Unit-test pure helpers (`extractTmdbIdFromPath`, `buildMediaTitle`) against representative path fixtures.
-- Mock `TMDB_CLIENT` and `PLEX_CLIENT` via the container to test `getMediaLanguage` and `getCompleteMediaDetails` branches (cache hit, TMDB miss, missing file, missing tmdbId, episode normalisation).
-- Repository tests run against a real Postgres (Vitest) to exercise the upsert and enum constraint.
+- Provide local TMDB and Plex test layers to cover cache hits, TMDB misses, missing files, missing ids, and episode normalization.
+- Repository tests run against the shared Postgres testcontainer under `bun:test`.
 
 ## 7. Rationale & Context
 
@@ -98,8 +98,8 @@ Promoted to a domain because the language store is read by `language_sync` and t
 - **DEP-001**: `@/database` (Drizzle schema, types).
 - **DEP-002**: `@/integrations/tmdb` (TMDB client interface).
 - **DEP-003**: `@/integrations/plex` (Plex client interface, `MediaType`).
-- **DEP-004**: `@/config/db` (Drizzle instance).
-- **DEP-005**: `@/core/container` (DI tokens for TMDB and Plex clients).
+- **DEP-004**: `@/config/db` (scoped database layer).
+- **DEP-005**: `@/core/runtime.service` (Database, TMDB, and Plex services).
 - **DEP-006**: `@/shared/types/iso_codes` (`ISO1`, `ISOCode1`).
 
 ### Data Dependencies

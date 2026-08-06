@@ -82,8 +82,7 @@ Trigger a full library transcode manually from the Telegram bot:
 
 ## Development
 
-Requires [Bun](https://bun.sh) and FFmpeg. Everything runs through Bun;
-lint and format use [oxlint](https://oxc.rs) and oxfmt directly.
+Requires [Bun](https://bun.sh) and FFmpeg. Everything runs through Bun. The asynchronous runtime targets pinned Effect v4 beta packages; oxlint is patched by Effect TSGO to enforce Effect requirements, errors, and lifecycle usage. Formatting uses oxfmt directly.
 
 ```bash
 bun install       # Install dependencies

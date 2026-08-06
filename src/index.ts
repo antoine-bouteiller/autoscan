@@ -1,21 +1,16 @@
-import { logger } from '@/config/logger'
-import '@/core/bootstrap'
-import { container, TOKENS } from '@/core/container'
+import { runMain } from '@effect/platform-bun/BunRuntime'
+import { hasInterruptsOnly } from 'effect/Cause'
+import { isFailure } from 'effect/Exit'
+import { defaultTeardown, type Teardown } from 'effect/Runtime'
 
-const httpProvider = container.resolve(TOKENS.HTTP_PROVIDER)
-const schedulerProvider = container.resolve(TOKENS.SCHEDULER_PROVIDER)
-const telegramProvider = container.resolve(TOKENS.TELEGRAM_PROVIDER)
+import { program } from '@/core/bootstrap'
 
-await httpProvider.start()
+const teardown: Teardown = (exit, onExit) => {
+  if (isFailure(exit) && hasInterruptsOnly(exit.cause)) {
+    onExit(0)
+  } else {
+    defaultTeardown(exit, onExit)
+  }
+}
 
-telegramProvider.start()
-
-process.on('SIGINT', async () => {
-  logger.info('Shutting down gracefully...')
-
-  await httpProvider.stop()
-  schedulerProvider.stopAll()
-  await telegramProvider.stop()
-
-  process.exit(0)
-})
+runMain(program, { teardown })

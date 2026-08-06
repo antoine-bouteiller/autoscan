@@ -27,5 +27,7 @@ Object.assign(process.env, {
 })
 
 afterAll(async () => {
+  const { closeTestDatabase } = await import('./database.js')
+  await closeTestDatabase()
   await container.stop()
 })

@@ -2,12 +2,4 @@
 # Order matters: preload.ts sets env before db.ts connects at module load.
 preload = ["./tests/preload.ts", "./tests/setup.ts"]
 coverageReporter = ["text", "lcov"]
-coveragePathIgnorePatterns = [
-  "**/integrations/**",
-  "**/providers/**",
-  "**/errors/**",
-  "**/errors.ts",
-  "**/core/**",
-  "**/tests/**",
-  "src/database/schema.ts",
-]
+coveragePathIgnorePatterns = ["**/tests/**", "src/database/schema.ts", "src/index.ts"]

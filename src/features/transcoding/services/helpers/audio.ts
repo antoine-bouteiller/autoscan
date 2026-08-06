@@ -65,11 +65,7 @@ const processAudioStream = (
   return { commands, needsTranscode }
 }
 
-export const processAudioStreams = (
-  audioStreams: FFprobeStream[],
-  originalLanguage: ISOCode1,
-  mediaTitle: string
-): AudioStreamNotFoundError | NoStreamsKeptError | { command: string[]; shouldExecute: boolean } => {
+export const processAudioStreams = (audioStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
   if (audioStreams.length === 0) {
     return new AudioStreamNotFoundError({ language: originalLanguage, mediaTitle })
   }

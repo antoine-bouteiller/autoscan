@@ -1,36 +1,30 @@
-import { container, TOKENS } from '@/core/container'
+import { Clock, Effect } from 'effect'
+
+import { Plex, Trakt } from '@/core/runtime.service'
 import { extractTmdbIdFromPath } from '@/domains/media/services/metadata.service'
 import { TraktTokenExpiredError } from '@/features/trakt_sync/errors'
 import { getSyncedRatingKeys, getToken, markManyAsSynced, upsertTokens } from '@/features/trakt_sync/repositories/trakt.repository'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
 import { type PlexMedia } from '@/integrations/plex/plex.validator'
 import { type TraktMoviePayload, type TraktShowPayload } from '@/integrations/trakt/trakt.service'
-import { isError, logError } from '@/shared/utils/error'
 
-export const getValidAccessToken = async () => {
-  const tokens = await getToken()
-  if (!tokens) {
-    return new TraktTokenExpiredError()
+export const getValidAccessToken = Effect.gen(function* () {
+  const tokens = yield* getToken
+  if (tokens === undefined) {
+    return yield* new TraktTokenExpiredError()
   }
 
-  const now = Math.floor(Date.now() / 1000)
-
-  if (tokens.expiresAt < now + 300) {
-    const traktClient = container.resolve(TOKENS.TRAKT_CLIENT)
-    const result = await traktClient.refreshToken(tokens.refreshToken)
-
-    if (isError(result)) {
-      logError(result, 'Trakt token refresh failed')
-      return result
-    }
-
-    const expiresAt = Math.floor(Date.now() / 1000) + result.expires_in
-    await upsertTokens(result.access_token, result.refresh_token, expiresAt)
-    return result.access_token
+  const now = Math.floor((yield* Clock.currentTimeMillis) / 1000)
+  if (tokens.expiresAt >= now + 300) {
+    return tokens.accessToken
   }
 
-  return tokens.accessToken
-}
+  const traktClient = yield* Trakt
+  const result = yield* traktClient.refreshToken(tokens.refreshToken)
+  const expiresAt = now + result.expires_in
+  yield* upsertTokens(result.access_token, result.refresh_token, expiresAt)
+  return result.access_token
+})
 
 interface WatchedCollections {
   movies: TraktMoviePayload[]
@@ -44,24 +38,20 @@ const processMovie = (item: PlexMedia, collections: WatchedCollections, params: 
 }
 
 const processEpisode = (item: PlexMedia, collections: WatchedCollections, params: { tmdbId: number; watchedAt: string }) => {
-  const { tmdbId, watchedAt } = params
   if (item.parentIndex === undefined || item.index === undefined) {
     return
   }
-
-  let show = collections.showsMap.get(tmdbId)
-  if (!show) {
-    show = { ids: { tmdb: tmdbId }, seasons: [] }
-    collections.showsMap.set(tmdbId, show)
+  let show = collections.showsMap.get(params.tmdbId)
+  if (show === undefined) {
+    show = { ids: { tmdb: params.tmdbId }, seasons: [] }
+    collections.showsMap.set(params.tmdbId, show)
   }
-
-  let season = show.seasons.find((sea) => sea.number === item.parentIndex)
-  if (!season) {
+  let season = show.seasons.find((entry) => entry.number === item.parentIndex)
+  if (season === undefined) {
     season = { episodes: [], number: item.parentIndex }
     show.seasons.push(season)
   }
-
-  season.episodes.push({ number: item.index, watched_at: watchedAt })
+  season.episodes.push({ number: item.index, watched_at: params.watchedAt })
   collections.ratingKeysToMark.push(item.ratingKey)
 }
 
@@ -69,19 +59,15 @@ const processWatchedItem = (item: PlexMedia, collections: WatchedCollections, sy
   if (syncedKeys.has(item.ratingKey) || !item.viewCount) {
     return
   }
-
   const filePath = item.Media[0]?.Part[0]?.file
-  if (!filePath) {
+  if (filePath === undefined) {
     return
   }
-
   const tmdbId = extractTmdbIdFromPath(filePath)
-  if (!tmdbId) {
+  if (tmdbId === undefined) {
     return
   }
-
-  const watchedAt = item.lastViewedAt ? new Date(item.lastViewedAt * 1000).toISOString() : new Date().toISOString()
-
+  const watchedAt = item.lastViewedAt === undefined ? new Date().toISOString() : new Date(item.lastViewedAt * 1000).toISOString()
   if (item.type === 'movie') {
     processMovie(item, collections, { tmdbId, watchedAt })
   } else if (item.type === 'episode') {
@@ -89,51 +75,29 @@ const processWatchedItem = (item: PlexMedia, collections: WatchedCollections, sy
   }
 }
 
-export const collectWatchedItems = async (plexClient: IPlexClient, syncedKeys: Set<string>) => {
-  const sections = await plexClient.getSections()
-  const collections: WatchedCollections = {
-    movies: [],
-    ratingKeysToMark: [],
-    showsMap: new Map<number, TraktShowPayload>(),
-  }
-
-  for (const section of sections) {
-    const items = await plexClient.getSectionMedia(section.key, section.type)
-    for (const item of items) {
-      processWatchedItem(item, collections, syncedKeys)
+export const collectWatchedItems = (plexClient: IPlexClient, syncedKeys: Set<string>) =>
+  Effect.gen(function* () {
+    const sections = yield* plexClient.getSections()
+    const collections: WatchedCollections = { movies: [], ratingKeysToMark: [], showsMap: new Map() }
+    for (const section of sections) {
+      const items = yield* plexClient.getSectionMedia(section.key, section.type)
+      for (const item of items) {
+        processWatchedItem(item, collections, syncedKeys)
+      }
     }
-  }
+    return { movies: collections.movies, ratingKeysToMark: collections.ratingKeysToMark, shows: [...collections.showsMap.values()] }
+  })
 
-  return {
-    movies: collections.movies,
-    ratingKeysToMark: collections.ratingKeysToMark,
-    shows: [...collections.showsMap.values()],
-  }
-}
-
-export const syncPlexToTrakt = async () => {
-  const accessToken = await getValidAccessToken()
-  if (isError(accessToken)) {
-    return accessToken
-  }
-
-  const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
-  const traktClient = container.resolve(TOKENS.TRAKT_CLIENT)
-
-  const syncedKeys = await getSyncedRatingKeys()
-  const { movies, ratingKeysToMark, shows } = await collectWatchedItems(plexClient, syncedKeys)
-
+export const syncPlexToTrakt = Effect.gen(function* () {
+  const accessToken = yield* getValidAccessToken
+  const plexClient = yield* Plex
+  const traktClient = yield* Trakt
+  const syncedKeys = yield* getSyncedRatingKeys
+  const { movies, ratingKeysToMark, shows } = yield* collectWatchedItems(plexClient, syncedKeys)
   if (movies.length === 0 && shows.length === 0) {
     return { episodes: 0, movies: 0 }
   }
-
-  const result = await traktClient.syncWatchedHistory(accessToken, movies, shows)
-
-  if (isError(result)) {
-    return result
-  }
-
-  await markManyAsSynced(ratingKeysToMark)
-
+  const result = yield* traktClient.syncWatchedHistory(accessToken, movies, shows)
+  yield* markManyAsSynced(ratingKeysToMark)
   return result.added
-}
+})

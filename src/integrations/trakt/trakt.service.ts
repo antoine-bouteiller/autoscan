@@ -1,3 +1,5 @@
+import { type Effect } from 'effect'
+
 import {
   deviceCodeResponseValidator,
   syncResponseValidator,
@@ -6,9 +8,7 @@ import {
   type TraktSyncResponse,
   type TraktTokenResponse,
 } from '@/integrations/trakt/trakt.validator'
-import { type HttpError } from '@/shared/errors/http'
-import { type NetworkError } from '@/shared/errors/network'
-import { type ValidationError } from '@/shared/errors/validation'
+import { type HttpClientError } from '@/shared/types/http_client'
 import { httpClient } from '@/shared/utils/http_client'
 
 export interface TraktMoviePayload {
@@ -19,23 +19,20 @@ export interface TraktMoviePayload {
 export interface TraktShowPayload {
   ids: { tmdb: number }
   seasons: {
-    episodes: {
-      number: number
-      watched_at: string
-    }[]
+    episodes: { number: number; watched_at: string }[]
     number: number
   }[]
 }
 
 export interface ITraktClient {
-  getDeviceCode: () => Promise<TraktDeviceCodeResponse | HttpError | NetworkError | ValidationError>
-  pollDeviceToken: (deviceCode: string) => Promise<TraktTokenResponse | HttpError | NetworkError | ValidationError>
-  refreshToken: (refreshToken: string) => Promise<TraktTokenResponse | HttpError | NetworkError | ValidationError>
-  syncWatchedHistory: (
+  readonly getDeviceCode: () => Effect.Effect<TraktDeviceCodeResponse, HttpClientError>
+  readonly pollDeviceToken: (deviceCode: string) => Effect.Effect<TraktTokenResponse, HttpClientError>
+  readonly refreshToken: (refreshToken: string) => Effect.Effect<TraktTokenResponse, HttpClientError>
+  readonly syncWatchedHistory: (
     accessToken: string,
     movies: TraktMoviePayload[],
     shows: TraktShowPayload[]
-  ) => Promise<TraktSyncResponse | HttpError | NetworkError | ValidationError>
+  ) => Effect.Effect<TraktSyncResponse, HttpClientError>
 }
 
 interface TraktClientConfig {
@@ -63,45 +60,31 @@ export class TraktClient implements ITraktClient {
     })
   }
 
-  async getDeviceCode() {
+  getDeviceCode() {
     return this.client.post('oauth/device/code', {
       body: { client_id: this.clientId },
       validator: deviceCodeResponseValidator,
     })
   }
 
-  async pollDeviceToken(deviceCode: string) {
+  pollDeviceToken(deviceCode: string) {
     return this.client.post('oauth/device/token', {
-      body: {
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        code: deviceCode,
-      },
+      body: { client_id: this.clientId, client_secret: this.clientSecret, code: deviceCode },
       validator: tokenResponseValidator,
     })
   }
 
-  async refreshToken(refreshToken: string) {
+  refreshToken(refreshToken: string) {
     return this.client.post('oauth/token', {
-      body: {
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-      },
+      body: { client_id: this.clientId, client_secret: this.clientSecret, grant_type: 'refresh_token', refresh_token: refreshToken },
       validator: tokenResponseValidator,
     })
   }
 
-  async syncWatchedHistory(accessToken: string, movies: TraktMoviePayload[], shows: TraktShowPayload[]) {
+  syncWatchedHistory(accessToken: string, movies: TraktMoviePayload[], shows: TraktShowPayload[]) {
     return this.client.post('sync/history', {
-      body: {
-        movies,
-        shows,
-      },
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      body: { movies, shows },
+      headers: { Authorization: `Bearer ${accessToken}` },
       validator: syncResponseValidator,
     })
   }

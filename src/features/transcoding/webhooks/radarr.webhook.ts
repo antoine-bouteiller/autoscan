@@ -1,33 +1,25 @@
 import { join } from 'node:path'
 
+import { Effect } from 'effect'
 import { type z } from 'zod'
 
-import { container, TOKENS } from '@/core/container'
+import { Plex } from '@/core/runtime.service'
 import { getMediaLanguage } from '@/domains/media/services/metadata.service'
 import { transcodeFile } from '@/features/transcoding/services/transcode.service'
 import { type radarrValidator } from '@/integrations/arr/radarr.validator'
 import { success } from '@/providers/http/response'
 import { type AppReply, type AppRequest } from '@/providers/http/types'
 
-export const radarrWebhook = async (request: AppRequest<z.infer<typeof radarrValidator>>, reply: AppReply) => {
-  const { eventType } = request.body
-
-  if (eventType === 'Test') {
-    return success(reply, { message: 'ok' })
-  }
-
-  if (eventType === 'Download') {
-    const file = join(request.body.movie.folderPath, request.body.movieFile.relativePath)
-    const mediaTitle = request.body.movie.title
-    const { originalLanguage } = await getMediaLanguage(request.body.movie.tmdbId, 'movie')
-
-    const transcoded = await transcodeFile({ file, mediaTitle, mediaType: 'movie', originalLanguage })
-
-    if (!transcoded) {
-      const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
-      await plexClient.refreshSections(file, 'movie')
+export const radarrWebhook = (request: AppRequest<z.infer<typeof radarrValidator>>, reply: AppReply) =>
+  Effect.gen(function* () {
+    if (request.body.eventType === 'Download') {
+      const file = join(request.body.movie.folderPath, request.body.movieFile.relativePath)
+      const { originalLanguage } = yield* getMediaLanguage(request.body.movie.tmdbId, 'movie')
+      const transcoded = yield* transcodeFile({ file, mediaTitle: request.body.movie.title, mediaType: 'movie', originalLanguage })
+      if (!transcoded) {
+        const plex = yield* Plex
+        yield* plex.refreshSections(file, 'movie')
+      }
     }
-  }
-
-  return success(reply, { message: 'ok' })
-}
+    success(reply, { message: 'ok' })
+  })

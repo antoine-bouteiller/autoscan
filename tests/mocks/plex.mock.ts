@@ -1,14 +1,15 @@
 import { jest } from 'bun:test'
 
 import { plexMetadata } from '@tests/resources/fixtures/plex.fixtures'
+import { Effect } from 'effect'
 
 import { PlexError } from '@/integrations/plex/plex.errors'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
 import { type PlexMedia } from '@/integrations/plex/plex.validator'
 
-export const updateStreamMock = jest.fn()
-const refreshSectionMock = jest.fn()
-export const refreshSectionsMock = jest.fn()
+export const updateStreamMock = jest.fn().mockResolvedValue(undefined)
+const refreshSectionMock = jest.fn().mockResolvedValue(undefined)
+export const refreshSectionsMock = jest.fn().mockResolvedValue(undefined)
 
 const movies = [
   {
@@ -57,43 +58,39 @@ const episodes = [
 ] satisfies PlexMedia[]
 
 export class MockPlexClient implements IPlexClient {
-  async getPlexMetadata(ratingKey: number) {
-    return plexMetadata[ratingKey] ?? new PlexError({ ratingKey })
+  getPlexMetadata(ratingKey: number) {
+    const media = plexMetadata[ratingKey]
+    return media === undefined ? Effect.fail(new PlexError({ ratingKey })) : Effect.succeed(media)
   }
 
   getBasicMediaInfo(plexMedia: PlexMedia) {
-    const part = plexMedia.Media?.[0]?.Part?.[0]
-    return {
-      file: part?.file,
-      ratingKey: plexMedia.ratingKey,
-      type: plexMedia.type === 'episode' ? ('show' as const) : plexMedia.type,
-    }
+    const part = plexMedia.Media[0]?.Part[0]
+    return { file: part?.file, ratingKey: plexMedia.ratingKey, type: plexMedia.type === 'episode' ? 'show' : plexMedia.type }
   }
 
-  async getSectionMedia(id: number) {
+  getSectionMedia(id: number) {
     if (id === 1) {
-      return movies
+      return Effect.succeed(movies)
     }
-
-    if (id == 2) {
-      return episodes
-    }
-
-    return []
+    return Effect.succeed(id === 2 ? episodes : [])
   }
 
-  async getSections() {
-    return [
+  getSections() {
+    return Effect.succeed([
       { key: 1, title: 'Movies', type: 'movie' as const },
       { key: 2, title: 'TV', type: 'show' as const },
-    ]
+    ])
   }
 
-  refreshSection = refreshSectionMock
+  refreshSection(id: number, filePath: string) {
+    return Effect.promise(() => refreshSectionMock(id, filePath))
+  }
 
-  refreshSections = refreshSectionsMock
+  refreshSections(filePath: string, mediaType: 'movie' | 'show') {
+    return Effect.promise(() => refreshSectionsMock(filePath, mediaType))
+  }
 
-  async updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle') {
-    updateStreamMock(partsId, streamId, type)
+  updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle') {
+    return Effect.promise(() => updateStreamMock(partsId, streamId, type))
   }
 }

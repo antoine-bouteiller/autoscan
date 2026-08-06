@@ -1,34 +1,24 @@
-import { beforeEach, describe, expect, jest, test } from 'bun:test'
+import { beforeEach, expect, test } from 'bun:test'
 
-import { syncWatchedHistoryMock } from '@tests/mocks/trakt.mock'
+import { testDatabase as db } from '@tests/database'
+import { runTest } from '@tests/effect'
+import { MockTraktClient, syncWatchedHistoryMock } from '@tests/utils'
 
-import { db } from '@/config/db'
 import { traktSyncHistory, traktTokens } from '@/database/schema'
 import { traktSyncJob } from '@/features/trakt_sync/jobs/trakt.job'
 
-import '../../../utils.ts'
+beforeEach(async () => {
+  await db.delete(traktSyncHistory)
+  await db.delete(traktTokens)
+  syncWatchedHistoryMock.mockClear()
+})
 
-describe('traktSyncJob', () => {
-  beforeEach(async () => {
-    jest.clearAllMocks()
-    await db.delete(traktTokens)
-    await db.delete(traktSyncHistory)
-  })
+test('Trakt job tolerates a missing token', async () => {
+  expect(await runTest(traktSyncJob)).toBeUndefined()
+})
 
-  test('should run sync without throwing when token missing', async () => {
-    await traktSyncJob()
-    expect(syncWatchedHistoryMock).not.toHaveBeenCalled()
-  })
-
-  test('should call syncWatchedHistory when token is valid and items exist', async () => {
-    await db.insert(traktTokens).values({
-      accessToken: 'access',
-      expiresAt: Math.floor(Date.now() / 1000) + 3600,
-      refreshToken: 'refresh',
-    })
-
-    await traktSyncJob()
-
-    expect(syncWatchedHistoryMock).toHaveBeenCalled()
-  })
+test('Trakt job syncs with a valid token', async () => {
+  await db.insert(traktTokens).values({ accessToken: 'valid', expiresAt: Math.floor(Date.now() / 1000) + 3600, refreshToken: 'refresh' })
+  await runTest(traktSyncJob, { trakt: new MockTraktClient() })
+  expect(syncWatchedHistoryMock).toHaveBeenCalled()
 })

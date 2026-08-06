@@ -1,8 +1,9 @@
 import { and, eq } from 'drizzle-orm'
+import { Effect } from 'effect'
 
-import { db } from '@/config/db'
+import { DatabaseQueryError } from '@/config/db'
 import { logger } from '@/config/logger'
-import { container, TOKENS } from '@/core/container'
+import { Database, Plex } from '@/core/runtime.service'
 import { media, type Media } from '@/database/schema'
 import { getMediaByTypeWithPagination } from '@/domains/media/repositories/media.repository'
 import { type UpdateLanguageParams } from '@/features/language_sync/types'
@@ -46,97 +47,86 @@ export const buildMediaKeyboard = (mediaList: Media[], page: number): InlineKeyb
 export const buildLanguageKeyboard = (): InlineKeyboardMarkup => {
   const codes = Object.keys(iso1ToIso2T)
   const rows: InlineKeyboardButton[][] = []
-  for (let idx = 0; idx < codes.length; idx += 6) {
-    rows.push(codes.slice(idx, idx + 6).map((code) => ({ callback_data: `lang:${code}`, text: code })))
+  for (let index = 0; index < codes.length; index += 6) {
+    rows.push(codes.slice(index, index + 6).map((code) => ({ callback_data: `lang:${code}`, text: code })))
   }
   return { inline_keyboard: rows }
 }
 
-export const handleUpdateLanguage = async (params: UpdateLanguageParams) => {
-  const { mediaTitle, partsId, preferredLanguage, streams } = params
+export const handleUpdateLanguage = (params: UpdateLanguageParams) =>
+  Effect.gen(function* () {
+    const { mediaTitle, partsId, preferredLanguage, streams } = params
+    const audioStream = streams.find((stream) => stream.streamType === 2 && normalizeToIso1(stream.languageCode) === preferredLanguage)
 
-  const audioStream = streams.find((stream) => stream.streamType === 2 && normalizeToIso1(stream.languageCode) === preferredLanguage)
-
-  if (!audioStream) {
-    logger.warn(`No ${preferredLanguage} audio stream found`, 'Language', mediaTitle)
-    return
-  }
-
-  if (!audioStream.selected) {
-    logger.info(`Setting audio in ${preferredLanguage}`, 'Language', mediaTitle)
-
-    const plexClient = container.resolve(TOKENS.PLEX_CLIENT)
-
-    await plexClient.updateStream(partsId, audioStream.id, 'audio')
-
-    if (preferredLanguage === 'fr') {
-      await plexClient.updateStream(partsId, 0, 'subtitle')
+    if (audioStream === undefined) {
+      yield* Effect.sync(() => logger.warn(`No ${preferredLanguage} audio stream found`, 'Language', mediaTitle))
+      return
     }
-  }
-}
 
-export const selectMediaType = async (
-  client: ITelegramClient,
-  chatId: number,
-  params: { state: AwaitingMediaTypeState; mediaType: MediaType }
-): Promise<ConversationState> => {
-  const { state, mediaType } = params
-  const mediaItems = await getMediaByTypeWithPagination(mediaType, 0, 100)
-
-  if (mediaItems.length === 0) {
-    await client.editMessageText(chatId, state.messageId, { text: `No media in ${mediaType} library` })
-    return { step: 'idle' }
-  }
-
-  await client.editMessageText(chatId, state.messageId, {
-    replyMarkup: buildMediaKeyboard(mediaItems, 0),
-    text: `Which ${mediaType} do you want to configure?`,
+    if (!audioStream.selected) {
+      const plexClient = yield* Plex
+      yield* Effect.sync(() => logger.info(`Setting audio in ${preferredLanguage}`, 'Language', mediaTitle))
+      yield* plexClient.updateStream(partsId, audioStream.id, 'audio')
+      if (preferredLanguage === 'fr') {
+        yield* plexClient.updateStream(partsId, 0, 'subtitle')
+      }
+    }
   })
-  return { mediaType, messageId: state.messageId, page: 0, step: 'awaiting_media_selection' }
-}
 
-export const navigateMediaPage = async (
-  client: ITelegramClient,
-  chatId: number,
-  params: { state: AwaitingMediaSelectionState; page: number }
-): Promise<ConversationState> => {
-  const { state, page } = params
-  const mediaItems = await getMediaByTypeWithPagination(state.mediaType, 0, 100)
-  await client.editMessageText(chatId, state.messageId, {
-    replyMarkup: buildMediaKeyboard(mediaItems, page),
-    text: `Which ${state.mediaType} do you want to configure?`,
+export const selectMediaType = (client: ITelegramClient, chatId: number, params: { state: AwaitingMediaTypeState; mediaType: MediaType }) =>
+  Effect.gen(function* () {
+    const { state, mediaType } = params
+    const mediaItems = yield* getMediaByTypeWithPagination(mediaType, 0, 100)
+    if (mediaItems.length === 0) {
+      yield* client.editMessageText(chatId, state.messageId, { text: `No media in ${mediaType} library` })
+      return { step: 'idle' } as const
+    }
+    yield* client.editMessageText(chatId, state.messageId, {
+      replyMarkup: buildMediaKeyboard(mediaItems, 0),
+      text: `Which ${mediaType} do you want to configure?`,
+    })
+    return { mediaType, messageId: state.messageId, page: 0, step: 'awaiting_media_selection' } as const
   })
-  return { ...state, page }
-}
 
-export const selectMedia = async (
-  client: ITelegramClient,
-  chatId: number,
-  params: { state: AwaitingMediaSelectionState; tmdbId: number }
-): Promise<ConversationState> => {
-  const { state, tmdbId } = params
-  const mediaItems = await getMediaByTypeWithPagination(state.mediaType, 0, 100)
-  const selectedMedia = mediaItems.find((item) => item.tmdbId === tmdbId)
-  if (!selectedMedia) {
-    return state
-  }
-  await client.editMessageText(chatId, state.messageId, {
-    replyMarkup: buildLanguageKeyboard(),
-    text: `Which language do you want to set for ${selectedMedia.title}?`,
+export const navigateMediaPage = (client: ITelegramClient, chatId: number, params: { state: AwaitingMediaSelectionState; page: number }) =>
+  Effect.gen(function* () {
+    const { state, page } = params
+    const mediaItems = yield* getMediaByTypeWithPagination(state.mediaType, 0, 100)
+    yield* client.editMessageText(chatId, state.messageId, {
+      replyMarkup: buildMediaKeyboard(mediaItems, page),
+      text: `Which ${state.mediaType} do you want to configure?`,
+    })
+    return { ...state, page }
   })
-  return { mediaType: state.mediaType, messageId: state.messageId, step: 'awaiting_language', tmdbId }
-}
 
-export const selectLanguage = async (
-  client: ITelegramClient,
-  chatId: number,
-  params: { state: AwaitingLanguageState; lang: string }
-): Promise<ConversationState> => {
-  const { state, lang } = params
-  await db
-    .update(media)
-    .set({ preferredLanguage: normalizeToIso1(lang) })
-    .where(and(eq(media.tmdbId, state.tmdbId), eq(media.type, state.mediaType)))
-  await client.editMessageText(chatId, state.messageId, { text: `Language updated to ${lang}` })
-  return { step: 'idle' }
-}
+export const selectMedia = (client: ITelegramClient, chatId: number, params: { state: AwaitingMediaSelectionState; tmdbId: number }) =>
+  Effect.gen(function* () {
+    const { state, tmdbId } = params
+    const mediaItems = yield* getMediaByTypeWithPagination(state.mediaType, 0, 100)
+    const selectedMedia = mediaItems.find((item) => item.tmdbId === tmdbId)
+    if (selectedMedia === undefined) {
+      return state
+    }
+    yield* client.editMessageText(chatId, state.messageId, {
+      replyMarkup: buildLanguageKeyboard(),
+      text: `Which language do you want to set for ${selectedMedia.title}?`,
+    })
+    return { mediaType: state.mediaType, messageId: state.messageId, step: 'awaiting_language', tmdbId } as const
+  })
+
+export const selectLanguage = (client: ITelegramClient, chatId: number, params: { state: AwaitingLanguageState; lang: string }) =>
+  Effect.gen(function* () {
+    const { state, lang } = params
+    yield* Database.use(({ db }) =>
+      Effect.tryPromise({
+        catch: (cause) => new DatabaseQueryError(cause),
+        try: () =>
+          db
+            .update(media)
+            .set({ preferredLanguage: normalizeToIso1(lang) })
+            .where(and(eq(media.tmdbId, state.tmdbId), eq(media.type, state.mediaType))),
+      })
+    )
+    yield* client.editMessageText(chatId, state.messageId, { text: `Language updated to ${lang}` })
+    return { step: 'idle' } as const
+  })

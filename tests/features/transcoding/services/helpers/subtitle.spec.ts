@@ -3,11 +3,11 @@ import { copyFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { makeTestDir, videosPath } from '@tests/utils'
+import { Effect } from 'effect'
 
-import { container, TOKENS } from '@/core/container'
 import { isForcedSubtitle, processSubtitleStreams } from '@/features/transcoding/services/helpers/subtitle'
+import { FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
-import { isOk } from '@/shared/utils/error'
 
 interface TestCase {
   file: string
@@ -50,16 +50,9 @@ describe('Extract subtitles', () => {
       try {
         copyFileSync(join(videosPath, file), join(testDir, file))
 
-        const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-        const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
-        expect(isOk(probeResult)).toBe(true)
-        if (!isOk(probeResult)) {
-          return
-        }
-
+        const probeResult = await Effect.runPromise(new FfmpegClient().ffprobe(join(testDir, file)))
         const subtitleStreams = probeResult.streams.filter((stream) => stream.codec_type === 'subtitle')
-
-        const streamsKepts = await processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
+        const streamsKepts = processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
 
         expect(streamsKepts.length).toBe(streamToKeep.length)
       } finally {
@@ -95,18 +88,12 @@ describe('Forced subtitle detection', () => {
       try {
         copyFileSync(join(videosPath, file), join(testDir, file))
 
-        const ffmpegClient = container.resolve(TOKENS.FFMPEG_CLIENT)
-        const probeResult = await ffmpegClient.ffprobe(join(testDir, file))
-        expect(isOk(probeResult)).toBe(true)
-        if (!isOk(probeResult)) {
-          return
-        }
-
+        const ffmpegClient = new FfmpegClient()
+        const probeResult = await Effect.runPromise(ffmpegClient.ffprobe(join(testDir, file)))
         expect(probeResult.duration).toBeDefined()
 
         const srtPath = join(testDir, 'test.srt')
-        const extractResult = await ffmpegClient.execute('-i', join(testDir, file), '-map', '0:s:0', '-c:s', 'srt', srtPath)
-        expect(isOk(extractResult)).toBe(true)
+        await Effect.runPromise(ffmpegClient.execute('-i', join(testDir, file), '-map', '0:s:0', '-c:s', 'srt', srtPath))
 
         expect(isForcedSubtitle(srtPath, probeResult.duration)).toBe(expected)
       } finally {

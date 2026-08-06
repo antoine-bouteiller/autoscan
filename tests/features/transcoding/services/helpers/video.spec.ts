@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test'
 
 import { processVideoStreams } from '@/features/transcoding/services/helpers/video'
 import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
-import { isOk } from '@/shared/utils/error'
+
+const isSuccessValue = <Value>(value: Value): value is Exclude<Value, Error> => !(value instanceof Error)
 
 describe('processVideoStreams', () => {
   test('should keep valid video streams', () => {
@@ -15,8 +16,8 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
-    expect(isOk(result)).toBe(true)
-    if (!isOk(result)) {
+    expect(isSuccessValue(result)).toBe(true)
+    if (!isSuccessValue(result)) {
       return
     }
 
@@ -39,8 +40,8 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
-    expect(isOk(result)).toBe(true)
-    if (!isOk(result)) {
+    expect(isSuccessValue(result)).toBe(true)
+    if (!isSuccessValue(result)) {
       return
     }
 
@@ -63,8 +64,8 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
-    expect(isOk(result)).toBe(true)
-    if (!isOk(result)) {
+    expect(isSuccessValue(result)).toBe(true)
+    if (!isSuccessValue(result)) {
       return
     }
 
@@ -87,8 +88,8 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
-    expect(isOk(result)).toBe(true)
-    if (!isOk(result)) {
+    expect(isSuccessValue(result)).toBe(true)
+    if (!isSuccessValue(result)) {
       return
     }
 
@@ -111,8 +112,8 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
-    expect(isOk(result)).toBe(true)
-    if (!isOk(result)) {
+    expect(isSuccessValue(result)).toBe(true)
+    if (!isSuccessValue(result)) {
       return
     }
 
@@ -124,8 +125,8 @@ describe('processVideoStreams', () => {
     const videoStreams: FFprobeStream[] = []
 
     const result = processVideoStreams(videoStreams, 'test-media')
-    expect(isOk(result)).toBe(true)
-    if (!isOk(result)) {
+    expect(isSuccessValue(result)).toBe(true)
+    if (!isSuccessValue(result)) {
       return
     }
 
@@ -148,8 +149,8 @@ describe('processVideoStreams', () => {
     ]
 
     const result = processVideoStreams(videoStreams, 'test-media')
-    expect(isOk(result)).toBe(true)
-    if (!isOk(result)) {
+    expect(isSuccessValue(result)).toBe(true)
+    if (!isSuccessValue(result)) {
       return
     }
 
