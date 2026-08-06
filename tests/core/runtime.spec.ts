@@ -11,11 +11,7 @@ describe('runtime shutdown', () => {
     await Effect.runPromise(
       shutdownRuntime({
         callbacks: { awaitEmpty: Effect.sync(() => events.push('callbacks-empty')), clear: Effect.void },
-        http: {
-          stop: async (force) => {
-            events.push(force ? 'http-force' : 'http-stop')
-          },
-        },
+        http: { stop: Effect.sync(() => events.push('http-stop')) },
         producers: [
           {
             awaitEmpty: Effect.sync(() => events.push('producer-empty')),
@@ -35,44 +31,25 @@ describe('runtime shutdown', () => {
     expect(events).toContain('http-stop')
     expect(events).toContain('callbacks-empty')
     expect(events.indexOf('producer-stop')).toBeLessThan(events.indexOf('producer-empty'))
-    expect(events).not.toContain('http-force')
   })
-
-  test('force-closes when graceful HTTP stop fails', async () => {
-    const stops: boolean[] = []
+  test('contains HTTP shutdown defects', async () => {
     await Effect.runPromise(
       shutdownRuntime({
         callbacks: { awaitEmpty: Effect.void, clear: Effect.void },
-        http: {
-          stop: async (force) => {
-            stops.push(Boolean(force))
-            if (!force) {
-              throw new Error('graceful stop failed')
-            }
-          },
-        },
+        http: { stop: Effect.die(new Error('stop failed')) },
         producers: [],
         scheduler: { stopAll: () => undefined },
         stopTelegram: Effect.void,
         transcodeQueue: { awaitIdle: Effect.void, stopIntake: Effect.void },
       })
     )
-    expect(stops).toEqual([false, true])
   })
 
-  test('force-closes HTTP before clearing tracked fibers at 30 seconds even when force-close fails', async () => {
+  test('clears tracked fibers after 30 seconds', async () => {
     const events: string[] = []
     const effect = shutdownRuntime({
       callbacks: { awaitEmpty: Effect.never, clear: Effect.sync(() => events.push('callbacks-clear')) },
-      http: {
-        stop: async (force) => {
-          events.push(force ? 'http-force' : 'http-stop')
-          if (force) {
-            throw new Error('force close failed')
-          }
-          await new Promise(() => undefined)
-        },
-      },
+      http: { stop: Effect.sync(() => events.push('http-stop')) },
       producers: [
         {
           awaitEmpty: Effect.never,
@@ -93,7 +70,7 @@ describe('runtime shutdown', () => {
         yield* Fiber.join(fiber)
       }).pipe(Effect.provide(layer()))
     )
-    expect(events.indexOf('http-force')).toBeLessThan(events.indexOf('callbacks-clear'))
+    expect(events.indexOf('http-stop')).toBeLessThan(events.indexOf('callbacks-clear'))
     expect(events).toContain('producer-clear')
   })
 })

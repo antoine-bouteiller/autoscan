@@ -1,4 +1,6 @@
-import { Effect, Result, Schema } from 'effect'
+import { BunHttpServer } from '@effect/platform-bun'
+import { Effect, Exit, Result, Schema, Scope } from 'effect'
+import { HttpRouter, HttpServer, type HttpServerRequest, HttpServerResponse } from 'effect/unstable/http'
 
 import { logger } from '@/config/logger'
 import { type AppRequirements } from '@/core/runtime.service'
@@ -12,9 +14,11 @@ interface HttpProviderOptions {
   port?: number
   runPromise: <Success, Error>(effect: Effect.Effect<Success, Error, AppRequirements>) => Promise<Success>
 }
+type HttpMethod = 'GET' | 'POST'
 
 interface InjectOptions {
-  method: string
+  body?: string
+  method: HttpMethod
   payload?: unknown
   url: string
 }
@@ -31,24 +35,31 @@ interface InjectResponse {
   statusCode: number
 }
 
-const jsonResponse = (data: unknown, statusCode: number): Response => Response.json(data, { status: statusCode })
+const jsonResponse = (data: unknown, statusCode: number): HttpServerResponse.HttpServerResponse =>
+  HttpServerResponse.jsonUnsafe(data, { status: statusCode })
 
+const notFoundRoute = HttpRouter.route('*', '*', jsonResponse({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }, 404))
+const routerConfig = { caseSensitive: true, ignoreTrailingSlash: false }
 export class HttpProvider {
-  private server?: ReturnType<typeof Bun.serve>
   private readonly options: Required<Omit<HttpProviderOptions, 'runPromise'>>
-  private readonly routes: Record<string, Record<string, (request: Request) => Promise<Response>>> = {}
+  private readonly routes: HttpRouter.Route[] = []
   private readonly runPromise: HttpProviderOptions['runPromise']
+  private serverScope?: Scope.Closeable
 
   constructor(options: HttpProviderOptions) {
     this.options = { hostname: options.hostname ?? '0.0.0.0', port: options.port ?? 3030 }
     this.runPromise = options.runPromise
   }
 
-  get(path: string, handler: RouteHandler): void {
+  get(path: HttpRouter.PathInput, handler: RouteHandler): void {
     this.register('GET', path, handler)
   }
 
-  post<TSchema extends Schema.ConstraintDecoder<unknown>>(path: string, validator: TSchema, handler: RouteHandler<TSchema['Type']>): void {
+  post<TSchema extends Schema.ConstraintDecoder<unknown>>(
+    path: HttpRouter.PathInput,
+    validator: TSchema,
+    handler: RouteHandler<TSchema['Type']>
+  ): void {
     this.register('POST', path, (request: AppRequest, reply: AppReply) => {
       const result = Schema.decodeUnknownResult(validator, { errors: 'all' })(request.body)
       if (Result.isFailure(result)) {
@@ -63,77 +74,99 @@ export class HttpProvider {
   }
 
   async inject(options: InjectOptions): Promise<InjectResponse> {
-    const handler = this.routes[options.url]?.[options.method]
-    if (handler === undefined) {
-      return { json: () => ({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }), statusCode: 404 }
-    }
-    const response = await handler(
-      new Request(`http://localhost${options.url}`, {
-        body: options.payload === undefined ? undefined : JSON.stringify(options.payload),
-        headers: { 'content-type': 'application/json' },
-        method: options.method,
-      })
-    )
-    const body: InjectResponseBody = JSON.parse(await response.text())
-    return { json: () => body, statusCode: response.status }
-  }
-
-  private register(method: string, path: string, handler: RouteHandler): void {
-    this.routes[path] ??= {}
-    this.routes[path][method] = (request) => this.execute(handler, request)
-  }
-
-  private async execute(handler: RouteHandler, request: Request): Promise<Response> {
-    const appRequest: AppRequest = { body: undefined }
-    if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
-      try {
-        const raw = await request.text()
-        appRequest.body = raw ? JSON.parse(raw) : undefined
-      } catch {
-        return jsonResponse({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON' }, success: false }, 400)
-      }
-    }
-
-    let statusCode = 200
-    let payload: unknown
-    const reply: AppReply = {
-      send(data: unknown) {
-        payload = data
-      },
-      status(code: number) {
-        statusCode = code
-        return this
-      },
-    }
-
-    try {
-      await this.runPromise(handler(appRequest, reply))
-    } catch (error) {
-      logError(error)
-      return jsonResponse(
-        {
-          error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
-          meta: { timestamp: new Date().toISOString() },
-          success: false,
-        },
-        500
-      )
-    }
-    return jsonResponse(payload, statusCode)
-  }
-
-  start(): void {
-    this.server = Bun.serve({
-      fetch: () => jsonResponse({ error: { code: 'NOT_FOUND', message: 'Route not found' }, success: false }, 404),
-      hostname: this.options.hostname,
-      port: this.options.port,
-      routes: this.routes,
+    const webHandler = HttpRouter.toWebHandler(HttpRouter.addAll([...this.routes, notFoundRoute]), {
+      disableLogger: true,
+      routerConfig,
     })
-    logger.info(`Server running at http://${this.options.hostname}:${this.options.port}/`, 'HTTP')
+    try {
+      const response = await webHandler.handler(
+        new Request(`http://localhost${options.url}`, {
+          body: options.body ?? (options.payload === undefined ? undefined : JSON.stringify(options.payload)),
+          headers: { 'content-type': 'application/json' },
+          method: options.method,
+        })
+      )
+      const body: InjectResponseBody = JSON.parse(await response.text())
+      return { json: () => body, statusCode: response.status }
+    } finally {
+      await webHandler.dispose()
+    }
   }
 
-  async stop(force = false): Promise<void> {
-    await this.server?.stop(force)
-    logger.info('Server stopped', 'HTTP')
+  private register(method: HttpMethod, path: HttpRouter.PathInput, handler: RouteHandler): void {
+    this.routes.push(HttpRouter.route(method, path, (request) => this.execute(handler, request)))
+  }
+
+  private execute(handler: RouteHandler, request: HttpServerRequest.HttpServerRequest): Effect.Effect<HttpServerResponse.HttpServerResponse> {
+    const provider = this
+    return Effect.gen(function* () {
+      const appRequest: AppRequest = { body: undefined }
+      if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
+        const body = yield* Effect.result(request.text.pipe(Effect.flatMap((raw) => Effect.try(() => (raw ? JSON.parse(raw) : undefined)))))
+        if (Result.isFailure(body)) {
+          return jsonResponse({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON' }, success: false }, 400)
+        }
+        appRequest.body = body.success
+      }
+
+      let statusCode = 200
+      let payload: unknown
+      const reply: AppReply = {
+        send(data: unknown) {
+          payload = data
+        },
+        status(code: number) {
+          statusCode = code
+          return this
+        },
+      }
+
+      const result = yield* Effect.result(Effect.tryPromise(() => provider.runPromise(handler(appRequest, reply))))
+      if (Result.isFailure(result)) {
+        yield* Effect.sync(() => logError(result.failure))
+        return jsonResponse(
+          {
+            error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+            meta: { timestamp: new Date().toISOString() },
+            success: false,
+          },
+          500
+        )
+      }
+      return jsonResponse(payload, statusCode)
+    })
+  }
+
+  get start() {
+    const provider = this
+    return Effect.gen(function* () {
+      if (provider.serverScope !== undefined) {
+        return
+      }
+      const scope = yield* Scope.make()
+      provider.serverScope = scope
+      const server = yield* BunHttpServer.make({
+        gracefulShutdownTimeout: 30_000,
+        hostname: provider.options.hostname,
+        port: provider.options.port,
+      }).pipe(Scope.provide(scope))
+      const router = yield* HttpRouter.make.pipe(Effect.provideService(HttpRouter.RouterConfig, routerConfig))
+      yield* router.addAll([...provider.routes, notFoundRoute])
+      yield* server.serve(router.asHttpEffect()).pipe(Scope.provide(scope))
+      logger.info(`Server running at ${HttpServer.formatAddress(server.address)}/`, 'HTTP')
+    })
+  }
+
+  get stop() {
+    const provider = this
+    return Effect.gen(function* () {
+      const scope = provider.serverScope
+      if (scope === undefined) {
+        return
+      }
+      provider.serverScope = undefined
+      yield* Scope.close(scope, Exit.void)
+      logger.info('Server stopped', 'HTTP')
+    })
   }
 }

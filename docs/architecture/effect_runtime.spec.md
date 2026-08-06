@@ -1,6 +1,6 @@
 ---
 title: Effect v4 Runtime Contract
-version: 1.1
+version: 1.2
 date_created: 2026-08-05
 last_updated: 2026-08-06
 tags: [architecture, effect, runtime, reliability]
@@ -14,7 +14,7 @@ Autoscan targets exactly `effect@4.0.0-beta.103` and `@effect/platform-bun@4.0.0
 
 # Native adapters
 
-- `Bun.serve`, `Bun.cron`, `Bun.spawn`, Bun SQL, Drizzle, and Effect Schema remain native adapters.
+- `BunHttpServer`, `Bun.cron`, `Bun.spawn`, Bun SQL, Drizzle, and Effect Schema remain native adapters.
 - Callback providers receive one runner backed by a scoped `FiberSet`; feature and integration modules never create runtimes.
 - Telegram polling is a root-scoped Effect with interruptible long polling and exponential backoff from 5 seconds to 5 minutes.
 - Scheduler callbacks await tracked job completion, preserving Bun's no-overlap behavior.
@@ -22,7 +22,7 @@ Autoscan targets exactly `effect@4.0.0-beta.103` and `@effect/platform-bun@4.0.0
 
 # Shutdown
 
-Shutdown stops scheduler and HTTP intake first. It allows tracked callbacks and transcode work up to 30 seconds. At the deadline it force-closes HTTP connections before clearing tracked fibers. Provider and database scopes then release in reverse dependency order. Finalizers do not call `process.exit`.
+Shutdown stops scheduler and HTTP intake first. `BunHttpServer` allows graceful connection shutdown for up to 30 seconds while tracked callbacks and transcode work drain. At the deadline the runtime interrupts remaining tracked fibers. Provider and database scopes then release in reverse dependency order. Finalizers do not call `process.exit`.
 
 # Error policy
 

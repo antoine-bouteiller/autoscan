@@ -1,4 +1,5 @@
 import { type Effect, type Schema } from 'effect'
+import { type HttpRouter } from 'effect/unstable/http'
 
 import { type AppRequirements } from '@/core/runtime.service'
 import { type HttpProvider } from '@/providers/http/http.provider'
@@ -31,7 +32,11 @@ interface FeatureProviders {
 export const defineFeature = (feature: Feature): Feature => feature
 
 export const postRoute =
-  <TSchema extends Schema.ConstraintDecoder<unknown>>(path: string, validator: TSchema, handler: RouteHandler<TSchema['Type']>): FeatureRoute =>
+  <TSchema extends Schema.ConstraintDecoder<unknown>>(
+    path: HttpRouter.PathInput,
+    validator: TSchema,
+    handler: RouteHandler<TSchema['Type']>
+  ): FeatureRoute =>
   (http) =>
     http.post(path, validator, handler)
 

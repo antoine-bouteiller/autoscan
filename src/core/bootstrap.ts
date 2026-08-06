@@ -72,7 +72,9 @@ const HttpLive = Layer.effect(
   Http,
   Effect.gen(function* () {
     const runtime = yield* CallbackRuntime
-    return Http.of(new HttpProvider({ port: 3030, runPromise: runtime.runPromise }))
+    const provider = new HttpProvider({ port: 3030, runPromise: runtime.runPromise })
+    yield* Effect.addFinalizer(() => provider.stop)
+    return Http.of(provider)
   })
 )
 
@@ -103,40 +105,29 @@ interface ShutdownResources {
   transcodeQueue: Pick<TranscodeQueueShape, 'awaitIdle' | 'stopIntake'>
 }
 
-export const shutdownRuntime = ({ callbacks, http, producers, scheduler, stopTelegram, transcodeQueue }: ShutdownResources) => {
-  const stopHttp = (force: boolean) =>
-    Effect.exit(Effect.promise(() => http.stop(force))).pipe(
-      Effect.map((exit) => {
-        if (isExitFailure(exit)) {
-          logError(exit.cause, 'HTTP shutdown')
-          return false
-        }
-        return true
-      })
-    )
-
-  return Effect.gen(function* () {
+export const shutdownRuntime = ({ callbacks, http, producers, scheduler, stopTelegram, transcodeQueue }: ShutdownResources) =>
+  Effect.gen(function* () {
     yield* Effect.sync(() => {
       logger.info('Shutting down gracefully...')
       scheduler.stopAll()
     })
-    const httpStop = yield* Effect.forkChild(stopHttp(false))
+    const httpStop = yield* Effect.forkChild(http.stop)
     yield* stopTelegram
     yield* Effect.all([...producers.map((producer) => producer.stopIntake), transcodeQueue.stopIntake], { discard: true })
 
     const workCompleted = Effect.all([callbacks.awaitEmpty, transcodeQueue.awaitIdle, ...producers.map((producer) => producer.awaitEmpty)], {
       discard: true,
     })
-    const completed = yield* Effect.all([Fiber.join(httpStop), workCompleted]).pipe(Effect.timeoutOption(30_000))
+    const completed = yield* workCompleted.pipe(Effect.timeoutOption(30_000))
 
     if (Option.isNone(completed)) {
-      yield* stopHttp(true)
       yield* Effect.all([callbacks.clear, ...producers.map((producer) => producer.clear)], { discard: true })
-    } else if (!completed.value[0]) {
-      yield* stopHttp(true)
+    }
+    const httpStopExit = yield* Effect.exit(Fiber.join(httpStop))
+    if (isExitFailure(httpStopExit)) {
+      yield* Effect.sync(() => logError(httpStopExit.cause, 'HTTP shutdown'))
     }
   })
-}
 
 export const program = Effect.gen(function* () {
   const http = yield* Http
@@ -162,7 +153,7 @@ export const program = Effect.gen(function* () {
   )
 
   registerFeatures(features, { http, scheduler, telegram })
-  yield* Effect.sync(() => http.start())
+  yield* http.start
   yield* FiberSet.run(telegramFibers, telegram.poll)
   return yield* Effect.never
 }).pipe(Effect.provide(AppLive), Effect.scoped)
