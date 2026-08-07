@@ -105,9 +105,9 @@
     url = "https://registry.npmjs.org/@drizzle-team/brocli/-/brocli-0.12.0.tgz";
     hash = "sha512-mlUE+rZ8CatQekLhnaiN91Iemdd+e2gFKooGlnRB3oPTL3VghLfX24dx7HrzMNeC1JrIB/0kpsfyty3f5HNfxQ==";
   };
-  "@effect/platform-bun@4.0.0-beta.103" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.0.0-beta.103.tgz";
-    hash = "sha512-/ay1/lhE9FUKEiDRQs56463eJ9u9ivtUtOCi2eeqI8Aooau7PupKNtV5zKjoRBCLInZMAX7JezT46NW5AdACBQ==";
+  "@effect/platform-bun@4.0.0-beta.104" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.0.0-beta.104.tgz";
+    hash = "sha512-ECjT3zatrIAXVHVA8oc62e/kQ/zu98PfXfEVLlrQ0JeTLb0cDax9kcjUa8g3z0IbOuKpMlf87bCR6g6UDiJT7A==";
   };
   "@effect/platform-node-shared@4.0.0-beta.104" = fetchurl {
     url = "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.0.0-beta.104.tgz";
