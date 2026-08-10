@@ -36,4 +36,4 @@ The serial worker deduplicates queued and active media. Replacement validates vi
 
 Effectful diagnostics use the application `Logger` layer with ordered context annotations and original Causes; native logging is limited to scheduler callbacks and synchronous transcode stream-selection helpers. ARR queue reads aggregate every page and queue removals are fail-fast with concurrency four.
 
-Tests use `bun:test`, local layers, Effect's test clock, and native boundary fakes. CI runs `oxfmt --check .`, Effect-aware `oxlint`, and `tsc --noEmit` directly as non-mutating verification. The isolated contract test under `tests/tooling/` proves the pinned package tuple and diagnostics without network installs or lockfile changes; database lifecycle tests prove closure after success and migration failure.
+Tests use `bun:test`, local layers, Effect's test clock, and native boundary fakes. CI runs `oxfmt --check .`, Effect-aware `oxlint`, and `tsc --noEmit` directly as non-mutating verification. Database lifecycle tests prove closure after success and migration failure.

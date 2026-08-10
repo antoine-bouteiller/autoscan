@@ -122,7 +122,7 @@ extension, e.g. `import { foo } from '@/shared/utils/array.js'`.
 
 ## 6. Test Automation Strategy
 
-- Tests live under `tests/` and mirror `src/` one-for-one. Repository tooling contract tests are the sole exception and live under `tests/tooling/`; there are no `unit/`, `integration/`, or other layer folders.
+- Tests live under `tests/` and mirror `src/` one-for-one; there are no `unit/`, `integration/`, tooling-contract, or other layer folders.
 - Shared test infrastructure (`preload.ts`, `setup.ts`, `utils.ts`, `mocks/`, `resources/`) lives at
   the `tests/` root. Test helpers are imported via the `@tests/*` alias, not relative paths.
 - The runner is Bun's native `bun test` (config in `bunfig.toml`) via `bun run test` (one-shot),
