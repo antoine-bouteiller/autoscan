@@ -8,7 +8,7 @@ export const mockQueueResponseWithNoEligibleFiles: QueueResponse = {
       status: 'completed',
       statusMessages: [
         {
-          messages: 'No files found are eligible for import',
+          messages: ['No files found are eligible for import'],
           title: 'Error',
         },
       ],
@@ -27,7 +27,7 @@ export const mockQueueResponseWithDangerousFiles: QueueResponse = {
       status: 'completed',
       statusMessages: [
         {
-          messages: 'Caution: Found potentially dangerous file with extension: .exe',
+          messages: ['Caution: Found potentially dangerous file with extension: .exe'],
           title: 'Warning',
         },
       ],

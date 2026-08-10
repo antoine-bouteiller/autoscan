@@ -58,7 +58,7 @@ jobs-only feature: no HTTP routes, no Telegram commands.
   - `getQueue(): Promise<QueueResponse | undefined>`
   - `removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }): Promise<void>`
 - **`QueueResponse`**: `{ records: QueueItem[]; totalRecords: number }`.
-- **`QueueItem`**: `{ id, title, status, errorMessage?, statusMessages?: { title, messages }[], timeleft?, trackedDownloadStatus? }`.
+- **`QueueItem`**: `{ id, title, status, errorMessage?, statusMessages?: { title: string, messages: string[] }[], timeleft?, trackedDownloadStatus? }`.
 
 ## 5. Acceptance Criteria
 

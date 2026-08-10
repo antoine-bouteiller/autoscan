@@ -16,7 +16,7 @@ const queueItemValidator = Schema.Struct({
   statusMessages: Schema.optional(
     Schema.Array(
       Schema.Struct({
-        messages: Schema.Union([Schema.String, Schema.Record(Schema.String, Schema.Unknown)]),
+        messages: Schema.Array(Schema.String),
         title: Schema.String,
       })
     )

@@ -13,6 +13,20 @@ describe('queueResponseValidator', () => {
     expect(result.records[0]?.timeleft).toBeUndefined()
   })
 
+  test('accepts array-valued status messages from arr', () => {
+    const input = {
+      records: [
+        {
+          ...queueItem,
+          statusMessages: [{ messages: ['No files found are eligible for import'], title: 'Import failed' }],
+        },
+      ],
+      totalRecords: 1,
+    }
+
+    expect(Schema.decodeUnknownSync(queueResponseValidator)(input)).toEqual(input)
+  })
+
   test('rejects an invalid timeleft', () => {
     const input = { records: [{ ...queueItem, timeleft: 42 }], totalRecords: 1 }
     expect(Result.isFailure(Schema.decodeUnknownResult(queueResponseValidator)(input))).toBe(true)
