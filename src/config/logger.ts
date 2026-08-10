@@ -1,6 +1,4 @@
-/* oxlint-disable no-console */
-
-type LogLevel = 'DEBUG' | 'ERROR' | 'INFO' | 'WARN'
+import { Cause, Logger, References } from 'effect'
 
 const ANSI = {
   BOLD: '\x1b[1m',
@@ -12,6 +10,7 @@ const ANSI = {
   YELLOW: '\x1b[33m',
 } as const
 
+type LogLevel = 'DEBUG' | 'ERROR' | 'INFO' | 'WARN'
 type ConsoleMethod = 'debug' | 'error' | 'info' | 'warn'
 
 const LOG_CONFIG: Record<LogLevel, { color: string; method: ConsoleMethod }> = {
@@ -21,28 +20,52 @@ const LOG_CONFIG: Record<LogLevel, { color: string; method: ConsoleMethod }> = {
   WARN: { color: ANSI.YELLOW, method: 'warn' },
 }
 
-const formatContext = (context: string[], message: string): string => {
-  const contextString = context.map((ctx) => `(${ctx})`).join('')
+const formatContext = (context: readonly string[], message: string): string => {
+  const contextString = context.map((item) => `(${item})`).join('')
   const spacer = message.startsWith('(') ? '' : ' '
   return contextString + spacer
 }
 
-const prettyLog = (level: LogLevel, message: string, context: string[]): void => {
-  if (process.env.NODE_ENV === 'test') {
-    return
+const formatMessage = (message: unknown): string => {
+  if (message instanceof Error) {
+    const cause = message.cause instanceof Error ? `: ${message.cause.message}` : ''
+    return `${message.message}${cause}`
   }
-
-  const { color, method } = LOG_CONFIG[level]
-  const timestamp = new Date().toLocaleString('fr-FR')
-  const formattedContext = formatContext(context, message)
-
-  const formattedMessage = `${ANSI.GRAY}${timestamp}${ANSI.RESET} ${color}${ANSI.BOLD}[${level}]${ANSI.RESET} ${formattedContext}${message}`
-
-  console[method](formattedMessage)
+  if (typeof message === 'string') {
+    return message
+  }
+  return JSON.stringify(message)
 }
 
-export const logger = {
-  error: (message: string, ...context: string[]) => prettyLog('ERROR', message, context),
-  info: (message: string, ...context: string[]) => prettyLog('INFO', message, context),
-  warn: (message: string, ...context: string[]) => prettyLog('WARN', message, context),
+const write = (entry: { context: readonly string[]; date: Date; level: LogLevel; message: string }): void => {
+  const { context, date, level, message } = entry
+  const { color, method } = LOG_CONFIG[level]
+  const timestamp = date.toLocaleString('fr-FR')
+  const formattedContext = formatContext(context, message)
+  console[method](`${ANSI.GRAY}${timestamp}${ANSI.RESET} ${color}${ANSI.BOLD}[${level}]${ANSI.RESET} ${formattedContext}${message}`)
+}
+
+const toLogLevel = (level: string): LogLevel => {
+  if (level === 'DEBUG' || level === 'ERROR' || level === 'INFO' || level === 'WARN') {
+    return level
+  }
+  return 'INFO'
+}
+
+const effectLogger = Logger.make<unknown, void>((options) => {
+  const annotations = options.fiber.getRef(References.CurrentLogAnnotations)
+  const annotatedContext = annotations['context']
+  const context = Array.isArray(annotatedContext) ? annotatedContext.filter((item): item is string => typeof item === 'string') : []
+  const messages = Array.isArray(options.message) ? options.message : [options.message]
+  const message = messages.map(formatMessage).join(' ')
+  const cause = options.cause.reasons.length === 0 ? '' : `: ${Cause.pretty(options.cause)}`
+  write({ context, date: options.date, level: toLogLevel(options.logLevel.toUpperCase()), message: `${message}${cause}` })
+})
+
+export const LoggerLive = Logger.layer([effectLogger])
+
+export const nativeLogger = {
+  error: (message: unknown, ...context: string[]) => write({ context, date: new Date(), level: 'ERROR', message: formatMessage(message) }),
+  info: (message: string, ...context: string[]) => write({ context, date: new Date(), level: 'INFO', message }),
+  warn: (message: string, ...context: string[]) => write({ context, date: new Date(), level: 'WARN', message }),
 }

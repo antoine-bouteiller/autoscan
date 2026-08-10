@@ -21,30 +21,35 @@ class DatabaseConnectionError extends Data.TaggedError('DatabaseConnectionError'
   }
 }
 
-const acquireSql = Effect.acquireRelease(
-  Effect.try({
-    catch: (cause) => new DatabaseConnectionError(cause),
-    try: () =>
-      new SQL({
-        ...(env.POSTGRES_HOST.startsWith('/') ? { path: env.POSTGRES_HOST } : { hostname: env.POSTGRES_HOST }),
-        database: env.POSTGRES_DATABASE,
-        password: env.POSTGRES_PASSWORD,
-        port: env.POSTGRES_PORT,
-        username: env.POSTGRES_USERNAME,
-      }),
-  }),
-  (sql) => Effect.promise(() => sql.close())
-)
+interface DatabaseResourceOperations<Sql, Db> {
+  readonly close: (sql: Sql) => Promise<void>
+  readonly construct: (sql: Sql) => Db
+  readonly migrate: (db: Db) => Promise<unknown>
+  readonly open: () => Sql
+}
 
-export const DatabaseLive = Layer.effect(
-  Database,
+export const makeDatabaseResource = <Sql, Db>(operations: DatabaseResourceOperations<Sql, Db>) =>
   Effect.gen(function* () {
-    const sql = yield* acquireSql
-    const db = drizzle({ client: sql })
-    yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseConnectionError(cause),
-      try: () => migrate(db, { migrationsFolder: './migrations' }),
-    })
-    return Database.of({ db, sql })
+    const sql = yield* Effect.acquireRelease(Effect.try({ catch: (cause) => new DatabaseConnectionError(cause), try: operations.open }), (resource) =>
+      Effect.promise(() => operations.close(resource))
+    )
+    const db = yield* Effect.try({ catch: (cause) => new DatabaseConnectionError(cause), try: () => operations.construct(sql) })
+    yield* Effect.tryPromise({ catch: (cause) => new DatabaseConnectionError(cause), try: () => operations.migrate(db) })
+    return { db, sql }
   })
-)
+
+const databaseResource = makeDatabaseResource({
+  close: (sql: SQL) => sql.close(),
+  construct: (sql: SQL) => drizzle({ client: sql }),
+  migrate: (db) => migrate(db, { migrationsFolder: './migrations' }),
+  open: () =>
+    new SQL({
+      ...(env.POSTGRES_HOST.startsWith('/') ? { path: env.POSTGRES_HOST } : { hostname: env.POSTGRES_HOST }),
+      database: env.POSTGRES_DATABASE,
+      password: env.POSTGRES_PASSWORD,
+      port: env.POSTGRES_PORT,
+      username: env.POSTGRES_USERNAME,
+    }),
+})
+
+export const DatabaseLive = Layer.effect(Database, databaseResource.pipe(Effect.map(({ db, sql }) => Database.of({ db, sql }))))

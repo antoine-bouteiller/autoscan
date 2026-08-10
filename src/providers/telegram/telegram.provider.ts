@@ -1,12 +1,10 @@
 import { Cause, Effect, Result } from 'effect'
 
 import env from '@/config/env'
-import { logger } from '@/config/logger'
 import { type AppRequirements } from '@/core/runtime.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramCallbackQuery, type TelegramMessageIn, type TelegramUpdate } from '@/integrations/telegram/telegram.validator'
 import { type ConversationState } from '@/providers/telegram/types'
-import { logError } from '@/shared/utils/error'
 
 export type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Effect.Effect<ConversationState, unknown, AppRequirements>
 
@@ -52,10 +50,14 @@ export class TelegramProvider {
         return Effect.gen(function* () {
           provider.conversationState = { step: 'idle' }
           provider.activeConversationKey = undefined
-          yield* Effect.sync(() => logError(cause, 'Telegram'))
+          yield* Effect.logError(cause, 'Telegram')
           yield* provider.client
             .sendMessage(env.TELEGRAM_CHAT_ID, 'An unexpected error occurred')
-            .pipe(Effect.catch((error) => Effect.sync(() => logError(error, 'Telegram'))))
+            .pipe(
+              Effect.catchCause((sendCause) =>
+                Cause.hasInterruptsOnly(sendCause) ? Effect.failCause(sendCause) : Effect.logError(sendCause, 'Telegram')
+              )
+            )
           return provider.conversationState
         })
       })
@@ -117,7 +119,7 @@ export class TelegramProvider {
     return Effect.gen(function* () {
       const chatId = update.message?.chat.id ?? update.callback_query?.message?.chat.id
       if (chatId !== env.TELEGRAM_CHAT_ID) {
-        yield* Effect.sync(() => logger.warn(`(Telegram) Unknown chat sender ${chatId}`))
+        yield* Effect.logWarning(`Unknown chat sender ${chatId}`).pipe(Effect.annotateLogs('context', ['Telegram']))
         return
       }
       if (update.message?.text === '/cancel') {
@@ -135,12 +137,12 @@ export class TelegramProvider {
     return Effect.gen(function* () {
       let offset = 0
       let errorDelay = 5000
-      yield* Effect.sync(() => logger.info('bot started', 'Telegram'))
+      yield* Effect.logInfo('bot started').pipe(Effect.annotateLogs('context', ['Telegram']))
 
       while (true) {
         const updates = yield* Effect.result(provider.client.getUpdates(offset))
         if (Result.isFailure(updates)) {
-          yield* Effect.sync(() => logError(updates.failure, 'Telegram'))
+          yield* Effect.logError(Cause.fail(updates.failure), 'Telegram')
           yield* Effect.sleep(errorDelay)
           errorDelay = Math.min(errorDelay * 2, 5 * 60 * 1000)
           continue
@@ -152,6 +154,6 @@ export class TelegramProvider {
           yield* provider.handleUpdate(update)
         }
       }
-    }).pipe(Effect.ensuring(Effect.sync(() => logger.info('bot stopped', 'Telegram'))))
+    }).pipe(Effect.ensuring(Effect.logInfo('bot stopped').pipe(Effect.annotateLogs('context', ['Telegram']))))
   }
 }

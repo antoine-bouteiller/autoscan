@@ -16,7 +16,7 @@ Autoscan composes dependencies with Effect v4 `Context.Service` keys and `Layer`
 - Stateless integration clients use `Layer.succeed`; resources and supervised fibers use `Layer.effect` with scope requirements.
 - `src/core/bootstrap.ts` is the only production composition root. It builds one layer graph and provides it to one Bun runtime program.
 - Database acquisition registers SQL closure before migrations run, so migration failure still closes the client.
-- Native callback providers receive the scoped `CallbackRuntime` runner. They do not create a runtime or execute an Effect directly.
+- Scheduler callbacks receive the scoped `CallbackRuntime` runner. HTTP routes execute directly in the request Effect; providers do not create runtimes.
 - Tests provide local layers through `tests/effect.ts`; `tests/setup.ts` only restores mocks.
 
 ## Lifecycle
@@ -25,7 +25,7 @@ Layer scopes release in reverse dependency order. HTTP and scheduler intake stop
 
 ## Validation
 
-- `bun run check`, `bun run test`, and `bun run knip` pass.
+- Non-mutating format/lint/type checks, `bun run test`, and `bun run knip` pass.
 - Searches for the removed custom service-locator API have no matches in production or tests.
 - No production module owns a second root runtime.
 

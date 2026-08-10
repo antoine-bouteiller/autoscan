@@ -24,6 +24,18 @@ describe('TraktAuthenticationTasks', () => {
     )
     expect(result).toEqual({ duplicate: false, first: true, otherChat: true, running: true })
   })
+  test('admits only one of concurrent duplicate starts', async () => {
+    const accepted = await run(
+      Effect.gen(function* () {
+        const tasks = yield* TraktAuthenticationTasks
+        const results = yield* Effect.all([tasks.start(1, Effect.never), tasks.start(1, Effect.never)], { concurrency: 'unbounded' })
+        yield* tasks.clear
+        return results
+      })
+    )
+
+    expect(accepted.filter(Boolean)).toHaveLength(1)
+  })
 
   test('removes completed tasks and stops intake', async () => {
     const result = await run(

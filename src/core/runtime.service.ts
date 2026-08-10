@@ -1,6 +1,6 @@
 import { type SQL } from 'bun'
 import { type BunSQLDatabase } from 'drizzle-orm/bun-sql/postgres'
-import { Context, Effect, FiberSet, Layer, type Option, Ref } from 'effect'
+import { Context, Effect, FiberSet, Layer, type Option, Ref, Semaphore } from 'effect'
 
 import { type TraktAuthenticationTasks } from '@/features/trakt_sync/services/authentication.service'
 import { type TranscodeJob } from '@/features/transcoding/types'
@@ -36,7 +36,7 @@ export interface TranscodeQueueShape {
 
 export class TranscodeQueue extends Context.Service<TranscodeQueue, TranscodeQueueShape>()('TranscodeQueue') {}
 
-export type WorkflowRequirements = Database | Ffmpeg | Plex | Radarr | Sonarr | Telegram | Tmdb | Trakt | TraktAuthenticationTasks | TranscodeQueue
+type WorkflowRequirements = Database | Ffmpeg | Plex | Radarr | Sonarr | Telegram | Tmdb | Trakt | TraktAuthenticationTasks | TranscodeQueue
 
 export interface WorkflowOwnerShape {
   readonly awaitEmpty: Effect.Effect<void>
@@ -49,13 +49,17 @@ export interface TranscodeScanShape extends WorkflowOwnerShape {
   readonly run: <Success, Error, Requirements>(
     effect: Effect.Effect<Success, Error, Requirements>
   ) => Effect.Effect<Option.Option<Success>, Error, Requirements>
-  readonly start: <Error>(effect: Effect.Effect<void, Error, WorkflowRequirements>) => Effect.Effect<boolean>
+  readonly start: <Error, Requirements extends WorkflowRequirements>(
+    effect: Effect.Effect<void, Error, Requirements>
+  ) => Effect.Effect<boolean, never, Requirements>
 }
 
 export class TranscodeScan extends Context.Service<TranscodeScan, TranscodeScanShape>()('TranscodeScan') {}
 
 export interface BackgroundTasksShape extends WorkflowOwnerShape {
-  readonly start: <Success, Error>(effect: Effect.Effect<Success, Error, WorkflowRequirements>) => Effect.Effect<boolean>
+  readonly start: <Success, Error, Requirements extends WorkflowRequirements>(
+    effect: Effect.Effect<Success, Error, Requirements>
+  ) => Effect.Effect<boolean, never, Requirements>
 }
 
 export class BackgroundTasks extends Context.Service<BackgroundTasks, BackgroundTasksShape>()('BackgroundTasks') {}
@@ -64,21 +68,22 @@ export const BackgroundTasksLive = Layer.effect(
   BackgroundTasks,
   Effect.gen(function* () {
     const fibers = yield* FiberSet.make()
-    const runFork = yield* FiberSet.runtime(fibers)<WorkflowRequirements>()
     const accepting = yield* Ref.make(true)
+    const admission = yield* Semaphore.make(1)
     return BackgroundTasks.of({
       awaitEmpty: FiberSet.awaitEmpty(fibers),
       clear: FiberSet.clear(fibers),
       start: (effect) =>
-        Ref.get(accepting).pipe(
-          Effect.map((isAccepting) => {
-            if (isAccepting) {
-              runFork(effect)
+        admission.withPermits(1)(
+          Effect.gen(function* () {
+            if (!(yield* Ref.get(accepting))) {
+              return false
             }
-            return isAccepting
+            yield* FiberSet.run(fibers, effect)
+            return true
           })
         ),
-      stopIntake: Ref.set(accepting, false),
+      stopIntake: admission.withPermits(1)(Ref.set(accepting, false)),
     })
   })
 )

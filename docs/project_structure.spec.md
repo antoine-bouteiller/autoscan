@@ -127,8 +127,7 @@ extension, e.g. `import { foo } from '@/shared/utils/array.js'`.
   the `tests/` root. Test helpers are imported via the `@tests/*` alias, not relative paths.
 - The runner is Bun's native `bun test` (config in `bunfig.toml`) via `bun run test` (one-shot),
   `bun run test:watch` (watch mode), and `bun run test:coverage` (coverage + global gate).
-- Linting (`bun run lint`) and type-checking (`bun run check`) MUST pass on every change. Filename casing,
-  import boundaries, and unused-export pruning (knip) are enforced by tooling, not by review.
+- CI's non-mutating formatting, linting, and TypeScript checks MUST pass on every change. `bun run lint` and `bun run fmt` are explicit repair commands. Filename casing, import boundaries, and unused-export pruning (knip) are enforced by tooling, not by review.
 
 ## 7. Rationale & Context
 
@@ -193,7 +192,7 @@ import from there in both features.
 
 - `find src -maxdepth 1 -type d` returns only the eight directories listed in REQ-001.
 - `bun run lint` passes (`unicorn/filename-case`, import boundary rules, no unused exports).
-- `bun run check` passes (format + type-check).
+- `bunx oxfmt --check .`, `bunx oxlint`, and `bunx tsc --noEmit` pass.
 - `grep -RInE "from '@/features/[^']+'" src/features/<a>/` returns no hits referencing a sibling
   feature `<b>`.
 - `grep -RInE "from '\\.\\./\\.\\./" src` returns no hits crossing a top-level boundary.

@@ -2,7 +2,6 @@ import { and, eq } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 import { DatabaseQueryError } from '@/config/db'
-import { logger } from '@/config/logger'
 import { Database, Plex } from '@/core/runtime.service'
 import { media, type Media } from '@/database/schema'
 import { getMediaByTypeWithPagination } from '@/domains/media/repositories/media.repository'
@@ -59,13 +58,13 @@ export const handleUpdateLanguage = (params: UpdateLanguageParams) =>
     const audioStream = streams.find((stream) => stream.streamType === 2 && normalizeToIso1(stream.languageCode) === preferredLanguage)
 
     if (audioStream === undefined) {
-      yield* Effect.sync(() => logger.warn(`No ${preferredLanguage} audio stream found`, 'Language', mediaTitle))
+      yield* Effect.logWarning(`No ${preferredLanguage} audio stream found`).pipe(Effect.annotateLogs('context', ['Language', mediaTitle]))
       return
     }
 
     if (!audioStream.selected) {
       const plexClient = yield* Plex
-      yield* Effect.sync(() => logger.info(`Setting audio in ${preferredLanguage}`, 'Language', mediaTitle))
+      yield* Effect.logInfo(`Setting audio in ${preferredLanguage}`).pipe(Effect.annotateLogs('context', ['Language', mediaTitle]))
       yield* plexClient.updateStream(partsId, audioStream.id, 'audio')
       if (preferredLanguage === 'fr') {
         yield* plexClient.updateStream(partsId, 0, 'subtitle')

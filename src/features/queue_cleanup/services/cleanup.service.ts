@@ -1,10 +1,10 @@
-import { Effect } from 'effect'
+import { Effect, Semaphore } from 'effect'
 
-import { logger } from '@/config/logger'
 import { Radarr, Sonarr } from '@/core/runtime.service'
 import { type QueueResponse, type QueueService } from '@/integrations/arr/queue.types'
 
 const STRIKE_COUNT = 5
+const REMOVAL_CONCURRENCY = 4
 type QueueItem = QueueResponse['records'][number]
 const strikeCountsByService = new Map<string, Map<number, number>>()
 
@@ -30,32 +30,43 @@ const hasUnimportableFiles = (item: QueueItem): boolean =>
 const isStalled = (item: QueueItem): boolean => item.status === 'warning' && item.errorMessage === 'The download is stalled with no connections'
 const hasNoDownloadSpeed = (item: QueueItem): boolean => item.status === 'downloading' && item.timeleft === undefined
 
-const processItem = (item: QueueItem, serviceName: string): boolean => {
+const processItem = (item: QueueItem, serviceName: string): { remove: boolean; strikes?: number } => {
   const strikeCounts = getStrikeCounts(serviceName)
+  let strikes: number | undefined
   if (isStalled(item) || hasNoDownloadSpeed(item)) {
-    strikeCounts.set(item.id, (strikeCounts.get(item.id) ?? 0) + 1)
-    logger.info(`Item ${item.title} has ${strikeCounts.get(item.id)} strikes`, 'Cleanup', serviceName)
+    strikes = (strikeCounts.get(item.id) ?? 0) + 1
+    strikeCounts.set(item.id, strikes)
   }
-  return hasUnimportableFiles(item) || (strikeCounts.get(item.id) ?? 0) >= STRIKE_COUNT
+  return { remove: hasUnimportableFiles(item) || (strikeCounts.get(item.id) ?? 0) >= STRIKE_COUNT, strikes }
 }
 
-const removeStalledDownloads = (service: QueueService, serviceName: string) =>
+const removeStalledDownloads = (service: QueueService, serviceName: string, removalPermits: Semaphore.Semaphore) =>
   Effect.gen(function* () {
     const queue = yield* service.getQueue()
     const strikeCounts = getStrikeCounts(serviceName)
     const currentIds = new Set<number>()
     const removals = []
+    const context = ['Cleanup', serviceName]
 
     for (const item of queue.records) {
       if (!item.title || !item.status) {
-        logger.warn(`Skipping item due to missing or invalid keys: ${JSON.stringify(item)}`, 'Cleanup', serviceName)
+        yield* Effect.logWarning(`Skipping item due to missing or invalid keys: ${JSON.stringify(item)}`).pipe(
+          Effect.annotateLogs('context', context)
+        )
         continue
       }
       currentIds.add(item.id)
-      if (processItem(item, serviceName)) {
-        logger.info(`Removing download: ${item.title}`, 'Cleanup', serviceName)
-        strikeCounts.delete(item.id)
-        removals.push(service.removeQueueItem(item.id, { blocklist: true, removeFromClient: true }))
+      const result = processItem(item, serviceName)
+      if (result.strikes !== undefined) {
+        yield* Effect.logInfo(`Item ${item.title} has ${result.strikes} strikes`).pipe(Effect.annotateLogs('context', context))
+      }
+      if (result.remove) {
+        const removal = Effect.logInfo(`Removing download: ${item.title}`).pipe(
+          Effect.annotateLogs('context', context),
+          Effect.andThen(service.removeQueueItem(item.id, { blocklist: true, removeFromClient: true })),
+          Effect.tap(() => Effect.sync(() => strikeCounts.delete(item.id)))
+        )
+        removals.push(removalPermits.withPermits(1)(removal))
       }
     }
 
@@ -70,8 +81,9 @@ const removeStalledDownloads = (service: QueueService, serviceName: string) =>
 export const cleanupAll = Effect.gen(function* () {
   const sonarrClient = yield* Sonarr
   const radarrClient = yield* Radarr
-  yield* Effect.all([removeStalledDownloads(sonarrClient, 'Sonarr'), removeStalledDownloads(radarrClient, 'Radarr')], {
-    concurrency: 'unbounded',
-    discard: true,
-  })
+  const removalPermits = yield* Semaphore.make(REMOVAL_CONCURRENCY)
+  yield* Effect.all(
+    [removeStalledDownloads(sonarrClient, 'Sonarr', removalPermits), removeStalledDownloads(radarrClient, 'Radarr', removalPermits)],
+    { concurrency: 'unbounded', discard: true }
+  )
 })

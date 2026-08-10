@@ -1,10 +1,8 @@
 import { Cause, Effect, FiberSet, Layer, Option, Ref, Semaphore } from 'effect'
 
-import { logger } from '@/config/logger'
-import { Plex, TranscodeQueue, TranscodeScan, type WorkflowRequirements } from '@/core/runtime.service'
+import { Plex, TranscodeQueue, TranscodeScan } from '@/core/runtime.service'
 import { getCompleteMediaDetails } from '@/domains/media/services/metadata.service'
 import { transcodeFile } from '@/features/transcoding/services/transcode.service'
-import { logError } from '@/shared/utils/error'
 
 export const TranscodeScanLive = Layer.effect(
   TranscodeScan,
@@ -14,7 +12,6 @@ export const TranscodeScanLive = Layer.effect(
     const running = yield* Ref.make(false)
     const accepting = yield* Ref.make(true)
     const fibers = yield* FiberSet.make()
-    const runFork = yield* FiberSet.runtime(fibers)<WorkflowRequirements>()
     return TranscodeScan.of({
       awaitEmpty: FiberSet.awaitEmpty(fibers),
       clear: FiberSet.clear(fibers),
@@ -47,11 +44,10 @@ export const TranscodeScanLive = Layer.effect(
                 return false
               }
               yield* Ref.set(running, true)
-              runFork(
+              yield* FiberSet.run(
+                fibers,
                 effect.pipe(
-                  Effect.catchCause((cause) =>
-                    Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.sync(() => logError(cause, 'Transcode Scan'))
-                  ),
+                  Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'Transcode Scan'))),
                   Effect.ensuring(
                     Ref.set(running, false).pipe(
                       Effect.flatMap(() => semaphore.release(1)),
@@ -70,7 +66,7 @@ export const TranscodeScanLive = Layer.effect(
 )
 
 const scan = Effect.gen(function* () {
-  yield* Effect.sync(() => logger.info('Starting transcode scan...'))
+  yield* Effect.logInfo('Starting transcode scan...')
   const plex = yield* Plex
   const sections = yield* plex.getSections()
   for (const section of sections) {
@@ -85,18 +81,18 @@ const scan = Effect.gen(function* () {
             originalLanguage: details.originalLanguage,
           })
         ),
-        Effect.catch((error) => Effect.sync(() => logError(error, 'runTranscodeProcess')))
+        Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'runTranscodeProcess')))
       )
     }
   }
-  yield* Effect.sync(() => logger.info('Transcode scan finished'))
+  yield* Effect.logInfo('Transcode scan finished')
 })
 
 export const runTranscodeProcess = Effect.gen(function* () {
   const scans = yield* TranscodeScan
   const result = yield* scans.run(scan)
   if (Option.isNone(result)) {
-    yield* Effect.sync(() => logger.warn('Transcode scan is already running, skipping...'))
+    yield* Effect.logWarning('Transcode scan is already running, skipping...')
   }
 })
 

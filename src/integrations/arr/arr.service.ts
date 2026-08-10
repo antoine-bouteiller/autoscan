@@ -1,5 +1,9 @@
-import { queueResponseValidator } from '@/integrations/arr/queue.types'
+import { Effect } from 'effect'
+
+import { type QueueResponse, queueResponseValidator } from '@/integrations/arr/queue.types'
 import { httpClient } from '@/shared/utils/http_client'
+
+const PAGE_SIZE = 100
 
 interface ArrClientConfig {
   apiKey: string
@@ -19,7 +23,26 @@ export class ArrClient {
   }
 
   getQueue() {
-    return this.client.get('queue', { validator: queueResponseValidator })
+    const { client } = this
+    return Effect.gen(function* () {
+      const records: QueueResponse['records'][number][] = []
+      let page = 1
+      let totalRecords = 0
+
+      while (true) {
+        const response = yield* client.get('queue', {
+          params: { page, pageSize: PAGE_SIZE },
+          validator: queueResponseValidator,
+        })
+        const { records: pageRecords, totalRecords: reportedTotal } = response
+        totalRecords = reportedTotal
+        records.push(...pageRecords)
+        if (pageRecords.length === 0 || records.length >= totalRecords) {
+          return { records, totalRecords }
+        }
+        page += 1
+      }
+    })
   }
 
   removeQueueItem(itemId: number, options: { blocklist: boolean; removeFromClient: boolean }) {

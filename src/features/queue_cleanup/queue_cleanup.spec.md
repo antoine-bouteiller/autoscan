@@ -36,14 +36,14 @@ jobs-only feature: no HTTP routes, no Telegram commands.
   speed (`status='downloading'` and `timeleft` missing/null), increment a per-item strike counter; remove once
   strikes reach `STRIKE_COUNT = 5` (i.e. ~50 minutes).
 - **REQ-004** Removal calls `DELETE queue/{id}?blocklist=true&removeFromClient=true` on both Radarr and Sonarr.
-- **REQ-005** Process Radarr and Sonarr concurrently via `Promise.all`.
-- **REQ-006** After each pass, drop strike counters for items no longer present in **that arr's** queue.
+- **REQ-005** Process Radarr and Sonarr concurrently through `Effect.all`; bound eligible removals to four concurrent operations globally across both arrs.
+- **REQ-006** After each successful complete queue pass, drop strike counters for items no longer present in **that arr's** queue.
 - **REQ-007** Strike counters are scoped per arr. Queue ids are only unique within one arr, so Radarr and Sonarr
   must never read, increment, or evict each other's counters.
 - **CON-001** Strike state is held in an in-memory `Map<string, Map<number, number>>` keyed by service name;
   a process restart resets all counters.
 - **CON-002** Items missing `title` or `status` are skipped with a warning log; they are never removed.
-- **CON-003** `getQueue` failures resolve to `undefined`; that arr is skipped for the run, the other still proceeds.
+- **CON-003** `getQueue` transparently fetches pages of 100 until `totalRecords` is reached or an empty page is returned. A page or removal failure fails the cleanup Effect without returning partial queue data or retrying mutations.
 - **GUD-001** Log every strike increment, every removal, and every skipped malformed item with the `Cleanup` tag
   and the arr service name.
 - **PAT-001** Strategy is shared across arrs through the `QueueService` interface — no per-arr branching in the job.
@@ -51,12 +51,11 @@ jobs-only feature: no HTTP routes, no Telegram commands.
 ## 4. Interfaces & Data Contracts
 
 - **Cron job**: `{ name: 'Cleanup', pattern: '0 */10 * * * *', handler: runCleanupProcess }`.
-- **`runCleanupProcess()`** (`jobs/cleanup.job.ts`) — thin wrapper that awaits `cleanupAll()`.
-- **`cleanupAll(): Promise<void>`** (`services/cleanup.service.ts`) — resolves Sonarr and Radarr clients from
-  `container` and runs `removeStalledDownloads` on both.
+- **`runCleanupProcess`** (`jobs/cleanup.job.ts`) — the cleanup job Effect.
+- **`cleanupAll`** (`services/cleanup.service.ts`) — resolves Sonarr and Radarr from the Effect service context and runs both arr passes concurrently.
 - **`QueueService`** (`@/integrations/arr/queue.types`):
-  - `getQueue(): Promise<QueueResponse | undefined>`
-  - `removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }): Promise<void>`
+  - `getQueue(): Effect<QueueResponse, HttpClientError>`
+  - `removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }): Effect<void, HttpClientError>`
 - **`QueueResponse`**: `{ records: QueueItem[]; totalRecords: number }`.
 - **`QueueItem`**: `{ id, title, status, errorMessage?, statusMessages?: { title: string, messages: string[] }[], timeleft?, trackedDownloadStatus? }`.
 
@@ -80,10 +79,8 @@ jobs-only feature: no HTTP routes, no Telegram commands.
 
 ## 6. Test Automation Strategy
 
-- Unit-test `removeStalledDownloads` against a fake `QueueService` covering: ineligible-files removal,
-  dangerous-extension removal, strike accumulation up to threshold (both stalled-warning and no-download-speed
-  paths), strike eviction on disappearance, cross-arr counter isolation (empty peer queue and colliding queue id),
-  and malformed-item skip.
+- Unit-test queue cleanup through `cleanupAll` with fake services, covering immediate removals, strike accumulation, later-page strike retention, bounded removal concurrency, and malformed-item skips.
+- Test `ArrClient.getQueue` through its Fetch boundary, covering page parameters, authentication, complete aggregation, empty-page termination, and later-page failure.
 - Reset module state between cases (the strike map is module-scoped).
 - Run via `bun run test`.
 
@@ -111,22 +108,21 @@ status guard prevents striking healthy `queued`, `paused`, or `completed` items 
 - **DEP-001** `@/integrations/arr` — `RadarrClient` and `SonarrClient` (both implement `QueueService`).
 - **DEP-002** `@/providers/scheduler` — registers the cron job from `defineFeature({ jobs })`.
 - **DEP-003** `@/core/runtime.service` — Sonarr and Radarr Effect services.
-- **DEP-004** `@/config/logger` — tagged logging (`Cleanup`, `Sonarr` | `Radarr`).
+- **DEP-004** Effect Logger annotations — ordered `Cleanup`, then `Sonarr` or `Radarr`, context.
 
 ## 9. Examples & Edge Cases
 
 - Strike count persists only in-process; redeploys reset the window — acceptable since the job runs every 10 min.
 - An item can satisfy both rules (ineligible-files _and_ stalled). The ineligible-files branch wins because it is
   evaluated together with the strike threshold in the same `if`, and the strike map entry is then cleared.
-- If `getQueue` returns `undefined`, the loop iterates over `[]` and no removals or strikes happen for that arr.
-- Strike eviction iterates that arr's own counter keys after the await — items removed during the pass are
-  already deleted from the map and cannot leak.
+- If a later queue page fails, the aggregate fails and strike eviction does not run against partial data.
+- Strike eviction iterates that arr's own counter keys after successful removals — items removed during the pass are already deleted from the map and cannot leak.
 - Radarr and Sonarr run concurrently over shared module state. Before per-arr scoping, each pass evicted every key
   absent from its own queue, so the two arrs wiped each other's strikes every run and no item ever passed 1 strike.
 
 ## 10. Validation Criteria
 
-- `bun run check` and `bun run test` pass.
+- Non-mutating format/lint/type checks and `bun run test` pass.
 - The job appears in scheduler startup logs with pattern `0 */10 * * * *`.
 - Manual smoke: induce a stalled torrent in Radarr, observe five strike logs over ~50 min, then a removal log and
   the item gone from `GET /queue`.

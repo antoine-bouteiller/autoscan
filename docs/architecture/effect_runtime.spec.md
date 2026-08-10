@@ -8,17 +8,17 @@ tags: [architecture, effect, runtime, reliability]
 
 # Runtime boundary
 
-Autoscan targets exactly `effect@4.0.0-beta.103` and `@effect/platform-bun@4.0.0-beta.103`. `@effect/tsgo@0.32.1` patches the existing oxlint type-aware engine. Bun remains the runtime, package manager, test runner, HTTP server, cron host, SQL client, and subprocess host.
+Autoscan targets exactly `effect@4.0.0-beta.103`, `@effect/platform-bun@4.0.0-beta.103`, and `@effect/platform-node-shared@4.0.0-beta.103`. `@effect/tsgo@0.36.0` patches the existing oxlint type-aware engine. Bun remains the runtime, package manager, test runner, HTTP server, cron host, SQL client, and subprocess host.
 
 `BunRuntime.runMain(program)` owns the only root runtime. Environment secret loading and Effect Schema validation remain eager startup trust-boundary checks. Effect owns database acquisition and migration, service composition, scopes, interruption, schedules, typed recoverable failures, and supervised workflows.
 
 # Native adapters
 
 - `BunHttpServer`, `Bun.cron`, `Bun.spawn`, Bun SQL, Drizzle, and Effect Schema remain native adapters.
-- Callback providers receive one runner backed by a scoped `FiberSet`; feature and integration modules never create runtimes.
+- Scheduler callbacks receive one runner backed by a scoped `FiberSet`; HTTP handlers execute directly in the request Effect, and feature and integration modules never create runtimes.
 - Telegram polling is a root-scoped Effect with interruptible long polling and exponential backoff from 5 seconds to 5 minutes.
 - Scheduler callbacks await tracked job completion, preserving Bun's no-overlap behavior.
-- Background scans, keyed Trakt authentication tasks, and the serial transcode worker are scope-owned.
+- Background scans and keyed Trakt authentication tasks launch directly through `FiberSet.run` / `FiberMap.run`; admission and intake shutdown are serialized. The serial transcode worker is scope-owned.
 
 # Shutdown
 
@@ -30,8 +30,10 @@ Recoverable network, status, validation, command, filesystem, database, and doma
 
 # Transcode durability
 
-The serial worker deduplicates queued and active media. Replacement validates video and audio streams, copies outputs to unique same-directory staging paths, fsyncs files and directories, backs up collisions, installs atomically, and rolls back in an uninterruptible region. A rollback failure returns `ReplacementRollbackError` with recovery artifact paths and preserves those artifacts.
+The serial worker deduplicates queued and active media. Replacement validates video and audio streams, streams outputs to unique same-directory staging paths with cancellation, then fsyncs files and directories, backs up collisions, installs atomically, and rolls back in an uninterruptible region. Interruption waits for staging streams to close before cleanup. A rollback failure returns `ReplacementRollbackError` with recovery artifact paths and preserves those artifacts.
 
 # Testing and diagnostics
 
-Tests use `bun:test`, local layers, Effect's test clock, and native boundary fakes. The normal `bun run check` is non-mutating and enforces outdated API, floating Effect, missing context, missing error, and duplicate package diagnostics. The isolated contract test under `tests/tooling/` proves those diagnostics without network installs or lockfile changes.
+Effectful diagnostics use the application `Logger` layer with ordered context annotations and original Causes; native logging is limited to scheduler callbacks and synchronous transcode stream-selection helpers. ARR queue reads aggregate every page and queue removals are fail-fast with concurrency four.
+
+Tests use `bun:test`, local layers, Effect's test clock, and native boundary fakes. CI runs `oxfmt --check .`, Effect-aware `oxlint`, and `tsc --noEmit` directly as non-mutating verification. The isolated contract test under `tests/tooling/` proves the pinned package tuple and diagnostics without network installs or lockfile changes; database lifecycle tests prove closure after success and migration failure.

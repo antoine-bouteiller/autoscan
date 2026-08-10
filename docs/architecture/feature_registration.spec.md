@@ -17,7 +17,7 @@ Features are declarative bundles of Effect-based routes, jobs, Telegram commands
 - Feature declarations perform no I/O at import time.
 - Route, job, command, and conversation handlers return Effects. Their dependencies and recoverable errors remain visible in Effect channels until a provider boundary.
 - `registerFeatures(features, { http, scheduler, telegram })` receives providers explicitly and performs no global lookup.
-- Native providers run callbacks through the single scoped callback bridge. HTTP maps unhandled failures to the existing 500 response; Telegram resets conversation state, sends the fixed unexpected-error message, and continues polling.
+- Scheduler callbacks use the single scoped callback bridge; HTTP handlers execute in the request Effect. HTTP maps unhandled failures to the existing 500 response; Telegram resets conversation state, sends the fixed unexpected-error message, and continues polling.
 
 ## Contracts
 
@@ -41,7 +41,7 @@ Feature order is explicit and stable. Missing categories are skipped. Provider c
 
 ## Validation
 
-- `bun run check` verifies handler requirements and errors.
+- CI's non-mutating oxlint and TypeScript checks verify handler requirements and errors.
 - `bun run test` covers HTTP injection, scheduler execution, and Telegram command/conversation behavior.
 - Importing a feature module starts no network listener, timer, database connection, or fiber.
 

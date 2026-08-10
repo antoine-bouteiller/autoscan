@@ -1,4 +1,4 @@
-import { logger } from '@/config/logger'
+import { nativeLogger } from '@/config/logger'
 import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
 import { safeReadFileSync } from '@/shared/utils/fs'
@@ -115,12 +115,12 @@ export const processSubtitleStreams = (subtitleStreams: FFprobeStream[], origina
   if (originalLanguage === 'fr') {
     const kept = findMatchingStreams(subtitleStreams, forcedFrenchCriterias, 'fr')
     if (kept.length > 0) {
-      logger.info(`Forced French subtitle extracted`, 'Subtitle', mediaTitle)
+      nativeLogger.info(`Forced French subtitle extracted`, 'Subtitle', mediaTitle)
     }
     return kept
   }
 
   const kept = findMatchingStreams(subtitleStreams, criterias, 'en')
-  logger.info(`Subtitle extracted`, 'Subtitle', mediaTitle)
+  nativeLogger.info(`Subtitle extracted`, 'Subtitle', mediaTitle)
   return kept
 }

@@ -1,4 +1,4 @@
-import { Effect, Result } from 'effect'
+import { Cause, Effect, Result } from 'effect'
 
 import { Database, Trakt } from '@/core/runtime.service'
 import { upsertTokens } from '@/features/trakt_sync/repositories/trakt.repository'
@@ -7,7 +7,6 @@ import { getValidAccessToken, syncPlexToTrakt } from '@/features/trakt_sync/serv
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
 import { HttpError } from '@/shared/errors/http'
-import { logError } from '@/shared/utils/error'
 
 export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessageIn) =>
   Effect.gen(function* () {
@@ -27,7 +26,7 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
     const traktClient = yield* Trakt
     const deviceCode = yield* Effect.result(traktClient.getDeviceCode())
     if (Result.isFailure(deviceCode)) {
-      yield* Effect.sync(() => logError(deviceCode.failure, 'Trakt Auth'))
+      yield* Effect.logError(Cause.fail(deviceCode.failure), 'Trakt Auth')
       yield* client.sendMessage(chatId, 'Failed to initiate Trakt authentication.')
       return { step: 'idle' } as const
     }
@@ -62,11 +61,13 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
         duration: result.expires_in * 1000,
         orElse: () => client.sendMessage(chatId, 'Trakt authentication failed or timed out.').pipe(Effect.asVoid),
       }),
-      Effect.catch((error) =>
-        Effect.sync(() => logError(error, 'Trakt Auth')).pipe(
-          Effect.flatMap(() => client.sendMessage(chatId, 'Trakt authentication failed or timed out.')),
-          Effect.asVoid
-        )
+      Effect.catchCause((cause) =>
+        Cause.hasInterruptsOnly(cause)
+          ? Effect.failCause(cause)
+          : Effect.logError(cause, 'Trakt Auth').pipe(
+              Effect.flatMap(() => client.sendMessage(chatId, 'Trakt authentication failed or timed out.')),
+              Effect.asVoid
+            )
       )
     )
 
@@ -79,7 +80,7 @@ export const syncTraktCommand = (client: ITelegramClient, message: TelegramMessa
     yield* client.sendMessage(message.chat.id, 'Starting Trakt sync...')
     const result = yield* Effect.result(syncPlexToTrakt)
     if (Result.isFailure(result)) {
-      yield* Effect.sync(() => logError(result.failure, 'Trakt Sync Command'))
+      yield* Effect.logError(Cause.fail(result.failure), 'Trakt Sync Command')
       yield* client.sendMessage(message.chat.id, `Trakt sync failed: ${result.failure.message}`)
       return { step: 'idle' } as const
     }

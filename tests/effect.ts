@@ -1,6 +1,6 @@
 import { DatabaseTestLayer } from '@tests/database'
 import { MockPlexClient, MockRadarrClient, MockSonarrClient, MockTelegramClient, MockTmdbClient, MockTraktClient } from '@tests/utils'
-import { Effect, Layer } from 'effect'
+import { Context, Effect, Layer, Logger } from 'effect'
 
 import { BackgroundTasksLive, Ffmpeg, Plex, Radarr, Sonarr, Telegram, Tmdb, Trakt, type AppRequirements } from '@/core/runtime.service'
 import { TraktAuthenticationTasksLive } from '@/features/trakt_sync/services/authentication.service'
@@ -23,6 +23,7 @@ interface TestServices {
   tmdb?: ITmdbClient
   trakt?: ITraktClient
 }
+export const TestLoggerLive = Logger.layer([])
 
 export const makeTestLayer = (services: TestServices = {}) => {
   const clients = Layer.mergeAll(
@@ -40,5 +41,8 @@ export const makeTestLayer = (services: TestServices = {}) => {
   return TranscodeScanLive.pipe(Layer.provideMerge(background))
 }
 
+export const makeTestContext = (services: TestServices = {}, loggers: ReadonlySet<Logger.Logger<unknown, unknown>> = new Set()) =>
+  Layer.build(makeTestLayer(services)).pipe(Effect.map((context) => Context.add(context, Logger.CurrentLoggers, loggers)))
+
 export const runTest = <Success, Error>(effect: Effect.Effect<Success, Error, AppRequirements>, services?: TestServices): Promise<Success> =>
-  Effect.runPromise(effect.pipe(Effect.provide(makeTestLayer(services)), Effect.scoped))
+  Effect.runPromise(effect.pipe(Effect.provide(makeTestLayer(services)), Effect.scoped, Effect.provide(TestLoggerLive)))

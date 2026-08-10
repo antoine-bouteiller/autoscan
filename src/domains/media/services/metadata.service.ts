@@ -21,7 +21,7 @@ export const getMediaLanguage = (tmdbId: number, mediaType: MediaType) =>
     }
 
     const tmdbClient = yield* Tmdb
-    const media = yield* tmdbClient.getTmdbMedia(tmdbId, mediaType).pipe(Effect.catch(() => Effect.succeed(undefined)))
+    const media = yield* tmdbClient.getTmdbMedia(tmdbId, mediaType).pipe(Effect.orElseSucceed(() => undefined))
     if (media === undefined) {
       return { originalLanguage: 'en' as const, preferredLanguage: 'en' as const }
     }

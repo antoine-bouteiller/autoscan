@@ -1,13 +1,12 @@
 import { basename, dirname, join } from 'node:path'
 
-import { Effect } from 'effect'
+import { Cause, Effect } from 'effect'
 
 import { BackgroundTasks, Plex } from '@/core/runtime.service'
 import { getCompleteMediaDetails } from '@/domains/media/services/metadata.service'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
-import { logError } from '@/shared/utils/error'
 import { safeExistsSync, safeReadFileSync } from '@/shared/utils/fs'
 
 const FORCED_LINE_RATIO_THRESHOLD = 0.1
@@ -71,7 +70,9 @@ const analyzeMedia = (plexClient: IPlexClient) =>
       const medias = yield* plexClient.getSectionMedia(section.key, section.type)
       for (const media of medias) {
         const details = yield* getCompleteMediaDetails(Number(media.ratingKey)).pipe(
-          Effect.catch((error) => Effect.sync(() => logError(error, 'subtitleScan')).pipe(Effect.as(undefined)))
+          Effect.catchCause((cause) =>
+            Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'subtitleScan').pipe(Effect.as(undefined))
+          )
         )
         if (details === undefined || details.originalLanguage === 'fr') {
           continue
@@ -122,7 +123,7 @@ export const subtitleScanCommand = (client: ITelegramClient, message: TelegramMe
           ? client.sendMessage(message.chat.id, report, { parseMode: 'Markdown' })
           : client.sendMessage(message.chat.id, 'All media have matching subtitles.')
       }),
-      Effect.catch((error) => Effect.sync(() => logError(error, 'Subtitle Scan')))
+      Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'Subtitle Scan')))
     )
     yield* tasks.start(task)
     return { step: 'idle' } as const

@@ -22,6 +22,29 @@ describe('transcode job', () => {
     await runTest(runTranscodeProcess, { plex: new EmptyPlexClient() })
     expect(await runTest(getTranscodingStatus, { plex: new EmptyPlexClient() })).toBeFalse()
   })
+  test('releases tracked scan state after typed failure, defect, and interruption', async () => {
+    const states = await runTest(
+      Effect.gen(function* () {
+        const scans = yield* TranscodeScan
+        const observeCompletion = (task: Effect.Effect<void, unknown>) =>
+          Effect.gen(function* () {
+            expect(yield* scans.start(task)).toBeTrue()
+            yield* scans.awaitEmpty
+            return yield* scans.isRunning
+          })
+
+        const typedFailure = yield* observeCompletion(Effect.fail('failed'))
+        const defect = yield* observeCompletion(Effect.die('defect'))
+        expect(yield* scans.start(Effect.never)).toBeTrue()
+        yield* scans.clear
+        yield* scans.awaitEmpty
+        const interruption = yield* scans.isRunning
+        return { defect, interruption, typedFailure }
+      })
+    )
+
+    expect(states).toEqual({ defect: false, interruption: false, typedFailure: false })
+  })
 
   test('releases admission after interruption and closes intake atomically', async () => {
     const result = await runTest(

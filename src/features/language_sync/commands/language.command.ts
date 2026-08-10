@@ -14,7 +14,7 @@ import { type ConversationState } from '@/providers/telegram/types'
 const handleSetLanguageCommand = (client: ITelegramClient, message: TelegramMessageIn) =>
   client.sendMessage(message.chat.id, 'What kind of media do you want to configure?', { replyMarkup: buildMediaTypeKeyboard() }).pipe(
     Effect.map((messageId) => ({ messageId, step: 'awaiting_media_type' }) as const),
-    Effect.catch(() => Effect.succeed({ step: 'idle' } as const))
+    Effect.orElseSucceed(() => ({ step: 'idle' }) as const)
   )
 
 const handleSetLanguageCallback = (client: ITelegramClient, chatId: number, params: { state: ConversationState; callback: TelegramCallbackQuery }) =>

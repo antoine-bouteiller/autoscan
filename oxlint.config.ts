@@ -24,14 +24,19 @@ export default defineConfig({
     'effecttsgo/missing-effect-context': 'error',
     'effecttsgo/missing-effect-error': 'error',
     'effecttsgo/duplicate-package': 'error',
+    // Provider boundaries intentionally accept unknown failures.
     'effecttsgo/any-unknown-in-error-context': 'off',
-    'effecttsgo/catch-to-or-else-succeed': 'off',
+    'effecttsgo/catch-to-or-else-succeed': 'error',
     'effecttsgo/deterministic-keys': 'off',
     'effecttsgo/effect-succeed-with-void': 'off',
+    // Application-facing Effects are eager by design.
     'effecttsgo/lazy-effect': 'off',
+    // Internal helpers do not need pipeable overloads.
     'effecttsgo/missing-pipeable-signature': 'off',
     'effecttsgo/missed-pipeable-opportunity': 'off',
+    // Boolean narrowing follows the project's TypeScript style.
     'effecttsgo/strict-boolean-expressions': 'off',
+    // Root entry-point composition intentionally provides partial requirements.
     'effecttsgo/strict-effect-provide': 'off',
 
     // Restriction

@@ -3,7 +3,7 @@ import { isFailure as isExitFailure } from 'effect/Exit'
 
 import { DatabaseLive } from '@/config/db'
 import env from '@/config/env'
-import { logger } from '@/config/logger'
+import { LoggerLive } from '@/config/logger'
 import { registerFeatures } from '@/core/feature'
 import {
   BackgroundTasks,
@@ -40,7 +40,6 @@ import { TraktClient } from '@/integrations/trakt/trakt.service'
 import { HttpProvider } from '@/providers/http/http.provider'
 import { SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
 import { TelegramProvider } from '@/providers/telegram/telegram.provider'
-import { logError } from '@/shared/utils/error'
 
 const ClientsLive = Layer.mergeAll(
   Layer.succeed(Ffmpeg, new FfmpegClient()),
@@ -68,15 +67,7 @@ const CallbackRuntimeLive = Layer.effect(
 
 const RuntimeGraph = CallbackRuntimeLive.pipe(Layer.provideMerge(WorkflowGraph))
 
-const HttpLive = Layer.effect(
-  Http,
-  Effect.gen(function* () {
-    const runtime = yield* CallbackRuntime
-    const provider = new HttpProvider({ port: 3030, runPromise: runtime.runPromise })
-    yield* Effect.addFinalizer(() => provider.stop)
-    return Http.of(provider)
-  })
-)
+const HttpLive = Layer.succeed(Http, new HttpProvider({ port: 3030 }))
 
 const SchedulerLive = Layer.effect(
   Scheduler,
@@ -107,10 +98,8 @@ interface ShutdownResources {
 
 export const shutdownRuntime = ({ callbacks, http, producers, scheduler, stopTelegram, transcodeQueue }: ShutdownResources) =>
   Effect.gen(function* () {
-    yield* Effect.sync(() => {
-      logger.info('Shutting down gracefully...')
-      scheduler.stopAll()
-    })
+    yield* Effect.logInfo('Shutting down gracefully...')
+    yield* Effect.sync(() => scheduler.stopAll())
     const httpStop = yield* Effect.forkChild(http.stop)
     yield* stopTelegram
     yield* Effect.all([...producers.map((producer) => producer.stopIntake), transcodeQueue.stopIntake], { discard: true })
@@ -125,7 +114,7 @@ export const shutdownRuntime = ({ callbacks, http, producers, scheduler, stopTel
     }
     const httpStopExit = yield* Effect.exit(Fiber.join(httpStop))
     if (isExitFailure(httpStopExit)) {
-      yield* Effect.sync(() => logError(httpStopExit.cause, 'HTTP shutdown'))
+      yield* Effect.logError(httpStopExit.cause, 'HTTP shutdown')
     }
   })
 
@@ -156,4 +145,4 @@ export const program = Effect.gen(function* () {
   yield* http.start
   yield* FiberSet.run(telegramFibers, telegram.poll)
   return yield* Effect.never
-}).pipe(Effect.provide(AppLive), Effect.scoped)
+}).pipe(Effect.provide(AppLive), Effect.scoped, Effect.provide(LoggerLive))

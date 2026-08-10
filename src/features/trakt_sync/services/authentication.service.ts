@@ -1,4 +1,4 @@
-import { Context, Effect, FiberMap, Layer, Ref } from 'effect'
+import { Context, Effect, FiberMap, Layer, Ref, Semaphore } from 'effect'
 
 interface TraktAuthenticationTasksShape {
   readonly awaitEmpty: Effect.Effect<void>
@@ -16,23 +16,23 @@ export const TraktAuthenticationTasksLive = Layer.effect(
   TraktAuthenticationTasks,
   Effect.gen(function* () {
     const tasks = yield* FiberMap.make<number>()
-    const run = yield* FiberMap.runtime(tasks)()
     const accepting = yield* Ref.make(true)
+    const admission = yield* Semaphore.make(1)
     return TraktAuthenticationTasks.of({
       awaitEmpty: Effect.ignore(FiberMap.awaitEmpty(tasks)),
       clear: FiberMap.clear(tasks),
       isRunning: (chatId) => FiberMap.has(tasks, chatId),
       start: (chatId, task) =>
-        Ref.get(accepting).pipe(
-          Effect.map((isAccepting) => {
-            if (!isAccepting || FiberMap.hasUnsafe(tasks, chatId)) {
+        admission.withPermits(1)(
+          Effect.gen(function* () {
+            if (!(yield* Ref.get(accepting)) || FiberMap.hasUnsafe(tasks, chatId)) {
               return false
             }
-            run(chatId, task, { onlyIfMissing: true })
+            yield* FiberMap.run(tasks, chatId, task, { onlyIfMissing: true })
             return true
           })
         ),
-      stopIntake: Ref.set(accepting, false),
+      stopIntake: admission.withPermits(1)(Ref.set(accepting, false)),
     })
   })
 )

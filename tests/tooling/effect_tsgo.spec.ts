@@ -7,6 +7,33 @@ const roots: string[] = []
 const projectRoot = resolve(import.meta.dirname, '../..')
 const oxlint = join(projectRoot, 'node_modules/.bin/oxlint')
 const effectPackage = join(projectRoot, 'node_modules/effect')
+const effectVersion = '4.0.0-beta.103'
+const effectPackages = ['effect', '@effect/platform-bun', '@effect/platform-node-shared'] as const
+
+const readManifest = async (path: string) => {
+  const manifest: unknown = JSON.parse(await readFile(path, 'utf8'))
+  if (typeof manifest !== 'object' || manifest === null) {
+    throw new TypeError(`Invalid package manifest: ${path}`)
+  }
+  const version = Reflect.get(manifest, 'version')
+  const peers = Reflect.get(manifest, 'peerDependencies')
+  const peerRange = typeof peers === 'object' && peers !== null ? Reflect.get(peers, 'effect') : undefined
+  if (typeof version !== 'string' || (peerRange !== undefined && typeof peerRange !== 'string')) {
+    throw new TypeError(`Invalid Effect package manifest: ${path}`)
+  }
+  return { peerRange, version }
+}
+
+const readEffectTuple = async (root: string) =>
+  Promise.all(effectPackages.map(async (name) => ({ name, ...(await readManifest(join(root, 'node_modules', name, 'package.json'))) })))
+
+const validateEffectTuple = async (root: string) => {
+  const packages = await readEffectTuple(root)
+  return packages.flatMap(({ name, peerRange, version }) => {
+    const errors = version === effectVersion ? [] : [`${name} resolved ${version}`]
+    return peerRange === undefined || Bun.semver.satisfies(effectVersion, peerRange) ? errors : [...errors, `${name} requires effect ${peerRange}`]
+  })
+}
 
 const runOxlint = async (root: string, source: string) => {
   const process = Bun.spawn(
@@ -36,6 +63,30 @@ afterEach(async () => {
 })
 
 describe('Effect TSGO tooling contract', () => {
+  test('pins one compatible Effect platform tuple', async () => {
+    expect(await validateEffectTuple(projectRoot)).toEqual([])
+  })
+
+  test('rejects a mismatched Effect platform tuple fixture', async () => {
+    const root = await makeRoot()
+    for (const name of effectPackages) {
+      const directory = join(root, 'node_modules', name)
+      await mkdir(directory, { recursive: true })
+      await writeFile(
+        join(directory, 'package.json'),
+        JSON.stringify({ name, peerDependencies: name === 'effect' ? undefined : { effect: '^4.0.0-beta.104' }, version: '4.0.0-beta.104' })
+      )
+    }
+
+    expect(await validateEffectTuple(root)).toEqual([
+      'effect resolved 4.0.0-beta.104',
+      '@effect/platform-bun resolved 4.0.0-beta.104',
+      '@effect/platform-bun requires effect ^4.0.0-beta.104',
+      '@effect/platform-node-shared resolved 4.0.0-beta.104',
+      '@effect/platform-node-shared requires effect ^4.0.0-beta.104',
+    ])
+  })
+
   test('rejects outdated, floating, missing-context, and missing-error Effects', async () => {
     const root = await makeRoot()
     await mkdir(join(root, 'node_modules'), { recursive: true })
@@ -73,6 +124,28 @@ describe('Effect TSGO tooling contract', () => {
     }
   })
 
+  test('rejects catch handlers that only succeed with a value', async () => {
+    const root = await makeRoot()
+    await mkdir(join(root, 'node_modules'), { recursive: true })
+    await symlink(effectPackage, join(root, 'node_modules/effect'))
+    await writeFile(
+      join(root, '.oxlintrc.json'),
+      JSON.stringify({
+        options: { typeAware: true, typeCheck: true },
+        plugins: ['effecttsgo'],
+        rules: { 'effecttsgo/catch-to-or-else-succeed': 'error' },
+      })
+    )
+    const source = join(root, 'src/catch.ts')
+    await writeFile(
+      source,
+      'import { Effect } from "effect"\nexport const recovered = Effect.fail("nope").pipe(Effect.catch(() => Effect.succeed("ok")))\n'
+    )
+
+    const result = await runOxlint(root, source)
+    expect(result.exitCode).not.toBe(0)
+    expect(result.output).toContain('effecttsgo(catch-to-or-else-succeed)')
+  })
   test('detects duplicate Effect package versions without installing', async () => {
     const root = await makeRoot()
     const first = join(root, 'node_modules/a/node_modules/effect')

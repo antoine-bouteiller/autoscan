@@ -76,9 +76,9 @@ Only `Download` triggers transcoding. Other event types are accepted by the vali
 ### Service API (`services/transcode.service.ts`)
 
 - `transcodeFile({ file, mediaTitle, originalLanguage, mediaType })`: Probes the file, computes a command, enqueues a
-  job. Returns `true` if a job was enqueued, `false` otherwise (file missing, no work needed, error logged).
-- `TranscodeQueue.enqueue(job)`: scoped serial worker service that rejects duplicate queued or active files.
-- `TranscodeQueue.status`: `{ currentJob?, isProcessing, queueLength }`; shutdown is scope-owned.
+  job. Returns `true` if a job was enqueued, `false` otherwise (file missing, no work needed, or a failure logged at the workflow boundary).
+- `TranscodeQueue.enqueue(job)`: scoped serial worker service that rejects duplicate queued or active files; shutdown is scope-owned.
+- `TranscodeQueue.status`: `{ currentJob?, isProcessing, queueLength }`.
 
 ### `TranscodeJob` Shape
 
@@ -105,7 +105,7 @@ interface TranscodeJob {
 5. Pre-pend `-c copy`, build final command. If extension is not `mp4`, force execution.
 6. Worker extracts each subtitle to `${TRANSCODE_PATH}/<name>/<name>.<lang>.srt`, runs `isForcedSubtitle` to rename
    to `*.forced.srt` when applicable, then runs the main transcode to `${TRANSCODE_PATH}/<name>/<name>.mp4`.
-7. `handlePostTranscode`: validate output, durably stage and fsync files, back up collisions, atomically install outputs, roll back on failure, then refresh Radarr/Sonarr and Plex.
+7. `handlePostTranscode`: validate output, stream to same-directory staging files with cancellation, wait for interrupted streams to close, then uninterruptibly fsync, back up collisions, atomically install or roll back, and refresh Radarr/Sonarr and Plex.
 
 ## 5. Acceptance Criteria
 
@@ -113,16 +113,14 @@ interface TranscodeJob {
   `folderPath` + `relativePath`, the resolved TMDB language, and `mediaType: 'movie'`.
 - **AC-002** Given a Sonarr `Download` event, when payload validates, then `transcodeFile` is invoked with the joined
   `series.path` + `episodeFile.relativePath`, and `mediaType: 'show'`.
-- **AC-003** Given the cron pattern `0 0 */12 * * *`, the job iterates every Plex section, fetches metadata, and
-  submits each file to the queue; concurrent invocations are rejected by an Effect semaphore that always releases.
-- **AC-004** Given the `/transcode` Telegram command, when no scan is running it kicks off `runTranscodeProcess`
-  asynchronously; otherwise it replies "already running" and exits.
+- **AC-003** Given the cron pattern `0 0 */12 * * *`, the job iterates every Plex section, fetches metadata, and submits each file to the queue; admission is serialized and the Effect semaphore releases on completion, typed failure, defect, or interruption.
+- **AC-004** Given the `/transcode` Telegram command, when no scan is running it starts a tracked Effect workflow; otherwise it replies "already running" and exits.
 - **AC-005** Given a file already in `.mp4` with acceptable codecs, language tags, and no extractable subtitles,
   `transcodeFile` returns `false` and no ffmpeg call is made.
 - **AC-006** Given a successful transcode, the source file is removed and the output mp4 + extracted SRTs sit in the
   source directory; the temporary `${TRANSCODE_PATH}/<name>/` directory is purged.
-- **AC-007** Given a missing source file, `FileNotFoundError` is logged, Plex is asked to refresh, and the queue is
-  not touched.
+- **AC-007** Given a missing source file, `FileNotFoundError` is logged at the workflow boundary, Plex is asked to refresh, and the queue is not touched.
+- **AC-008** Given interruption during staging, the copy stream closes before the partial stage is removed; the source and atomic commit region remain untouched.
 
 ## 6. Test Automation Strategy
 
@@ -184,7 +182,7 @@ Decision examples:
 
 ## 10. Validation Criteria
 
-- `bun run check` and `bun run test` succeed.
+- Non-mutating format/lint/type checks and `bun run test` succeed.
 - Webhook validators round-trip every documented `eventType`.
 - `getTranscodeCommand` returns `undefined` for an already-conformant file (no queue entry, no ffmpeg invocation).
 - Post-process deletes temporary and backup artifacts only after successful commit or verified rollback; rollback failure preserves recovery artifacts.

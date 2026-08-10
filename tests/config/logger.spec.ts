@@ -1,56 +1,71 @@
 import { afterEach, beforeEach, describe, expect, jest, spyOn, test } from 'bun:test'
 /* oxlint-disable no-console */
 
-import { logger } from '@/config/logger'
+import { Cause, Effect, Logger, References } from 'effect'
+
+import { LoggerLive, nativeLogger } from '@/config/logger'
+
+const logCause = (effect: Effect.Effect<never, unknown>) =>
+  effect.pipe(Effect.catchCause((cause) => Effect.logError(cause, 'failed').pipe(Effect.annotateLogs('context', ['Boundary']))))
 
 describe('logger', () => {
-  const originalEnv = process.env.NODE_ENV
-
   beforeEach(() => {
-    process.env.NODE_ENV = 'development'
     spyOn(console, 'info').mockImplementation(() => undefined)
     spyOn(console, 'warn').mockImplementation(() => undefined)
     spyOn(console, 'error').mockImplementation(() => undefined)
   })
 
   afterEach(() => {
-    process.env.NODE_ENV = originalEnv
     jest.restoreAllMocks()
   })
 
-  test('should suppress output when NODE_ENV is test', () => {
-    process.env.NODE_ENV = 'test'
-    logger.info('hello')
-    logger.warn('hello')
-    logger.error('hello')
-    expect(console.info).not.toHaveBeenCalled()
-    expect(console.warn).not.toHaveBeenCalled()
-    expect(console.error).not.toHaveBeenCalled()
-  })
+  test('routes native levels to their console methods', () => {
+    nativeLogger.info('ready')
+    nativeLogger.warn('careful')
+    nativeLogger.error(new Error('boom'))
 
-  test('should route info to console.info with [INFO] tag', () => {
-    logger.info('ready')
     expect(console.info).toHaveBeenCalledWith(expect.stringContaining('[INFO]'))
-    expect(console.info).toHaveBeenCalledWith(expect.stringContaining('ready'))
-  })
-
-  test('should route warn to console.warn with [WARN] tag', () => {
-    logger.warn('careful')
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('[WARN]'))
-  })
-
-  test('should route error to console.error with [ERROR] tag', () => {
-    logger.error('boom')
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('[ERROR]'))
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('boom'))
   })
 
-  test('should render multiple context segments in order with trailing spacer', () => {
-    logger.info('ready', 'Feature', 'Sub')
+  test('renders ordered native context with the existing parenthesis spacing', () => {
+    nativeLogger.info('ready', 'Feature', 'Sub')
+    nativeLogger.info('(detail) ready', 'Feature')
+
+    expect(console.info).toHaveBeenNthCalledWith(1, expect.stringContaining('(Feature)(Sub) ready'))
+    expect(console.info).toHaveBeenNthCalledWith(2, expect.stringContaining('(Feature)(detail) ready'))
+  })
+
+  test('renders Effect logs with ordered context', async () => {
+    await Effect.runPromise(Effect.logInfo('ready').pipe(Effect.annotateLogs('context', ['Feature', 'Sub']), Effect.provide(LoggerLive)))
+
     expect(console.info).toHaveBeenCalledWith(expect.stringContaining('(Feature)(Sub) ready'))
   })
 
-  test('should omit spacer when message starts with a parenthesis', () => {
-    logger.info('(detail) ready', 'Feature')
-    expect(console.info).toHaveBeenCalledWith(expect.stringContaining('(Feature)(detail) ready'))
+  test('preserves typed failures and defects as structural Causes for injected loggers', async () => {
+    const entries: { cause: Cause.Cause<unknown>; context: unknown; message: unknown }[] = []
+    const capturingLogger = Logger.make<unknown, void>((options) => {
+      entries.push({
+        cause: options.cause,
+        context: options.fiber.getRef(References.CurrentLogAnnotations)['context'],
+        message: options.message,
+      })
+    })
+    const typedError = new Error('typed')
+    const defect = new Error('defect')
+
+    await Effect.runPromise(
+      Effect.all([logCause(Effect.fail(typedError)), logCause(Effect.die(defect))], { discard: true }).pipe(
+        Effect.provide(Logger.layer([capturingLogger]))
+      )
+    )
+
+    expect(entries).toHaveLength(2)
+    expect(entries[0]?.message).toEqual(['failed'])
+    expect(entries[0]?.context).toEqual(['Boundary'])
+    expect(entries[0]?.cause.reasons.some((reason) => Cause.isFailReason(reason) && reason.error === typedError)).toBeTrue()
+    expect(entries[1]?.cause.reasons.some((reason) => Cause.isDieReason(reason) && reason.defect === defect)).toBeTrue()
   })
 })

@@ -1,4 +1,4 @@
-import { logger } from '@/config/logger'
+import { nativeLogger } from '@/config/logger'
 import { AudioStreamNotFoundError, NoStreamsKeptError } from '@/features/transcoding/errors'
 import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
@@ -53,7 +53,7 @@ const processAudioStream = (
   if (!codec || !wantedAudioEncodings.includes(codec)) {
     commands.push(`-c:a:${streamIndex}`, 'aac')
     needsTranscode = true
-    logger.warn(`${languageCriteria[0]?.language} audio stream 0:a:${streamIndex} is ${codec}, converting to aac.`, 'Audio', mediaTitle)
+    nativeLogger.warn(`${languageCriteria[0]?.language} audio stream 0:a:${streamIndex} is ${codec}, converting to aac.`, 'Audio', mediaTitle)
   }
 
   if (stream?.tags?.language === undefined || stream.tags.language.toLowerCase() === 'und') {

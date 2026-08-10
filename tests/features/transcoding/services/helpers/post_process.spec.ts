@@ -5,7 +5,7 @@ import { basename, dirname, join } from 'node:path'
 
 import { runTest } from '@tests/effect'
 import { makeTestDir, videosPath } from '@tests/utils'
-import { Effect, Result } from 'effect'
+import { Cause, Effect, Exit, Fiber, Result } from 'effect'
 
 import env from '@/config/env'
 import { FileAccessError } from '@/features/transcoding/errors'
@@ -88,7 +88,7 @@ describe('handlePostTranscode', () => {
       Effect.result(
         replaceOutputs(original, outputDirectory, {
           operations: {
-            copyFile,
+            copyFile: (source, copyDestination) => copyFile(source, copyDestination),
             exists: existsSync,
             fsync,
             remove: async (path, options) => {
@@ -124,7 +124,7 @@ describe('handlePostTranscode', () => {
       Effect.result(
         replaceOutputs(original, outputDirectory, {
           operations: {
-            copyFile,
+            copyFile: (source, copyDestination) => copyFile(source, copyDestination),
             exists: existsSync,
             fsync: async (path) => {
               if (path === dirname(original) && ++directorySyncs === 3) {
@@ -143,6 +143,62 @@ describe('handlePostTranscode', () => {
     expect(Result.isFailure(result) && result.failure).toBeInstanceOf(FileAccessError)
     expect(readFileSync(original, 'utf8')).toBe('original')
     expect(existsSync(destination)).toBeFalse()
+    expect(readdirSync(directory).some((path) => path.includes('autoscan-stage'))).toBeFalse()
+  })
+
+  test('waits for an interrupted staging copy to close before removing its partial file', async () => {
+    const directory = makeTestDir()
+    const outputDirectory = join(directory, 'output')
+    directories.push(directory)
+    mkdirSync(outputDirectory)
+    const original = join(directory, 'movie.mkv')
+    const source = join(outputDirectory, 'movie.mp4')
+    writeFileSync(original, 'original')
+    writeFileSync(source, 'new')
+    const events: string[] = []
+    const { promise: started, resolve: markStarted } = Promise.withResolvers<void>()
+
+    const fiber = Effect.runFork(
+      replaceOutputs(original, outputDirectory, {
+        operations: {
+          copyFile: async (_source, destination, signal) => {
+            writeFileSync(destination, 'partial')
+            markStarted()
+            await new Promise<void>((_resolve, reject) => {
+              signal.addEventListener(
+                'abort',
+                () => {
+                  events.push('closed')
+                  reject(signal.reason)
+                },
+                { once: true }
+              )
+            })
+          },
+          exists: existsSync,
+          fsync,
+          remove: async (path, options) => {
+            if (String(path).includes('autoscan-stage')) {
+              events.push('cleanup')
+            }
+            await rm(path, options)
+          },
+          rename: async () => {
+            events.push('rename')
+          },
+        },
+        outputFiles: ['movie.mp4'],
+      })
+    )
+
+    await started
+    fiber.interruptUnsafe()
+    const exit = await Effect.runPromise(Fiber.await(fiber))
+
+    expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBeTrue()
+    expect(events).toEqual(['closed', 'cleanup'])
+    expect(readFileSync(original, 'utf8')).toBe('original')
+    expect(readFileSync(source, 'utf8')).toBe('new')
     expect(readdirSync(directory).some((path) => path.includes('autoscan-stage'))).toBeFalse()
   })
 })

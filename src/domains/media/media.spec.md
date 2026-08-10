@@ -115,7 +115,7 @@ Promoted to a domain because the language store is read by `language_sync` and t
 
 ## 10. Validation Criteria
 
-- `bun run check` enforces the import boundary via `oxlint` rules (no `@/features`, `@/providers`, sibling-domain imports).
+- CI's non-mutating `oxlint` command enforces the import boundary via rules (no `@/features`, `@/providers`, sibling-domain imports).
 - `bun run test` covers repository upsert behaviour, language resolution branches, and path parsing.
 
 ## 11. Related Specifications / Further Reading

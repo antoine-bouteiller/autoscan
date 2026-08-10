@@ -18,4 +18,4 @@ last_updated: 2026-08-05
 
 # Validation
 
-`tests/providers/scheduler/scheduler.provider.spec.ts` covers execution, failed-run recovery, and handle finalization. `bun run check` and `bun run test` must pass.
+`tests/providers/scheduler/scheduler.provider.spec.ts` covers execution, failed-run recovery, and handle finalization. Non-mutating format/lint/type checks and `bun run test` must pass.

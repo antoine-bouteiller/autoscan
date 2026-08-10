@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { makeTestLayer } from '@tests/effect'
+import { makeTestLayer, TestLoggerLive } from '@tests/effect'
 import { Effect, Fiber, Layer } from 'effect'
 import { adjust, layer, type TestClock } from 'effect/testing/TestClock'
 
@@ -40,7 +40,13 @@ class PollClient implements ITelegramClient {
 }
 
 const runControlled = (client: PollClient, testEffect: Effect.Effect<void, never, AppRequirements | TestClock>) =>
-  Effect.runPromise(testEffect.pipe(Effect.provide(makeTestLayer({ telegram: client }).pipe(Layer.provideMerge(layer()))), Effect.scoped))
+  Effect.runPromise(
+    testEffect.pipe(
+      Effect.provide(makeTestLayer({ telegram: client }).pipe(Layer.provideMerge(layer()))),
+      Effect.scoped,
+      Effect.provide(TestLoggerLive)
+    )
+  )
 
 describe('TelegramProvider', () => {
   test('uses a five-second retry delay and is interruptible', async () => {

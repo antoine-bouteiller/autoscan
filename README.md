@@ -88,9 +88,8 @@ Requires [Bun](https://bun.sh) and FFmpeg. Everything runs through Bun. The asyn
 bun install       # Install dependencies
 bun run dev       # Development with watch mode (Bun)
 bun run test      # Run tests
-bun run lint      # Lint with oxlint
-bun run fmt       # Format with oxfmt
-bun run check     # Verify format + lint + type-check
+bun run lint      # Repair lint findings with oxlint
+bun run fmt       # Repair formatting with oxfmt
 ```
 
 The application runs on Bun (`bun src/index.ts`). The Nix package is built with

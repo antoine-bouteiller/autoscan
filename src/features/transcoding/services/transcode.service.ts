@@ -3,12 +3,10 @@ import { basename, dirname, join } from 'node:path'
 import { Cause, Effect, Layer, Queue } from 'effect'
 
 import env from '@/config/env'
-import { logger } from '@/config/logger'
 import { Ffmpeg, Plex, TranscodeQueue } from '@/core/runtime.service'
 import { FileNameInvalidError, FileNotFoundError, ReplacementRollbackError } from '@/features/transcoding/errors'
 import { type TranscodeJob } from '@/features/transcoding/types'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
-import { logError } from '@/shared/utils/error'
 import { exists, mkdir, readdir, remove, rename, writeFile } from '@/shared/utils/fs'
 
 import { processAudioStreams } from './helpers/audio.js'
@@ -91,16 +89,16 @@ export const TranscodeQueueLive = Layer.effect(
     const worker = Effect.forever(
       Queue.take(queue).pipe(
         Effect.tap((job) =>
-          Effect.sync(() => {
+          Effect.gen(function* () {
             currentJob = job
             isProcessing = true
-            logger.info(`Processing job with command "${job.command.join(' ')}"`, 'Transcode', job.mediaTitle)
+            yield* Effect.logInfo(`Processing job with command "${job.command.join(' ')}"`).pipe(
+              Effect.annotateLogs('context', ['Transcode', job.mediaTitle])
+            )
           })
         ),
         Effect.flatMap(processJob),
-        Effect.catchCause((cause) =>
-          Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.sync(() => logError(cause, 'Transcode Queue'))
-        ),
+        Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'Transcode Queue'))),
         Effect.ensuring(
           Effect.sync(() => {
             if (currentJob !== undefined) {
@@ -128,8 +126,11 @@ export const TranscodeQueueLive = Layer.effect(
             return Effect.succeed(false)
           }
           knownFiles.add(job.file)
-          logger.info(`Added job (${knownFiles.size} jobs active or queued)`, 'Transcode', job.mediaTitle)
-          return Queue.offer(queue, job).pipe(Effect.as(true))
+          return Effect.logInfo(`Added job (${knownFiles.size} jobs active or queued)`).pipe(
+            Effect.annotateLogs('context', ['Transcode', job.mediaTitle]),
+            Effect.andThen(Queue.offer(queue, job)),
+            Effect.as(true)
+          )
         }),
       status: Queue.size(queue).pipe(Effect.map((queueLength) => ({ currentJob, isProcessing, queueLength }))),
       stopIntake: Effect.sync(() => {
@@ -172,14 +173,16 @@ export const transcodeFile = (params: { file: string; mediaTitle: string; origin
   Effect.gen(function* () {
     if (!(yield* exists(params.file))) {
       const error = new FileNotFoundError({ filePath: params.file })
-      yield* Effect.sync(() => logError(error, 'transcodeFile'))
+      yield* Effect.logError(Cause.fail(error), 'transcodeFile')
       const plex = yield* Plex
       yield* plex.refreshSections(params.file, params.mediaType)
       return false
     }
 
     const result = yield* getTranscodeCommand(params.file, params.mediaTitle, params.originalLanguage).pipe(
-      Effect.catch((error) => Effect.sync(() => logError(error, 'transcodeFile')).pipe(Effect.as(undefined)))
+      Effect.catchCause((cause) =>
+        Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'transcodeFile').pipe(Effect.as(undefined))
+      )
     )
     if (result === undefined) {
       return false

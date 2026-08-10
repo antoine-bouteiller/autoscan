@@ -1,8 +1,7 @@
 import { type Effect } from 'effect'
 
-import { logger } from '@/config/logger'
+import { nativeLogger } from '@/config/logger'
 import { type AppRequirements } from '@/core/runtime.service'
-import { logError } from '@/shared/utils/error'
 
 interface JobConfig {
   handler: Effect.Effect<void, unknown, AppRequirements>
@@ -32,11 +31,11 @@ export class SchedulerProvider {
 
   register(config: JobConfig): void {
     if (!this.accepting) {
-      logger.warn(`scheduler is stopped, skipping job "${config.name}"`, 'Scheduler')
+      nativeLogger.warn(`scheduler is stopped, skipping job "${config.name}"`, 'Scheduler')
       return
     }
     if (this.jobs.has(config.name)) {
-      logger.warn(`job "${config.name}" already exists, skipping...`, 'Scheduler')
+      nativeLogger.warn(`job "${config.name}" already exists, skipping...`, 'Scheduler')
       return
     }
 
@@ -48,13 +47,13 @@ export class SchedulerProvider {
         try {
           await this.runPromise(config.handler)
         } catch (error) {
-          logError(error, 'Scheduler')
+          nativeLogger.error(error, 'Scheduler')
         }
       })
       this.jobs.set(config.name, job)
-      logger.info(`Registered cron job: ${config.name} (${config.pattern})`, 'Scheduler')
+      nativeLogger.info(`Registered cron job: ${config.name} (${config.pattern})`, 'Scheduler')
     } catch (error) {
-      logError(error, 'Scheduler')
+      nativeLogger.error(error, 'Scheduler')
     }
   }
 
@@ -70,9 +69,9 @@ export class SchedulerProvider {
       try {
         job.stop()
       } catch (error) {
-        logError(error, 'Scheduler')
+        nativeLogger.error(error, 'Scheduler')
       }
     }
-    logger.info('All cron jobs stopped', 'Scheduler')
+    nativeLogger.info('All cron jobs stopped', 'Scheduler')
   }
 }
