@@ -21,12 +21,13 @@ export interface InjectOptions {
   url: string
 }
 
-interface InjectResponseBody {
-  data?: unknown
-  error?: { code: string; details?: unknown; message: string }
-  meta?: { timestamp: string }
-  success: boolean
-}
+const injectResponseBodySchema = Schema.Struct({
+  data: Schema.optional(Schema.Unknown),
+  error: Schema.optional(Schema.Struct({ code: Schema.String, details: Schema.optional(Schema.Unknown), message: Schema.String })),
+  meta: Schema.optional(Schema.Struct({ timestamp: Schema.String })),
+  success: Schema.Boolean,
+})
+type InjectResponseBody = typeof injectResponseBodySchema.Type
 
 export interface InjectResponse {
   json: () => InjectResponseBody
@@ -35,7 +36,7 @@ export interface InjectResponse {
 
 const unknownFromJsonString = Schema.fromJsonString(Schema.Unknown)
 const encodeJson = Schema.encodeSync(unknownFromJsonString)
-const decodeJson = Schema.decodeUnknownResult(unknownFromJsonString)
+const decodeInjectResponse = Schema.decodeUnknownResult(Schema.fromJsonString(injectResponseBodySchema))
 
 const jsonResponse = (data: unknown, statusCode: number): HttpServerResponse.HttpServerResponse =>
   HttpServerResponse.jsonUnsafe(data, { status: statusCode })
@@ -93,8 +94,11 @@ export class HttpProvider {
           )
         )
         const text = yield* Effect.tryPromise(() => response.text())
-        const decoded = decodeJson(text)
-        const body = (Result.isFailure(decoded) ? {} : decoded.success) as InjectResponseBody
+        const decoded = decodeInjectResponse(text)
+        if (Result.isFailure(decoded)) {
+          return yield* new Cause.UnknownError(decoded.failure, 'Invalid injected HTTP response')
+        }
+        const body = decoded.success
         return { json: () => body, statusCode: response.status }
       }).pipe(Effect.ensuring(Effect.promise(() => webHandler.dispose())))
     }).pipe(Effect.scoped)
@@ -116,15 +120,7 @@ export class HttpProvider {
       const appRequest: AppRequest = { body: undefined }
       if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
         const body = yield* Effect.result(
-          request.text.pipe(
-            Effect.flatMap((raw): Effect.Effect<unknown, unknown> => {
-              if (raw === '') {
-                return Effect.void
-              }
-              const decoded = decodeJson(raw)
-              return Result.isFailure(decoded) ? Effect.fail(decoded.failure) : Effect.succeed(decoded.success)
-            })
-          )
+          request.text.pipe(Effect.flatMap((raw) => (raw === '' ? Effect.void : Schema.decodeEffect(unknownFromJsonString)(raw))))
         )
         if (Result.isFailure(body)) {
           return jsonResponse({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON' }, success: false }, 400)

@@ -45,15 +45,17 @@ describe('handlePostTranscode', () => {
       yield* fs.writeFileString(original, 'original')
 
       const outputDirectory = path.join(env.TRANSCODE_PATH, path.basename(original, '.mkv'))
+      const fixture = path.join(videosPath, 'test_correct_file.mp4')
+      const expected = yield* fs.readFile(fixture)
       directories.push(outputDirectory)
       yield* fs.makeDirectory(outputDirectory, { recursive: true })
-      yield* fs.copyFile(path.join(videosPath, 'test_correct_file.mp4'), path.join(outputDirectory, 'movie.mp4'))
+      yield* fs.copyFile(fixture, path.join(outputDirectory, 'movie.mp4'))
 
       yield* handlePostTranscode({ filePath: original, mediaTitle: 'Movie', mediaType: 'movie' })
 
+      expect(expected.byteLength).toBeGreaterThan(128 * 1024)
       expect(yield* fs.exists(original)).toBeFalse()
-      expect(yield* fs.exists(path.join(directory, 'movie.mp4'))).toBeTrue()
-      expect((yield* fs.readFile(path.join(directory, 'movie.mp4'))).byteLength).toBeGreaterThan(0)
+      expect(yield* fs.readFile(path.join(directory, 'movie.mp4'))).toEqual(expected)
       expect(yield* fs.exists(outputDirectory)).toBeFalse()
     }).pipe(provideTest)
   )
@@ -168,28 +170,37 @@ describe('handlePostTranscode', () => {
       const events: string[] = []
       const started = yield* Latch.make()
 
+      const instrumentedFs = FileSystem.makeNoop({
+        exists: fs.exists,
+        open: (target, options) => {
+          const open = fs.open(target, options)
+          if (!target.includes('autoscan-stage')) {
+            return open
+          }
+          return Effect.acquireRelease(open, () => Effect.sync(() => events.push('closed'))).pipe(
+            Effect.map(
+              (file) =>
+                new Proxy(file, {
+                  get(object, property, receiver) {
+                    if (property === 'writeAll') {
+                      return (buffer: Uint8Array) => object.writeAll(buffer).pipe(Effect.andThen(started.open), Effect.andThen(Effect.never))
+                    }
+                    return Reflect.get(object, property, receiver)
+                  },
+                })
+            )
+          )
+        },
+        remove: (target, options) =>
+          Effect.suspend(() => {
+            if (target.includes('autoscan-stage')) {
+              events.push('cleanup')
+            }
+            return fs.remove(target, options)
+          }),
+      })
       const fiber = yield* Effect.forkChild(
-        replaceOutputs(original, outputDirectory, {
-          operations: {
-            copyFile: (_source, destination) =>
-              fs.writeFileString(destination, 'partial').pipe(
-                Effect.andThen(started.open),
-                Effect.andThen(Effect.never),
-                Effect.onInterrupt(() => Effect.sync(() => events.push('closed')))
-              ),
-            exists: fs.exists,
-            fsync: fsyncWith(fs),
-            remove: (target, options) =>
-              Effect.suspend(() => {
-                if (target.includes('autoscan-stage')) {
-                  events.push('cleanup')
-                }
-                return fs.remove(target, options)
-              }),
-            rename: () => Effect.sync(() => events.push('rename')),
-          },
-          outputFiles: ['movie.mp4'],
-        })
+        replaceOutputs(original, outputDirectory, { outputFiles: ['movie.mp4'] }).pipe(Effect.provideService(FileSystem.FileSystem, instrumentedFs))
       )
 
       yield* started.await

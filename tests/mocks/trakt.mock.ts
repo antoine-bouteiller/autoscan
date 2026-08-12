@@ -37,14 +37,16 @@ export class MockTraktClient implements ITraktClient {
   }
 
   pollDeviceToken() {
-    return Effect.map(Clock.currentTimeMillis, (now) => ({
-      access_token: 'access_token',
-      created_at: now,
-      expires_in: 3600,
-      refresh_token: 'refresh_token',
-      scope: 'scope',
-      token_type: 'token_type',
-    }))
+    return Clock.currentTimeMillis.pipe(
+      Effect.map((now) => ({
+        access_token: 'access_token',
+        created_at: now,
+        expires_in: 3600,
+        refresh_token: 'refresh_token',
+        scope: 'scope',
+        token_type: 'token_type',
+      }))
+    )
   }
 
   refreshToken(refreshToken: string) {

@@ -1,7 +1,7 @@
 import { makeTestContext, provideTest, TestLoggerLive } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { TestFailure } from '@tests/utils'
-import { Cause, Effect, Fiber, Latch, Logger, Schema } from 'effect'
+import { Cause, Effect, Fiber, Latch, Logger, Result, Schema } from 'effect'
 import { HttpServer } from 'effect/unstable/http'
 
 import { HttpProvider, type InjectOptions } from '@/providers/http/http.provider'
@@ -43,6 +43,17 @@ describe('HttpProvider', () => {
 
       expect(response.statusCode).toBe(400)
       expect(response.json()).toEqual({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON' }, success: false })
+    })
+  )
+
+  it.live('rejects injected responses outside the API contract', () =>
+    Effect.gen(function* () {
+      const provider = makeProvider()
+      provider.get('/invalid', (_request, reply) => Effect.sync(() => reply.send('invalid')))
+
+      const result = yield* Effect.result(inject(provider, { method: 'GET', url: '/invalid' }))
+
+      expect(Result.isFailure(result) && Cause.isUnknownError(result.failure)).toBeTrue()
     })
   )
 

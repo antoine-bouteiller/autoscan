@@ -33,7 +33,7 @@ beforeEach(() =>
   )
 )
 
-afterEach(() => run(Effect.flatMap(FileSystem.FileSystem, (fs) => Effect.ignore(fs.remove(testDir, { recursive: true })))))
+afterEach(() => run(FileSystem.FileSystem.pipe(Effect.flatMap((fs) => Effect.ignore(fs.remove(testDir, { recursive: true }))))))
 
 describe('parseTimestampMs', () => {
   test('should convert "00:00:00,000" to 0', () => {

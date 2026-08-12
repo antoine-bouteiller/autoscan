@@ -55,7 +55,8 @@ const processEpisode = (item: PlexMedia, collections: WatchedCollections, params
   collections.ratingKeysToMark.push(item.ratingKey)
 }
 
-const processWatchedItem = (item: PlexMedia, collections: WatchedCollections, syncedKeys: Set<string>, now: DateTime.Utc) => {
+const processWatchedItem = (item: PlexMedia, collections: WatchedCollections, params: { now: DateTime.Utc; syncedKeys: Set<string> }) => {
+  const { now, syncedKeys } = params
   if (syncedKeys.has(item.ratingKey) || (item.viewCount ?? 0) === 0) {
     return
   }
@@ -83,7 +84,7 @@ export const collectWatchedItems = (plexClient: IPlexClient, syncedKeys: Set<str
     for (const section of sections) {
       const items = yield* plexClient.getSectionMedia(section.key, section.type)
       for (const item of items) {
-        processWatchedItem(item, collections, syncedKeys, now)
+        processWatchedItem(item, collections, { now, syncedKeys })
       }
     }
     return { movies: collections.movies, ratingKeysToMark: collections.ratingKeysToMark, shows: [...collections.showsMap.values()] }

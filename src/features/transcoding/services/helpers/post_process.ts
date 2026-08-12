@@ -1,4 +1,4 @@
-import { Cause, Crypto, Effect, FileSystem, Path, type PlatformError, Result } from 'effect'
+import { Cause, Crypto, Effect, FileSystem, Option, Path, type PlatformError, Result } from 'effect'
 
 import env from '@/config/env'
 import { Ffmpeg, Plex, Radarr, Sonarr } from '@/core/runtime.service'
@@ -18,10 +18,27 @@ interface ReplacementOperations {
   readonly rename: (oldPath: string, newPath: string) => Effect.Effect<void, PlatformError.PlatformError>
 }
 
+const COPY_CHUNK_SIZE = 64 * 1024
+
+const copyFileInterruptibly = (fs: FileSystem.FileSystem, source: string, destination: string) =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const sourceFile = yield* fs.open(source, { flag: 'r' })
+      const destinationFile = yield* fs.open(destination, { flag: 'w' })
+      while (true) {
+        const chunk = yield* sourceFile.readAlloc(COPY_CHUNK_SIZE)
+        if (Option.isNone(chunk)) {
+          break
+        }
+        yield* destinationFile.writeAll(chunk.value)
+      }
+    })
+  )
+
 const liveReplacementOperations: Effect.Effect<ReplacementOperations, never, FileSystem.FileSystem> = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   return {
-    copyFile: fs.copyFile,
+    copyFile: (source, destination) => copyFileInterruptibly(fs, source, destination),
     exists: fs.exists,
     fsync: (path: string) => Effect.scoped(Effect.flatMap(fs.open(path), (file) => file.sync)),
     remove: fs.remove,
@@ -46,8 +63,8 @@ export const replaceOutputs = (inputFile: string, outputDirectory: string, optio
       stage: path.join(inputDirectory, `.${name}.autoscan-stage-${transactionId}`),
     }))
     const finalPaths = outputs.map((output) => output.final)
-    const finalPathExists = yield* Effect.forEach(finalPaths, operations.exists)
-    const originalPaths = [...new Set([inputFile, ...finalPaths.filter((_, index) => finalPathExists[index])])]
+    const finalPathExists = yield* Effect.forEach((filePath: string) => operations.exists(filePath))(finalPaths)
+    const originalPaths = [...new Set([inputFile, ...finalPaths.filter((_outputPath, index) => finalPathExists[index])])]
     const backups = originalPaths.map((original) => ({ backup: `${original}.autoscan-backup-${transactionId}`, original }))
     const artifacts = [
       ...outputs.flatMap((output) => [output.source, output.stage, output.final]),
