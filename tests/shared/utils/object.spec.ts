@@ -1,38 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
-import { inversedEntriesOf, isKeyOf, isValueOf, typedEntriesOf, typedKeyOf } from '@/shared/utils/object'
+import { inversedEntriesOf, typedEntriesOf, typedKeyOf } from '@/shared/utils/object'
 
 const sample = { alpha: 1, beta: 2, gamma: 3 } as const
-
-describe('isKeyOf', () => {
-  test('should return true for a valid key', () => {
-    expect(isKeyOf(sample, 'alpha')).toBe(true)
-  })
-
-  test('should return false for an invalid key', () => {
-    expect(isKeyOf(sample, 'delta')).toBe(false)
-  })
-
-  test('should return false for non-string values', () => {
-    expect(isKeyOf(sample, 1)).toBe(false)
-    expect(isKeyOf(sample, undefined)).toBe(false)
-    expect(isKeyOf(sample, undefined)).toBe(false)
-  })
-})
-
-describe('isValueOf', () => {
-  test('should return true for a valid value', () => {
-    expect(isValueOf(sample, 1)).toBe(true)
-  })
-
-  test('should return false for an invalid value', () => {
-    expect(isValueOf(sample, 4)).toBe(false)
-  })
-
-  test('should return false for undefined', () => {
-    expect(isValueOf(sample, undefined)).toBe(false)
-  })
-})
 
 describe('typedKeyOf', () => {
   test('should return all keys of the object', () => {

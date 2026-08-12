@@ -75,7 +75,7 @@ export class MockPlexClient implements IPlexClient {
     return Effect.succeed(id === 2 ? episodes : [])
   }
 
-  getSections() {
+  get getSections() {
     return Effect.succeed([
       { key: 1, title: 'Movies', type: 'movie' as const },
       { key: 2, title: 'TV', type: 'show' as const },

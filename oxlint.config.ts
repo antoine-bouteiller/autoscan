@@ -1,6 +1,8 @@
+import { recommended } from '@effect/tsgo/oxlint-presets'
 import { defineConfig } from 'oxlint'
 
 export default defineConfig({
+  extends: [recommended],
   categories: {
     correctness: 'error',
     perf: 'error',
@@ -17,27 +19,22 @@ export default defineConfig({
     typeCheck: true,
   },
   ignorePatterns: ['oxlint.config.ts', 'oxfmt.config.ts'],
+  overrides: [
+    {
+      // Every test builds and provides its own layers at the point where it runs.
+      files: ['tests/**'],
+      rules: { 'effecttsgo/strict-effect-provide': 'off' },
+    },
+    {
+      // Reusable helpers are the only place a pipeable overload is expected.
+      files: ['src/shared/**'],
+      rules: { 'effecttsgo/missing-pipeable-signature': 'error' },
+    },
+  ],
   plugins: ['typescript', 'unicorn', 'import', 'node', 'effecttsgo'],
   rules: {
-    'effecttsgo/outdated-api': 'error',
-    'effecttsgo/floating-effect': 'error',
-    'effecttsgo/missing-effect-context': 'error',
-    'effecttsgo/missing-effect-error': 'error',
-    'effecttsgo/duplicate-package': 'error',
-    // Provider boundaries intentionally accept unknown failures.
-    'effecttsgo/any-unknown-in-error-context': 'off',
-    'effecttsgo/catch-to-or-else-succeed': 'error',
-    'effecttsgo/deterministic-keys': 'off',
-    'effecttsgo/effect-succeed-with-void': 'off',
-    // Application-facing Effects are eager by design.
-    'effecttsgo/lazy-effect': 'off',
-    // Internal helpers do not need pipeable overloads.
+    // Pipeable overloads are for reusable helpers; app handlers take (client, message)/(request, reply).
     'effecttsgo/missing-pipeable-signature': 'off',
-    'effecttsgo/missed-pipeable-opportunity': 'off',
-    // Boolean narrowing follows the project's TypeScript style.
-    'effecttsgo/strict-boolean-expressions': 'off',
-    // Root entry-point composition intentionally provides partial requirements.
-    'effecttsgo/strict-effect-provide': 'off',
 
     // Restriction
     'no-empty': 'error',

@@ -1,6 +1,4 @@
-import { resolve } from 'node:path'
-
-import { Effect } from 'effect'
+import { Effect, Path } from 'effect'
 
 import { PlexError } from '@/integrations/plex/plex.errors'
 import { plexResponseValidator, type PlexMedia } from '@/integrations/plex/plex.validator'
@@ -13,9 +11,9 @@ export interface IPlexClient {
   readonly getBasicMediaInfo: (plexMedia: PlexMedia) => { file: string | undefined; ratingKey: string; type: string }
   readonly getPlexMetadata: (ratingKey: number) => Effect.Effect<PlexMedia, HttpClientError | PlexError>
   readonly getSectionMedia: (id: number, sectionType: MediaType) => Effect.Effect<PlexMedia[], HttpClientError>
-  readonly getSections: () => Effect.Effect<{ key: number; title: string; type: MediaType }[], HttpClientError>
+  readonly getSections: Effect.Effect<{ key: number; title: string; type: MediaType }[], HttpClientError>
   readonly refreshSection: (id: number, filePath: string) => Effect.Effect<void, HttpClientError>
-  readonly refreshSections: (filePath: string, mediaType: MediaType) => Effect.Effect<void, HttpClientError>
+  readonly refreshSections: (filePath: string, mediaType: MediaType) => Effect.Effect<void, HttpClientError, Path.Path>
   readonly updateStream: (partsId: number, streamId: number, type: 'audio' | 'subtitle') => Effect.Effect<void, HttpClientError>
 }
 
@@ -59,7 +57,7 @@ export class PlexClient implements IPlexClient {
       .pipe(Effect.map((response) => response.MediaContainer.Metadata ?? []))
   }
 
-  getSections() {
+  get getSections() {
     return this.client
       .get('library/sections', { validator: plexResponseValidator })
       .pipe(Effect.map((response) => response.MediaContainer.Directory ?? []))
@@ -70,19 +68,17 @@ export class PlexClient implements IPlexClient {
   }
 
   refreshSections(filePath: string, mediaType: MediaType) {
-    const fileDirectory = resolve(filePath, '..')
-    return this.getSections().pipe(
-      Effect.flatMap((sections) =>
-        Effect.forEach(
-          sections.filter((section) => section.type === mediaType),
-          (section) => this.refreshSection(section.key, fileDirectory),
-          {
-            concurrency: 'unbounded',
-            discard: true,
-          }
-        )
+    const client = this
+    return Effect.gen(function* () {
+      const path = yield* Path.Path
+      const fileDirectory = path.resolve(filePath, '..')
+      const sections = yield* client.getSections
+      yield* Effect.forEach(
+        sections.filter((section) => section.type === mediaType),
+        (section) => client.refreshSection(section.key, fileDirectory),
+        { concurrency: 'unbounded', discard: true }
       )
-    )
+    })
   }
 
   updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle') {

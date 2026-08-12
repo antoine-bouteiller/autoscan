@@ -13,7 +13,7 @@ under `src/features/<feature>/<feature>.spec.md`.
 - **Bun is the runtime and package manager.** Run the app with `bun src/index.ts`
   (`bun run dev` for watch mode) and manage dependencies with `bun install` /
   `bun add` / `bun remove`. The HTTP server uses `Bun.serve` and subprocesses use
-  `Bun.spawn`.
+  Effect's `ChildProcess` on the Bun spawner layer (`BunServices.layer`).
 - **Lint and format use oxlint and oxfmt directly** — run `bun run check`
   (format check + lint + type-check), `bun run lint` (oxlint with `--fix`), and
   `bun run fmt` (oxfmt). Config lives in `oxlint.config.ts` and `oxfmt.config.ts`.

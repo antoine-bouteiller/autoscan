@@ -62,7 +62,7 @@ export const handleUpdateLanguage = (params: UpdateLanguageParams) =>
       return
     }
 
-    if (!audioStream.selected) {
+    if (audioStream.selected !== true) {
       const plexClient = yield* Plex
       yield* Effect.logInfo(`Setting audio in ${preferredLanguage}`).pipe(Effect.annotateLogs('context', ['Language', mediaTitle]))
       yield* plexClient.updateStream(partsId, audioStream.id, 'audio')

@@ -1,11 +1,10 @@
-import { afterEach, describe, expect, test } from 'bun:test'
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { copyFile, open, rename, rm } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
+import { afterEach } from 'bun:test'
 
-import { runTest } from '@tests/effect'
+import { BunServices } from '@effect/platform-bun'
+import { provideTest } from '@tests/effect'
+import { describe, expect, it } from '@tests/it'
 import { makeTestDir, videosPath } from '@tests/utils'
-import { Cause, Effect, Exit, Fiber, Result } from 'effect'
+import { Cause, Effect, Exit, Fiber, FileSystem, Latch, Path, PlatformError, Result } from 'effect'
 
 import env from '@/config/env'
 import { FileAccessError } from '@/features/transcoding/errors'
@@ -13,192 +12,206 @@ import { handlePostTranscode, replaceOutputs } from '@/features/transcoding/serv
 
 const directories: string[] = []
 
-const fsync = async (path: string) => {
-  const handle = await open(path, 'r')
-  try {
-    await handle.sync()
-  } finally {
-    await handle.close()
-  }
-}
+const fsyncWith = (fs: FileSystem.FileSystem) => (target: string) => Effect.scoped(Effect.flatMap(fs.open(target), (file) => file.sync))
 
-afterEach(() => {
-  for (const directory of directories.splice(0)) {
-    rmSync(directory, { force: true, recursive: true })
-  }
-})
+afterEach(() =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      for (const directory of directories.splice(0)) {
+        yield* fs.remove(directory, { force: true, recursive: true })
+      }
+    }).pipe(Effect.provide(BunServices.layer))
+  )
+)
 
 describe('handlePostTranscode', () => {
-  test('does nothing when no transcode output exists', async () => {
-    const directory = makeTestDir()
-    directories.push(directory)
-    expect(
-      await runTest(handlePostTranscode({ filePath: join(directory, 'missing.mkv'), mediaTitle: 'Missing', mediaType: 'movie' }))
-    ).toBeUndefined()
-  })
+  it.live('does nothing when no transcode output exists', () =>
+    Effect.gen(function* () {
+      const path = yield* Path.Path
+      const directory = yield* makeTestDir
+      directories.push(directory)
+      expect(yield* handlePostTranscode({ filePath: path.join(directory, 'missing.mkv'), mediaTitle: 'Missing', mediaType: 'movie' })).toBeUndefined()
+    }).pipe(provideTest)
+  )
 
-  test('durably replaces the original with validated output', async () => {
-    const directory = makeTestDir()
-    directories.push(directory)
-    const original = join(directory, 'movie.mkv')
-    writeFileSync(original, 'original')
+  it.live('durably replaces the original with validated output', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const directory = yield* makeTestDir
+      directories.push(directory)
+      const original = path.join(directory, 'movie.mkv')
+      yield* fs.writeFileString(original, 'original')
 
-    const outputDirectory = join(env.TRANSCODE_PATH, basename(original, '.mkv'))
-    directories.push(outputDirectory)
-    mkdirSync(outputDirectory, { recursive: true })
-    copyFileSync(join(videosPath, 'test_correct_file.mp4'), join(outputDirectory, 'movie.mp4'))
+      const outputDirectory = path.join(env.TRANSCODE_PATH, path.basename(original, '.mkv'))
+      const fixture = path.join(videosPath, 'test_correct_file.mp4')
+      const expected = yield* fs.readFile(fixture)
+      directories.push(outputDirectory)
+      yield* fs.makeDirectory(outputDirectory, { recursive: true })
+      yield* fs.copyFile(fixture, path.join(outputDirectory, 'movie.mp4'))
 
-    await runTest(handlePostTranscode({ filePath: original, mediaTitle: 'Movie', mediaType: 'movie' }))
+      yield* handlePostTranscode({ filePath: original, mediaTitle: 'Movie', mediaType: 'movie' })
 
-    expect(existsSync(original)).toBeFalse()
-    expect(existsSync(join(directory, 'movie.mp4'))).toBeTrue()
-    expect(readFileSync(join(directory, 'movie.mp4')).byteLength).toBeGreaterThan(0)
-    expect(existsSync(outputDirectory)).toBeFalse()
-  })
+      expect(expected.byteLength).toBeGreaterThan(128 * 1024)
+      expect(yield* fs.exists(original)).toBeFalse()
+      expect(yield* fs.readFile(path.join(directory, 'movie.mp4'))).toEqual(expected)
+      expect(yield* fs.exists(outputDirectory)).toBeFalse()
+    }).pipe(provideTest)
+  )
 
-  test('replaces a colliding destination without leaving backups', async () => {
-    const directory = makeTestDir()
-    directories.push(directory)
-    const original = join(directory, 'movie.mkv')
-    const destination = join(directory, 'movie.mp4')
-    writeFileSync(original, 'original')
-    writeFileSync(destination, 'collision')
+  it.live('replaces a colliding destination without leaving backups', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const directory = yield* makeTestDir
+      directories.push(directory)
+      const original = path.join(directory, 'movie.mkv')
+      const destination = path.join(directory, 'movie.mp4')
+      yield* fs.writeFileString(original, 'original')
+      yield* fs.writeFileString(destination, 'collision')
 
-    const outputDirectory = join(env.TRANSCODE_PATH, basename(original, '.mkv'))
-    directories.push(outputDirectory)
-    mkdirSync(outputDirectory, { recursive: true })
-    copyFileSync(join(videosPath, 'test_correct_file.mp4'), join(outputDirectory, 'movie.mp4'))
+      const outputDirectory = path.join(env.TRANSCODE_PATH, path.basename(original, '.mkv'))
+      directories.push(outputDirectory)
+      yield* fs.makeDirectory(outputDirectory, { recursive: true })
+      yield* fs.copyFile(path.join(videosPath, 'test_correct_file.mp4'), path.join(outputDirectory, 'movie.mp4'))
 
-    await runTest(handlePostTranscode({ filePath: original, mediaTitle: 'Movie', mediaType: 'movie' }))
-    expect(readFileSync(destination).toString()).not.toBe('collision')
-    expect(readdirSync(directory).some((path) => path.includes('autoscan-backup'))).toBeFalse()
-  })
+      yield* handlePostTranscode({ filePath: original, mediaTitle: 'Movie', mediaType: 'movie' })
+      expect(yield* fs.readFileString(destination)).not.toBe('collision')
+      expect((yield* fs.readDirectory(directory)).some((entry) => entry.includes('autoscan-backup'))).toBeFalse()
+    }).pipe(provideTest)
+  )
 
-  test('keeps the durable installation when backup cleanup fails', async () => {
-    const directory = makeTestDir()
-    const outputDirectory = join(directory, 'output')
-    directories.push(directory)
-    mkdirSync(outputDirectory)
-    const original = join(directory, 'movie.mkv')
-    const destination = join(directory, 'movie.mp4')
-    writeFileSync(original, 'original')
-    writeFileSync(join(outputDirectory, 'movie.mp4'), 'new')
+  it.live('keeps the durable installation when backup cleanup fails', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const directory = yield* makeTestDir
+      const outputDirectory = path.join(directory, 'output')
+      directories.push(directory)
+      yield* fs.makeDirectory(outputDirectory)
+      const original = path.join(directory, 'movie.mkv')
+      const destination = path.join(directory, 'movie.mp4')
+      yield* fs.writeFileString(original, 'original')
+      yield* fs.writeFileString(path.join(outputDirectory, 'movie.mp4'), 'new')
 
-    const result = await Effect.runPromise(
-      Effect.result(
+      const result = yield* Effect.result(
         replaceOutputs(original, outputDirectory, {
           operations: {
-            copyFile: (source, copyDestination) => copyFile(source, copyDestination),
-            exists: existsSync,
-            fsync,
-            remove: async (path, options) => {
-              if (String(path).includes('autoscan-backup')) {
-                throw new Error('cleanup failed')
-              }
-              await rm(path, options)
-            },
-            rename,
+            copyFile: fs.copyFile,
+            exists: fs.exists,
+            fsync: fsyncWith(fs),
+            remove: (target, options) =>
+              target.includes('autoscan-backup')
+                ? Effect.fail(PlatformError.badArgument({ description: 'cleanup failed', method: 'remove', module: 'FileSystem' }))
+                : fs.remove(target, options),
+            rename: fs.rename,
           },
           outputFiles: ['movie.mp4'],
         })
       )
-    )
 
-    expect(Result.isSuccess(result) && result.success).toBeInstanceOf(FileAccessError)
-    expect(readFileSync(destination, 'utf8')).toBe('new')
-    expect(readdirSync(directory).some((path) => path.includes('autoscan-backup'))).toBeTrue()
-  })
+      expect(Result.isSuccess(result) && result.success).toBeInstanceOf(FileAccessError)
+      expect(yield* fs.readFileString(destination)).toBe('new')
+      expect((yield* fs.readDirectory(directory)).some((entry) => entry.includes('autoscan-backup'))).toBeTrue()
+    }).pipe(provideTest)
+  )
 
-  test('rolls back an installed output when the commit fsync fails', async () => {
-    const directory = makeTestDir()
-    const outputDirectory = join(directory, 'output')
-    directories.push(directory)
-    mkdirSync(outputDirectory)
-    const original = join(directory, 'movie.mkv')
-    const destination = join(directory, 'movie.mp4')
-    writeFileSync(original, 'original')
-    writeFileSync(join(outputDirectory, 'movie.mp4'), 'new')
-    let directorySyncs = 0
+  it.live('rolls back an installed output when the commit fsync fails', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const directory = yield* makeTestDir
+      const outputDirectory = path.join(directory, 'output')
+      directories.push(directory)
+      yield* fs.makeDirectory(outputDirectory)
+      const original = path.join(directory, 'movie.mkv')
+      const destination = path.join(directory, 'movie.mp4')
+      yield* fs.writeFileString(original, 'original')
+      yield* fs.writeFileString(path.join(outputDirectory, 'movie.mp4'), 'new')
+      const fsync = fsyncWith(fs)
+      let directorySyncs = 0
 
-    const result = await Effect.runPromise(
-      Effect.result(
+      const result = yield* Effect.result(
         replaceOutputs(original, outputDirectory, {
           operations: {
-            copyFile: (source, copyDestination) => copyFile(source, copyDestination),
-            exists: existsSync,
-            fsync: async (path) => {
-              if (path === dirname(original) && ++directorySyncs === 3) {
-                throw new Error('commit fsync failed')
-              }
-              await fsync(path)
-            },
-            remove: rm,
-            rename,
+            copyFile: fs.copyFile,
+            exists: fs.exists,
+            fsync: (target) =>
+              target === path.dirname(original) && ++directorySyncs === 3
+                ? Effect.fail(PlatformError.badArgument({ description: 'commit fsync failed', method: 'sync', module: 'FileSystem' }))
+                : fsync(target),
+            remove: fs.remove,
+            rename: fs.rename,
           },
           outputFiles: ['movie.mp4'],
         })
       )
-    )
 
-    expect(Result.isFailure(result) && result.failure).toBeInstanceOf(FileAccessError)
-    expect(readFileSync(original, 'utf8')).toBe('original')
-    expect(existsSync(destination)).toBeFalse()
-    expect(readdirSync(directory).some((path) => path.includes('autoscan-stage'))).toBeFalse()
-  })
+      expect(Result.isFailure(result) && result.failure).toBeInstanceOf(FileAccessError)
+      expect(yield* fs.readFileString(original)).toBe('original')
+      expect(yield* fs.exists(destination)).toBeFalse()
+      expect((yield* fs.readDirectory(directory)).some((entry) => entry.includes('autoscan-stage'))).toBeFalse()
+    }).pipe(provideTest)
+  )
 
-  test('waits for an interrupted staging copy to close before removing its partial file', async () => {
-    const directory = makeTestDir()
-    const outputDirectory = join(directory, 'output')
-    directories.push(directory)
-    mkdirSync(outputDirectory)
-    const original = join(directory, 'movie.mkv')
-    const source = join(outputDirectory, 'movie.mp4')
-    writeFileSync(original, 'original')
-    writeFileSync(source, 'new')
-    const events: string[] = []
-    const { promise: started, resolve: markStarted } = Promise.withResolvers<void>()
+  it.live('waits for an interrupted staging copy to close before removing its partial file', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const directory = yield* makeTestDir
+      const outputDirectory = path.join(directory, 'output')
+      directories.push(directory)
+      yield* fs.makeDirectory(outputDirectory)
+      const original = path.join(directory, 'movie.mkv')
+      const source = path.join(outputDirectory, 'movie.mp4')
+      yield* fs.writeFileString(original, 'original')
+      yield* fs.writeFileString(source, 'new')
+      const events: string[] = []
+      const started = yield* Latch.make()
 
-    const fiber = Effect.runFork(
-      replaceOutputs(original, outputDirectory, {
-        operations: {
-          copyFile: async (_source, destination, signal) => {
-            writeFileSync(destination, 'partial')
-            markStarted()
-            await new Promise<void>((_resolve, reject) => {
-              signal.addEventListener(
-                'abort',
-                () => {
-                  events.push('closed')
-                  reject(signal.reason)
-                },
-                { once: true }
-              )
-            })
-          },
-          exists: existsSync,
-          fsync,
-          remove: async (path, options) => {
-            if (String(path).includes('autoscan-stage')) {
+      const instrumentedFs = FileSystem.makeNoop({
+        exists: fs.exists,
+        open: (target, options) => {
+          const open = fs.open(target, options)
+          if (!target.includes('autoscan-stage')) {
+            return open
+          }
+          return Effect.acquireRelease(open, () => Effect.sync(() => events.push('closed'))).pipe(
+            Effect.map(
+              (file) =>
+                new Proxy(file, {
+                  get(object, property, receiver) {
+                    if (property === 'writeAll') {
+                      return (buffer: Uint8Array) => object.writeAll(buffer).pipe(Effect.andThen(started.open), Effect.andThen(Effect.never))
+                    }
+                    return Reflect.get(object, property, receiver)
+                  },
+                })
+            )
+          )
+        },
+        remove: (target, options) =>
+          Effect.suspend(() => {
+            if (target.includes('autoscan-stage')) {
               events.push('cleanup')
             }
-            await rm(path, options)
-          },
-          rename: async () => {
-            events.push('rename')
-          },
-        },
-        outputFiles: ['movie.mp4'],
+            return fs.remove(target, options)
+          }),
       })
-    )
+      const fiber = yield* Effect.forkChild(
+        replaceOutputs(original, outputDirectory, { outputFiles: ['movie.mp4'] }).pipe(Effect.provideService(FileSystem.FileSystem, instrumentedFs))
+      )
 
-    await started
-    fiber.interruptUnsafe()
-    const exit = await Effect.runPromise(Fiber.await(fiber))
+      yield* started.await
+      fiber.interruptUnsafe()
+      const exit = yield* Fiber.await(fiber)
 
-    expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBeTrue()
-    expect(events).toEqual(['closed', 'cleanup'])
-    expect(readFileSync(original, 'utf8')).toBe('original')
-    expect(readFileSync(source, 'utf8')).toBe('new')
-    expect(readdirSync(directory).some((path) => path.includes('autoscan-stage'))).toBeFalse()
-  })
+      expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBeTrue()
+      expect(events).toEqual(['closed', 'cleanup'])
+      expect(yield* fs.readFileString(original)).toBe('original')
+      expect(yield* fs.readFileString(source)).toBe('new')
+      expect((yield* fs.readDirectory(directory)).some((entry) => entry.includes('autoscan-stage'))).toBeFalse()
+    }).pipe(provideTest)
+  )
 })

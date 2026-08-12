@@ -42,7 +42,7 @@ acceleration, custom quality profiles, GPU selection.
 - **CON-002** ffprobe is the source of truth for stream selection; webhook payloads provide path + TMDB id only.
 - **GUD-001** Stream selection is criteria-driven (`Criteria[][]` in `services/helpers/utils.ts`). Add new languages
   by editing audio/subtitle helpers, not by branching in the service.
-- **GUD-002** Filesystem and `Bun.spawn` boundaries return typed Effect failures and remain interruptible; pure existence and subtitle parsing checks stay synchronous.
+- **GUD-002** Filesystem (`FileSystem`) and subprocess (`ChildProcess`) boundaries return typed Effect failures and remain interruptible; pure existence and subtitle parsing checks stay synchronous.
 - **PAT-001** The service is idempotent through `getTranscodeCommand`: when no audio/video transcode is needed, no
   subtitles are extractable, and the extension is already `.mp4`, the function returns `undefined` and the queue is
   not touched.
@@ -145,7 +145,7 @@ the output has both video and audio streams.
 - **EXT-002** Sonarr - episode webhook source; queried for `getSeriesByPath` / `refreshSeries` / `renameSeries`.
 - **EXT-003** TMDB - resolves `originalLanguage` via `getMediaLanguage(tmdbId, mediaType)`.
 - **EXT-004** Plex - `getSections`, `getSectionMedia`, `refreshSections`.
-- **EXT-005** FFmpeg / FFprobe - interruptible native `Bun.spawn` adapter.
+- **EXT-005** FFmpeg / FFprobe - interruptible `ChildProcess` adapter on the Bun spawner layer.
 
 ### Internal Dependencies
 

@@ -14,7 +14,7 @@ Autoscan targets exactly `effect@4.0.0-beta.103`, `@effect/platform-bun@4.0.0-be
 
 # Native adapters
 
-- `BunHttpServer`, `Bun.cron`, `Bun.spawn`, Bun SQL, Drizzle, and Effect Schema remain native adapters.
+- `BunHttpServer`, `Bun.cron`, Bun SQL, Drizzle, and Effect Schema remain native adapters; `BunServices.layer` provides `FileSystem` and `ChildProcessSpawner`.
 - Scheduler callbacks receive one runner backed by a scoped `FiberSet`; HTTP handlers execute directly in the request Effect, and feature and integration modules never create runtimes.
 - Telegram polling is a root-scoped Effect with interruptible long polling and exponential backoff from 5 seconds to 5 minutes.
 - Scheduler callbacks await tracked job completion, preserving Bun's no-overlap behavior.

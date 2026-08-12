@@ -1,3 +1,4 @@
+import { BunServices } from '@effect/platform-bun'
 import { Effect, Fiber, FiberSet, Layer, Option } from 'effect'
 import { isFailure as isExitFailure } from 'effect/Exit'
 
@@ -32,7 +33,7 @@ import { TranscodeScanLive } from '@/features/transcoding/jobs/transcode.job'
 import { TranscodeQueueLive } from '@/features/transcoding/services/transcode.service'
 import { RadarrClient } from '@/integrations/arr/radarr.service'
 import { SonarrClient } from '@/integrations/arr/sonarr.service'
-import { FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
+import { makeFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { PlexClient } from '@/integrations/plex/plex.service'
 import { TelegramClient } from '@/integrations/telegram/telegram.service'
 import { TmdbClient } from '@/integrations/tmdb/tmdb.service'
@@ -42,7 +43,7 @@ import { SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
 import { TelegramProvider } from '@/providers/telegram/telegram.provider'
 
 const ClientsLive = Layer.mergeAll(
-  Layer.succeed(Ffmpeg, new FfmpegClient()),
+  Layer.effect(Ffmpeg, makeFfmpegClient).pipe(Layer.provide(BunServices.layer)),
   Layer.succeed(Plex, new PlexClient({ token: env.PLEX_TOKEN, url: env.PLEX_URL })),
   Layer.succeed(Radarr, new RadarrClient({ apiKey: env.RADARR_API_KEY, apiUrl: env.RADARR_API_URL })),
   Layer.succeed(Sonarr, new SonarrClient({ apiKey: env.SONARR_API_KEY, apiUrl: env.SONARR_API_URL })),
@@ -51,7 +52,7 @@ const ClientsLive = Layer.mergeAll(
   Layer.succeed(Trakt, new TraktClient({ clientId: env.TRAKT_CLIENT_ID, clientSecret: env.TRAKT_CLIENT_SECRET }))
 )
 
-const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive, TraktAuthenticationTasksLive)
+const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive, TraktAuthenticationTasksLive, BunServices.layer)
 const QueueGraph = TranscodeQueueLive.pipe(Layer.provideMerge(BaseLive))
 const BackgroundGraph = BackgroundTasksLive.pipe(Layer.provideMerge(QueueGraph))
 const WorkflowGraph = TranscodeScanLive.pipe(Layer.provideMerge(BackgroundGraph))
@@ -145,4 +146,5 @@ export const program = Effect.gen(function* () {
   yield* http.start
   yield* FiberSet.run(telegramFibers, telegram.poll)
   return yield* Effect.never
+  // oxlint-disable-next-line effecttsgo/strict-effect-provide -- application entry point
 }).pipe(Effect.provide(AppLive), Effect.scoped, Effect.provide(LoggerLive))

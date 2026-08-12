@@ -24,7 +24,7 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
     }
 
     const traktClient = yield* Trakt
-    const deviceCode = yield* Effect.result(traktClient.getDeviceCode())
+    const deviceCode = yield* Effect.result(traktClient.getDeviceCode)
     if (Result.isFailure(deviceCode)) {
       yield* Effect.logError(Cause.fail(deviceCode.failure), 'Trakt Auth')
       yield* client.sendMessage(chatId, 'Failed to initiate Trakt authentication.')
@@ -46,7 +46,7 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
         yield* Effect.sleep(result.interval * 1000)
         const token = yield* traktClient
           .pollDeviceToken(result.device_code)
-          .pipe(Effect.catch((error) => (error instanceof HttpError && error.status === 400 ? Effect.succeed(undefined) : Effect.fail(error))))
+          .pipe(Effect.catch((error) => (error instanceof HttpError && error.status === 400 ? Effect.void : Effect.fail(error))))
         if (token === undefined) {
           continue
         }

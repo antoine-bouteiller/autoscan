@@ -1,10 +1,10 @@
-import { type Effect } from 'effect'
+import { Cause, Effect } from 'effect'
 
 import { nativeLogger } from '@/config/logger'
 import { type AppRequirements } from '@/core/runtime.service'
 
 interface JobConfig {
-  handler: Effect.Effect<void, unknown, AppRequirements>
+  handler: Effect.Effect<void, Error, AppRequirements>
   name: string
   pattern: string
 }
@@ -40,16 +40,8 @@ export class SchedulerProvider {
     }
 
     try {
-      const job = this.cron(config.pattern, async () => {
-        if (!this.accepting) {
-          return
-        }
-        try {
-          await this.runPromise(config.handler)
-        } catch (error) {
-          nativeLogger.error(error, 'Scheduler')
-        }
-      })
+      const handler = config.handler.pipe(Effect.catchCause((cause) => Effect.sync(() => nativeLogger.error(Cause.pretty(cause), 'Scheduler'))))
+      const job = this.cron(config.pattern, () => (this.accepting ? this.runPromise(handler) : Promise.resolve()))
       this.jobs.set(config.name, job)
       nativeLogger.info(`Registered cron job: ${config.name} (${config.pattern})`, 'Scheduler')
     } catch (error) {

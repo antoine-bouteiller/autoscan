@@ -6,13 +6,13 @@ import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramCallbackQuery, type TelegramMessageIn, type TelegramUpdate } from '@/integrations/telegram/telegram.validator'
 import { type ConversationState } from '@/providers/telegram/types'
 
-export type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Effect.Effect<ConversationState, unknown, AppRequirements>
+export type CommandHandler = (client: ITelegramClient, message: TelegramMessageIn) => Effect.Effect<ConversationState, Error, AppRequirements>
 
 type CallbackHandler = (
   client: ITelegramClient,
   chatId: number,
   params: { state: ConversationState; callback: TelegramCallbackQuery }
-) => Effect.Effect<ConversationState, unknown, AppRequirements>
+) => Effect.Effect<ConversationState, Error, AppRequirements>
 
 export interface Conversation {
   onCommand: CommandHandler
@@ -40,7 +40,7 @@ export class TelegramProvider {
     return this
   }
 
-  private recoverHandler(effect: Effect.Effect<ConversationState, unknown, AppRequirements>) {
+  private recoverHandler(effect: Effect.Effect<ConversationState, Error, AppRequirements>) {
     const provider = this
     return effect.pipe(
       Effect.catchCause((cause) => {

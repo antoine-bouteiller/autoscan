@@ -18,7 +18,7 @@ const FILE_SECRET_KEYS = [
 export const loadFileSecrets = (target: Record<string, string | undefined>): void => {
   for (const key of FILE_SECRET_KEYS) {
     const filePath = target[`${key}_FILE`]
-    if (filePath) {
+    if (filePath !== undefined) {
       const content = safeReadFileSync(filePath)
       if (typeof content === 'string') {
         target[key] = content.trim()

@@ -1,7 +1,8 @@
+import { Effect, FileSystem, Result } from 'effect'
+
 import { nativeLogger } from '@/config/logger'
 import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
-import { safeReadFileSync } from '@/shared/utils/fs'
 
 import { isStreamWanted, type Criteria } from './utils.js'
 
@@ -14,37 +15,39 @@ const parseSrtTimestamp = (timestamp: string): number => {
   return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds) + Number(ms) / 1000
 }
 
-export const isForcedSubtitle = (srtFilePath: string, mediaDuration: number): boolean => {
-  if (mediaDuration <= 0) {
-    return false
-  }
-
-  const content = safeReadFileSync(srtFilePath)
-  if (content instanceof Error) {
-    return false
-  }
-  const blocks = content.trim().split(/\n\n+/)
-
-  let totalScreenTime = 0
-
-  for (const block of blocks) {
-    const lines = block.trim().split('\n')
-    if (lines.length < 2) {
-      continue
+export const isForcedSubtitle = (srtFilePath: string, mediaDuration: number) =>
+  Effect.gen(function* () {
+    if (mediaDuration <= 0) {
+      return false
     }
 
-    const timecodeMatch = /(?<start>\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(?<end>\d{2}:\d{2}:\d{2},\d{3})/.exec(lines[1])
-    if (timecodeMatch?.groups) {
-      totalScreenTime += parseSrtTimestamp(timecodeMatch.groups['end']) - parseSrtTimestamp(timecodeMatch.groups['start'])
+    const fs = yield* FileSystem.FileSystem
+    const read = yield* Effect.result(fs.readFileString(srtFilePath))
+    if (Result.isFailure(read)) {
+      return false
     }
-  }
+    const blocks = read.success.trim().split(/\n\n+/)
 
-  const durationMinutes = mediaDuration / 60
-  const fewLines = blocks.length / durationMinutes < FORCED_SUBTITLE_LPM_THRESHOLD
-  const lowScreenTime = totalScreenTime / mediaDuration < FORCED_SUBTITLE_SCREEN_RATIO_THRESHOLD
+    let totalScreenTime = 0
 
-  return fewLines || lowScreenTime
-}
+    for (const block of blocks) {
+      const lines = block.trim().split('\n')
+      if (lines.length < 2) {
+        continue
+      }
+
+      const timecodeMatch = /(?<start>\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(?<end>\d{2}:\d{2}:\d{2},\d{3})/.exec(lines[1])
+      if (timecodeMatch?.groups !== undefined) {
+        totalScreenTime += parseSrtTimestamp(timecodeMatch.groups['end']) - parseSrtTimestamp(timecodeMatch.groups['start'])
+      }
+    }
+
+    const durationMinutes = mediaDuration / 60
+    const fewLines = blocks.length / durationMinutes < FORCED_SUBTITLE_LPM_THRESHOLD
+    const lowScreenTime = totalScreenTime / mediaDuration < FORCED_SUBTITLE_SCREEN_RATIO_THRESHOLD
+
+    return fewLines || lowScreenTime
+  })
 
 const wantedSubtitleEncodings = ['subrip', 'ass']
 

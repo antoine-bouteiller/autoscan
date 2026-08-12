@@ -30,6 +30,6 @@ export const queueResponseValidator = Schema.Struct({ records: Schema.Array(queu
 export type QueueResponse = typeof queueResponseValidator.Type
 
 export interface QueueService {
-  readonly getQueue: () => Effect.Effect<QueueResponse, HttpClientError>
+  readonly getQueue: Effect.Effect<QueueResponse, HttpClientError>
   readonly removeQueueItem: (id: number, options: { blocklist: boolean; removeFromClient: boolean }) => Effect.Effect<void, HttpClientError>
 }

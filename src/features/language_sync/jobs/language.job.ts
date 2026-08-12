@@ -6,7 +6,7 @@ import { handleUpdateLanguage } from '@/features/language_sync/services/language
 
 export const updatePlexSelectedLanguages = Effect.gen(function* () {
   const plexClient = yield* Plex
-  const sections = yield* plexClient.getSections()
+  const sections = yield* plexClient.getSections
 
   yield* Effect.forEach(
     sections,

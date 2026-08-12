@@ -1,4 +1,4 @@
-import { Effect, Semaphore } from 'effect'
+import { Effect, Formatter, Semaphore } from 'effect'
 
 import { Radarr, Sonarr } from '@/core/runtime.service'
 import { type QueueResponse, type QueueService } from '@/integrations/arr/queue.types'
@@ -42,15 +42,15 @@ const processItem = (item: QueueItem, serviceName: string): { remove: boolean; s
 
 const removeStalledDownloads = (service: QueueService, serviceName: string, removalPermits: Semaphore.Semaphore) =>
   Effect.gen(function* () {
-    const queue = yield* service.getQueue()
+    const queue = yield* service.getQueue
     const strikeCounts = getStrikeCounts(serviceName)
     const currentIds = new Set<number>()
     const removals = []
     const context = ['Cleanup', serviceName]
 
     for (const item of queue.records) {
-      if (!item.title || !item.status) {
-        yield* Effect.logWarning(`Skipping item due to missing or invalid keys: ${JSON.stringify(item)}`).pipe(
+      if (item.title === '' || item.status === '') {
+        yield* Effect.logWarning(`Skipping item due to missing or invalid keys: ${Formatter.format(item)}`).pipe(
           Effect.annotateLogs('context', context)
         )
         continue

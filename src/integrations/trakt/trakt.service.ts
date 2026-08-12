@@ -25,7 +25,7 @@ export interface TraktShowPayload {
 }
 
 export interface ITraktClient {
-  readonly getDeviceCode: () => Effect.Effect<TraktDeviceCodeResponse, HttpClientError>
+  readonly getDeviceCode: Effect.Effect<TraktDeviceCodeResponse, HttpClientError>
   readonly pollDeviceToken: (deviceCode: string) => Effect.Effect<TraktTokenResponse, HttpClientError>
   readonly refreshToken: (refreshToken: string) => Effect.Effect<TraktTokenResponse, HttpClientError>
   readonly syncWatchedHistory: (
@@ -60,7 +60,7 @@ export class TraktClient implements ITraktClient {
     })
   }
 
-  getDeviceCode() {
+  get getDeviceCode() {
     return this.client.post('oauth/device/code', {
       body: { client_id: this.clientId },
       validator: deviceCodeResponseValidator,

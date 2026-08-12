@@ -54,7 +54,7 @@ jobs-only feature: no HTTP routes, no Telegram commands.
 - **`runCleanupProcess`** (`jobs/cleanup.job.ts`) — the cleanup job Effect.
 - **`cleanupAll`** (`services/cleanup.service.ts`) — resolves Sonarr and Radarr from the Effect service context and runs both arr passes concurrently.
 - **`QueueService`** (`@/integrations/arr/queue.types`):
-  - `getQueue(): Effect<QueueResponse, HttpClientError>`
+  - `getQueue: Effect<QueueResponse, HttpClientError>`
   - `removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }): Effect<void, HttpClientError>`
 - **`QueueResponse`**: `{ records: QueueItem[]; totalRecords: number }`.
 - **`QueueItem`**: `{ id, title, status, errorMessage?, statusMessages?: { title: string, messages: string[] }[], timeleft?, trackedDownloadStatus? }`.

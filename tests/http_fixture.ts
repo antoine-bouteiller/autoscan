@@ -20,10 +20,8 @@ registerFeatures([transcodingFeature, sendMessageFeature], {
 
 export const http = {
   inject: (options: InjectOptions) =>
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const context = yield* makeTestContext()
-        return yield* Effect.tryPromise(() => provider.inject(options, context))
-      }).pipe(Effect.scoped, Effect.provide(TestLoggerLive))
-    ),
+    Effect.gen(function* () {
+      const context = yield* makeTestContext()
+      return yield* provider.inject(options, context)
+    }).pipe(Effect.scoped, Effect.provide(TestLoggerLive)),
 }

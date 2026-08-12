@@ -1,5 +1,5 @@
 import { BunHttpServer } from '@effect/platform-bun'
-import { Cause, type Context, Effect, Exit, Result, Schema, Scope } from 'effect'
+import { Cause, type Context, DateTime, Effect, Exit, Result, Schema, Scope } from 'effect'
 import { HttpRouter, HttpServer, type HttpServerRequest, HttpServerResponse } from 'effect/unstable/http'
 
 import { type AppRequirements } from '@/core/runtime.service'
@@ -18,21 +18,25 @@ export interface InjectOptions {
   body?: string
   method: HttpMethod
   payload?: unknown
-  signal?: AbortSignal
   url: string
 }
 
-interface InjectResponseBody {
-  data?: unknown
-  error?: { code: string; details?: unknown; message: string }
-  meta?: { timestamp: string }
-  success: boolean
-}
+const injectResponseBodySchema = Schema.Struct({
+  data: Schema.optional(Schema.Unknown),
+  error: Schema.optional(Schema.Struct({ code: Schema.String, details: Schema.optional(Schema.Unknown), message: Schema.String })),
+  meta: Schema.optional(Schema.Struct({ timestamp: Schema.String })),
+  success: Schema.Boolean,
+})
+type InjectResponseBody = typeof injectResponseBodySchema.Type
 
 export interface InjectResponse {
   json: () => InjectResponseBody
   statusCode: number
 }
+
+const unknownFromJsonString = Schema.fromJsonString(Schema.Unknown)
+const encodeJson = Schema.encodeSync(unknownFromJsonString)
+const decodeInjectResponse = Schema.decodeUnknownResult(Schema.fromJsonString(injectResponseBodySchema))
 
 const jsonResponse = (data: unknown, statusCode: number): HttpServerResponse.HttpServerResponse =>
   HttpServerResponse.jsonUnsafe(data, { status: statusCode })
@@ -44,7 +48,7 @@ const isInterruptedOnly = (cause: Cause.Cause<unknown>): cause is Cause.Cause<ne
 
 export class HttpProvider {
   private readonly options: Required<Omit<HttpProviderOptions, 'server'>>
-  private readonly routes: HttpRouter.Route<unknown, AppRequirements>[] = []
+  private readonly routes: HttpRouter.Route<never, AppRequirements>[] = []
   private readonly server?: HttpProviderOptions['server']
   private serverScope?: Scope.Closeable
 
@@ -72,23 +76,32 @@ export class HttpProvider {
     })
   }
 
-  async inject(options: InjectOptions, context: Context.Context<AppRequirements>): Promise<InjectResponse> {
-    const webHandler = HttpRouter.toWebHandler(this.routesLayer, { disableLogger: true, routerConfig })
-    try {
-      const response = await webHandler.handler(
-        new Request(`http://localhost${options.url}`, {
-          body: options.body ?? (options.payload === undefined ? undefined : JSON.stringify(options.payload)),
-          headers: { 'content-type': 'application/json' },
-          method: options.method,
-          signal: options.signal,
-        }),
-        context
-      )
-      const body: InjectResponseBody = JSON.parse(await response.text())
-      return { json: () => body, statusCode: response.status }
-    } finally {
-      await webHandler.dispose()
-    }
+  inject(options: InjectOptions, context: Context.Context<AppRequirements>): Effect.Effect<InjectResponse, Cause.UnknownError> {
+    const provider = this
+    return Effect.gen(function* () {
+      const webHandler = HttpRouter.toWebHandler(provider.routesLayer, { disableLogger: true, routerConfig })
+      const signal = yield* Effect.abortSignal
+      return yield* Effect.gen(function* () {
+        const response = yield* Effect.tryPromise(() =>
+          webHandler.handler(
+            new Request(`http://localhost${options.url}`, {
+              body: options.body ?? (options.payload === undefined ? undefined : encodeJson(options.payload)),
+              headers: { 'content-type': 'application/json' },
+              method: options.method,
+              signal,
+            }),
+            context
+          )
+        )
+        const text = yield* Effect.tryPromise(() => response.text())
+        const decoded = decodeInjectResponse(text)
+        if (Result.isFailure(decoded)) {
+          return yield* new Cause.UnknownError(decoded.failure, 'Invalid injected HTTP response')
+        }
+        const body = decoded.success
+        return { json: () => body, statusCode: response.status }
+      }).pipe(Effect.ensuring(Effect.promise(() => webHandler.dispose())))
+    }).pipe(Effect.scoped)
   }
 
   private get routesLayer() {
@@ -106,7 +119,9 @@ export class HttpProvider {
     return Effect.gen(function* () {
       const appRequest: AppRequest = { body: undefined }
       if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
-        const body = yield* Effect.result(request.text.pipe(Effect.flatMap((raw) => Effect.try(() => (raw ? JSON.parse(raw) : undefined)))))
+        const body = yield* Effect.result(
+          request.text.pipe(Effect.flatMap((raw) => (raw === '' ? Effect.void : Schema.decodeEffect(unknownFromJsonString)(raw))))
+        )
         if (Result.isFailure(body)) {
           return jsonResponse({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON' }, success: false }, 400)
         }
@@ -132,11 +147,12 @@ export class HttpProvider {
             return Effect.failCause(cause)
           }
           return Effect.logError(cause, 'HTTP request failed').pipe(
-            Effect.as(
+            Effect.andThen(DateTime.now),
+            Effect.map((now) =>
               jsonResponse(
                 {
                   error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
-                  meta: { timestamp: new Date().toISOString() },
+                  meta: { timestamp: DateTime.formatIso(now) },
                   success: false,
                 },
                 500
