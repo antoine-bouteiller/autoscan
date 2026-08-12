@@ -26,14 +26,14 @@ describe('transcode job', () => {
     const states = await runTest(
       Effect.gen(function* () {
         const scans = yield* TranscodeScan
-        const observeCompletion = (task: Effect.Effect<void, unknown>) =>
+        const observeCompletion = (task: Effect.Effect<void, Error>) =>
           Effect.gen(function* () {
             expect(yield* scans.start(task)).toBeTrue()
             yield* scans.awaitEmpty
             return yield* scans.isRunning
           })
 
-        const typedFailure = yield* observeCompletion(Effect.fail('failed'))
+        const typedFailure = yield* observeCompletion(Effect.fail(new Error('failed')))
         const defect = yield* observeCompletion(Effect.die('defect'))
         expect(yield* scans.start(Effect.never)).toBeTrue()
         yield* scans.clear

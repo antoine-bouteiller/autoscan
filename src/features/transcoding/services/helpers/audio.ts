@@ -50,7 +50,7 @@ const processAudioStream = (
 
   const codec = stream?.codec_name?.toLowerCase()
 
-  if (!codec || !wantedAudioEncodings.includes(codec)) {
+  if (codec === undefined || !wantedAudioEncodings.includes(codec)) {
     commands.push(`-c:a:${streamIndex}`, 'aac')
     needsTranscode = true
     nativeLogger.warn(`${languageCriteria[0]?.language} audio stream 0:a:${streamIndex} is ${codec}, converting to aac.`, 'Audio', mediaTitle)
@@ -81,7 +81,7 @@ export const processAudioStreams = (audioStreams: FFprobeStream[], originalLangu
 
     if (audioStreamIndex >= 0) {
       const stream = audioStreams[audioStreamIndex]
-      if (!stream) {
+      if (stream === undefined) {
         continue
       }
       const result = processAudioStream(stream, audioStreamIndex, { languageCriteria, mediaTitle, originalLanguage })

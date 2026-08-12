@@ -1,6 +1,8 @@
+import { recommended } from '@effect/tsgo/oxlint-presets'
 import { defineConfig } from 'oxlint'
 
 export default defineConfig({
+  extends: [recommended],
   categories: {
     correctness: 'error',
     perf: 'error',
@@ -19,24 +21,9 @@ export default defineConfig({
   ignorePatterns: ['oxlint.config.ts', 'oxfmt.config.ts'],
   plugins: ['typescript', 'unicorn', 'import', 'node', 'effecttsgo'],
   rules: {
-    'effecttsgo/outdated-api': 'error',
-    'effecttsgo/floating-effect': 'error',
-    'effecttsgo/missing-effect-context': 'error',
-    'effecttsgo/missing-effect-error': 'error',
-    'effecttsgo/duplicate-package': 'error',
-    // Provider boundaries intentionally accept unknown failures.
-    'effecttsgo/any-unknown-in-error-context': 'off',
-    'effecttsgo/catch-to-or-else-succeed': 'error',
-    'effecttsgo/deterministic-keys': 'off',
-    'effecttsgo/effect-succeed-with-void': 'off',
-    // Application-facing Effects are eager by design.
-    'effecttsgo/lazy-effect': 'off',
     // Internal helpers do not need pipeable overloads.
     'effecttsgo/missing-pipeable-signature': 'off',
-    'effecttsgo/missed-pipeable-opportunity': 'off',
-    // Boolean narrowing follows the project's TypeScript style.
-    'effecttsgo/strict-boolean-expressions': 'off',
-    // Root entry-point composition intentionally provides partial requirements.
+    // Entry points (bootstrap, tests) intentionally provide their layers where they run.
     'effecttsgo/strict-effect-provide': 'off',
 
     // Restriction

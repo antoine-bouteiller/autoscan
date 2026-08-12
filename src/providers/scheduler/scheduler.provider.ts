@@ -4,7 +4,7 @@ import { nativeLogger } from '@/config/logger'
 import { type AppRequirements } from '@/core/runtime.service'
 
 interface JobConfig {
-  handler: Effect.Effect<void, unknown, AppRequirements>
+  handler: Effect.Effect<void, Error, AppRequirements>
   name: string
   pattern: string
 }

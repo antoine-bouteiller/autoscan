@@ -49,7 +49,7 @@ const removeStalledDownloads = (service: QueueService, serviceName: string, remo
     const context = ['Cleanup', serviceName]
 
     for (const item of queue.records) {
-      if (!item.title || !item.status) {
+      if (item.title === '' || item.status === '') {
         yield* Effect.logWarning(`Skipping item due to missing or invalid keys: ${JSON.stringify(item)}`).pipe(
           Effect.annotateLogs('context', context)
         )

@@ -10,7 +10,7 @@ import { type CommandHandler, type Conversation, type TelegramProvider } from '@
 type FeatureRoute = (http: HttpProvider) => void
 
 interface FeatureJob {
-  readonly handler: Effect.Effect<void, unknown, AppRequirements>
+  readonly handler: Effect.Effect<void, Error, AppRequirements>
   readonly name: string
   readonly pattern: string
 }

@@ -4,18 +4,18 @@ interface TraktAuthenticationTasksShape {
   readonly awaitEmpty: Effect.Effect<void>
   readonly clear: Effect.Effect<void>
   readonly isRunning: (chatId: number) => Effect.Effect<boolean>
-  readonly start: <Error>(chatId: number, task: Effect.Effect<void, Error>) => Effect.Effect<boolean>
+  readonly start: (chatId: number, task: Effect.Effect<void, Error>) => Effect.Effect<boolean>
   readonly stopIntake: Effect.Effect<void>
 }
 
 export class TraktAuthenticationTasks extends Context.Service<TraktAuthenticationTasks, TraktAuthenticationTasksShape>()(
-  'TraktAuthenticationTasks'
+  'autoscan/features/trakt_sync/services/authentication.service/TraktAuthenticationTasks'
 ) {}
 
 export const TraktAuthenticationTasksLive = Layer.effect(
   TraktAuthenticationTasks,
   Effect.gen(function* () {
-    const tasks = yield* FiberMap.make<number>()
+    const tasks = yield* FiberMap.make<number, void, Error>()
     const accepting = yield* Ref.make(true)
     const admission = yield* Semaphore.make(1)
     return TraktAuthenticationTasks.of({

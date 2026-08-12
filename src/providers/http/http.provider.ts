@@ -44,7 +44,7 @@ const isInterruptedOnly = (cause: Cause.Cause<unknown>): cause is Cause.Cause<ne
 
 export class HttpProvider {
   private readonly options: Required<Omit<HttpProviderOptions, 'server'>>
-  private readonly routes: HttpRouter.Route<unknown, AppRequirements>[] = []
+  private readonly routes: HttpRouter.Route<never, AppRequirements>[] = []
   private readonly server?: HttpProviderOptions['server']
   private serverScope?: Scope.Closeable
 
@@ -106,7 +106,9 @@ export class HttpProvider {
     return Effect.gen(function* () {
       const appRequest: AppRequest = { body: undefined }
       if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
-        const body = yield* Effect.result(request.text.pipe(Effect.flatMap((raw) => Effect.try(() => (raw ? JSON.parse(raw) : undefined)))))
+        const body = yield* Effect.result(
+          request.text.pipe(Effect.flatMap((raw) => Effect.try((): unknown => (raw === '' ? undefined : JSON.parse(raw)))))
+        )
         if (Result.isFailure(body)) {
           return jsonResponse({ error: { code: 'BAD_REQUEST', message: 'Invalid JSON' }, success: false }, 400)
         }

@@ -48,7 +48,7 @@ describe('HttpProvider', () => {
       }
     })
     const provider = makeProvider()
-    provider.get('/typed', () => Effect.fail('typed failure'))
+    provider.get('/typed', () => Effect.fail(new Error('typed failure')))
     provider.get('/defect', () => Effect.die('defect'))
 
     const [typed, defect] = await Promise.all([

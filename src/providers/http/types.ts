@@ -11,4 +11,4 @@ export interface AppReply {
   send: (data: unknown) => void
 }
 
-export type RouteHandler<TBody = unknown> = (request: AppRequest<TBody>, reply: AppReply) => Effect.Effect<void, unknown, AppRequirements>
+export type RouteHandler<TBody = unknown> = (request: AppRequest<TBody>, reply: AppReply) => Effect.Effect<void, Error, AppRequirements>

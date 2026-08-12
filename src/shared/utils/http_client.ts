@@ -26,10 +26,10 @@ const defaultFormatter = (body: unknown): string => (typeof body === 'string' ? 
 const createUrl = (baseUrl: string, endpoint: string, params?: RequestParams): URL => {
   const cleanBase = baseUrl.replace(/\/+$/, '')
   const cleanEndpoint = endpoint.replace(/^\/+/, '')
-  const fullPath = cleanBase ? `${cleanBase}/${cleanEndpoint}` : cleanEndpoint
+  const fullPath = cleanBase === '' ? cleanEndpoint : `${cleanBase}/${cleanEndpoint}`
   const url = new URL(fullPath)
 
-  if (params) {
+  if (params !== undefined) {
     const searchParams = new URLSearchParams()
     for (const [key, value] of Object.entries(params)) {
       searchParams.append(key, String(value))

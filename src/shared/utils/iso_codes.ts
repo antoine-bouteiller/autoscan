@@ -8,7 +8,7 @@ import { isKeyOf } from './object.js'
  * Accepts ISO 639-1, ISO 639-2/B, or ISO 639-2/T codes
  */
 export const normalizeToIso1 = (code?: string): ISOCode1 | undefined => {
-  if (!code) {
+  if (code === undefined) {
     return undefined
   }
 

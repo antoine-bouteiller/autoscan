@@ -4,6 +4,7 @@ import { Effect } from 'effect'
 
 import { type QueueResponse } from '@/integrations/arr/queue.types'
 import { type ISonarrClient } from '@/integrations/arr/sonarr.service'
+import { type HttpClientError } from '@/shared/types/http_client'
 
 export const mockSonarrQueue = jest.fn<() => Promise<QueueResponse>>().mockResolvedValue({ records: [], totalRecords: 0 })
 export const mockSonarrRemoveQueueItem = jest.fn<(id: number, options: unknown) => Promise<void>>().mockResolvedValue(undefined)
@@ -13,8 +14,8 @@ export class MockSonarrClient implements ISonarrClient {
     return Effect.promise(() => mockSonarrQueue())
   }
 
-  getSeriesByPath() {
-    return Effect.succeed(undefined)
+  getSeriesByPath(): Effect.Effect<number | undefined, HttpClientError> {
+    return Effect.void
   }
 
   refreshSeries() {

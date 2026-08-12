@@ -56,7 +56,7 @@ const processEpisode = (item: PlexMedia, collections: WatchedCollections, params
 }
 
 const processWatchedItem = (item: PlexMedia, collections: WatchedCollections, syncedKeys: Set<string>) => {
-  if (syncedKeys.has(item.ratingKey) || !item.viewCount) {
+  if (syncedKeys.has(item.ratingKey) || (item.viewCount ?? 0) === 0) {
     return
   }
   const filePath = item.Media[0]?.Part[0]?.file

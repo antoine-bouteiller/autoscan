@@ -46,7 +46,7 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
         yield* Effect.sleep(result.interval * 1000)
         const token = yield* traktClient
           .pollDeviceToken(result.device_code)
-          .pipe(Effect.catch((error) => (error instanceof HttpError && error.status === 400 ? Effect.succeed(undefined) : Effect.fail(error))))
+          .pipe(Effect.catch((error) => (error instanceof HttpError && error.status === 400 ? Effect.void : Effect.fail(error))))
         if (token === undefined) {
           continue
         }

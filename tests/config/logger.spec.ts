@@ -5,7 +5,7 @@ import { Cause, Effect, Logger, References } from 'effect'
 
 import { LoggerLive, nativeLogger } from '@/config/logger'
 
-const logCause = (effect: Effect.Effect<never, unknown>) =>
+const logCause = (effect: Effect.Effect<never, Error>) =>
   effect.pipe(Effect.catchCause((cause) => Effect.logError(cause, 'failed').pipe(Effect.annotateLogs('context', ['Boundary']))))
 
 describe('logger', () => {

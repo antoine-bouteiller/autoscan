@@ -15,17 +15,19 @@ import { type HttpProvider } from '@/providers/http/http.provider'
 import { type SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
 import { type TelegramProvider } from '@/providers/telegram/telegram.provider'
 
-export class Database extends Context.Service<Database, { readonly db: BunSQLDatabase; readonly sql: SQL }>()('Database') {}
-export class Telegram extends Context.Service<Telegram, ITelegramClient>()('Telegram') {}
-export class Trakt extends Context.Service<Trakt, ITraktClient>()('Trakt') {}
-export class Plex extends Context.Service<Plex, IPlexClient>()('Plex') {}
-export class Tmdb extends Context.Service<Tmdb, ITmdbClient>()('Tmdb') {}
-export class Radarr extends Context.Service<Radarr, IRadarrClient>()('Radarr') {}
-export class Sonarr extends Context.Service<Sonarr, ISonarrClient>()('Sonarr') {}
-export class Ffmpeg extends Context.Service<Ffmpeg, IFfmpegClient>()('Ffmpeg') {}
-export class Http extends Context.Service<Http, HttpProvider>()('Http') {}
-export class Scheduler extends Context.Service<Scheduler, SchedulerProvider>()('Scheduler') {}
-export class TelegramBot extends Context.Service<TelegramBot, TelegramProvider>()('TelegramBot') {}
+export class Database extends Context.Service<Database, { readonly db: BunSQLDatabase; readonly sql: SQL }>()(
+  'autoscan/core/runtime.service/Database'
+) {}
+export class Telegram extends Context.Service<Telegram, ITelegramClient>()('autoscan/core/runtime.service/Telegram') {}
+export class Trakt extends Context.Service<Trakt, ITraktClient>()('autoscan/core/runtime.service/Trakt') {}
+export class Plex extends Context.Service<Plex, IPlexClient>()('autoscan/core/runtime.service/Plex') {}
+export class Tmdb extends Context.Service<Tmdb, ITmdbClient>()('autoscan/core/runtime.service/Tmdb') {}
+export class Radarr extends Context.Service<Radarr, IRadarrClient>()('autoscan/core/runtime.service/Radarr') {}
+export class Sonarr extends Context.Service<Sonarr, ISonarrClient>()('autoscan/core/runtime.service/Sonarr') {}
+export class Ffmpeg extends Context.Service<Ffmpeg, IFfmpegClient>()('autoscan/core/runtime.service/Ffmpeg') {}
+export class Http extends Context.Service<Http, HttpProvider>()('autoscan/core/runtime.service/Http') {}
+export class Scheduler extends Context.Service<Scheduler, SchedulerProvider>()('autoscan/core/runtime.service/Scheduler') {}
+export class TelegramBot extends Context.Service<TelegramBot, TelegramProvider>()('autoscan/core/runtime.service/TelegramBot') {}
 
 export interface TranscodeQueueShape {
   readonly awaitIdle: Effect.Effect<void>
@@ -34,7 +36,7 @@ export interface TranscodeQueueShape {
   readonly stopIntake: Effect.Effect<void>
 }
 
-export class TranscodeQueue extends Context.Service<TranscodeQueue, TranscodeQueueShape>()('TranscodeQueue') {}
+export class TranscodeQueue extends Context.Service<TranscodeQueue, TranscodeQueueShape>()('autoscan/core/runtime.service/TranscodeQueue') {}
 
 type WorkflowRequirements = Database | Ffmpeg | Plex | Radarr | Sonarr | Telegram | Tmdb | Trakt | TraktAuthenticationTasks | TranscodeQueue
 
@@ -54,7 +56,7 @@ export interface TranscodeScanShape extends WorkflowOwnerShape {
   ) => Effect.Effect<boolean, never, Requirements>
 }
 
-export class TranscodeScan extends Context.Service<TranscodeScan, TranscodeScanShape>()('TranscodeScan') {}
+export class TranscodeScan extends Context.Service<TranscodeScan, TranscodeScanShape>()('autoscan/core/runtime.service/TranscodeScan') {}
 
 export interface BackgroundTasksShape extends WorkflowOwnerShape {
   readonly start: <Success, Error, Requirements extends WorkflowRequirements>(
@@ -62,7 +64,7 @@ export interface BackgroundTasksShape extends WorkflowOwnerShape {
   ) => Effect.Effect<boolean, never, Requirements>
 }
 
-export class BackgroundTasks extends Context.Service<BackgroundTasks, BackgroundTasksShape>()('BackgroundTasks') {}
+export class BackgroundTasks extends Context.Service<BackgroundTasks, BackgroundTasksShape>()('autoscan/core/runtime.service/BackgroundTasks') {}
 
 export const BackgroundTasksLive = Layer.effect(
   BackgroundTasks,
@@ -97,4 +99,4 @@ export interface CallbackRuntimeShape {
   readonly runPromise: <Success, Error>(effect: Effect.Effect<Success, Error, AppRequirements>) => Promise<Success>
 }
 
-export class CallbackRuntime extends Context.Service<CallbackRuntime, CallbackRuntimeShape>()('CallbackRuntime') {}
+export class CallbackRuntime extends Context.Service<CallbackRuntime, CallbackRuntimeShape>()('autoscan/core/runtime.service/CallbackRuntime') {}
