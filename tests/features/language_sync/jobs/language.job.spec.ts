@@ -6,7 +6,7 @@ import { Effect } from 'effect'
 import { updatePlexSelectedLanguages } from '@/features/language_sync/jobs/language.job'
 
 class EmptyPlexClient extends MockPlexClient {
-  override getSections() {
+  override get getSections() {
     return Effect.succeed([])
   }
 }

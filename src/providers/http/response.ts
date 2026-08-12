@@ -1,3 +1,5 @@
+import { DateTime } from 'effect'
+
 import { type AppReply } from '@/providers/http/types'
 
 interface ApiResponse<Data> {
@@ -10,7 +12,7 @@ interface ApiResponse<Data> {
 const sendResponse = <Data>(reply: AppReply, body: ApiResponse<Data>, status: number) =>
   reply.status(status).send({
     ...body,
-    meta: { timestamp: new Date().toISOString() },
+    meta: { timestamp: DateTime.formatIso(DateTime.nowUnsafe()) },
   })
 
 export const success = (reply: AppReply, data: unknown, status = 200) => sendResponse(reply, { data, success: true }, status)

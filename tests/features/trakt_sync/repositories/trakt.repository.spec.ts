@@ -9,10 +9,14 @@ import { traktSyncHistory, traktTokens } from '@/database/schema'
 import { getSyncedRatingKeys, getToken, markManyAsSynced, upsertTokens } from '@/features/trakt_sync/repositories/trakt.repository'
 
 describe('trakt repository', () => {
-  beforeEach(async () => {
-    await db.delete(traktSyncHistory)
-    await db.delete(traktTokens)
-  })
+  beforeEach(() =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        yield* Effect.promise(() => db.delete(traktSyncHistory))
+        yield* Effect.promise(() => db.delete(traktTokens))
+      })
+    )
+  )
 
   it.live('upserts tokens', () =>
     Effect.gen(function* () {

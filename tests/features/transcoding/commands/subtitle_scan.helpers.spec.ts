@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
 
+import { BunServices } from '@effect/platform-bun'
+import { it } from '@tests/it'
 import { makeTestDir } from '@tests/utils'
+import { Effect, FileSystem, Path } from 'effect'
 
 import {
   areSubtitlesOutOfSync,
@@ -17,13 +18,22 @@ const SRT_BLOCK_IN_SYNC = '1\n00:00:01,000 --> 00:00:03,000\nHello\n\n2\n00:00:0
 const SRT_BLOCK_OFFSET_500MS = '1\n00:00:01,500 --> 00:00:03,500\nBonjour\n\n2\n00:00:05,500 --> 00:00:07,500\nMonde'
 const SRT_BLOCK_OFFSET_100MS = '1\n00:00:01,100 --> 00:00:03,000\nBonjour\n\n2\n00:00:05,100 --> 00:00:07,000\nMonde'
 
+const run = <Success, Error>(effect: Effect.Effect<Success, Error, BunServices.BunServices>) =>
+  Effect.runPromise(Effect.provide(effect, BunServices.layer))
+
 let testDir: string
-beforeEach(() => {
-  testDir = makeTestDir()
-})
-afterEach(() => {
-  rmSync(testDir, { recursive: true })
-})
+
+beforeEach(() =>
+  run(
+    Effect.tap(makeTestDir, (directory) =>
+      Effect.sync(() => {
+        testDir = directory
+      })
+    )
+  )
+)
+
+afterEach(() => run(Effect.flatMap(FileSystem.FileSystem, (fs) => Effect.ignore(fs.remove(testDir, { recursive: true })))))
 
 describe('parseTimestampMs', () => {
   test('should convert "00:00:00,000" to 0', () => {
@@ -40,85 +50,110 @@ describe('parseTimestampMs', () => {
 })
 
 describe('findLangSrt', () => {
-  test('should return the srt path when it exists', () => {
-    const mediaFile = join(testDir, 'movie.mkv')
-    const srtFile = join(testDir, 'movie.en.srt')
-    writeFileSync(mediaFile, '')
-    writeFileSync(srtFile, 'content')
+  it.live('should return the srt path when it exists', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const mediaFile = path.join(testDir, 'movie.mkv')
+      const srtFile = path.join(testDir, 'movie.en.srt')
+      yield* fs.writeFileString(mediaFile, '')
+      yield* fs.writeFileString(srtFile, 'content')
 
-    expect(findLangSrt(mediaFile, 'en')).toBe(srtFile)
-  })
+      expect(yield* findLangSrt(mediaFile, 'en')).toBe(srtFile)
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 
-  test('should return undefined when the srt is missing', () => {
-    const mediaFile = join(testDir, 'movie.mkv')
-    writeFileSync(mediaFile, '')
+  it.live('should return undefined when the srt is missing', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const mediaFile = path.join(testDir, 'movie.mkv')
+      yield* fs.writeFileString(mediaFile, '')
 
-    expect(findLangSrt(mediaFile, 'en')).toBeUndefined()
-  })
+      expect(yield* findLangSrt(mediaFile, 'en')).toBeUndefined()
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 })
 
 describe('countLines', () => {
-  test('should count blocks separated by blank lines', () => {
-    const srtFile = join(testDir, 'count.srt')
-    writeFileSync(srtFile, SRT_BLOCK_IN_SYNC)
+  it.live('should count blocks separated by blank lines', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const srtFile = path.join(testDir, 'count.srt')
+      yield* fs.writeFileString(srtFile, SRT_BLOCK_IN_SYNC)
 
-    expect(countLines(srtFile)).toBe(2)
-  })
+      expect(yield* countLines(srtFile)).toBe(2)
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 
-  test('should return 0 for a missing file', () => {
-    expect(countLines(join(testDir, 'does-not-exist.srt'))).toBe(0)
-  })
+  it.live('should return 0 for a missing file', () =>
+    Effect.gen(function* () {
+      const path = yield* Path.Path
+      expect(yield* countLines(path.join(testDir, 'does-not-exist.srt'))).toBe(0)
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 })
 
 describe('parseStartTimestamps', () => {
-  test('should extract start timestamps in order', () => {
-    const srtFile = join(testDir, 'stamps.srt')
-    writeFileSync(srtFile, SRT_BLOCK_IN_SYNC)
+  it.live('should extract start timestamps in order', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const srtFile = path.join(testDir, 'stamps.srt')
+      yield* fs.writeFileString(srtFile, SRT_BLOCK_IN_SYNC)
 
-    expect(parseStartTimestamps(srtFile)).toEqual([1000, 5000])
-  })
+      expect(yield* parseStartTimestamps(srtFile)).toEqual([1000, 5000])
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 
-  test('should return empty array for a missing file', () => {
-    expect(parseStartTimestamps(join(testDir, 'missing.srt'))).toEqual([])
-  })
+  it.live('should return empty array for a missing file', () =>
+    Effect.gen(function* () {
+      const path = yield* Path.Path
+      expect(yield* parseStartTimestamps(path.join(testDir, 'missing.srt'))).toEqual([])
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 })
 
 describe('areSubtitlesOutOfSync', () => {
-  test('should return false for identical timestamps', () => {
-    const pathA = join(testDir, 'a.srt')
-    const pathB = join(testDir, 'b.srt')
-    writeFileSync(pathA, SRT_BLOCK_IN_SYNC)
-    writeFileSync(pathB, SRT_BLOCK_IN_SYNC)
+  const writePair = (contentA: string, contentB: string) =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const pathA = path.join(testDir, 'a.srt')
+      const pathB = path.join(testDir, 'b.srt')
+      yield* fs.writeFileString(pathA, contentA)
+      yield* fs.writeFileString(pathB, contentB)
+      return { pathA, pathB }
+    })
 
-    expect(areSubtitlesOutOfSync(pathA, pathB)).toBe(false)
-  })
+  it.live('should return false for identical timestamps', () =>
+    Effect.gen(function* () {
+      const { pathA, pathB } = yield* writePair(SRT_BLOCK_IN_SYNC, SRT_BLOCK_IN_SYNC)
+      expect(yield* areSubtitlesOutOfSync(pathA, pathB)).toBe(false)
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 
-  test('should return true when majority of timestamps are > 300ms apart', () => {
-    const pathA = join(testDir, 'a.srt')
-    const pathB = join(testDir, 'b.srt')
-    writeFileSync(pathA, SRT_BLOCK_IN_SYNC)
-    writeFileSync(pathB, SRT_BLOCK_OFFSET_500MS)
+  it.live('should return true when majority of timestamps are > 300ms apart', () =>
+    Effect.gen(function* () {
+      const { pathA, pathB } = yield* writePair(SRT_BLOCK_IN_SYNC, SRT_BLOCK_OFFSET_500MS)
+      expect(yield* areSubtitlesOutOfSync(pathA, pathB)).toBe(true)
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 
-    expect(areSubtitlesOutOfSync(pathA, pathB)).toBe(true)
-  })
+  it.live('should return false when offset is within 300ms threshold', () =>
+    Effect.gen(function* () {
+      const { pathA, pathB } = yield* writePair(SRT_BLOCK_IN_SYNC, SRT_BLOCK_OFFSET_100MS)
+      expect(yield* areSubtitlesOutOfSync(pathA, pathB)).toBe(false)
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 
-  test('should return false when offset is within 300ms threshold', () => {
-    const pathA = join(testDir, 'a.srt')
-    const pathB = join(testDir, 'b.srt')
-    writeFileSync(pathA, SRT_BLOCK_IN_SYNC)
-    writeFileSync(pathB, SRT_BLOCK_OFFSET_100MS)
-
-    expect(areSubtitlesOutOfSync(pathA, pathB)).toBe(false)
-  })
-
-  test('should return false when either file is empty / missing timestamps', () => {
-    const pathA = join(testDir, 'a.srt')
-    const pathB = join(testDir, 'b.srt')
-    writeFileSync(pathA, '')
-    writeFileSync(pathB, SRT_BLOCK_IN_SYNC)
-
-    expect(areSubtitlesOutOfSync(pathA, pathB)).toBe(false)
-  })
+  it.live('should return false when either file is empty / missing timestamps', () =>
+    Effect.gen(function* () {
+      const { pathA, pathB } = yield* writePair('', SRT_BLOCK_IN_SYNC)
+      expect(yield* areSubtitlesOutOfSync(pathA, pathB)).toBe(false)
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 })
 
 describe('formatReport', () => {

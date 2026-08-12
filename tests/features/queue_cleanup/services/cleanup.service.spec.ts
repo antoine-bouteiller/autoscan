@@ -115,15 +115,15 @@ describe('cleanupAll', () => {
             active -= 1
             return Promise.resolve()
           }
-          return new Promise<void>((resolve) => {
-            releases.push(() => {
-              active -= 1
-              resolve()
-            })
+          const { promise, resolve } = Promise.withResolvers<void>()
+          releases.push(() => {
+            active -= 1
+            resolve()
           })
+          return promise
         })
       class InstrumentedRadarrClient extends MockRadarrClient {
-        override getQueue() {
+        override get getQueue() {
           return Effect.succeed(removalQueue(20_000))
         }
 
@@ -132,7 +132,7 @@ describe('cleanupAll', () => {
         }
       }
       class InstrumentedSonarrClient extends MockSonarrClient {
-        override getQueue() {
+        override get getQueue() {
           return Effect.succeed(removalQueue(40_000))
         }
 
@@ -172,7 +172,7 @@ describe('cleanupAll', () => {
       const radarr: IRadarrClient = {
         // oxlint-disable-next-line effecttsgo/effect-succeed-with-void -- success channel is number | undefined, not void
         getMovieByPath: () => Effect.succeed(undefined),
-        getQueue: () => Effect.succeed({ records: [stalled], totalRecords: 1 }),
+        getQueue: Effect.succeed({ records: [stalled], totalRecords: 1 }),
         refreshMovie: () => Effect.void,
         removeQueueItem: () => {
           attempts += 1

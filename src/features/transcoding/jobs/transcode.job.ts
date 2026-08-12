@@ -68,7 +68,7 @@ export const TranscodeScanLive = Layer.effect(
 const scan = Effect.gen(function* () {
   yield* Effect.logInfo('Starting transcode scan...')
   const plex = yield* Plex
-  const sections = yield* plex.getSections()
+  const sections = yield* plex.getSections
   for (const section of sections) {
     const medias = yield* plex.getSectionMedia(section.key, section.type)
     for (const media of medias) {

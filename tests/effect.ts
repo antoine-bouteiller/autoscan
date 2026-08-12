@@ -9,7 +9,7 @@ import { TranscodeScanLive } from '@/features/transcoding/jobs/transcode.job'
 import { TranscodeQueueLive } from '@/features/transcoding/services/transcode.service'
 import { type IRadarrClient } from '@/integrations/arr/radarr.service'
 import { type ISonarrClient } from '@/integrations/arr/sonarr.service'
-import { FfmpegClient, type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
+import { makeFfmpegClient, type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type ITmdbClient } from '@/integrations/tmdb/tmdb.service'
@@ -27,8 +27,12 @@ interface TestServices {
 export const TestLoggerLive = Logger.layer([])
 
 const makeTestLayer = (services: TestServices = {}) => {
+  const ffmpeg =
+    services.ffmpeg === undefined
+      ? Layer.effect(Ffmpeg, makeFfmpegClient).pipe(Layer.provide(BunServices.layer))
+      : Layer.succeed(Ffmpeg, services.ffmpeg)
   const clients = Layer.mergeAll(
-    Layer.succeed(Ffmpeg, services.ffmpeg ?? new FfmpegClient()),
+    ffmpeg,
     Layer.succeed(Plex, services.plex ?? new MockPlexClient()),
     Layer.succeed(Radarr, services.radarr ?? new MockRadarrClient()),
     Layer.succeed(Sonarr, services.sonarr ?? new MockSonarrClient()),

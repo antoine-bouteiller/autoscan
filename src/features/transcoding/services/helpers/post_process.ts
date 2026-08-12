@@ -1,9 +1,4 @@
-import { createReadStream, createWriteStream } from 'node:fs'
-import { open, readdir, rename, rm } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
-import { pipeline } from 'node:stream/promises'
-
-import { Cause, Effect, Result } from 'effect'
+import { Cause, Crypto, Effect, FileSystem, Path, type PlatformError, Result } from 'effect'
 
 import env from '@/config/env'
 import { Ffmpeg, Plex, Radarr, Sonarr } from '@/core/runtime.service'
@@ -14,174 +9,140 @@ import {
   ReplacementRollbackError,
   VideoStreamNotFoundError,
 } from '@/features/transcoding/errors'
-import { safeExistsSync } from '@/shared/utils/fs'
-
-const fsync = async (path: string): Promise<void> => {
-  const handle = await open(path, 'r')
-  try {
-    await handle.sync()
-  } finally {
-    await handle.close()
-  }
-}
 
 interface ReplacementOperations {
-  readonly copyFile: (source: string, destination: string, signal: AbortSignal) => Promise<void>
-  readonly exists: typeof safeExistsSync
-  readonly fsync: typeof fsync
-  readonly remove: typeof rm
-  readonly rename: typeof rename
+  readonly copyFile: (source: string, destination: string) => Effect.Effect<void, PlatformError.PlatformError>
+  readonly exists: (path: string) => Effect.Effect<boolean, PlatformError.PlatformError>
+  readonly fsync: (path: string) => Effect.Effect<void, PlatformError.PlatformError>
+  readonly remove: (path: string, options?: { force?: boolean; recursive?: boolean }) => Effect.Effect<void, PlatformError.PlatformError>
+  readonly rename: (oldPath: string, newPath: string) => Effect.Effect<void, PlatformError.PlatformError>
 }
 
-const liveReplacementOperations: ReplacementOperations = {
-  copyFile: (source, destination, signal) => pipeline(createReadStream(source), createWriteStream(destination), { signal }),
-  exists: safeExistsSync,
-  fsync,
-  remove: rm,
-  rename,
-}
+const liveReplacementOperations: Effect.Effect<ReplacementOperations, never, FileSystem.FileSystem> = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem
+  return {
+    copyFile: fs.copyFile,
+    exists: fs.exists,
+    fsync: (path: string) => Effect.scoped(Effect.flatMap(fs.open(path), (file) => file.sync)),
+    remove: fs.remove,
+    rename: fs.rename,
+  }
+})
 
-const interruptibleCopy = (operations: ReplacementOperations, source: string, destination: string) =>
-  Effect.callback<void, FileAccessError>((resume, signal) => {
-    const copy = Promise.resolve().then(() => operations.copyFile(source, destination, signal))
-    copy.then(
-      () => resume(Effect.void),
-      (error) => resume(Effect.fail(new FileAccessError({ cause: error, filePath: destination, operation: 'stage replacement' })))
-    )
-    return Effect.promise(() =>
-      copy.then(
-        () => undefined,
-        () => undefined
-      )
-    )
-  })
+const durableOperation = (filePath: string, operation: string, run: Effect.Effect<void, PlatformError.PlatformError>) =>
+  Effect.uninterruptible(Effect.mapError(run, (cause) => new FileAccessError({ cause, filePath, operation })))
 
-const durableOperation = <Success>(filePath: string, operation: string, run: () => Promise<Success>) =>
-  Effect.uninterruptible(
-    Effect.tryPromise({
-      catch: (cause) => new FileAccessError({ cause, filePath, operation }),
-      try: run,
+export const replaceOutputs = (inputFile: string, outputDirectory: string, options: { operations?: ReplacementOperations; outputFiles: string[] }) =>
+  Effect.gen(function* () {
+    const path = yield* Path.Path
+    const crypto = yield* Crypto.Crypto
+    const operations = options.operations ?? (yield* liveReplacementOperations)
+
+    const inputDirectory = path.dirname(inputFile)
+    const transactionId = yield* crypto.randomUUIDv4
+    const outputs = options.outputFiles.map((name) => ({
+      final: path.join(inputDirectory, name),
+      source: path.join(outputDirectory, name),
+      stage: path.join(inputDirectory, `.${name}.autoscan-stage-${transactionId}`),
+    }))
+    const finalPaths = outputs.map((output) => output.final)
+    const finalPathExists = yield* Effect.forEach(finalPaths, operations.exists)
+    const originalPaths = [...new Set([inputFile, ...finalPaths.filter((_, index) => finalPathExists[index])])]
+    const backups = originalPaths.map((original) => ({ backup: `${original}.autoscan-backup-${transactionId}`, original }))
+    const artifacts = [
+      ...outputs.flatMap((output) => [output.source, output.stage, output.final]),
+      ...backups.flatMap((backup) => [backup.original, backup.backup]),
+    ]
+    let preserveArtifacts = false
+
+    const stage = Effect.gen(function* () {
+      for (const output of outputs) {
+        yield* Effect.mapError(
+          operations.copyFile(output.source, output.stage),
+          (cause) => new FileAccessError({ cause, filePath: output.stage, operation: 'stage replacement' })
+        )
+        yield* durableOperation(output.stage, 'fsync replacement stage', operations.fsync(output.stage))
+      }
+      yield* durableOperation(inputDirectory, 'fsync replacement directory', operations.fsync(inputDirectory))
     })
-  )
 
-export const replaceOutputs = (
-  inputFile: string,
-  outputDirectory: string,
-  options: { operations?: ReplacementOperations; outputFiles: string[] }
-) => {
-  const { operations = liveReplacementOperations, outputFiles } = options
-  const inputDirectory = dirname(inputFile)
-  const transactionId = crypto.randomUUID()
-  const outputs = outputFiles.map((name) => ({
-    final: join(inputDirectory, name),
-    source: join(outputDirectory, name),
-    stage: join(inputDirectory, `.${name}.autoscan-stage-${transactionId}`),
-  }))
-  const originalPaths = [...new Set([inputFile, ...outputs.map((output) => output.final).filter(operations.exists)])]
-  const backups = originalPaths.map((path) => ({ backup: `${path}.autoscan-backup-${transactionId}`, original: path }))
-  const artifacts = [
-    ...outputs.flatMap((output) => [output.source, output.stage, output.final]),
-    ...backups.flatMap((backup) => [backup.original, backup.backup]),
-  ]
-  let preserveArtifacts = false
-
-  const stage = Effect.gen(function* () {
-    for (const output of outputs) {
-      yield* interruptibleCopy(operations, output.source, output.stage)
-      yield* durableOperation(output.stage, 'fsync replacement stage', () => operations.fsync(output.stage))
-    }
-    yield* durableOperation(inputDirectory, 'fsync replacement directory', () => operations.fsync(inputDirectory))
-  })
-
-  const commit = Effect.uninterruptible(
-    Effect.tryPromise({
-      catch: (cause) =>
-        cause instanceof ReplacementRollbackError || cause instanceof FileAccessError
-          ? cause
-          : new FileAccessError({ cause, filePath: inputFile, operation: 'commit replacement' }),
-      try: async () => {
+    const commit = Effect.uninterruptible(
+      Effect.gen(function* () {
         const backedUp: typeof backups = []
         const installed: string[] = []
-        const rollback = async () => {
-          try {
-            for (const finalPath of installed) {
-              await operations.remove(finalPath, { force: true })
-            }
-            for (const backup of backedUp.toReversed()) {
-              await operations.rename(backup.backup, backup.original)
-            }
-            await operations.fsync(inputDirectory)
-          } catch (error) {
-            preserveArtifacts = true
-            throw new ReplacementRollbackError({ artifacts, cause: error })
+
+        const rollback = Effect.gen(function* () {
+          for (const finalPath of installed) {
+            yield* operations.remove(finalPath, { force: true })
           }
-        }
-        try {
+          for (const backup of backedUp.toReversed()) {
+            yield* operations.rename(backup.backup, backup.original)
+          }
+          yield* operations.fsync(inputDirectory)
+        }).pipe(
+          Effect.catch((error) => {
+            preserveArtifacts = true
+            return Effect.fail(new ReplacementRollbackError({ artifacts, cause: error }))
+          })
+        )
+
+        yield* Effect.gen(function* () {
           for (const backup of backups) {
-            await operations.rename(backup.original, backup.backup)
+            yield* operations.rename(backup.original, backup.backup)
             backedUp.push(backup)
           }
-          await operations.fsync(inputDirectory)
+          yield* operations.fsync(inputDirectory)
           for (const output of outputs) {
-            await operations.rename(output.stage, output.final)
+            yield* operations.rename(output.stage, output.final)
             installed.push(output.final)
           }
-          await operations.fsync(inputDirectory)
-        } catch (error) {
-          await rollback()
-          throw new FileAccessError({ cause: error, filePath: inputFile, operation: 'commit replacement' })
-        }
-      },
-    })
-  )
+          yield* operations.fsync(inputDirectory)
+        }).pipe(
+          Effect.catch((error) =>
+            rollback.pipe(Effect.andThen(Effect.fail(new FileAccessError({ cause: error, filePath: inputFile, operation: 'commit replacement' }))))
+          )
+        )
+      })
+    )
 
-  const deleteBackups = Effect.tryPromise({
-    catch: (cause) => new FileAccessError({ cause, filePath: inputFile, operation: 'delete replacement backups' }),
-    try: async () => {
+    const deleteBackups = Effect.gen(function* () {
       for (const backup of backups) {
-        await operations.remove(backup.backup)
+        yield* operations.remove(backup.backup)
       }
-      await operations.fsync(inputDirectory)
-    },
+      yield* operations.fsync(inputDirectory)
+    }).pipe(Effect.mapError((cause) => new FileAccessError({ cause, filePath: inputFile, operation: 'delete replacement backups' })))
+
+    const cleanStages = Effect.ignore(Effect.forEach(outputs, (output) => operations.remove(output.stage, { force: true }), { discard: true }))
+
+    return yield* Effect.gen(function* () {
+      yield* stage
+      yield* commit
+      const cleanup = yield* Effect.result(deleteBackups)
+      return Result.isFailure(cleanup) ? cleanup.failure : undefined
+    }).pipe(Effect.ensuring(Effect.suspend(() => (preserveArtifacts ? Effect.void : cleanStages))))
   })
-
-  const cleanStages = Effect.ignore(
-    Effect.tryPromise({
-      catch: (cause) => new FileAccessError({ cause, filePath: inputFile, operation: 'clean replacement stages' }),
-      try: async () => {
-        for (const output of outputs) {
-          await operations.remove(output.stage, { force: true })
-        }
-      },
-    })
-  )
-
-  return Effect.gen(function* () {
-    yield* stage
-    yield* commit
-    const cleanup = yield* Effect.result(deleteBackups)
-    return Result.isFailure(cleanup) ? cleanup.failure : undefined
-  }).pipe(Effect.ensuring(Effect.suspend(() => (preserveArtifacts ? Effect.void : cleanStages))))
-}
 
 const installTranscode = (inputFile: string, mediaTitle: string) =>
   Effect.gen(function* () {
-    const outputDirectory = `${env.TRANSCODE_PATH}/${basename(inputFile, inputFile.slice(inputFile.lastIndexOf('.')))}`
-    if (!safeExistsSync(outputDirectory)) {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    const outputDirectory = `${env.TRANSCODE_PATH}/${path.basename(inputFile, inputFile.slice(inputFile.lastIndexOf('.')))}`
+    if (!(yield* fs.exists(outputDirectory))) {
       return { cleanupErrors: [], committed: false } as const
     }
 
-    const outputFiles = (yield* Effect.tryPromise({
-      catch: (cause) => new FileAccessError({ cause, filePath: outputDirectory, operation: 'readdir' }),
-      try: () => readdir(outputDirectory),
-    })).filter((file) => !file.startsWith('.autoscan-'))
+    const outputFiles = (yield* fs
+      .readDirectory(outputDirectory)
+      .pipe(Effect.mapError((cause) => new FileAccessError({ cause, filePath: outputDirectory, operation: 'readdir' })))).filter(
+      (file) => !file.startsWith('.autoscan-')
+    )
     const videoFile = outputFiles.find((file) => file.endsWith('.mp4'))
     if (videoFile === undefined) {
       return yield* new FileNotFoundError({ filePath: outputDirectory })
     }
 
     const ffmpeg = yield* Ffmpeg
-    const probe = yield* ffmpeg.ffprobe(join(outputDirectory, videoFile))
+    const probe = yield* ffmpeg.ffprobe(path.join(outputDirectory, videoFile))
     if (!probe.streams.some((stream) => stream.codec_type === 'video')) {
       return yield* new VideoStreamNotFoundError({ mediaTitle })
     }
@@ -195,10 +156,9 @@ const installTranscode = (inputFile: string, mediaTitle: string) =>
       cleanupErrors.push(backupCleanupError)
     }
     const directoryCleanup = yield* Effect.result(
-      Effect.tryPromise({
-        catch: (cause) => new FileAccessError({ cause, filePath: outputDirectory, operation: 'remove' }),
-        try: () => rm(outputDirectory, { recursive: true }),
-      })
+      fs
+        .remove(outputDirectory, { recursive: true })
+        .pipe(Effect.mapError((cause) => new FileAccessError({ cause, filePath: outputDirectory, operation: 'remove' })))
     )
     if (Result.isFailure(directoryCleanup)) {
       cleanupErrors.push(directoryCleanup.failure)

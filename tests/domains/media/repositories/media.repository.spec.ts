@@ -14,9 +14,7 @@ import {
 } from '@/domains/media/repositories/media.repository'
 
 describe('media repository', () => {
-  beforeEach(async () => {
-    await db.delete(media)
-  })
+  beforeEach(() => Effect.runPromise(Effect.promise(() => db.delete(media))))
 
   it.live('creates and updates media', () =>
     Effect.gen(function* () {

@@ -10,7 +10,7 @@ export const mockRadarrQueue = jest.fn<() => Promise<QueueResponse>>().mockResol
 export const mockRadarrRemoveQueueItem = jest.fn<(id: number, options: unknown) => Promise<void>>().mockResolvedValue(undefined)
 
 export class MockRadarrClient implements IRadarrClient {
-  getQueue() {
+  get getQueue() {
     return Effect.promise(() => mockRadarrQueue())
   }
 

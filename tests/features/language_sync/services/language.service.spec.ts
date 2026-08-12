@@ -24,11 +24,15 @@ const insertMedia = () =>
   Effect.promise(() => db.insert(media).values({ originalLanguage: 'en', preferredLanguage: 'en', title: 'Movie', tmdbId: 1, type: 'movie' }))
 
 describe('language service', () => {
-  beforeEach(async () => {
-    await db.delete(media)
-    editMessageTextMock.mockClear()
-    updateStreamMock.mockClear()
-  })
+  beforeEach(() =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        yield* Effect.promise(() => db.delete(media))
+        editMessageTextMock.mockClear()
+        updateStreamMock.mockClear()
+      })
+    )
+  )
 
   it('builds keyboards', () => {
     expect(buildMediaTypeKeyboard().inline_keyboard[0]).toHaveLength(2)

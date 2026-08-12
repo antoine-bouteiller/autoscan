@@ -1,5 +1,6 @@
 import { runTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
+import { TestFailure } from '@tests/utils'
 import { Effect } from 'effect'
 
 import { SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
@@ -36,7 +37,7 @@ describe('SchedulerProvider', () => {
       scheduler.register({
         handler: Effect.suspend(() => {
           runs++
-          return runs === 1 ? Effect.fail(new Error('failed')) : Effect.void
+          return runs === 1 ? Effect.fail(new TestFailure({ message: 'failed' })) : Effect.void
         }),
         name: 'job',
         pattern: '* * * * *',

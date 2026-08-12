@@ -10,5 +10,3 @@ export const safeReadFileSync = (filePath: string): string | FileAccessError => 
     return new FileAccessError({ cause: error, filePath, operation: 'read' })
   }
 }
-
-export const safeExistsSync = (filePath: string): boolean => existsSync(filePath)

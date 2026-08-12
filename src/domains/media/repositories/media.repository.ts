@@ -33,13 +33,12 @@ export const createdOrUpdatedMedia = (params: { tmdbId: number; type: MediaType;
 
 export const getMediaByIdAndType = (tmdbId: number, type: MediaType) =>
   Database.use(({ db }) =>
-    query(async () => {
-      const result = await db
+    query(() =>
+      db
         .select()
         .from(mediaTable)
         .where(and(eq(mediaTable.tmdbId, tmdbId), eq(mediaTable.type, type)))
-      return result[0]
-    })
+    ).pipe(Effect.map((rows) => rows[0]))
   )
 
 export const getMediaByTypeWithPagination = (type: MediaType, page: number, pageSize: number) =>

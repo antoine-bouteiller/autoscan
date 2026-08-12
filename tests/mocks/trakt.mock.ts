@@ -1,6 +1,6 @@
 import { jest } from 'bun:test'
 
-import { Effect } from 'effect'
+import { Clock, Effect } from 'effect'
 
 import { type ITraktClient, type TraktMoviePayload, type TraktShowPayload } from '@/integrations/trakt/trakt.service'
 import { type TraktDeviceCodeResponse, type TraktSyncResponse, type TraktTokenResponse } from '@/integrations/trakt/trakt.validator'
@@ -32,19 +32,19 @@ const fromPromise = <Value>(run: () => Promise<Value>) =>
   Effect.tryPromise({ catch: (cause) => new NetworkError({ cause, originalMessage: String(cause), serviceName: 'TraktTest' }), try: run })
 
 export class MockTraktClient implements ITraktClient {
-  getDeviceCode() {
+  get getDeviceCode() {
     return fromPromise(() => getDeviceCodeMock())
   }
 
   pollDeviceToken() {
-    return Effect.succeed({
+    return Effect.map(Clock.currentTimeMillis, (now) => ({
       access_token: 'access_token',
-      created_at: Date.now(),
+      created_at: now,
       expires_in: 3600,
       refresh_token: 'refresh_token',
       scope: 'scope',
       token_type: 'token_type',
-    })
+    }))
   }
 
   refreshToken(refreshToken: string) {

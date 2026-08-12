@@ -24,7 +24,7 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
     }
 
     const traktClient = yield* Trakt
-    const deviceCode = yield* Effect.result(traktClient.getDeviceCode())
+    const deviceCode = yield* Effect.result(traktClient.getDeviceCode)
     if (Result.isFailure(deviceCode)) {
       yield* Effect.logError(Cause.fail(deviceCode.failure), 'Trakt Auth')
       yield* client.sendMessage(chatId, 'Failed to initiate Trakt authentication.')

@@ -7,23 +7,18 @@ import { ffprobeOutputValidator, type FFprobeStream } from '@/integrations/ffmpe
 import { type CommandExecutionError } from '@/shared/errors/command'
 import { ValidationError } from '@/shared/errors/validation'
 import { spawn } from '@/shared/utils/command'
-import { formatSchemaIssue } from '@/shared/utils/schema'
+import { formatSchemaIssueMessage } from '@/shared/utils/schema'
 
 type FfmpegError = CommandExecutionError | FileNotFoundError | PlatformError.PlatformError | ValidationError
 type FfmpegRequirements = ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem
 
 export interface IFfmpegClient {
-  readonly execute: (...command: string[]) => Effect.Effect<string, CommandExecutionError, FfmpegRequirements>
-  readonly executeFfmpeg: (params: {
-    command: string[]
-    folderName: string
-    input: string
-    output: string
-  }) => Effect.Effect<string, FfmpegError, FfmpegRequirements>
-  readonly ffprobe: (input: string) => Effect.Effect<{ duration: number; streams: FFprobeStream[] }, FfmpegError, FfmpegRequirements>
+  readonly execute: (...command: string[]) => Effect.Effect<string, CommandExecutionError>
+  readonly executeFfmpeg: (params: { command: string[]; folderName: string; input: string; output: string }) => Effect.Effect<string, FfmpegError>
+  readonly ffprobe: (input: string) => Effect.Effect<{ duration: number; streams: FFprobeStream[] }, FfmpegError>
 }
 
-export class FfmpegClient implements IFfmpegClient {
+export class FfmpegClient {
   executeFfmpeg(params: { folderName: string; input: string; output: string; command: string[] }) {
     return Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
@@ -60,13 +55,13 @@ export class FfmpegClient implements IFfmpegClient {
         command: 'ffprobe',
         timeout: 120_000,
       })
-      const json = yield* Effect.try({
-        catch: (cause) => new ValidationError({ cause, details: 'FFprobe returned invalid JSON' }),
-        try: () => JSON.parse(output),
-      })
-      const parsed = Schema.decodeUnknownResult(ffprobeOutputValidator, { errors: 'all' })(json)
+      const json = Schema.decodeResult(Schema.fromJsonString(Schema.Unknown))(output)
+      if (Result.isFailure(json)) {
+        return yield* new ValidationError({ cause: json.failure, details: 'FFprobe returned invalid JSON' })
+      }
+      const parsed = Schema.decodeUnknownResult(ffprobeOutputValidator, { errors: 'all' })(json.success)
       if (Result.isFailure(parsed)) {
-        return yield* new ValidationError({ details: JSON.stringify(formatSchemaIssue(parsed.failure.issue)) })
+        return yield* new ValidationError({ details: formatSchemaIssueMessage(parsed.failure.issue) })
       }
       return { duration: parsed.success.format.duration, streams: parsed.success.streams }
     })
@@ -76,3 +71,14 @@ export class FfmpegClient implements IFfmpegClient {
     return spawn({ args: ['-hide_banner', '-loglevel', 'error', '-y', ...command], command: 'ffmpeg' })
   }
 }
+
+export const makeFfmpegClient: Effect.Effect<IFfmpegClient, never, FfmpegRequirements> = Effect.gen(function* () {
+  const context = yield* Effect.context<FfmpegRequirements>()
+  const client = new FfmpegClient()
+  return {
+    execute: (...command: string[]) => Effect.provideContext(client.execute(...command), context),
+    executeFfmpeg: (params: { command: string[]; folderName: string; input: string; output: string }) =>
+      Effect.provideContext(client.executeFfmpeg(params), context),
+    ffprobe: (input: string) => Effect.provideContext(client.ffprobe(input), context),
+  }
+})

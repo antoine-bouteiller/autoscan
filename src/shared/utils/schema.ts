@@ -13,3 +13,5 @@ export const NumberFromUnknown = Schema.Unknown.pipe(
 )
 
 export const formatSchemaIssue = SchemaIssue.makeFormatterStandardSchemaV1()
+
+export const formatSchemaIssueMessage = SchemaIssue.makeFormatterDefault()

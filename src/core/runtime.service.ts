@@ -1,6 +1,6 @@
 import { type SQL } from 'bun'
 import { type BunSQLDatabase } from 'drizzle-orm/bun-sql/postgres'
-import { Context, Effect, FiberSet, type FileSystem, Layer, type Option, Ref, Semaphore } from 'effect'
+import { Context, type Crypto, Effect, FiberSet, type FileSystem, Layer, type Option, type Path, Ref, Semaphore } from 'effect'
 import { type ChildProcessSpawner } from 'effect/unstable/process'
 
 import { type TraktAuthenticationTasks } from '@/features/trakt_sync/services/authentication.service'
@@ -41,9 +41,11 @@ export class TranscodeQueue extends Context.Service<TranscodeQueue, TranscodeQue
 
 type WorkflowRequirements =
   | ChildProcessSpawner.ChildProcessSpawner
+  | Crypto.Crypto
   | Database
   | Ffmpeg
   | FileSystem.FileSystem
+  | Path.Path
   | Plex
   | Radarr
   | Sonarr

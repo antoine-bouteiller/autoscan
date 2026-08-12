@@ -4,18 +4,17 @@ import { Effect } from 'effect'
 import { makeDatabaseResource } from '@/config/db'
 
 const makeOperations = (events: string[], migrationFails = false) => ({
-  close: async () => {
+  close: () => {
     events.push('close')
+    return Promise.resolve()
   },
   construct: () => {
     events.push('construct')
     return { kind: 'db' as const }
   },
-  migrate: async () => {
+  migrate: () => {
     events.push('migrate')
-    if (migrationFails) {
-      throw new Error('migration failed')
-    }
+    return migrationFails ? Promise.reject(new Error('migration failed')) : Promise.resolve()
   },
   open: () => {
     events.push('open')

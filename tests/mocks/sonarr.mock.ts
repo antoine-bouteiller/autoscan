@@ -10,7 +10,7 @@ export const mockSonarrQueue = jest.fn<() => Promise<QueueResponse>>().mockResol
 export const mockSonarrRemoveQueueItem = jest.fn<(id: number, options: unknown) => Promise<void>>().mockResolvedValue(undefined)
 
 export class MockSonarrClient implements ISonarrClient {
-  getQueue() {
+  get getQueue() {
     return Effect.promise(() => mockSonarrQueue())
   }
 

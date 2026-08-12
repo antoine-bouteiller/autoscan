@@ -16,12 +16,13 @@ import {
   type RequestParams,
   type RequestWithoutResponseOption,
 } from '@/shared/types/http_client'
-import { formatSchemaIssue } from '@/shared/utils/schema'
+import { formatSchemaIssueMessage } from '@/shared/utils/schema'
 
 const DEFAULT_TIMEOUT = 30_000
 const RETRY_DELAYS = [250, 500] as const
 
-const defaultFormatter = (body: unknown): string => (typeof body === 'string' ? body : JSON.stringify(body))
+const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown))
+const defaultFormatter = (body: unknown): string => (typeof body === 'string' ? body : encodeJson(body))
 
 const createUrl = (baseUrl: string, endpoint: string, params?: RequestParams): URL => {
   const cleanBase = baseUrl.replace(/\/+$/, '')
@@ -114,7 +115,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
             new NetworkError({ cause, originalMessage: cause instanceof Error ? cause.message : 'Unknown network error', serviceName }),
           try: () =>
             fetch(url, {
-              body: body === undefined ? undefined : JSON.stringify(body),
+              body: body === undefined ? undefined : encodeJson(body),
               headers: { ...globalHeaders, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
               method,
               signal,
@@ -146,7 +147,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
         })
         const result = Schema.decodeUnknownResult(validator, { errors: 'all' })(json)
         if (Result.isFailure(result)) {
-          return yield* new ValidationError({ details: JSON.stringify(formatSchemaIssue(result.failure.issue)) })
+          return yield* new ValidationError({ details: formatSchemaIssueMessage(result.failure.issue) })
         }
 
         return result.success

@@ -22,6 +22,6 @@ export const http = {
   inject: (options: InjectOptions) =>
     Effect.gen(function* () {
       const context = yield* makeTestContext()
-      return yield* Effect.tryPromise(() => provider.inject(options, context))
+      return yield* provider.inject(options, context)
     }).pipe(Effect.scoped, Effect.provide(TestLoggerLive)),
 }

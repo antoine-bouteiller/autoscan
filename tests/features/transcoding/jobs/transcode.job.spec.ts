@@ -1,13 +1,14 @@
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { MockPlexClient } from '@tests/mocks/plex.mock'
+import { TestFailure } from '@tests/utils'
 import { Effect, Fiber, Option } from 'effect'
 
 import { TranscodeScan } from '@/core/runtime.service'
 import { getTranscodingStatus, runTranscodeProcess } from '@/features/transcoding/jobs/transcode.job'
 
 class EmptyPlexClient extends MockPlexClient {
-  override getSections() {
+  override get getSections() {
     return Effect.succeed([])
   }
 }
@@ -31,14 +32,14 @@ describe('transcode job', () => {
       const states = yield* provideTest(
         Effect.gen(function* () {
           const scans = yield* TranscodeScan
-          const observeCompletion = (task: Effect.Effect<void, Error>) =>
+          const observeCompletion = (task: Effect.Effect<void, TestFailure>) =>
             Effect.gen(function* () {
               expect(yield* scans.start(task)).toBeTrue()
               yield* scans.awaitEmpty
               return yield* scans.isRunning
             })
 
-          const typedFailure = yield* observeCompletion(Effect.fail(new Error('failed')))
+          const typedFailure = yield* observeCompletion(Effect.fail(new TestFailure({ message: 'failed' })))
           const defect = yield* observeCompletion(Effect.die('defect'))
           expect(yield* scans.start(Effect.never)).toBeTrue()
           yield* scans.clear

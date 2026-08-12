@@ -4,19 +4,23 @@ import { testDatabase as db } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { MockPlexClient, MockTraktClient, refreshTokenMock, syncWatchedHistoryMock } from '@tests/utils'
-import { Effect } from 'effect'
+import { Clock, Effect } from 'effect'
 
 import { traktSyncHistory, traktTokens } from '@/database/schema'
 import { TraktTokenExpiredError } from '@/features/trakt_sync/errors'
 import { collectWatchedItems, getValidAccessToken, syncPlexToTrakt } from '@/features/trakt_sync/services/plextraktsync.service'
 
 describe('Trakt sync service', () => {
-  beforeEach(async () => {
-    await db.delete(traktSyncHistory)
-    await db.delete(traktTokens)
-    refreshTokenMock.mockClear()
-    syncWatchedHistoryMock.mockClear()
-  })
+  beforeEach(() =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        yield* Effect.promise(() => db.delete(traktSyncHistory))
+        yield* Effect.promise(() => db.delete(traktTokens))
+        refreshTokenMock.mockClear()
+        syncWatchedHistoryMock.mockClear()
+      })
+    )
+  )
 
   it.live('fails when no token exists', () =>
     Effect.gen(function* () {
@@ -26,8 +30,9 @@ describe('Trakt sync service', () => {
 
   it.live('returns a valid token', () =>
     Effect.gen(function* () {
+      const now = yield* Clock.currentTimeMillis
       yield* Effect.promise(() =>
-        db.insert(traktTokens).values({ accessToken: 'valid', expiresAt: Math.floor(Date.now() / 1000) + 3600, refreshToken: 'refresh' })
+        db.insert(traktTokens).values({ accessToken: 'valid', expiresAt: Math.floor(now / 1000) + 3600, refreshToken: 'refresh' })
       )
       expect(yield* provideTest(getValidAccessToken)).toBe('valid')
     })
@@ -52,8 +57,9 @@ describe('Trakt sync service', () => {
 
   it.live('syncs and persists history', () =>
     Effect.gen(function* () {
+      const now = yield* Clock.currentTimeMillis
       yield* Effect.promise(() =>
-        db.insert(traktTokens).values({ accessToken: 'valid', expiresAt: Math.floor(Date.now() / 1000) + 3600, refreshToken: 'refresh' })
+        db.insert(traktTokens).values({ accessToken: 'valid', expiresAt: Math.floor(now / 1000) + 3600, refreshToken: 'refresh' })
       )
       expect(yield* provideTest(syncPlexToTrakt, { plex: new MockPlexClient(), trakt: new MockTraktClient() })).toEqual({ episodes: 1, movies: 1 })
       expect(syncWatchedHistoryMock).toHaveBeenCalled()

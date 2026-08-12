@@ -1,6 +1,7 @@
 import { afterAll } from 'bun:test'
 
 import { PostgreSqlContainer } from '@testcontainers/postgresql'
+import { Effect } from 'effect'
 
 const container = await new PostgreSqlContainer('postgres:18-alpine').start()
 
@@ -26,8 +27,12 @@ Object.assign(process.env, {
   TRANSCODE_PATH: 'resources/transcode',
 })
 
-afterAll(async () => {
-  const { closeTestDatabase } = await import('./database.js')
-  await closeTestDatabase()
-  await container.stop()
-})
+afterAll(() =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const { closeTestDatabase } = yield* Effect.promise(() => import('./database.js'))
+      yield* Effect.promise(() => closeTestDatabase())
+      yield* Effect.promise(() => container.stop())
+    })
+  )
+)

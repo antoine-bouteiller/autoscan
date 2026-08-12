@@ -4,7 +4,7 @@ import { testDatabase as db } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { getDeviceCodeMock, MockTelegramClient, MockTraktClient, sendMessageMock, syncWatchedHistoryMock } from '@tests/utils'
-import { Effect } from 'effect'
+import { Clock, Effect } from 'effect'
 
 import { traktSyncHistory, traktTokens } from '@/database/schema'
 import { syncTraktCommand, traktAuthCommand } from '@/features/trakt_sync/commands/trakt.command'
@@ -13,18 +13,25 @@ const client = new MockTelegramClient()
 const message = { chat: { id: 1 }, message_id: 1, text: '/trakt' }
 
 const insertValidToken = () =>
-  Effect.promise(() =>
-    db.insert(traktTokens).values({ accessToken: 'valid', expiresAt: Math.floor(Date.now() / 1000) + 3600, refreshToken: 'refresh' })
-  )
+  Effect.gen(function* () {
+    const now = yield* Clock.currentTimeMillis
+    yield* Effect.promise(() =>
+      db.insert(traktTokens).values({ accessToken: 'valid', expiresAt: Math.floor(now / 1000) + 3600, refreshToken: 'refresh' })
+    )
+  })
 
 describe('Trakt commands', () => {
-  beforeEach(async () => {
-    await db.delete(traktSyncHistory)
-    await db.delete(traktTokens)
-    sendMessageMock.mockClear().mockResolvedValue(100)
-    getDeviceCodeMock.mockClear()
-    syncWatchedHistoryMock.mockClear()
-  })
+  beforeEach(() =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        yield* Effect.promise(() => db.delete(traktSyncHistory))
+        yield* Effect.promise(() => db.delete(traktTokens))
+        sendMessageMock.mockClear().mockResolvedValue(100)
+        getDeviceCodeMock.mockClear()
+        syncWatchedHistoryMock.mockClear()
+      })
+    )
+  )
 
   it.live('reports an existing authentication', () =>
     Effect.gen(function* () {

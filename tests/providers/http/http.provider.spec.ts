@@ -1,6 +1,7 @@
 import { makeTestContext, provideTest, TestLoggerLive } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
-import { Cause, Effect, Fiber, Logger, Schema } from 'effect'
+import { TestFailure } from '@tests/utils'
+import { Cause, Effect, Fiber, Latch, Logger, Schema } from 'effect'
 import { HttpServer } from 'effect/unstable/http'
 
 import { HttpProvider, type InjectOptions } from '@/providers/http/http.provider'
@@ -9,7 +10,7 @@ const makeProvider = (port?: number) => new HttpProvider({ port })
 const inject = (provider: HttpProvider, options: InjectOptions, loggers: ReadonlySet<Logger.Logger<unknown, unknown>> = new Set()) =>
   Effect.gen(function* () {
     const context = yield* makeTestContext({}, loggers)
-    return yield* Effect.tryPromise(() => provider.inject(options, context))
+    return yield* provider.inject(options, context)
   }).pipe(Effect.scoped, Effect.provide(TestLoggerLive))
 
 describe('HttpProvider', () => {
@@ -54,7 +55,7 @@ describe('HttpProvider', () => {
         }
       })
       const provider = makeProvider()
-      provider.get('/typed', () => Effect.fail(new Error('typed failure')))
+      provider.get('/typed', () => Effect.fail(new TestFailure({ message: 'typed failure' })))
       provider.get('/defect', () => Effect.die('defect'))
 
       const [typed, defect] = yield* Effect.all(
@@ -79,14 +80,13 @@ describe('HttpProvider', () => {
     Effect.gen(function* () {
       const provider = makeProvider()
       let finalized = false
-      const { promise: started, resolve: markStarted } = Promise.withResolvers<void>()
-      provider.get('/slow', () => Effect.sync(markStarted).pipe(Effect.andThen(Effect.never), Effect.ensuring(Effect.sync(() => (finalized = true)))))
-      const controller = new AbortController()
+      const started = yield* Latch.make()
+      provider.get('/slow', () => started.open.pipe(Effect.andThen(Effect.never), Effect.ensuring(Effect.sync(() => (finalized = true)))))
 
-      const fiber = yield* Effect.forkChild(Effect.exit(inject(provider, { method: 'GET', signal: controller.signal, url: '/slow' })))
-      yield* Effect.promise(() => started)
-      controller.abort()
-      const exit = yield* Fiber.join(fiber)
+      const fiber = yield* Effect.forkChild(inject(provider, { method: 'GET', url: '/slow' }))
+      yield* started.await
+      fiber.interruptUnsafe()
+      const exit = yield* Fiber.await(fiber)
 
       expect(exit._tag).toBe('Failure')
       expect(finalized).toBeTrue()

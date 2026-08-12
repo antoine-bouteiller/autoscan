@@ -25,7 +25,7 @@ describe('ArrClient queue pagination', () => {
     Effect.gen(function* () {
       const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ records: [makeItem(1)], totalRecords: 1 }))
 
-      const queue = yield* makeClient().getQueue()
+      const queue = yield* makeClient().getQueue
 
       expect(queue.records.map(({ id }) => id)).toEqual([1])
       expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -48,7 +48,7 @@ describe('ArrClient queue pagination', () => {
       ]
       const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(pages[0])).mockResolvedValueOnce(Response.json(pages[1]))
 
-      const queue = yield* makeClient().getQueue()
+      const queue = yield* makeClient().getQueue
 
       expect(queue.records).toHaveLength(101)
       expect(queue.records.at(-1)?.id).toBe(101)
@@ -64,7 +64,7 @@ describe('ArrClient queue pagination', () => {
       ]
       const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(pages[0])).mockResolvedValueOnce(Response.json(pages[1]))
 
-      const queue = yield* makeClient().getQueue()
+      const queue = yield* makeClient().getQueue
 
       expect(queue).toEqual({ records: [makeItem(1)], totalRecords: 200 })
       expect(fetchMock).toHaveBeenCalledTimes(2)
@@ -77,7 +77,7 @@ describe('ArrClient queue pagination', () => {
         .mockResolvedValueOnce(Response.json({ records: [makeItem(1)], totalRecords: 2 }))
         .mockResolvedValueOnce(new Response('failed', { status: 400 }))
 
-      const exit = yield* Effect.exit(makeClient().getQueue())
+      const exit = yield* Effect.exit(makeClient().getQueue)
 
       expect(exit._tag).toBe('Failure')
       expect(fetchMock).toHaveBeenCalledTimes(2)

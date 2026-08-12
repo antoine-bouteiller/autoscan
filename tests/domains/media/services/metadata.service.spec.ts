@@ -11,9 +11,7 @@ import { FileNotFoundError, TmdbIdNotFoundError } from '@/domains/media/errors'
 import { buildMediaTitle, extractTmdbIdFromPath, getCompleteMediaDetails, getMediaLanguage } from '@/domains/media/services/metadata.service'
 
 describe('metadata service', () => {
-  beforeEach(async () => {
-    await db.delete(media)
-  })
+  beforeEach(() => Effect.runPromise(Effect.promise(() => db.delete(media))))
 
   it('extracts TMDB ids and titles', () => {
     expect(extractTmdbIdFromPath('/media/{tmdb-42}/file.mkv')).toBe(42)

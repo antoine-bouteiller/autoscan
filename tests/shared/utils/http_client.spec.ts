@@ -34,8 +34,8 @@ describe('httpClient', () => {
       const result = yield* Effect.result(client().get('/resource', { validator }))
       expect(Result.isFailure(result) && result.failure).toBeInstanceOf(ValidationError)
       if (Result.isFailure(result) && result.failure instanceof ValidationError) {
-        const details = JSON.parse(result.failure.details)
-        expect(details.issues.map((issue: { path: string[] }) => issue.path)).toEqual([['count'], ['value']])
+        expect(result.failure.details).toContain('count')
+        expect(result.failure.details).toContain('value')
       }
     })
   )

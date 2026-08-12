@@ -22,7 +22,7 @@ export class ArrClient {
     })
   }
 
-  getQueue() {
+  get getQueue() {
     const { client } = this
     return Effect.gen(function* () {
       const records: QueueResponse['records'][number][] = []

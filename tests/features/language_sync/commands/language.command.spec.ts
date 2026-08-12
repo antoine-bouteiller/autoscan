@@ -13,12 +13,16 @@ const client = new MockTelegramClient()
 const message = { chat: { id: 1 }, message_id: 1, text: '/setlanguage' }
 
 describe('setLanguageConversation', () => {
-  beforeEach(async () => {
-    await db.delete(media)
-    sendMessageMock.mockClear().mockResolvedValue(100)
-    editMessageTextMock.mockClear()
-    answerCallbackQueryMock.mockClear()
-  })
+  beforeEach(() =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        yield* Effect.promise(() => db.delete(media))
+        sendMessageMock.mockClear().mockResolvedValue(100)
+        editMessageTextMock.mockClear()
+        answerCallbackQueryMock.mockClear()
+      })
+    )
+  )
 
   it.live('prompts for media type', () =>
     Effect.gen(function* () {

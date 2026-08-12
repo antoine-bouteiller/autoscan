@@ -33,7 +33,7 @@ import { TranscodeScanLive } from '@/features/transcoding/jobs/transcode.job'
 import { TranscodeQueueLive } from '@/features/transcoding/services/transcode.service'
 import { RadarrClient } from '@/integrations/arr/radarr.service'
 import { SonarrClient } from '@/integrations/arr/sonarr.service'
-import { FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
+import { makeFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { PlexClient } from '@/integrations/plex/plex.service'
 import { TelegramClient } from '@/integrations/telegram/telegram.service'
 import { TmdbClient } from '@/integrations/tmdb/tmdb.service'
@@ -43,7 +43,7 @@ import { SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
 import { TelegramProvider } from '@/providers/telegram/telegram.provider'
 
 const ClientsLive = Layer.mergeAll(
-  Layer.succeed(Ffmpeg, new FfmpegClient()),
+  Layer.effect(Ffmpeg, makeFfmpegClient).pipe(Layer.provide(BunServices.layer)),
   Layer.succeed(Plex, new PlexClient({ token: env.PLEX_TOKEN, url: env.PLEX_URL })),
   Layer.succeed(Radarr, new RadarrClient({ apiKey: env.RADARR_API_KEY, apiUrl: env.RADARR_API_URL })),
   Layer.succeed(Sonarr, new SonarrClient({ apiKey: env.SONARR_API_KEY, apiUrl: env.SONARR_API_URL })),

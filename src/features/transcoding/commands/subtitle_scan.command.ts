@@ -1,27 +1,32 @@
-import { basename, dirname, join } from 'node:path'
-
-import { Cause, Effect } from 'effect'
+import { Cause, Effect, FileSystem, Path, Result } from 'effect'
 
 import { BackgroundTasks, Plex } from '@/core/runtime.service'
 import { getCompleteMediaDetails } from '@/domains/media/services/metadata.service'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
-import { safeExistsSync, safeReadFileSync } from '@/shared/utils/fs'
 
 const FORCED_LINE_RATIO_THRESHOLD = 0.1
 const SYNC_THRESHOLD_MS = 300
 
-export const findLangSrt = (mediaFilePath: string, lang: string): string | undefined => {
-  const mediaBase = basename(mediaFilePath, mediaFilePath.slice(mediaFilePath.lastIndexOf('.')))
-  const srtPath = join(dirname(mediaFilePath), `${mediaBase}.${lang}.srt`)
-  return safeExistsSync(srtPath) ? srtPath : undefined
-}
+export const findLangSrt = (mediaFilePath: string, lang: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    const mediaBase = path.basename(mediaFilePath, mediaFilePath.slice(mediaFilePath.lastIndexOf('.')))
+    const srtPath = path.join(path.dirname(mediaFilePath), `${mediaBase}.${lang}.srt`)
+    return (yield* fs.exists(srtPath)) ? srtPath : undefined
+  })
 
-export const countLines = (srtFilePath: string): number => {
-  const content = safeReadFileSync(srtFilePath)
-  return content instanceof Error ? 0 : content.trim().split(/\n\n+/).length
-}
+const readSrt = (srtFilePath: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const read = yield* Effect.result(fs.readFileString(srtFilePath))
+    return Result.isFailure(read) ? undefined : read.success
+  })
+
+export const countLines = (srtFilePath: string) =>
+  readSrt(srtFilePath).pipe(Effect.map((content) => (content === undefined ? 0 : content.trim().split(/\n\n+/).length)))
 
 export const parseTimestampMs = (timestamp: string): number => {
   const [hours, minutes, rest] = timestamp.split(':')
@@ -29,40 +34,43 @@ export const parseTimestampMs = (timestamp: string): number => {
   return Number(hours) * 3_600_000 + Number(minutes) * 60_000 + Number(seconds) * 1000 + Number(milliseconds)
 }
 
-export const parseStartTimestamps = (srtFilePath: string): number[] => {
-  const content = safeReadFileSync(srtFilePath)
-  if (content instanceof Error) {
-    return []
-  }
-  const timestamps: number[] = []
-  for (const block of content.trim().split(/\n\n+/)) {
-    const match = /(?<start>\d{2}:\d{2}:\d{2},\d{3})\s*-->/.exec(block)
-    if (match?.groups !== undefined) {
-      timestamps.push(parseTimestampMs(match.groups['start']))
-    }
-  }
-  return timestamps
-}
+export const parseStartTimestamps = (srtFilePath: string) =>
+  readSrt(srtFilePath).pipe(
+    Effect.map((content) => {
+      if (content === undefined) {
+        return []
+      }
+      const timestamps: number[] = []
+      for (const block of content.trim().split(/\n\n+/)) {
+        const match = /(?<start>\d{2}:\d{2}:\d{2},\d{3})\s*-->/.exec(block)
+        if (match?.groups !== undefined) {
+          timestamps.push(parseTimestampMs(match.groups['start']))
+        }
+      }
+      return timestamps
+    })
+  )
 
-export const areSubtitlesOutOfSync = (srtPathA: string, srtPathB: string): boolean => {
-  const timestampsA = parseStartTimestamps(srtPathA)
-  const timestampsB = parseStartTimestamps(srtPathB)
-  const length = Math.min(timestampsA.length, timestampsB.length)
-  if (length === 0) {
-    return false
-  }
-  let outOfSync = 0
-  for (let index = 0; index < length; index++) {
-    if (Math.abs(timestampsA[index] - timestampsB[index]) > SYNC_THRESHOLD_MS) {
-      outOfSync++
+export const areSubtitlesOutOfSync = (srtPathA: string, srtPathB: string) =>
+  Effect.gen(function* () {
+    const timestampsA = yield* parseStartTimestamps(srtPathA)
+    const timestampsB = yield* parseStartTimestamps(srtPathB)
+    const length = Math.min(timestampsA.length, timestampsB.length)
+    if (length === 0) {
+      return false
     }
-  }
-  return outOfSync / length > 0.5
-}
+    let outOfSync = 0
+    for (let index = 0; index < length; index++) {
+      if (Math.abs(timestampsA[index] - timestampsB[index]) > SYNC_THRESHOLD_MS) {
+        outOfSync++
+      }
+    }
+    return outOfSync / length > 0.5
+  })
 
 const analyzeMedia = (plexClient: IPlexClient) =>
   Effect.gen(function* () {
-    const sections = yield* plexClient.getSections()
+    const sections = yield* plexClient.getSections
     const missingSubtitles: string[] = []
     const outOfSyncSubtitles: string[] = []
 
@@ -78,19 +86,19 @@ const analyzeMedia = (plexClient: IPlexClient) =>
           continue
         }
 
-        const enSrt = findLangSrt(details.file, 'en')
+        const enSrt = yield* findLangSrt(details.file, 'en')
         if (enSrt === undefined) {
           missingSubtitles.push(details.mediaTitle)
           continue
         }
 
-        const frSrt = findLangSrt(details.file, 'fr')
+        const frSrt = yield* findLangSrt(details.file, 'fr')
         if (frSrt !== undefined) {
-          const enLines = countLines(enSrt)
-          const frLines = countLines(frSrt)
+          const enLines = yield* countLines(enSrt)
+          const frLines = yield* countLines(frSrt)
           if (frLines > 0 && enLines / frLines < FORCED_LINE_RATIO_THRESHOLD) {
             missingSubtitles.push(details.mediaTitle)
-          } else if (areSubtitlesOutOfSync(enSrt, frSrt)) {
+          } else if (yield* areSubtitlesOutOfSync(enSrt, frSrt)) {
             outOfSyncSubtitles.push(details.mediaTitle)
           }
         }

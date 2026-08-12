@@ -9,7 +9,7 @@ import { Effect } from 'effect'
 import { subtitleScanCommand } from '@/features/transcoding/commands/subtitle_scan.command'
 
 class EmptyPlexClient extends MockPlexClient {
-  override getSections() {
+  override get getSections() {
     return Effect.succeed([])
   }
 }

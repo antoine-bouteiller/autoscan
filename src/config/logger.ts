@@ -1,4 +1,4 @@
-import { Cause, Logger, References } from 'effect'
+import { Cause, DateTime, Logger, References } from 'effect'
 
 const ANSI = {
   BOLD: '\x1b[1m',
@@ -37,10 +37,10 @@ const formatMessage = (message: unknown): string => {
   return JSON.stringify(message)
 }
 
-const write = (entry: { context: readonly string[]; date: Date; level: LogLevel; message: string }): void => {
+const write = (entry: { context: readonly string[]; date: DateTime.Utc; level: LogLevel; message: string }): void => {
   const { context, date, level, message } = entry
   const { color, method } = LOG_CONFIG[level]
-  const timestamp = date.toLocaleString('fr-FR')
+  const timestamp = DateTime.formatLocal(date, { dateStyle: 'short', locale: 'fr-FR', timeStyle: 'medium' })
   const formattedContext = formatContext(context, message)
   console[method](`${ANSI.GRAY}${timestamp}${ANSI.RESET} ${color}${ANSI.BOLD}[${level}]${ANSI.RESET} ${formattedContext}${message}`)
 }
@@ -59,13 +59,13 @@ const effectLogger = Logger.make<unknown, void>((options) => {
   const messages = Array.isArray(options.message) ? options.message : [options.message]
   const message = messages.map(formatMessage).join(' ')
   const cause = options.cause.reasons.length === 0 ? '' : `: ${Cause.pretty(options.cause)}`
-  write({ context, date: options.date, level: toLogLevel(options.logLevel.toUpperCase()), message: `${message}${cause}` })
+  write({ context, date: DateTime.makeUnsafe(options.date), level: toLogLevel(options.logLevel.toUpperCase()), message: `${message}${cause}` })
 })
 
 export const LoggerLive = Logger.layer([effectLogger])
 
 export const nativeLogger = {
-  error: (message: unknown, ...context: string[]) => write({ context, date: new Date(), level: 'ERROR', message: formatMessage(message) }),
-  info: (message: string, ...context: string[]) => write({ context, date: new Date(), level: 'INFO', message }),
-  warn: (message: string, ...context: string[]) => write({ context, date: new Date(), level: 'WARN', message }),
+  error: (message: unknown, ...context: string[]) => write({ context, date: DateTime.nowUnsafe(), level: 'ERROR', message: formatMessage(message) }),
+  info: (message: string, ...context: string[]) => write({ context, date: DateTime.nowUnsafe(), level: 'INFO', message }),
+  warn: (message: string, ...context: string[]) => write({ context, date: DateTime.nowUnsafe(), level: 'WARN', message }),
 }

@@ -9,7 +9,7 @@ import { Effect } from 'effect'
 import { transcodeCommand } from '@/features/transcoding/commands/transcode.command'
 
 class SlowPlexClient extends MockPlexClient {
-  override getSections() {
+  override get getSections() {
     return Effect.never
   }
 }

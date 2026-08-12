@@ -1,12 +1,10 @@
 import { beforeEach } from 'bun:test'
-import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
 
 import { BunServices } from '@effect/platform-bun'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { makeTestDir, refreshSectionsMock, videosPath } from '@tests/utils'
-import { Effect } from 'effect'
+import { Effect, FileSystem, Path } from 'effect'
 
 import env from '@/config/env'
 import { TranscodeQueue } from '@/core/runtime.service'
@@ -28,41 +26,42 @@ describe('transcodeFile', () => {
 
   it.live('probes media streams', () =>
     Effect.gen(function* () {
-      const result = yield* Effect.provide(new FfmpegClient().ffprobe(join(videosPath, 'test_audio_dts.mkv')), BunServices.layer)
+      const path = yield* Path.Path
+      const result = yield* new FfmpegClient().ffprobe(path.join(videosPath, 'test_audio_dts.mkv'))
       expect(result.streams.some((stream) => stream.codec_type === 'audio')).toBeTrue()
-    })
+    }).pipe(Effect.provide(BunServices.layer))
   )
 
   it.live(
     'queues a file requiring conversion',
     () =>
       Effect.gen(function* () {
-        const directory = makeTestDir()
-        const file = join(directory, 'test_audio_dts.mkv')
-        copyFileSync(join(videosPath, 'test_audio_dts.mkv'), file)
-        try {
+        const fs = yield* FileSystem.FileSystem
+        const path = yield* Path.Path
+        const directory = yield* makeTestDir
+        const file = path.join(directory, 'test_audio_dts.mkv')
+        yield* fs.copyFile(path.join(videosPath, 'test_audio_dts.mkv'), file)
+        yield* Effect.gen(function* () {
           expect(yield* provideTest(transcodeAndWait(file))).toBeTrue()
-          expect(readdirSync(directory).some((name) => name.endsWith('.mp4'))).toBeTrue()
-        } finally {
-          rmSync(directory, { recursive: true })
-        }
-      }),
+          expect((yield* fs.readDirectory(directory)).some((name) => name.endsWith('.mp4'))).toBeTrue()
+        }).pipe(Effect.ensuring(Effect.ignore(fs.remove(directory, { recursive: true }))))
+      }).pipe(Effect.provide(BunServices.layer)),
     15_000
   )
 
   it.live('does not queue an already-correct file', () =>
     Effect.gen(function* () {
-      const directory = makeTestDir()
-      const source = join(videosPath, 'test_correct_file.mp4')
-      const file = join(directory, basename(source))
-      copyFileSync(source, file)
-      try {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const directory = yield* makeTestDir
+      const source = path.join(videosPath, 'test_correct_file.mp4')
+      const file = path.join(directory, path.basename(source))
+      yield* fs.copyFile(source, file)
+      yield* Effect.gen(function* () {
         expect(yield* provideTest(transcodeAndWait(file))).toBeFalse()
-        expect(existsSync(file)).toBeTrue()
-      } finally {
-        rmSync(directory, { recursive: true })
-      }
-    })
+        expect(yield* fs.exists(file)).toBeTrue()
+      }).pipe(Effect.ensuring(Effect.ignore(fs.remove(directory, { recursive: true }))))
+    }).pipe(Effect.provide(BunServices.layer))
   )
 
   it.live('refreshes Plex for a missing file', () =>
@@ -76,22 +75,25 @@ describe('transcodeFile', () => {
 
   it.live('refuses to reuse a preserved recovery directory', () =>
     Effect.gen(function* () {
-      const directory = makeTestDir()
-      const file = join(directory, 'test_audio_dts.mkv')
-      const outputDirectory = join(env.TRANSCODE_PATH, 'test_audio_dts')
-      copyFileSync(join(videosPath, 'test_audio_dts.mkv'), file)
-      mkdirSync(outputDirectory, { recursive: true })
-      writeFileSync(join(outputDirectory, '.autoscan-recovery.json'), '{}')
-      writeFileSync(join(outputDirectory, 'stale.srt'), 'stale')
-      try {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const directory = yield* makeTestDir
+      const file = path.join(directory, 'test_audio_dts.mkv')
+      const outputDirectory = path.join(env.TRANSCODE_PATH, 'test_audio_dts')
+      yield* fs.copyFile(path.join(videosPath, 'test_audio_dts.mkv'), file)
+      yield* fs.makeDirectory(outputDirectory, { recursive: true })
+      yield* fs.writeFileString(path.join(outputDirectory, '.autoscan-recovery.json'), '{}')
+      yield* fs.writeFileString(path.join(outputDirectory, 'stale.srt'), 'stale')
+      yield* Effect.gen(function* () {
         expect(yield* provideTest(transcodeAndWait(file))).toBeTrue()
-        expect(existsSync(join(outputDirectory, '.autoscan-recovery.json'))).toBeTrue()
-        expect(existsSync(join(outputDirectory, 'stale.srt'))).toBeTrue()
-      } finally {
-        rmSync(directory, { recursive: true })
-        rmSync(outputDirectory, { force: true, recursive: true })
-      }
-    })
+        expect(yield* fs.exists(path.join(outputDirectory, '.autoscan-recovery.json'))).toBeTrue()
+        expect(yield* fs.exists(path.join(outputDirectory, 'stale.srt'))).toBeTrue()
+      }).pipe(
+        Effect.ensuring(
+          Effect.ignore(Effect.andThen(fs.remove(directory, { recursive: true }), fs.remove(outputDirectory, { force: true, recursive: true })))
+        )
+      )
+    }).pipe(Effect.provide(BunServices.layer))
   )
 
   it.live('rejects new jobs after intake stops', () =>
