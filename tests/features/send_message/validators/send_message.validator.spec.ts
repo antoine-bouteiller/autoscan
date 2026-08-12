@@ -6,7 +6,7 @@ import { sendMessageValidator } from '@/features/send_message/validators/send_me
 
 describe('sendMessageValidator', () => {
   test('should parse valid body', () => {
-    const result = Schema.decodeUnknownResult(sendMessageValidator)({ text: 'hello' })
+    const result = Schema.decodeResult(sendMessageValidator)({ text: 'hello' })
     expect(Result.isSuccess(result)).toBe(true)
     if (Result.isSuccess(result)) {
       expect(result.success.text).toBe('hello')
