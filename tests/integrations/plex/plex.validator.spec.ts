@@ -6,7 +6,7 @@ import { plexResponseValidator } from '@/integrations/plex/plex.validator'
 
 describe('plexResponseValidator', () => {
   test('drops invalid stream entries', () => {
-    const result = Schema.decodeUnknownSync(plexResponseValidator)({
+    const result = Schema.decodeSync(plexResponseValidator)({
       MediaContainer: {
         Metadata: [
           {

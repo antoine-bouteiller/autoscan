@@ -8,9 +8,9 @@ const decode = Schema.decodeUnknownResult(NumberFromUnknown)
 
 describe('NumberFromUnknown', () => {
   test('matches JavaScript number coercion', () => {
-    expect(Schema.decodeUnknownSync(NumberFromUnknown)('42')).toBe(42)
-    expect(Schema.decodeUnknownSync(NumberFromUnknown)('')).toBe(0)
-    expect(Schema.decodeUnknownSync(NumberFromUnknown)(true)).toBe(1)
+    expect(Schema.decodeSync(NumberFromUnknown)('42')).toBe(42)
+    expect(Schema.decodeSync(NumberFromUnknown)('')).toBe(0)
+    expect(Schema.decodeSync(NumberFromUnknown)(true)).toBe(1)
   })
 
   test('rejects invalid values without throwing', () => {
