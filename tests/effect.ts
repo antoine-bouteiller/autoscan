@@ -26,7 +26,7 @@ interface TestServices {
 }
 export const TestLoggerLive = Logger.layer([])
 
-export const makeTestLayer = (services: TestServices = {}) => {
+const makeTestLayer = (services: TestServices = {}) => {
   const clients = Layer.mergeAll(
     Layer.succeed(Ffmpeg, services.ffmpeg ?? new FfmpegClient()),
     Layer.succeed(Plex, services.plex ?? new MockPlexClient()),
@@ -45,5 +45,8 @@ export const makeTestLayer = (services: TestServices = {}) => {
 export const makeTestContext = (services: TestServices = {}, loggers: ReadonlySet<Logger.Logger<unknown, unknown>> = new Set()) =>
   Layer.build(makeTestLayer(services)).pipe(Effect.map((context) => Context.add(context, Logger.CurrentLoggers, loggers)))
 
+export const provideTest = <Success, Error, Requirements>(effect: Effect.Effect<Success, Error, Requirements>, services?: TestServices) =>
+  effect.pipe(Effect.provide(makeTestLayer(services)), Effect.scoped, Effect.provide(TestLoggerLive))
+
 export const runTest = <Success, Error>(effect: Effect.Effect<Success, Error, AppRequirements>, services?: TestServices): Promise<Success> =>
-  Effect.runPromise(effect.pipe(Effect.provide(makeTestLayer(services)), Effect.scoped, Effect.provide(TestLoggerLive)))
+  Effect.runPromise(provideTest(effect, services))

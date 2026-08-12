@@ -1,8 +1,7 @@
-import { describe, expect, test } from 'bun:test'
-
-import { makeTestLayer, TestLoggerLive } from '@tests/effect'
-import { Effect, Fiber, Layer } from 'effect'
-import { adjust, layer, type TestClock } from 'effect/testing/TestClock'
+import { provideTest } from '@tests/effect'
+import { describe, expect, it } from '@tests/it'
+import { Effect, Fiber } from 'effect'
+import { adjust, type TestClock } from 'effect/testing/TestClock'
 
 import env from '@/config/env'
 import { type AppRequirements } from '@/core/runtime.service'
@@ -40,21 +39,15 @@ class PollClient implements ITelegramClient {
 }
 
 const runControlled = (client: PollClient, testEffect: Effect.Effect<void, never, AppRequirements | TestClock>) =>
-  Effect.runPromise(
-    testEffect.pipe(
-      Effect.provide(makeTestLayer({ telegram: client }).pipe(Layer.provideMerge(layer()))),
-      Effect.scoped,
-      Effect.provide(TestLoggerLive)
-    )
-  )
+  provideTest(testEffect, { telegram: client })
 
 describe('TelegramProvider', () => {
-  test('uses a five-second retry delay and is interruptible', async () => {
+  it.effect('uses a five-second retry delay and is interruptible', () => {
     const client = new PollClient()
     client.updates = Effect.fail(new NetworkError({ originalMessage: 'offline', serviceName: 'Telegram' }))
     const provider = new TelegramProvider(client)
 
-    await runControlled(
+    return runControlled(
       client,
       Effect.gen(function* () {
         const fiber = yield* Effect.forkChild(provider.poll)
@@ -72,7 +65,7 @@ describe('TelegramProvider', () => {
     )
   })
 
-  test('advances the offset after an update', async () => {
+  it.effect('advances the offset after an update', () => {
     const client = new PollClient()
     let call = 0
     client.updates = Effect.suspend(() => {
@@ -81,7 +74,7 @@ describe('TelegramProvider', () => {
     })
     const provider = new TelegramProvider(client)
 
-    await runControlled(
+    return runControlled(
       client,
       Effect.gen(function* () {
         const fiber = yield* Effect.forkChild(provider.poll)
@@ -93,7 +86,7 @@ describe('TelegramProvider', () => {
     )
   })
 
-  test('observes handler failures without terminating polling', async () => {
+  it.effect('observes handler failures without terminating polling', () => {
     const client = new PollClient()
     let call = 0
     client.updates = Effect.suspend(() => {
@@ -105,7 +98,7 @@ describe('TelegramProvider', () => {
     const provider = new TelegramProvider(client)
     provider.registerCommand('/fail', () => Effect.fail(new NetworkError({ originalMessage: 'failed', serviceName: 'Handler' })))
 
-    await runControlled(
+    return runControlled(
       client,
       Effect.gen(function* () {
         const fiber = yield* Effect.forkChild(provider.poll)

@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, test } from 'bun:test'
+import { beforeEach } from 'bun:test'
 
-import { runTest } from '@tests/effect'
+import { provideTest } from '@tests/effect'
+import { describe, expect, it } from '@tests/it'
 import {
   mockQueueResponseEmpty,
   mockQueueResponseNormal,
@@ -16,7 +17,7 @@ import {
   mockSonarrQueue,
   mockSonarrRemoveQueueItem,
 } from '@tests/utils'
-import { Effect } from 'effect'
+import { Effect, Fiber } from 'effect'
 
 import { cleanupAll } from '@/features/queue_cleanup/services/cleanup.service'
 import { type IRadarrClient } from '@/integrations/arr/radarr.service'
@@ -40,142 +41,155 @@ describe('cleanupAll', () => {
     mockSonarrRemoveQueueItem.mockReset().mockResolvedValue(undefined)
   })
 
-  test('removes downloads with no eligible files', async () => {
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
-    await runTest(cleanupAll)
-    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledWith(1, { blocklist: true, removeFromClient: true })
-  })
-
-  test('removes dangerous downloads', async () => {
-    mockSonarrQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
-    await runTest(cleanupAll)
-    expect(mockSonarrRemoveQueueItem).toHaveBeenCalledWith(2, { blocklist: true, removeFromClient: true })
-  })
-
-  test('does not remove a first stalled strike', async () => {
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
-    await runTest(cleanupAll)
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
-  })
-
-  test('handles empty and normal queues', async () => {
-    mockRadarrQueue.mockResolvedValue(mockQueueResponseNormal)
-    expect(await runTest(cleanupAll)).toBeUndefined()
-    expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
-  })
-
-  test('retains strikes for a stalled item from the end of a complete queue', async () => {
-    const normalItems = Array.from({ length: 100 }, (_item, index) => ({
-      id: 10_000 + index,
-      status: 'downloading',
-      timeleft: '00:10:00',
-      title: `Normal ${index}`,
-    }))
-    mockRadarrQueue.mockResolvedValue({
-      records: [...normalItems, { errorMessage: 'The download is stalled with no connections', id: 9001, status: 'warning', title: 'Later page' }],
-      totalRecords: 101,
+  it.live('removes downloads with no eligible files', () =>
+    Effect.gen(function* () {
+      mockRadarrQueue.mockResolvedValue(mockQueueResponseWithNoEligibleFiles)
+      yield* provideTest(cleanupAll)
+      expect(mockRadarrRemoveQueueItem).toHaveBeenCalledWith(1, { blocklist: true, removeFromClient: true })
     })
+  )
 
-    for (let strike = 1; strike <= 5; strike += 1) {
-      await runTest(cleanupAll)
-    }
+  it.live('removes dangerous downloads', () =>
+    Effect.gen(function* () {
+      mockSonarrQueue.mockResolvedValue(mockQueueResponseWithDangerousFiles)
+      yield* provideTest(cleanupAll)
+      expect(mockSonarrRemoveQueueItem).toHaveBeenCalledWith(2, { blocklist: true, removeFromClient: true })
+    })
+  )
 
-    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
-    expect(mockRadarrRemoveQueueItem).toHaveBeenCalledWith(9001, { blocklist: true, removeFromClient: true })
-  })
+  it.live('does not remove a first stalled strike', () =>
+    Effect.gen(function* () {
+      mockRadarrQueue.mockResolvedValue(mockQueueResponseWithStalledWarning)
+      yield* provideTest(cleanupAll)
+      expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    })
+  )
 
-  test('runs at most four queue removals concurrently and attempts every eligible item', async () => {
-    let active = 0
-    let attempts = 0
-    let maximum = 0
-    let blocked = true
-    const { promise: started, resolve: signalStarted } = Promise.withResolvers<void>()
-    const releases: (() => void)[] = []
-    const remove = () =>
-      Effect.promise(() => {
-        attempts += 1
-        active += 1
-        maximum = Math.max(maximum, active)
-        if (active === 4) {
-          signalStarted()
-        }
-        if (!blocked) {
-          active -= 1
-          return Promise.resolve()
-        }
-        return new Promise<void>((resolve) => {
-          releases.push(() => {
+  it.live('handles empty and normal queues', () =>
+    Effect.gen(function* () {
+      mockRadarrQueue.mockResolvedValue(mockQueueResponseNormal)
+      expect(yield* provideTest(cleanupAll)).toBeUndefined()
+      expect(mockRadarrRemoveQueueItem).not.toHaveBeenCalled()
+    })
+  )
+
+  it.live('retains strikes for a stalled item from the end of a complete queue', () =>
+    Effect.gen(function* () {
+      const normalItems = Array.from({ length: 100 }, (_item, index) => ({
+        id: 10_000 + index,
+        status: 'downloading',
+        timeleft: '00:10:00',
+        title: `Normal ${index}`,
+      }))
+      mockRadarrQueue.mockResolvedValue({
+        records: [...normalItems, { errorMessage: 'The download is stalled with no connections', id: 9001, status: 'warning', title: 'Later page' }],
+        totalRecords: 101,
+      })
+
+      for (let strike = 1; strike <= 5; strike += 1) {
+        yield* provideTest(cleanupAll)
+      }
+
+      expect(mockRadarrRemoveQueueItem).toHaveBeenCalledTimes(1)
+      expect(mockRadarrRemoveQueueItem).toHaveBeenCalledWith(9001, { blocklist: true, removeFromClient: true })
+    })
+  )
+
+  it.live('runs at most four queue removals concurrently and attempts every eligible item', () =>
+    Effect.gen(function* () {
+      let active = 0
+      let attempts = 0
+      let maximum = 0
+      let blocked = true
+      const { promise: started, resolve: signalStarted } = Promise.withResolvers<void>()
+      const releases: (() => void)[] = []
+      const remove = () =>
+        Effect.promise(() => {
+          attempts += 1
+          active += 1
+          maximum = Math.max(maximum, active)
+          if (active === 4) {
+            signalStarted()
+          }
+          if (!blocked) {
             active -= 1
-            resolve()
+            return Promise.resolve()
+          }
+          return new Promise<void>((resolve) => {
+            releases.push(() => {
+              active -= 1
+              resolve()
+            })
           })
         })
-      })
-    class InstrumentedRadarrClient extends MockRadarrClient {
-      override getQueue() {
-        return Effect.succeed(removalQueue(20_000))
+      class InstrumentedRadarrClient extends MockRadarrClient {
+        override getQueue() {
+          return Effect.succeed(removalQueue(20_000))
+        }
+
+        override removeQueueItem() {
+          return remove()
+        }
+      }
+      class InstrumentedSonarrClient extends MockSonarrClient {
+        override getQueue() {
+          return Effect.succeed(removalQueue(40_000))
+        }
+
+        override removeQueueItem() {
+          return remove()
+        }
       }
 
-      override removeQueueItem() {
-        return remove()
+      const cleanup = yield* Effect.forkChild(
+        provideTest(cleanupAll, { radarr: new InstrumentedRadarrClient(), sonarr: new InstrumentedSonarrClient() })
+      )
+      yield* Effect.promise(() => started)
+      const activeBeforeRelease = active
+      blocked = false
+      for (const release of releases) {
+        release()
       }
-    }
-    class InstrumentedSonarrClient extends MockSonarrClient {
-      override getQueue() {
-        return Effect.succeed(removalQueue(40_000))
+      yield* Fiber.join(cleanup)
+
+      expect(activeBeforeRelease).toBe(4)
+
+      expect(maximum).toBe(4)
+      expect(attempts).toBe(16)
+    })
+  )
+
+  it.live('fails fast without retrying or erasing the failed item strike', () =>
+    Effect.gen(function* () {
+      let attempts = 0
+      let fails = true
+      const stalled = {
+        errorMessage: 'The download is stalled with no connections',
+        id: 30_000,
+        status: 'warning',
+        title: 'Failed removal',
+      }
+      const radarr: IRadarrClient = {
+        // oxlint-disable-next-line effecttsgo/effect-succeed-with-void -- success channel is number | undefined, not void
+        getMovieByPath: () => Effect.succeed(undefined),
+        getQueue: () => Effect.succeed({ records: [stalled], totalRecords: 1 }),
+        refreshMovie: () => Effect.void,
+        removeQueueItem: () => {
+          attempts += 1
+          return fails ? Effect.fail(new NetworkError({ originalMessage: 'failed', serviceName: 'Radarr' })) : Effect.void
+        },
+        renameMovie: () => Effect.void,
       }
 
-      override removeQueueItem() {
-        return remove()
+      for (let strike = 1; strike < 5; strike += 1) {
+        yield* provideTest(cleanupAll, { radarr })
       }
-    }
+      const failure = yield* Effect.flip(provideTest(cleanupAll, { radarr }))
+      fails = false
+      yield* provideTest(cleanupAll, { radarr })
 
-    const cleanup = runTest(cleanupAll, { radarr: new InstrumentedRadarrClient(), sonarr: new InstrumentedSonarrClient() })
-    await started
-    const activeBeforeRelease = active
-    blocked = false
-    for (const release of releases) {
-      release()
-    }
-    await cleanup
-
-    expect(activeBeforeRelease).toBe(4)
-
-    expect(maximum).toBe(4)
-    expect(attempts).toBe(16)
-  })
-
-  test('fails fast without retrying or erasing the failed item strike', async () => {
-    let attempts = 0
-    let fails = true
-    const stalled = {
-      errorMessage: 'The download is stalled with no connections',
-      id: 30_000,
-      status: 'warning',
-      title: 'Failed removal',
-    }
-    const radarr: IRadarrClient = {
-      // oxlint-disable-next-line effecttsgo/effect-succeed-with-void -- success channel is number | undefined, not void
-      getMovieByPath: () => Effect.succeed(undefined),
-      getQueue: () => Effect.succeed({ records: [stalled], totalRecords: 1 }),
-      refreshMovie: () => Effect.void,
-      removeQueueItem: () => {
-        attempts += 1
-        return fails ? Effect.fail(new NetworkError({ originalMessage: 'failed', serviceName: 'Radarr' })) : Effect.void
-      },
-      renameMovie: () => Effect.void,
-    }
-
-    for (let strike = 1; strike < 5; strike += 1) {
-      await runTest(cleanupAll, { radarr })
-    }
-    const failure = await runTest(cleanupAll, { radarr }).then(
-      () => undefined,
-      (error: unknown) => error
-    )
-    fails = false
-    await runTest(cleanupAll, { radarr })
-
-    expect(failure).toBeInstanceOf(NetworkError)
-    expect(attempts).toBe(2)
-  })
+      expect(failure).toBeInstanceOf(NetworkError)
+      expect(attempts).toBe(2)
+    })
+  )
 })

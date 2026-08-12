@@ -1,8 +1,8 @@
-import { describe, expect, test } from 'bun:test'
 import { copyFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { BunServices } from '@effect/platform-bun'
+import { describe, expect, it } from '@tests/it'
 import { makeTestDir, videosPath } from '@tests/utils'
 import { Effect } from 'effect'
 
@@ -52,21 +52,23 @@ const dataset: TestCase[] = [
 
 describe('Clean audio', () => {
   for (const { expectedCommand, file, language, title } of dataset) {
-    test(title, async () => {
-      const testDir = makeTestDir()
-      try {
-        copyFileSync(join(videosPath, file), join(testDir, file))
+    it.live(title, () =>
+      Effect.gen(function* () {
+        const testDir = makeTestDir()
+        try {
+          copyFileSync(join(videosPath, file), join(testDir, file))
 
-        const probeResult = await Effect.runPromise(Effect.provide(new FfmpegClient().ffprobe(join(testDir, file)), BunServices.layer))
-        const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
-        const result = processAudioStreams(audioStreams, language, 'test')
-        expect(result).not.toBeInstanceOf(Error)
-        if (!(result instanceof Error)) {
-          expect(result.command).toEqual(expectedCommand)
+          const probeResult = yield* Effect.provide(new FfmpegClient().ffprobe(join(testDir, file)), BunServices.layer)
+          const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
+          const result = processAudioStreams(audioStreams, language, 'test')
+          expect(result).not.toBeInstanceOf(Error)
+          if (!(result instanceof Error)) {
+            expect(result.command).toEqual(expectedCommand)
+          }
+        } finally {
+          rmSync(testDir, { recursive: true })
         }
-      } finally {
-        rmSync(testDir, { recursive: true })
-      }
-    })
+      })
+    )
   }
 })

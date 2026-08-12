@@ -1,5 +1,4 @@
-import { describe, expect, test } from 'bun:test'
-
+import { describe, expect, it } from '@tests/it'
 import { Effect } from 'effect'
 
 import { makeDatabaseResource } from '@/config/db'
@@ -25,20 +24,24 @@ const makeOperations = (events: string[], migrationFails = false) => ({
 })
 
 describe('database resource lifecycle', () => {
-  test('closes once after successful scoped use', async () => {
-    const events: string[] = []
+  it.effect('closes once after successful scoped use', () =>
+    Effect.gen(function* () {
+      const events: string[] = []
 
-    await Effect.runPromise(Effect.scoped(makeDatabaseResource(makeOperations(events))))
+      yield* Effect.scoped(makeDatabaseResource(makeOperations(events)))
 
-    expect(events).toEqual(['open', 'construct', 'migrate', 'close'])
-  })
+      expect(events).toEqual(['open', 'construct', 'migrate', 'close'])
+    })
+  )
 
-  test('closes once when migration fails', async () => {
-    const events: string[] = []
+  it.effect('closes once when migration fails', () =>
+    Effect.gen(function* () {
+      const events: string[] = []
 
-    const exit = await Effect.runPromiseExit(Effect.scoped(makeDatabaseResource(makeOperations(events, true))))
+      const exit = yield* Effect.exit(Effect.scoped(makeDatabaseResource(makeOperations(events, true))))
 
-    expect(exit._tag).toBe('Failure')
-    expect(events).toEqual(['open', 'construct', 'migrate', 'close'])
-  })
+      expect(exit._tag).toBe('Failure')
+      expect(events).toEqual(['open', 'construct', 'migrate', 'close'])
+    })
+  )
 })

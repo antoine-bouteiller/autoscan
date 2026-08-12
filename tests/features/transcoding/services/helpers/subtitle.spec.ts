@@ -1,8 +1,8 @@
-import { describe, expect, test } from 'bun:test'
 import { copyFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { BunServices } from '@effect/platform-bun'
+import { describe, expect, it } from '@tests/it'
 import { makeTestDir, videosPath } from '@tests/utils'
 import { Effect } from 'effect'
 
@@ -46,20 +46,22 @@ const dataset: TestCase[] = [
 
 describe('Extract subtitles', () => {
   for (const { file, originalLanguage, streamToKeep, title } of dataset) {
-    test(title, async () => {
-      const testDir = makeTestDir()
-      try {
-        copyFileSync(join(videosPath, file), join(testDir, file))
+    it.live(title, () =>
+      Effect.gen(function* () {
+        const testDir = makeTestDir()
+        try {
+          copyFileSync(join(videosPath, file), join(testDir, file))
 
-        const probeResult = await Effect.runPromise(Effect.provide(new FfmpegClient().ffprobe(join(testDir, file)), BunServices.layer))
-        const subtitleStreams = probeResult.streams.filter((stream) => stream.codec_type === 'subtitle')
-        const streamsKepts = processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
+          const probeResult = yield* Effect.provide(new FfmpegClient().ffprobe(join(testDir, file)), BunServices.layer)
+          const subtitleStreams = probeResult.streams.filter((stream) => stream.codec_type === 'subtitle')
+          const streamsKepts = processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
 
-        expect(streamsKepts.length).toBe(streamToKeep.length)
-      } finally {
-        rmSync(testDir, { recursive: true })
-      }
-    })
+          expect(streamsKepts.length).toBe(streamToKeep.length)
+        } finally {
+          rmSync(testDir, { recursive: true })
+        }
+      })
+    )
   }
 })
 
@@ -84,24 +86,24 @@ const forcedDataset: ForcedTestCase[] = [
 
 describe('Forced subtitle detection', () => {
   for (const { expected, file, title } of forcedDataset) {
-    test(title, async () => {
-      const testDir = makeTestDir()
-      try {
-        copyFileSync(join(videosPath, file), join(testDir, file))
+    it.live(title, () =>
+      Effect.gen(function* () {
+        const testDir = makeTestDir()
+        try {
+          copyFileSync(join(videosPath, file), join(testDir, file))
 
-        const ffmpegClient = new FfmpegClient()
-        const probeResult = await Effect.runPromise(Effect.provide(ffmpegClient.ffprobe(join(testDir, file)), BunServices.layer))
-        expect(probeResult.duration).toBeDefined()
+          const ffmpegClient = new FfmpegClient()
+          const probeResult = yield* Effect.provide(ffmpegClient.ffprobe(join(testDir, file)), BunServices.layer)
+          expect(probeResult.duration).toBeDefined()
 
-        const srtPath = join(testDir, 'test.srt')
-        await Effect.runPromise(
-          Effect.provide(ffmpegClient.execute('-i', join(testDir, file), '-map', '0:s:0', '-c:s', 'srt', srtPath), BunServices.layer)
-        )
+          const srtPath = join(testDir, 'test.srt')
+          yield* Effect.provide(ffmpegClient.execute('-i', join(testDir, file), '-map', '0:s:0', '-c:s', 'srt', srtPath), BunServices.layer)
 
-        expect(isForcedSubtitle(srtPath, probeResult.duration)).toBe(expected)
-      } finally {
-        rmSync(testDir, { recursive: true })
-      }
-    })
+          expect(isForcedSubtitle(srtPath, probeResult.duration)).toBe(expected)
+        } finally {
+          rmSync(testDir, { recursive: true })
+        }
+      })
+    )
   }
 })
