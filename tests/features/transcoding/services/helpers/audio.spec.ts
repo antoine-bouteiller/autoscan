@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { copyFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { BunServices } from '@effect/platform-bun'
 import { makeTestDir, videosPath } from '@tests/utils'
 import { Effect } from 'effect'
 
@@ -56,7 +57,7 @@ describe('Clean audio', () => {
       try {
         copyFileSync(join(videosPath, file), join(testDir, file))
 
-        const probeResult = await Effect.runPromise(new FfmpegClient().ffprobe(join(testDir, file)))
+        const probeResult = await Effect.runPromise(Effect.provide(new FfmpegClient().ffprobe(join(testDir, file)), BunServices.layer))
         const audioStreams = probeResult.streams.filter((stream) => stream.codec_type === 'audio')
         const result = processAudioStreams(audioStreams, language, 'test')
         expect(result).not.toBeInstanceOf(Error)

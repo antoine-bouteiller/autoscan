@@ -1,6 +1,7 @@
 import { type SQL } from 'bun'
 import { type BunSQLDatabase } from 'drizzle-orm/bun-sql/postgres'
-import { Context, Effect, FiberSet, Layer, type Option, Ref, Semaphore } from 'effect'
+import { Context, Effect, FiberSet, type FileSystem, Layer, type Option, Ref, Semaphore } from 'effect'
+import { type ChildProcessSpawner } from 'effect/unstable/process'
 
 import { type TraktAuthenticationTasks } from '@/features/trakt_sync/services/authentication.service'
 import { type TranscodeJob } from '@/features/transcoding/types'
@@ -38,7 +39,19 @@ export interface TranscodeQueueShape {
 
 export class TranscodeQueue extends Context.Service<TranscodeQueue, TranscodeQueueShape>()('autoscan/core/runtime.service/TranscodeQueue') {}
 
-type WorkflowRequirements = Database | Ffmpeg | Plex | Radarr | Sonarr | Telegram | Tmdb | Trakt | TraktAuthenticationTasks | TranscodeQueue
+type WorkflowRequirements =
+  | ChildProcessSpawner.ChildProcessSpawner
+  | Database
+  | Ffmpeg
+  | FileSystem.FileSystem
+  | Plex
+  | Radarr
+  | Sonarr
+  | Telegram
+  | Tmdb
+  | Trakt
+  | TraktAuthenticationTasks
+  | TranscodeQueue
 
 export interface WorkflowOwnerShape {
   readonly awaitEmpty: Effect.Effect<void>

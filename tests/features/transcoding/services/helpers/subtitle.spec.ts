@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { copyFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { BunServices } from '@effect/platform-bun'
 import { makeTestDir, videosPath } from '@tests/utils'
 import { Effect } from 'effect'
 
@@ -50,7 +51,7 @@ describe('Extract subtitles', () => {
       try {
         copyFileSync(join(videosPath, file), join(testDir, file))
 
-        const probeResult = await Effect.runPromise(new FfmpegClient().ffprobe(join(testDir, file)))
+        const probeResult = await Effect.runPromise(Effect.provide(new FfmpegClient().ffprobe(join(testDir, file)), BunServices.layer))
         const subtitleStreams = probeResult.streams.filter((stream) => stream.codec_type === 'subtitle')
         const streamsKepts = processSubtitleStreams(subtitleStreams, originalLanguage, 'test')
 
@@ -89,11 +90,13 @@ describe('Forced subtitle detection', () => {
         copyFileSync(join(videosPath, file), join(testDir, file))
 
         const ffmpegClient = new FfmpegClient()
-        const probeResult = await Effect.runPromise(ffmpegClient.ffprobe(join(testDir, file)))
+        const probeResult = await Effect.runPromise(Effect.provide(ffmpegClient.ffprobe(join(testDir, file)), BunServices.layer))
         expect(probeResult.duration).toBeDefined()
 
         const srtPath = join(testDir, 'test.srt')
-        await Effect.runPromise(ffmpegClient.execute('-i', join(testDir, file), '-map', '0:s:0', '-c:s', 'srt', srtPath))
+        await Effect.runPromise(
+          Effect.provide(ffmpegClient.execute('-i', join(testDir, file), '-map', '0:s:0', '-c:s', 'srt', srtPath), BunServices.layer)
+        )
 
         expect(isForcedSubtitle(srtPath, probeResult.duration)).toBe(expected)
       } finally {

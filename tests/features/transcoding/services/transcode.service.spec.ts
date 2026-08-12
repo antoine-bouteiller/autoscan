@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 
+import { BunServices } from '@effect/platform-bun'
 import { runTest } from '@tests/effect'
 import { makeTestDir, refreshSectionsMock, videosPath } from '@tests/utils'
 import { Effect } from 'effect'
@@ -25,7 +26,7 @@ describe('transcodeFile', () => {
   })
 
   test('probes media streams', async () => {
-    const result = await Effect.runPromise(new FfmpegClient().ffprobe(join(videosPath, 'test_audio_dts.mkv')))
+    const result = await Effect.runPromise(Effect.provide(new FfmpegClient().ffprobe(join(videosPath, 'test_audio_dts.mkv')), BunServices.layer))
     expect(result.streams.some((stream) => stream.codec_type === 'audio')).toBeTrue()
   })
 

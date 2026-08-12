@@ -1,13 +1,12 @@
 import { basename, dirname, join } from 'node:path'
 
-import { Cause, Effect, Layer, Queue } from 'effect'
+import { Cause, Effect, FileSystem, Layer, Queue } from 'effect'
 
 import env from '@/config/env'
 import { Ffmpeg, Plex, TranscodeQueue } from '@/core/runtime.service'
 import { FileNameInvalidError, FileNotFoundError, ReplacementRollbackError } from '@/features/transcoding/errors'
 import { type TranscodeJob } from '@/features/transcoding/types'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
-import { exists, mkdir, readdir, remove, rename, writeFile } from '@/shared/utils/fs'
 
 import { processAudioStreams } from './helpers/audio.js'
 import { handlePostTranscode } from './helpers/post_process.js'
@@ -16,6 +15,7 @@ import { processVideoStreams } from './helpers/video.js'
 
 const processJob = (job: TranscodeJob) =>
   Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
     const fileName = basename(job.file, job.file.slice(job.file.lastIndexOf('.')))
     if (fileName.length === 0) {
       return yield* new FileNameInvalidError({ mediaTitle: job.mediaTitle })
@@ -23,15 +23,15 @@ const processJob = (job: TranscodeJob) =>
 
     const outputDirectory = `${env.TRANSCODE_PATH}/${fileName}`
     const recoveryMarker = join(outputDirectory, '.autoscan-recovery.json')
-    const cleanup = Effect.ignore(remove(outputDirectory, { recursive: true }))
-    if (yield* exists(recoveryMarker)) {
+    const cleanup = Effect.ignore(fs.remove(outputDirectory, { recursive: true }))
+    if (yield* fs.exists(recoveryMarker)) {
       return yield* new ReplacementRollbackError({
         artifacts: [outputDirectory, recoveryMarker],
         cause: new Error('Unresolved replacement marker'),
       })
     }
     const mediaDirectory = dirname(job.file)
-    const recoveryArtifacts = (yield* readdir(mediaDirectory))
+    const recoveryArtifacts = (yield* fs.readDirectory(mediaDirectory))
       .filter((name) => name.includes('autoscan-') && (name.startsWith(`${fileName}.`) || name.startsWith(`.${fileName}.`)))
       .map((name) => join(mediaDirectory, name))
     if (recoveryArtifacts.length > 0) {
@@ -42,8 +42,8 @@ const processJob = (job: TranscodeJob) =>
     }
     const work = Effect.gen(function* () {
       yield* cleanup
-      yield* mkdir(outputDirectory)
-      yield* writeFile(recoveryMarker, JSON.stringify({ file: job.file, mediaTitle: job.mediaTitle }))
+      yield* fs.makeDirectory(outputDirectory, { recursive: true })
+      yield* fs.writeFileString(recoveryMarker, JSON.stringify({ file: job.file, mediaTitle: job.mediaTitle }))
       const ffmpeg = yield* Ffmpeg
       for (const subtitle of job.subtitlesToExtract) {
         const subtitleOutput = `${fileName}.${subtitle.language}.srt`
@@ -55,7 +55,7 @@ const processJob = (job: TranscodeJob) =>
         })
         const subtitlePath = `${outputDirectory}/${subtitleOutput}`
         if (job.duration !== undefined && isForcedSubtitle(subtitlePath, job.duration)) {
-          yield* rename(subtitlePath, subtitlePath.replace(`.${subtitle.language}.srt`, `.${subtitle.language}.forced.srt`))
+          yield* fs.rename(subtitlePath, subtitlePath.replace(`.${subtitle.language}.srt`, `.${subtitle.language}.forced.srt`))
         }
       }
 
@@ -171,7 +171,8 @@ const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage:
 
 export const transcodeFile = (params: { file: string; mediaTitle: string; originalLanguage: ISOCode1; mediaType: 'movie' | 'show' }) =>
   Effect.gen(function* () {
-    if (!(yield* exists(params.file))) {
+    const fs = yield* FileSystem.FileSystem
+    if (!(yield* fs.exists(params.file))) {
       const error = new FileNotFoundError({ filePath: params.file })
       yield* Effect.logError(Cause.fail(error), 'transcodeFile')
       const plex = yield* Plex

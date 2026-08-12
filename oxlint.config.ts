@@ -19,12 +19,22 @@ export default defineConfig({
     typeCheck: true,
   },
   ignorePatterns: ['oxlint.config.ts', 'oxfmt.config.ts'],
+  overrides: [
+    {
+      // Every test builds and provides its own layers at the point where it runs.
+      files: ['tests/**'],
+      rules: { 'effecttsgo/strict-effect-provide': 'off' },
+    },
+    {
+      // Reusable helpers are the only place a pipeable overload is expected.
+      files: ['src/shared/**'],
+      rules: { 'effecttsgo/missing-pipeable-signature': 'error' },
+    },
+  ],
   plugins: ['typescript', 'unicorn', 'import', 'node', 'effecttsgo'],
   rules: {
-    // Internal helpers do not need pipeable overloads.
+    // Pipeable overloads are for reusable helpers; app handlers take (client, message)/(request, reply).
     'effecttsgo/missing-pipeable-signature': 'off',
-    // Entry points (bootstrap, tests) intentionally provide their layers where they run.
-    'effecttsgo/strict-effect-provide': 'off',
 
     // Restriction
     'no-empty': 'error',

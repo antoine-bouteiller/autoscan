@@ -15,7 +15,8 @@ export class MockRadarrClient implements IRadarrClient {
   }
 
   getMovieByPath(): Effect.Effect<number | undefined, HttpClientError> {
-    return Effect.void
+    // oxlint-disable-next-line effecttsgo/effect-succeed-with-void -- success channel is number | undefined, not void
+    return Effect.succeed(undefined)
   }
 
   refreshMovie() {

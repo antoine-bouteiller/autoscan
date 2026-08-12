@@ -1,7 +1,10 @@
-import { ISO1, iso1ToIso2T, iso2ToIso1, iso2TToIso2B, type ISOCode1, type ISOCode2B } from '@/shared/types/iso_codes'
+import { Array } from 'effect'
 
-import { isInArray } from './array.js'
-import { isKeyOf } from './object.js'
+import { ISO1, iso1ToIso2T, iso2ToIso1, iso2TToIso2B, type ISOCode1, type ISOCode2B, type ISOCode2T } from '@/shared/types/iso_codes'
+
+const isIso1Code = (code: string): code is ISOCode1 => Array.contains(ISO1, code)
+const isIso2Code = (code: string): code is keyof typeof iso2ToIso1 => code in iso2ToIso1
+const hasBibliographicCode = (code: ISOCode2T): code is keyof typeof iso2TToIso2B => code in iso2TToIso2B
 
 /**
  * Normalize a language code to ISO 639-1 (2-character) format
@@ -14,15 +17,11 @@ export const normalizeToIso1 = (code?: string): ISOCode1 | undefined => {
 
   const lowerCode = code.toLowerCase()
 
-  if (isInArray(ISO1, lowerCode)) {
+  if (isIso1Code(lowerCode)) {
     return lowerCode
   }
 
-  if (isKeyOf(iso2ToIso1, lowerCode)) {
-    return iso2ToIso1[lowerCode]
-  }
-
-  return undefined
+  return isIso2Code(lowerCode) ? iso2ToIso1[lowerCode] : undefined
 }
 
 /**
@@ -33,9 +32,5 @@ export const normalizeToIso1 = (code?: string): ISOCode1 | undefined => {
 export const iso1ToIso2B = (code: ISOCode1): ISOCode2B => {
   const terminologic = iso1ToIso2T[code]
 
-  if (isKeyOf(iso2TToIso2B, terminologic)) {
-    return iso2TToIso2B[terminologic]
-  }
-
-  return terminologic
+  return hasBibliographicCode(terminologic) ? iso2TToIso2B[terminologic] : terminologic
 }

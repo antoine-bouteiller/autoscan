@@ -103,7 +103,7 @@ its own spec).
 | `.errors.ts`     | (root or per kind) | Typed error classes                            |
 
 Import alias: `@/*` resolves to `./src/*.js` (Node subpath imports). Imports MUST use the `.js`
-extension, e.g. `import { foo } from '@/shared/utils/array.js'`.
+extension, e.g. `import { foo } from '@/shared/utils/object.js'`.
 
 ## 5. Acceptance Criteria
 

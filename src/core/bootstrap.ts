@@ -1,3 +1,4 @@
+import { BunServices } from '@effect/platform-bun'
 import { Effect, Fiber, FiberSet, Layer, Option } from 'effect'
 import { isFailure as isExitFailure } from 'effect/Exit'
 
@@ -51,7 +52,7 @@ const ClientsLive = Layer.mergeAll(
   Layer.succeed(Trakt, new TraktClient({ clientId: env.TRAKT_CLIENT_ID, clientSecret: env.TRAKT_CLIENT_SECRET }))
 )
 
-const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive, TraktAuthenticationTasksLive)
+const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive, TraktAuthenticationTasksLive, BunServices.layer)
 const QueueGraph = TranscodeQueueLive.pipe(Layer.provideMerge(BaseLive))
 const BackgroundGraph = BackgroundTasksLive.pipe(Layer.provideMerge(QueueGraph))
 const WorkflowGraph = TranscodeScanLive.pipe(Layer.provideMerge(BackgroundGraph))
@@ -145,4 +146,5 @@ export const program = Effect.gen(function* () {
   yield* http.start
   yield* FiberSet.run(telegramFibers, telegram.poll)
   return yield* Effect.never
+  // oxlint-disable-next-line effecttsgo/strict-effect-provide -- application entry point
 }).pipe(Effect.provide(AppLive), Effect.scoped, Effect.provide(LoggerLive))

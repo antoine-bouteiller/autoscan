@@ -1,3 +1,4 @@
+import { BunServices } from '@effect/platform-bun'
 import { DatabaseTestLayer } from '@tests/database'
 import { MockPlexClient, MockRadarrClient, MockSonarrClient, MockTelegramClient, MockTmdbClient, MockTraktClient } from '@tests/utils'
 import { Context, Effect, Layer, Logger } from 'effect'
@@ -35,7 +36,7 @@ export const makeTestLayer = (services: TestServices = {}) => {
     Layer.succeed(Tmdb, services.tmdb ?? new MockTmdbClient()),
     Layer.succeed(Trakt, services.trakt ?? new MockTraktClient())
   )
-  const base = Layer.mergeAll(clients, DatabaseTestLayer, TraktAuthenticationTasksLive)
+  const base = Layer.mergeAll(clients, DatabaseTestLayer, TraktAuthenticationTasksLive, BunServices.layer)
   const queue = TranscodeQueueLive.pipe(Layer.provideMerge(base))
   const background = BackgroundTasksLive.pipe(Layer.provideMerge(queue))
   return TranscodeScanLive.pipe(Layer.provideMerge(background))
