@@ -170,8 +170,7 @@ describe('cleanupAll', () => {
         title: 'Failed removal',
       }
       const radarr: IRadarrClient = {
-        // oxlint-disable-next-line effecttsgo/effect-succeed-with-void -- success channel is number | undefined, not void
-        getMovieByPath: () => Effect.succeed(undefined),
+        getMovieByPath: () => Effect.void,
         getQueue: Effect.succeed({ records: [stalled], totalRecords: 1 }),
         refreshMovie: () => Effect.void,
         removeQueueItem: () => {

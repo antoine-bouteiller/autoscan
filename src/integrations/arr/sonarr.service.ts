@@ -6,7 +6,7 @@ import { seriesValidator } from '@/integrations/arr/sonarr.validator'
 import { type HttpClientError } from '@/shared/types/http_client'
 
 export interface ISonarrClient extends QueueService {
-  readonly getSeriesByPath: (filePath: string) => Effect.Effect<number | undefined, HttpClientError>
+  readonly getSeriesByPath: (filePath: string) => Effect.Effect<number | void, HttpClientError>
   readonly refreshSeries: (seriesId: number) => Effect.Effect<void, HttpClientError>
   readonly renameSeries: (seriesId: number) => Effect.Effect<void, HttpClientError>
 }

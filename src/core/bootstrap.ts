@@ -146,5 +146,4 @@ export const program = Effect.gen(function* () {
   yield* http.start
   yield* FiberSet.run(telegramFibers, telegram.poll)
   return yield* Effect.never
-  // oxlint-disable-next-line effecttsgo/strict-effect-provide -- application entry point
-}).pipe(Effect.provide(AppLive), Effect.scoped, Effect.provide(LoggerLive))
+}).pipe(Layer.effectDiscard, Layer.provide(AppLive), Layer.provide(LoggerLive), Layer.launch)

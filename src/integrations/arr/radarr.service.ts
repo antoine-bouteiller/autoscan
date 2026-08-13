@@ -6,7 +6,7 @@ import { movieValidator } from '@/integrations/arr/radarr.validator'
 import { type HttpClientError } from '@/shared/types/http_client'
 
 export interface IRadarrClient extends QueueService {
-  readonly getMovieByPath: (filePath: string) => Effect.Effect<number | undefined, HttpClientError>
+  readonly getMovieByPath: (filePath: string) => Effect.Effect<number | void, HttpClientError>
   readonly refreshMovie: (movieId: number) => Effect.Effect<void, HttpClientError>
   readonly renameMovie: (movieId: number) => Effect.Effect<void, HttpClientError>
 }
