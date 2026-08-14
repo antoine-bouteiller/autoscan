@@ -1,195 +1,88 @@
 ---
-title: Transcoding Feature
-version: 1.0
-date_created: 2026-05-08
-last_updated: 2026-05-08
-tags: [feature, ffmpeg, radarr, sonarr, telegram, http, scheduler]
+title: Transcoding
+status: implemented
+author: Antoine Bouteiller
+date: 2026-08-14
+related:
+  - docs/project_structure.spec.md
+  - docs/architecture/architecture.spec.md
+  - src/providers/http/http.spec.md
+  - src/providers/scheduler/scheduler.spec.md
+  - src/providers/telegram/telegram.spec.md
+  - src/domains/media/media.spec.md
 ---
 
-# Introduction
+## 2. Problem Statement
 
-The transcoding feature normalizes media files into a Plex-friendly shape: a single MP4 container with kept video
-streams, language-targeted audio (re-encoded to AAC where required), and extracted SRT subtitles. It is triggered
-by Radarr/Sonarr Download webhooks, a 12-hourly library sweep, and a Telegram command.
+Media releases vary in container, stream codec, language metadata, and subtitle shape, which prevents predictable Plex playback and subtitle availability. The feature accepts arr download notifications, scheduled or manual library scans, and serializes a durable FFmpeg workflow that produces a Plex-friendly MP4 and selected SRT files.
 
-## 1. Purpose & Scope
+- `[G-1]` Normalize eligible media into MP4 with acceptable audio and language metadata.
+- `[G-2]` Extract selected subtitles and identify forced subtitles.
+- `[G-3]` Avoid duplicate work while accepting webhook, scheduled, and Telegram entry points.
+- `[G-4]` Replace source outputs only after validation and durable staging.
 
-Convert and prune media files to deterministic codecs and containers, extract relevant subtitles, write outputs into
-`TRANSCODE_PATH`, then atomically replace the source file and notify Plex/Radarr/Sonarr. Out of scope: hardware
-acceleration, custom quality profiles, GPU selection.
+## 3. Key Design Decisions
 
-## 2. Definitions
+| Decision                           | Choice                                                                                                                            | Rationale                                                                                                                                                                                             |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[KD-1]` Entry points              | Register Radarr/Sonarr webhooks, a twelve-hour scan, and `/transcode` / `/subtitlescan`.                                          | Arr downloads need prompt handling while library scans and operator commands cover media outside webhook delivery; registration exposes all four surfaces (`src/features/transcoding/feature.ts:11`). |
+| `[KD-2]` Work admission            | Use one scan permit and a scoped serial queue deduplicated by source path.                                                        | A single worker avoids concurrent replacement of the same file, and scan admission prevents overlapping library traversal (`src/features/transcoding/services/transcode.service.ts:81`).              |
+| `[KD-3]` Command construction      | Probe streams, copy by default, and transcode only selected nonconforming streams; `.mp4` is mandatory.                           | Stream-level work limits CPU while still making container and codec output predictable.                                                                                                               |
+| `[KD-4]` Output safety             | Write under `TRANSCODE_PATH`, validate generated video and audio, stage beside the source, then atomically install with rollback. | Separating production from installation protects the source library from partial FFmpeg output.                                                                                                       |
+| `[KD-5]` Post-install notification | Refresh and rename through Radarr or Sonarr, then refresh Plex.                                                                   | Each consumer needs to observe the installed media path and metadata after replacement.                                                                                                               |
 
-- **Probe**: `ffprobe` introspection of streams + duration.
-- **Remux**: Same codec, different container (e.g. `.mkv` -> `.mp4`).
-- **Transcode**: Re-encode (e.g. DTS audio -> AAC).
-- **Stream selection**: Pick which audio/subtitle streams to keep based on language criteria.
-- **Forced subtitle**: SRT with low lines-per-minute (< 3) or low screen-time ratio (< 15%); renamed `*.lang.forced.srt`.
-- **Original language**: ISO-639-1 code resolved from TMDB.
+## 4. Principles & Intents
 
-## 3. Requirements, Constraints & Guidelines
+- `[PI-1]` Probe-led selection — ffprobe, rather than webhook data, determines streams and duration.
+- `[PI-2]` Idempotent admission — an already conformant file or a known source path produces no duplicate queue work.
+- `[PI-3]` Interruptible preparation, durable commit — filesystem copies may stop safely; staging and installation maintain recovery artifacts if rollback cannot complete.
+- `[PI-4]` Criteria-driven streams — language rules belong in audio and subtitle criteria rather than entry-point branches.
 
-- **REQ-001** Expose `POST /radarr` and `POST /sonarr` webhooks accepting `Test`, `Download`, and delete-style events.
-- **REQ-002** Run a scheduled `Transcode` job on cron `0 0 */12 * * *` that walks every Plex section and submits each
-  media to `transcodeFile`.
-- **REQ-003** Expose Telegram `/transcode` to trigger a full library sweep manually and `/subtitlescan` to report
-  missing or out-of-sync external subtitles.
-- **REQ-004** All ffmpeg outputs MUST be written to `${TRANSCODE_PATH}/<fileName>/` before being copied back next to
-  the source file. The source file is removed only on a successful post-process probe.
-- **REQ-005** Output container MUST be `.mp4`. Output audio codecs MUST be in {`aac`, `ac3`, `eac3`}.
-- **REQ-006** Audio streams without a `language` tag MUST be tagged with the original language (ISO-639-2/B).
-- **CON-001** Only one scan and one transcode job run at a time: an Effect semaphore owns scans and a scoped serial worker deduplicates queued or active files.
-- **CON-002** ffprobe is the source of truth for stream selection; webhook payloads provide path + TMDB id only.
-- **GUD-001** Stream selection is criteria-driven (`Criteria[][]` in `services/helpers/utils.ts`). Add new languages
-  by editing audio/subtitle helpers, not by branching in the service.
-- **GUD-002** Filesystem (`FileSystem`) and subprocess (`ChildProcess`) boundaries return typed Effect failures and remain interruptible; pure existence and subtitle parsing checks stay synchronous.
-- **PAT-001** The service is idempotent through `getTranscodeCommand`: when no audio/video transcode is needed, no
-  subtitles are extractable, and the extension is already `.mp4`, the function returns `undefined` and the queue is
-  not touched.
+## 5. Non-Goals
 
-## 4. Interfaces & Data Contracts
+- `[NG-1]` Hardware acceleration, GPU selection, or custom quality profiles.
+- `[NG-2]` Use webhook payload stream metadata as the authoritative transcoding input.
+- `[NG-3]` Concurrent transcoding of multiple source files.
 
-### HTTP Routes
+## 6. Caveats
 
-| Method | Path      | Validator                             | Accepted `eventType`                                              |
-| ------ | --------- | ------------------------------------- | ----------------------------------------------------------------- |
-| POST   | `/radarr` | `@/integrations/arr/radarr.validator` | `Test`, `Download`, `MovieFileDelete`, `MovieDelete`              |
-| POST   | `/sonarr` | `@/integrations/arr/sonarr.validator` | `Test`, `Download`, `EpisodeFileDelete`, `Rename`, `SeriesDelete` |
+- `[C-1]` A missing source logs a typed error, refreshes Plex, and does not enter the queue.
+- `[C-2]` Non-`Download` arr events are accepted but do not transcode.
+- `[C-3]` Unresolved replacement markers or recovery artifacts stop processing so recovery material is preserved.
+- `[C-4]` The subtitle scan reports matching-subtitle absence and substantial timing divergence; it does not modify subtitles.
 
-Only `Download` triggers transcoding. Other event types are accepted by the validator and ignored by the handler
-(returns `{ message: 'ok' }`). When `transcodeFile` returns `false` (no work to do), the webhook falls back to
-`plexClient.refreshSections(file, mediaType)`.
+## 7. High-Level Components
 
-### Scheduled Jobs
+| Component                   | Module type           | Responsibility                                                | Public API surface                             |
+| --------------------------- | --------------------- | ------------------------------------------------------------- | ---------------------------------------------- |
+| Feature routes              | HTTP routes           | Receive Radarr and Sonarr events                              | `POST /radarr`, `POST /sonarr`                 |
+| Scan job                    | Effect job/service    | Traverse Plex media under exclusive scan admission            | `runTranscodeProcess`, `startTranscodeProcess` |
+| Transcode service and queue | Scoped Effect service | Probe, select streams, enqueue, execute, and deduplicate jobs | `transcodeFile`, `TranscodeQueue`              |
+| Post-process service        | Filesystem workflow   | Validate and durably install generated outputs                | `handlePostTranscode`                          |
+| Telegram commands           | Telegram commands     | Start a scan and report subtitle issues                       | `/transcode`, `/subtitlescan`                  |
 
-| Name        | Pattern          | Handler               | Behaviour                                                       |
-| ----------- | ---------------- | --------------------- | --------------------------------------------------------------- |
-| `Transcode` | `0 0 */12 * * *` | `runTranscodeProcess` | Iterates Plex sections + media, calls `transcodeFile` per item. |
+## 8. Detailed Design
 
-### Telegram Commands
+### Feature routes
 
-| Command         | Handler               | Effect                                                                             |
-| --------------- | --------------------- | ---------------------------------------------------------------------------------- |
-| `/transcode`    | `transcodeCommand`    | If a scan is running, replies and exits. Otherwise launches `runTranscodeProcess`. |
-| `/subtitlescan` | `subtitleScanCommand` | Reports media missing English SRTs or with FR/EN tracks > 300ms desync.            |
+Both routes validate arr payloads. Only `Download` builds the source path, resolves original language through the media domain, and invokes `transcodeFile`; a false result refreshes the relevant Plex media type (`src/features/transcoding/webhooks/radarr.webhook.ts:11`, `src/features/transcoding/webhooks/sonarr.webhook.ts:12`). Other accepted events return the normal success response without work.
 
-### Service API (`services/transcode.service.ts`)
+### Scan job
 
-- `transcodeFile({ file, mediaTitle, originalLanguage, mediaType })`: Probes the file, computes a command, enqueues a
-  job. Returns `true` if a job was enqueued, `false` otherwise (file missing, no work needed, or a failure logged at the workflow boundary).
-- `TranscodeQueue.enqueue(job)`: scoped serial worker service that rejects duplicate queued or active files; shutdown is scope-owned.
-- `TranscodeQueue.status`: `{ currentJob?, isProcessing, queueLength }`.
+The scheduled feature runs on `0 */12 * * *` (`src/features/transcoding/feature.ts:16`). A scan traverses Plex sections and media, obtains complete media details, and submits each file. `TranscodeScan` grants one scan permit and releases it through finalization; `/transcode` starts that workflow in the tracked background set and reports whether admission succeeded (`src/features/transcoding/jobs/transcode.job.ts:99`, `src/features/transcoding/commands/transcode.command.ts:9`).
 
-### `TranscodeJob` Shape
+### Transcode service and queue
 
-```ts
-interface TranscodeJob {
-  command: string[] // ffmpeg args after `-i input`
-  duration?: number // from ffprobe; used for forced-subtitle detection
-  file: string // absolute source path
-  mediaTitle: string
-  mediaType: 'movie' | 'show'
-  originalLanguage: ISOCode1
-  subtitlesToExtract: { index: number; language: ISOCode1 }[]
-}
-```
+`transcodeFile` checks source existence, probes FFmpeg streams, selects video/audio/subtitles, and only enqueues work when a codec, selected subtitle, or non-MP4 extension requires it (`src/features/transcoding/services/transcode.service.ts:173`). The scoped queue records known paths, admits each path once, and processes jobs serially. Jobs write subtitles and the MP4 to `${TRANSCODE_PATH}/<fileName>/`; forced subtitles are renamed based on duration analysis before the main output is installed.
 
-### FFmpeg Pipeline
+### Post-process service
 
-1. `ffprobe` -> `{ duration, streams }`.
-2. `processVideoStreams`: drop `mjpeg` / `png` / `gif`; map remaining `0:v:i`. Trigger transcode if any drop occurred.
-3. `processAudioStreams`: per language criteria, map best stream; if codec not in `{aac,ac3,eac3}` add `-c:a:i aac`;
-   tag undefined languages with `iso1ToIso2B(originalLanguage)`.
-4. `processSubtitleStreams`: collect SRT/ASS streams per language criteria (FR forced when original is FR, else
-   non-forced/non-SDH EN + FR).
-5. Pre-pend `-c copy`, build final command. If extension is not `mp4`, force execution.
-6. Worker extracts each subtitle to `${TRANSCODE_PATH}/<name>/<name>.<lang>.srt`, runs `isForcedSubtitle` to rename
-   to `*.forced.srt` when applicable, then runs the main transcode to `${TRANSCODE_PATH}/<name>/<name>.mp4`.
-7. `handlePostTranscode`: validate output, stream to same-directory staging files with cancellation, wait for interrupted streams to close, then uninterruptibly fsync, back up collisions, atomically install or roll back, and refresh Radarr/Sonarr and Plex.
+Post-processing verifies the generated MP4 has video and audio, stages all outputs in the source directory, fsyncs stages and directory, backs up colliding originals, installs staged files, and rolls back on commit failure. It removes successful backups and output directory, preserves recovery artifacts on rollback failure, then refreshes/renames the matching arr record and refreshes Plex (`src/features/transcoding/services/helpers/post_process.ts:131`, `src/features/transcoding/services/helpers/post_process.ts:171`).
 
-## 5. Acceptance Criteria
+### Telegram subtitle scan
 
-- **AC-001** Given a Radarr `Download` event, when payload validates, then `transcodeFile` is invoked with the joined
-  `folderPath` + `relativePath`, the resolved TMDB language, and `mediaType: 'movie'`.
-- **AC-002** Given a Sonarr `Download` event, when payload validates, then `transcodeFile` is invoked with the joined
-  `series.path` + `episodeFile.relativePath`, and `mediaType: 'show'`.
-- **AC-003** Given the cron pattern `0 0 */12 * * *`, the job iterates every Plex section, fetches metadata, and submits each file to the queue; admission is serialized and the Effect semaphore releases on completion, typed failure, defect, or interruption.
-- **AC-004** Given the `/transcode` Telegram command, when no scan is running it starts a tracked Effect workflow; otherwise it replies "already running" and exits.
-- **AC-005** Given a file already in `.mp4` with acceptable codecs, language tags, and no extractable subtitles,
-  `transcodeFile` returns `false` and no ffmpeg call is made.
-- **AC-006** Given a successful transcode, the source file is removed and the output mp4 + extracted SRTs sit in the
-  source directory; the temporary `${TRANSCODE_PATH}/<name>/` directory is purged.
-- **AC-007** Given a missing source file, `FileNotFoundError` is logged at the workflow boundary, Plex is asked to refresh, and the queue is not touched.
-- **AC-008** Given interruption during staging, the copy stream closes before the partial stage is removed; the source and atomic commit region remain untouched.
+`/subtitlescan` starts a background analysis over Plex media. It reports missing English SRTs and French/English subtitle timing divergence above 300ms for most aligned entries, or confirms matching subtitles (`src/features/transcoding/commands/subtitle_scan.command.ts:122`).
 
-## 6. Test Automation Strategy
+## 9. Open Questions
 
-- Unit-test helpers (`audio.ts`, `video.ts`, `subtitle.ts`, `utils.ts`, `post_process.ts`) by feeding crafted
-  `FFprobeStream[]` arrays and asserting the produced command + `shouldExecute` flag.
-- Provide local FFmpeg, Plex, Radarr, and Sonarr layers; assert replacement durability and vendor call ordering.
-- Validator tests: every `eventType` permutation parses; malformed bodies reject with `ValidationError`.
-
-## 7. Rationale & Context
-
-Plex Direct Play requires MP4 + AAC (or AC3/EAC3) and embedded language metadata. Source releases are inconsistent:
-DTS-HD audio, MKV containers, untagged streams, multiple SDH/forced subtitles. The pipeline encodes only what must
-change (`-c copy` baseline, plus per-stream overrides) to minimize CPU. Output goes to a separate `TRANSCODE_PATH` so
-a partial run cannot corrupt the source library; the source is replaced only after a post-process re-probe confirms
-the output has both video and audio streams.
-
-## 8. Dependencies & External Integrations
-
-### External Systems
-
-- **EXT-001** Radarr - movie webhook source; queried for `getMovieByPath` / `refreshMovie` / `renameMovie`.
-- **EXT-002** Sonarr - episode webhook source; queried for `getSeriesByPath` / `refreshSeries` / `renameSeries`.
-- **EXT-003** TMDB - resolves `originalLanguage` via `getMediaLanguage(tmdbId, mediaType)`.
-- **EXT-004** Plex - `getSections`, `getSectionMedia`, `refreshSections`.
-- **EXT-005** FFmpeg / FFprobe - interruptible `ChildProcess` adapter on the Bun spawner layer.
-
-### Internal Dependencies
-
-- **DEP-001** `@/integrations/arr` - Radarr/Sonarr clients + webhook validators.
-- **DEP-002** `@/integrations/ffmpeg` - `FfmpegClient`, `FFprobeStream` validator.
-- **DEP-003** `@/integrations/plex`, `@/integrations/tmdb`, `@/integrations/telegram`.
-- **DEP-004** `@/providers/http` - `postRoute`, request/reply types, `success`.
-- **DEP-005** `@/providers/scheduler` - cron registration via `defineFeature`.
-- **DEP-006** `@/providers/telegram` - command registration via `defineFeature`.
-- **DEP-007** `@/domains/media/services/metadata.service` - `getMediaLanguage`, `getCompleteMediaDetails`.
-- **DEP-008** `@/config/env` - `TRANSCODE_PATH` (required string).
-
-## 9. Examples & Edge Cases
-
-Radarr `Download` payload (minimum fields):
-
-```json
-{
-  "eventType": "Download",
-  "movie": { "folderPath": "/movies/Inception (2010)", "title": "Inception", "tmdbId": 27205 },
-  "movieFile": { "relativePath": "Inception.2010.mkv" }
-}
-```
-
-Decision examples:
-
-- Source `mkv`, single AAC EN audio with `language=eng` tag, no subtitles: extension forces `shouldExecute=true`,
-  command is `-c copy -map 0:v:0 -map 0:a:0` -> remux only.
-- Source `mp4`, DTS audio: audio helper emits `-c:a:0 aac`, video stays copy.
-- Source `mkv`, FR original with embedded forced FR subtitle: only the forced FR SRT is extracted; main audio is the
-  FR stream.
-- Forced subtitle detection: an extracted SRT with < 3 lines/minute or < 15% screen-time is renamed to
-  `<name>.<lang>.forced.srt`.
-
-## 10. Validation Criteria
-
-- Non-mutating format/lint/type checks and `bun run test` succeed.
-- Webhook validators round-trip every documented `eventType`.
-- `getTranscodeCommand` returns `undefined` for an already-conformant file (no queue entry, no ffmpeg invocation).
-- Post-process deletes temporary and backup artifacts only after successful commit or verified rollback; rollback failure preserves recovery artifacts.
-
-## 11. Related Specifications / Further Reading
-
-- ../../../docs/architecture/feature_registration.spec.md
-- ../../providers/http/http.spec.md
-- ../../providers/scheduler/scheduler.spec.md
-- ../../providers/telegram/telegram.spec.md
+N/A

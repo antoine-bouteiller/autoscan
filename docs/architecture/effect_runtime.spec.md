@@ -1,39 +1,70 @@
 ---
-title: Effect v4 Runtime Contract
-version: 1.2
-date_created: 2026-08-05
-last_updated: 2026-08-06
-tags: [architecture, effect, runtime, reliability]
+title: Effect Runtime Contract
+status: implemented
+author: Antoine Bouteiller
+date: 2026-08-14
+parent-spec: docs/architecture/architecture.spec.md
+related: [docs/project_structure.spec.md]
 ---
 
-# Runtime boundary
+## 2. Problem Statement
 
-Autoscan targets exactly `effect@4.0.0-beta.103`, `@effect/platform-bun@4.0.0-beta.103`, and `@effect/platform-node-shared@4.0.0-beta.103`. `@effect/tsgo@0.36.0` patches the existing oxlint type-aware engine. Bun remains the runtime, package manager, test runner, HTTP server, cron host, SQL client, and subprocess host.
+N/A — goals are owned by `docs/architecture/architecture.spec.md`.
 
-`BunRuntime.runMain(program)` owns the only root runtime. Environment secret loading and Effect Schema validation remain eager startup trust-boundary checks. Effect owns database acquisition and migration, service composition, scopes, interruption, schedules, typed recoverable failures, and supervised workflows.
+## 3. Key Design Decisions
 
-# Native adapters
+| Decision                    | Choice                                                                                                            | Rationale                                                                                                                                            |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[KD-1]` Service contracts  | Database, integration clients, providers, and workflow owners use `Context.Service` keys.                         | Effect requirements remain statically visible and concrete implementations can be exchanged by a layer (`src/core/runtime.service.ts:19`).           |
+| `[KD-2]` Callback execution | Scheduled callbacks use `CallbackRuntime.runPromise`, backed by a scoped `FiberSet`.                              | Native cron callbacks receive a Promise boundary while their effects remain tracked for shutdown (`src/core/bootstrap.ts:60`).                       |
+| `[KD-3]` Workflow admission | Background work and keyed authentication tasks serialize admission and reject work after intake stops.            | The shutdown sequence cannot race a newly admitted task (`src/core/runtime.service.ts:84`).                                                          |
+| `[KD-4]` Boundary failures  | Recoverable failures remain Effect errors until a provider boundary logs and maps them to its transport contract. | Shared workflows avoid duplicate logging while HTTP and Telegram preserve stable client-facing behavior (`src/providers/http/http.provider.ts:115`). |
 
-- `BunHttpServer`, `Bun.cron`, Bun SQL, Drizzle, and Effect Schema remain native adapters; `BunServices.layer` provides `FileSystem` and `ChildProcessSpawner`.
-- Scheduler callbacks receive one runner backed by a scoped `FiberSet`; HTTP handlers execute directly in the request Effect, and feature and integration modules never create runtimes.
-- Telegram polling is a root-scoped Effect with interruptible long polling and exponential backoff from 5 seconds to 5 minutes.
-- Scheduler callbacks await tracked job completion, preserving Bun's no-overlap behavior.
-- Background scans and keyed Trakt authentication tasks launch directly through `FiberSet.run` / `FiberMap.run`; admission and intake shutdown are serialized. The serial transcode worker is scope-owned.
+## 4. Principles & Intents
 
-# Shutdown
+- `[PI-1]` Scoped asynchronous work — refines umbrella `[PI-3]`: fibers belong to an owner that exposes intake, drain, and clear operations.
+- `[PI-2]` Typed recoverable failures — refines umbrella `[PI-2]`: provider boundaries, not shared clients, present failures to callers.
 
-Shutdown stops scheduler and HTTP intake first. `BunHttpServer` allows graceful connection shutdown for up to 30 seconds while tracked callbacks and transcode work drain. At the deadline the runtime interrupts remaining tracked fibers. Provider and database scopes then release in reverse dependency order. Finalizers do not call `process.exit`.
+## 5. Non-Goals
 
-# Error policy
+- `[NG-1]` Untracked background execution — refines umbrella `[NG-2]`: feature and integration code does not create a root runtime.
 
-Recoverable network, status, validation, command, filesystem, database, and domain failures use `Data.TaggedError` values in Effect error channels. Shared clients do not log. Provider or workflow boundaries log once and map failures to their stable user-facing contract. Mutation requests and FFmpeg operations are not retried automatically. GET requests retry only network failures, 429 responses, and 5xx responses at most twice within the request deadline.
+## 6. Caveats
 
-# Transcode durability
+- `[C-1]` The runtime uses Effect and the Bun platform adapter at the versions declared in `package.json:19`.
+- `[C-2]` HTTP shutdown permits up to 30 seconds for graceful connection shutdown (`src/providers/http/http.provider.ts:148`).
 
-The serial worker deduplicates queued and active media. Replacement validates video and audio streams, streams outputs to unique same-directory staging paths with cancellation, then fsyncs files and directories, backs up collisions, installs atomically, and rolls back in an uninterruptible region. Interruption waits for staging streams to close before cleanup. A rollback failure returns `ReplacementRollbackError` with recovery artifact paths and preserves those artifacts.
+## 7. High-Level Components
 
-# Testing and diagnostics
+| Component            | Module type              | Responsibility                                                                | Public API surface                                       |
+| -------------------- | ------------------------ | ----------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Runtime service keys | Effect context           | Identify dependencies and workflow owners                                     | `Database`, clients, providers, `AppRequirements`        |
+| Callback runtime     | scoped FiberSet          | Execute native callbacks in application requirements                          | `runPromise`, `awaitEmpty`, `clear`                      |
+| Workflow owners      | scoped FiberSet/FiberMap | Admit, track, drain, and interrupt asynchronous work                          | `BackgroundTasks`, `TranscodeScan`, authentication tasks |
+| Provider boundaries  | transport providers      | Execute effects and translate failures at HTTP, scheduler, and Telegram edges | provider methods                                         |
 
-Effectful diagnostics use the application `Logger` layer with ordered context annotations and original Causes; native logging is limited to scheduler callbacks and synchronous transcode stream-selection helpers. ARR queue reads aggregate every page and queue removals are fail-fast with concurrency four.
+## 8. Detailed Design
 
-Tests use `bun:test`, local layers, Effect's test clock, and native boundary fakes. CI runs `oxfmt --check .`, Effect-aware `oxlint`, and `tsc --noEmit` directly as non-mutating verification. Database lifecycle tests prove closure after success and migration failure.
+### Service and requirement model
+
+`runtime.service.ts` declares service keys for database, integration clients, and providers, then combines workflow dependencies into `AppRequirements` (`src/core/runtime.service.ts:42`). Effects request those services through their requirements; composition supplies them as layers.
+
+### Callback and workflow ownership
+
+`CallbackRuntime` contains a `FiberSet`, a Promise runner, and drain/clear operations (`src/core/runtime.service.ts:110`). The scheduler stores that runner and uses it only while accepting callbacks; duplicate job names are skipped by the provider (`src/providers/scheduler/scheduler.provider.ts:19`). `BackgroundTasks` guards admission with a semaphore and tracks admitted fibers in its own set (`src/core/runtime.service.ts:84`); keyed Trakt authentication uses the equivalent `FiberMap` pattern (`src/features/trakt_sync/services/authentication.service.ts:13`).
+
+### Native adapters and polling
+
+Bun remains the process runtime through `runMain` (`src/index.ts:16`). The HTTP provider obtains its server from the Bun platform adapter, and the scheduler uses `Bun.cron` unless a boundary fake is supplied (`src/providers/scheduler/scheduler.provider.ts:19`). Telegram polling maintains an update offset; a failed poll is logged and retried with exponential delay from five seconds up to five minutes (`src/providers/telegram/telegram.provider.ts:135`).
+
+### Queue and workflow behavior
+
+The transcode queue is a scope-owned serial worker. It rejects duplicate or post-intake jobs by file path, tracks the active job, and exposes an idle signal for shutdown (`src/features/transcoding/services/transcode.service.ts:82`). A job creates a recovery marker before processing and cleans its output directory on ordinary failure or interruption; unresolved markers or artifacts become `ReplacementRollbackError` values (`src/features/transcoding/services/transcode.service.ts:25`).
+
+### Failure, diagnostics, and shutdown behavior
+
+HTTP handlers return an internal-error response for non-interruption failures after logging the cause, while preserving interruption (`src/providers/http/http.provider.ts:115`). Telegram resets conversation state, reports an unexpected error, and continues polling on ordinary handler failures (`src/providers/telegram/telegram.provider.ts:43`). Scheduler callback failures are logged at the native callback boundary (`src/providers/scheduler/scheduler.provider.ts:31`). The container coordinates the owners' stop-intake, await-empty, and clear operations within its shutdown deadline. Tests compose local layers with boundary fakes through `makeTestLayer` (`tests/effect.ts:28`).
+
+## 9. Open Questions
+
+N/A

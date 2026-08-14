@@ -1,141 +1,69 @@
 ---
-title: Send Message Feature
-version: 1.1
-date_created: 2026-05-08
-last_updated: 2026-08-06
-tags: [feature, http, telegram, webhook]
+title: Send Message
+status: implemented
+author: Antoine Bouteiller
+date: 2026-08-14
+related:
+  - docs/project_structure.spec.md
+  - docs/architecture/architecture.spec.md
+  - src/providers/http/http.spec.md
 ---
 
-# Introduction
+## 2. Problem Statement
 
-The `send_message` feature exposes a single HTTP endpoint that forwards a text payload to the Telegram chat configured
-via `TELEGRAM_CHAT_ID`. It is the internal "send notification" hook other systems POST to in order to surface a message
-to the operator.
+Internal systems need a small webhook surface for delivering operational text to the configured Telegram chat. This feature accepts a validated text payload and forwards it without exposing chat selection or message-presentation controls.
 
-## 1. Purpose & Scope
+- `[G-1]` Provide one validated HTTP endpoint that delivers text to the configured Telegram chat.
+- `[G-2]` Preserve the HTTP provider's standard success and validation-error envelopes.
 
-- Provide an authenticated-by-network internal webhook for delivering arbitrary text messages to Telegram.
-- Out of scope: targeting arbitrary chat ids, formatting (Markdown/HTML), inline keyboards, message editing.
+## 3. Key Design Decisions
 
-## 2. Definitions
+| Decision                       | Choice                                                             | Rationale                                                                                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `[KD-1]` Route surface         | Register only `POST /send_message`.                                | The feature has one delivery use case, and the feature registration confines its public surface to that route (`src/features/send_message/feature.ts:8`).          |
+| `[KD-2]` Schema ownership      | Validate `{ text: string }` with a co-located Effect Schema.       | The webhook owns its request contract, so co-location keeps the producer's boundary explicit (`src/features/send_message/validators/send_message.validator.ts:3`). |
+| `[KD-3]` Destination identity  | Read the destination from `TELEGRAM_CHAT_ID`, never from the body. | A caller-supplied chat id would turn an internal notification hook into an arbitrary-message relay.                                                                |
+| `[KD-4]` Response construction | Use the HTTP provider `success` helper with `{ message: 'ok' }`.   | Provider helpers keep envelope and status behavior consistent across routes.                                                                                       |
 
-- **Route-only feature**: a feature whose only registration surface is `routes` (no jobs, commands, conversations).
-- **Telegram client**: low-level HTTP wrapper over the Telegram Bot API (`@/integrations/telegram`).
-- **Telegram provider**: high-level long-polling/dispatch layer (`@/providers/telegram`) — NOT used here.
+## 4. Principles & Intents
 
-## 3. Requirements, Constraints & Guidelines
+- `[PI-1]` Fixed destination — the configured chat is the only delivery target.
+- `[PI-2]` Boundary validation — invalid bodies do not reach Telegram delivery.
+- `[PI-3]` Minimal route-only design — no scheduler, command, or conversation belongs to this feature.
 
-- **REQ-001** Register exactly one route: `POST /send_message` via `postRoute` in `feature.ts`.
-- **REQ-002** Validate the request body with `sendMessageValidator` (Effect Schema) before invoking the handler.
-- **REQ-003** Yield the Telegram Effect service and call `sendMessage(env.TELEGRAM_CHAT_ID, body.text)`.
-- **REQ-004** Return `success(reply, { message: 'ok' })` (HTTP 200) on completion.
-- **CON-001** The destination chat id is fixed: it MUST come from `env.TELEGRAM_CHAT_ID`, never from the request body.
-- **CON-002** The endpoint is unauthenticated; deployment MUST keep it on a private network.
-- **GUD-001** Keep the validator co-located here — the body shape is defined by this feature (producer-owned schema).
-- **GUD-002** Use the `success` / `badRequest` helpers from `@/providers/http/response`; do not hand-roll envelopes.
-- **PAT-001** Follow the route-only feature pattern: export a `defineFeature({ name, routes: [postRoute(...)] })`.
+## 5. Non-Goals
 
-## 4. Interfaces & Data Contracts
+- `[NG-1]` Target arbitrary chat ids.
+- `[NG-2]` Support Markdown/HTML formatting, inline keyboards, or editing messages.
+- `[NG-3]` Authenticate requests at the application layer; deployment keeps the endpoint private.
 
-Route signature:
+## 6. Caveats
 
-```
-POST /send_message
-Content-Type: application/json
-```
+- `[C-1]` An empty string satisfies the string schema; Telegram determines whether such a message is deliverable.
+- `[C-2]` Non-JSON bodies and schema failures are rejected by the HTTP provider before the webhook handler runs.
 
-Request body (Effect Schema):
+## 7. High-Level Components
 
-```ts
-Schema.Struct({ text: Schema.String })
-```
+| Component              | Module type    | Responsibility                          | Public API surface     |
+| ---------------------- | -------------- | --------------------------------------- | ---------------------- |
+| Feature registration   | HTTP feature   | Bind validator and handler to the route | `POST /send_message`   |
+| Send-message validator | Effect Schema  | Define the request body                 | `sendMessageValidator` |
+| Send-message webhook   | Effect handler | Send text and complete the HTTP reply   | `sendMessageWebhook`   |
 
-Response envelope (success, 200):
+## 8. Detailed Design
 
-```json
-{ "data": { "message": "ok" }, "success": true, "meta": { "timestamp": "<ISO-8601>" } }
-```
+### Feature registration
 
-Response envelope (validation failure, 400):
+The feature registers `postRoute('/send_message', sendMessageValidator, sendMessageWebhook)`, making the validator part of the route boundary (`src/features/send_message/feature.ts:8`).
 
-```json
-{
-  "error": {
-    "code": "BAD_REQUEST",
-    "message": "invalid request",
-    "details": { "issues": [{ "message": "Missing key", "path": ["text"] }] }
-  },
-  "success": false,
-  "meta": { "timestamp": "<ISO-8601>" }
-}
-```
+### Send-message validator
 
-Status codes: `200` on success, `400` on validation failure, `404` if route not registered, `500` on unhandled error.
+The body contract is `Schema.Struct({ text: Schema.String })` (`src/features/send_message/validators/send_message.validator.ts:3`). A valid request has JSON content equivalent to `{ "text": "plex restart complete" }`.
 
-## 5. Acceptance Criteria
+### Send-message webhook
 
-- **AC-001** Given a valid `{ "text": "hello" }` POST, When the handler runs, Then `TelegramClient.sendMessage` is called
-  with `(env.TELEGRAM_CHAT_ID, "hello")` and the response is `200 { data: { message: 'ok' }, success: true }`.
-- **AC-002** Given a body missing `text` or with non-string `text`, When the handler runs, Then the response is
-  `400 { error.code: 'BAD_REQUEST', success: false }` and the Telegram client is NOT called.
-- **AC-003** Given the Telegram API returns an unmapped typed failure, the HTTP provider logs once and returns the stable 500 `INTERNAL_ERROR` response.
-- **AC-004** Given a non-JSON request body, When the HTTP server parses it, Then `400 { error.code: 'BAD_REQUEST' }` is
-  returned by the provider before the handler runs.
+The handler resolves the Telegram Effect service, calls `sendMessage(env.TELEGRAM_CHAT_ID, request.body.text)`, then produces `success(reply, { message: 'ok' })` (`src/features/send_message/webhooks/send_message.webhook.ts:9`, `src/features/send_message/webhooks/send_message.webhook.ts:12`). Therefore successful delivery returns the provider's 200 success envelope; boundary validation failures return its 400 bad-request envelope.
 
-## 6. Test Automation Strategy
+## 9. Open Questions
 
-- Unit-test the webhook with a local Telegram layer and assert `sendMessage` arguments.
-- Integration-test via `HttpProvider.inject({ method: 'POST', url: '/send_message', payload })` to cover the full
-  validator + handler path and assert envelope shape and status code.
-- Cover both AC-001 and AC-002 explicitly; AC-003 via a stub client that resolves `undefined`.
-
-## 7. Rationale & Context
-
-- **Route-only feature**: this is an Effect-based fan-in webhook; it owns no schedule, command, or conversation, so
-  registering only `routes` keeps the surface minimal.
-- **Validator co-location**: the request body is defined by this feature, not by an upstream integration, so the Effect
-  Schema lives under `validators/` per the project's "validators live with the producer" rule.
-- **Client over provider**: the feature needs to push a single message, not consume updates or dispatch commands, so it
-  resolves the lower-level `TELEGRAM_CLIENT` rather than the long-polling `TELEGRAM_PROVIDER`.
-
-## 8. Dependencies & External Integrations
-
-### External Systems
-
-- **EXT-001** Telegram Bot API (`https://api.telegram.org/bot<token>/sendMessage`) — reached via the integration client.
-
-### Internal Dependencies
-
-- **DEP-001** `@/integrations/telegram` and `@/core/runtime.service` — typed Telegram client service.
-- **DEP-002** `@/providers/http` — `HttpProvider.post` registers the route; `success`/`badRequest` build the envelope.
-- **DEP-003** `@/core/feature` — `defineFeature` and `postRoute` helpers.
-- **DEP-004** `@/config/env` — `TELEGRAM_CHAT_ID` (coerced number) and `TELEGRAM_TOKEN` (consumed by the client).
-
-## 9. Examples & Edge Cases
-
-Valid POST:
-
-```sh
-curl -X POST http://localhost:3030/send_message \
-  -H 'Content-Type: application/json' \
-  -d '{"text":"plex restart complete"}'
-```
-
-Edge cases:
-
-- Empty string `text`: passes validation (`Schema.String` accepts `""`); Telegram API rejects empty messages — delivery
-  fails, handler still returns 200.
-- Missing `text` field: `400 BAD_REQUEST` with Effect Schema issue details.
-- Extra fields in body: silently accepted and dropped by `Schema.Struct`.
-
-## 10. Validation Criteria
-
-- The route appears in the `HttpProvider` route map as `POST:/send_message` after `registerFeatures` runs.
-- Non-mutating format/lint/type checks and `bun run test` pass for the feature directory.
-- A POST with a valid body produces a Telegram message in the configured chat in a smoke environment.
-
-## 11. Related Specifications / Further Reading
-
-- ../../../docs/architecture/feature_registration.spec.md
-- ../../providers/http/http.spec.md
-- ../../providers/telegram/telegram.spec.md
+N/A

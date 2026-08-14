@@ -1,133 +1,74 @@
 ---
-title: Queue Cleanup Feature
-version: 1.0
-date_created: 2026-05-08
-last_updated: 2026-05-08
-tags: [feature, radarr, sonarr, scheduler]
+title: Queue Cleanup
+status: implemented
+author: Antoine Bouteiller
+date: 2026-08-14
+related:
+  - docs/project_structure.spec.md
+  - docs/architecture/architecture.spec.md
+  - src/providers/scheduler/scheduler.spec.md
 ---
 
-# Introduction
+## 2. Problem Statement
 
-The `queue_cleanup` feature periodically inspects the Radarr and Sonarr download queues and removes
-entries that are stalled with no connections or that produced unimportable files. It is a
-jobs-only feature: no HTTP routes, no Telegram commands.
+Stalled downloads and releases that cannot be imported occupy Radarr and Sonarr queues and prevent useful work from proceeding. The feature polls both queues, removes terminally unusable entries immediately, and removes persistently stalled entries after a bounded observation window.
 
-## 1. Purpose & Scope
+- `[G-1]` Remove queue entries that are known to be unimportable.
+- `[G-2]` Remove downloads that remain stalled across five cleanup passes without conflating Radarr and Sonarr state.
+- `[G-3]` Bound removal pressure while processing both services concurrently.
 
-- Free the \*arr download queues from stuck or unusable items so other downloads can proceed.
-- Out of scope: triaging healthy downloads, retrying searches, blocklisting at the indexer level
-  (Radarr/Sonarr handle that when `blocklist=true` is passed on removal).
+## 3. Key Design Decisions
 
-## 2. Definitions
+| Decision                     | Choice                                                                                                  | Rationale                                                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `[KD-1]` Polling             | Register `Cleanup` on `*/10 * * * *`.                                                                   | Queue state originates in the arr services, so regular polling is required; the feature declares the ten-minute cadence (`src/features/queue_cleanup/feature.ts:6`).           |
+| `[KD-2]` Immediate removal   | Remove entries reporting ineligible files or dangerous extensions with blocklisting and client removal. | These messages describe releases that cannot become importable, so waiting for additional passes only retains unusable work.                                                   |
+| `[KD-3]` Stall threshold     | Maintain five strikes for stalled or downloading entries without `timeleft`.                            | A threshold allows transient stalls to recover while giving a deterministic removal point; the threshold is five (`src/features/queue_cleanup/services/cleanup.service.ts:6`). |
+| `[KD-4]` State partition     | Key in-memory strikes by arr service, then queue id.                                                    | Queue ids are service-local, so service partitioning prevents equal ids and independent passes from corrupting each other's strike history.                                    |
+| `[KD-5]` Removal concurrency | Share a four-permit semaphore across both arr passes.                                                   | A global bound protects the two remote queue APIs even though their scans run concurrently.                                                                                    |
 
-- **arr**: Radarr (movies) or Sonarr (series).
-- **queue**: list of in-flight downloads tracked by an arr instance (`GET /api/v3/queue`).
-- **stalled**: download with `status='warning'` and `errorMessage='The download is stalled with no connections'`.
-- **no download speed**: download with `status='downloading'` and a missing/null `timeleft` — covers torrent
-  clients that never surface a `warning` status when a download stops progressing.
-- **blocklist**: arr-side flag that prevents the same release from being grabbed again.
+## 4. Principles & Intents
 
-## 3. Requirements, Constraints & Guidelines
+- `[PI-1]` Conservative deletion — malformed entries are warned and never removed.
+- `[PI-2]` Service symmetry — the common `QueueService` contract drives both arrs without per-arr policy branches.
+- `[PI-3]` Complete-pass eviction — only a successful complete queue read may purge absent strike entries.
 
-- **REQ-001** Run on cron `0 */10 * * * *` (every 10 minutes) under job name `Cleanup`.
-- **REQ-002** Remove an item immediately when its `statusMessages` contain `No files found are eligible for import`
-  or `Caution: Found potentially dangerous file with extension:`.
-- **REQ-003** For stalled items (`status='warning'` and the stalled `errorMessage`) **or** items with no download
-  speed (`status='downloading'` and `timeleft` missing/null), increment a per-item strike counter; remove once
-  strikes reach `STRIKE_COUNT = 5` (i.e. ~50 minutes).
-- **REQ-004** Removal calls `DELETE queue/{id}?blocklist=true&removeFromClient=true` on both Radarr and Sonarr.
-- **REQ-005** Process Radarr and Sonarr concurrently through `Effect.all`; bound eligible removals to four concurrent operations globally across both arrs.
-- **REQ-006** After each successful complete queue pass, drop strike counters for items no longer present in **that arr's** queue.
-- **REQ-007** Strike counters are scoped per arr. Queue ids are only unique within one arr, so Radarr and Sonarr
-  must never read, increment, or evict each other's counters.
-- **CON-001** Strike state is held in an in-memory `Map<string, Map<number, number>>` keyed by service name;
-  a process restart resets all counters.
-- **CON-002** Items missing `title` or `status` are skipped with a warning log; they are never removed.
-- **CON-003** `getQueue` transparently fetches pages of 100 until `totalRecords` is reached or an empty page is returned. A page or removal failure fails the cleanup Effect without returning partial queue data or retrying mutations.
-- **GUD-001** Log every strike increment, every removal, and every skipped malformed item with the `Cleanup` tag
-  and the arr service name.
-- **PAT-001** Strategy is shared across arrs through the `QueueService` interface — no per-arr branching in the job.
+## 5. Non-Goals
 
-## 4. Interfaces & Data Contracts
+- `[NG-1]` Retry searches or triage healthy downloads.
+- `[NG-2]` Manage indexer-level blocklists beyond the arr removal request.
+- `[NG-3]` Persist strike state across process restarts.
 
-- **Cron job**: `{ name: 'Cleanup', pattern: '0 */10 * * * *', handler: runCleanupProcess }`.
-- **`runCleanupProcess`** (`jobs/cleanup.job.ts`) — the cleanup job Effect.
-- **`cleanupAll`** (`services/cleanup.service.ts`) — resolves Sonarr and Radarr from the Effect service context and runs both arr passes concurrently.
-- **`QueueService`** (`@/integrations/arr/queue.types`):
-  - `getQueue: Effect<QueueResponse, HttpClientError>`
-  - `removeQueueItem(id: number, options: { blocklist: boolean; removeFromClient: boolean }): Effect<void, HttpClientError>`
-- **`QueueResponse`**: `{ records: QueueItem[]; totalRecords: number }`.
-- **`QueueItem`**: `{ id, title, status, errorMessage?, statusMessages?: { title: string, messages: string[] }[], timeleft?, trackedDownloadStatus? }`.
+## 6. Caveats
 
-## 5. Acceptance Criteria
+- `[C-1]` Strike counters are process-local and reset when the process restarts.
+- `[C-2]` A queue or removal failure fails that cleanup effect; the feature does not retry mutations.
+- `[C-3]` Empty `title` or `status` values are logged as malformed and skipped.
 
-- **AC-001 — Given** a queue item flagged `No files found are eligible for import`, **When** the cleanup job runs,
-  **Then** `removeQueueItem` is called once with `{ blocklist: true, removeFromClient: true }` and an info log
-  `Removing download: <title>` is emitted.
-- **AC-002 — Given** an item stalled with no connections seen on five consecutive runs, **When** the fifth run
-  completes, **Then** the item is removed and its strike entry is deleted.
-- **AC-002b — Given** an item with `status='downloading'` and a missing/null `timeleft` seen on five consecutive
-  runs, **When** the fifth run completes, **Then** the item is removed and its strike entry is deleted.
-- **AC-003 — Given** an item that disappears from the queue before reaching 5 strikes, **When** the next run
-  executes, **Then** its strike counter is purged from memory.
-- **AC-003b — Given** a stalled Sonarr item and an empty Radarr queue, **When** five runs complete, **Then** the
-  Sonarr item is removed — the Radarr pass must not evict Sonarr's counters.
-- **AC-003c — Given** a stalled Sonarr item and a stalled Radarr item sharing the same queue id, **When** four runs
-  complete, **Then** neither is removed — the two arrs must not double-count a single counter.
-- **AC-004 — Given** a queue item missing `title` or `status`, **When** the cleanup job runs, **Then** it is logged
-  with `warn` and never removed.
+## 7. High-Level Components
 
-## 6. Test Automation Strategy
+| Component       | Module type     | Responsibility                                                | Public API surface  |
+| --------------- | --------------- | ------------------------------------------------------------- | ------------------- |
+| Cleanup job     | Effect job      | Expose the scheduled cleanup workflow                         | `runCleanupProcess` |
+| Cleanup service | Effect service  | Classify records, retain strikes, and remove eligible entries | `cleanupAll`        |
+| Strike registry | In-memory state | Keep independent per-service queue-id strike counters         | internal map        |
 
-- Unit-test queue cleanup through `cleanupAll` with fake services, covering immediate removals, strike accumulation, later-page strike retention, bounded removal concurrency, and malformed-item skips.
-- Test `ArrClient.getQueue` through its Fetch boundary, covering page parameters, authentication, complete aggregation, empty-page termination, and later-page failure.
-- Reset module state between cases (the strike map is module-scoped).
-- Run via `bun run test`.
+## 8. Detailed Design
 
-## 7. Rationale & Context
+### Cleanup job
 
-Stalled torrents and malformed releases routinely block arr queues. Radarr/Sonarr expose remediation only via the
-queue API, so a polling job is the simplest reliable option. The strike threshold avoids removing items that
-recover within a few minutes; the immediate removal for ineligible-files / dangerous-extension messages reflects
-that those states never self-heal. Blocklisting on removal prevents the same release from being grabbed again.
+The job exports the service workflow and the feature scheduler invokes it under the `Cleanup` registration (`src/features/queue_cleanup/jobs/cleanup.job.ts:1`, `src/features/queue_cleanup/feature.ts:6`).
 
-Some torrent clients (e.g. Deluge in certain configurations) never report a stalled `status='warning'` to the arr
-even when a download stops making progress. To catch those cases, the job also strikes items whose `timeleft` is
-missing/null while `status='downloading'` — when there is no ETA, the effective download speed is null/zero. The
-status guard prevents striking healthy `queued`, `paused`, or `completed` items that legitimately lack a `timeleft`.
+### Cleanup service
 
-## 8. Dependencies & External Integrations
+`cleanupAll` resolves Sonarr and Radarr, creates one four-permit semaphore, and runs their queue passes concurrently. Each pass reads its queue, logs and skips malformed records, then classifies remaining records. An entry is eligible immediately for either unimportable-files message; otherwise a stalled warning with the specified error or a downloading item with undefined `timeleft` gains one strike. At five strikes it is removed with `{ blocklist: true, removeFromClient: true }` (`src/features/queue_cleanup/services/cleanup.service.ts:40`, `src/features/queue_cleanup/services/cleanup.service.ts:66`).
 
-### External Systems
+Each successful pass removes strike entries absent from that same service's current ids. Successful removal also deletes its strike entry, so it cannot remain in memory.
 
-- **EXT-001** Radarr `GET /api/v3/queue` and `DELETE /api/v3/queue/{id}` (v3 API).
-- **EXT-002** Sonarr `GET /api/v3/queue` and `DELETE /api/v3/queue/{id}` (v3 API).
+### Strike registry
 
-### Internal Dependencies
+The registry is `Map<serviceName, Map<queueId, strikes>>`. It is deliberately in-memory and is accessed by each pass's service name, preserving independent counters for Radarr and Sonarr.
 
-- **DEP-001** `@/integrations/arr` — `RadarrClient` and `SonarrClient` (both implement `QueueService`).
-- **DEP-002** `@/providers/scheduler` — registers the cron job from `defineFeature({ jobs })`.
-- **DEP-003** `@/core/runtime.service` — Sonarr and Radarr Effect services.
-- **DEP-004** Effect Logger annotations — ordered `Cleanup`, then `Sonarr` or `Radarr`, context.
+## 9. Open Questions
 
-## 9. Examples & Edge Cases
-
-- Strike count persists only in-process; redeploys reset the window — acceptable since the job runs every 10 min.
-- An item can satisfy both rules (ineligible-files _and_ stalled). The ineligible-files branch wins because it is
-  evaluated together with the strike threshold in the same `if`, and the strike map entry is then cleared.
-- If a later queue page fails, the aggregate fails and strike eviction does not run against partial data.
-- Strike eviction iterates that arr's own counter keys after successful removals — items removed during the pass are already deleted from the map and cannot leak.
-- Radarr and Sonarr run concurrently over shared module state. Before per-arr scoping, each pass evicted every key
-  absent from its own queue, so the two arrs wiped each other's strikes every run and no item ever passed 1 strike.
-
-## 10. Validation Criteria
-
-- Non-mutating format/lint/type checks and `bun run test` pass.
-- The job appears in scheduler startup logs with pattern `0 */10 * * * *`.
-- Manual smoke: induce a stalled torrent in Radarr, observe five strike logs over ~50 min, then a removal log and
-  the item gone from `GET /queue`.
-
-## 11. Related Specifications / Further Reading
-
-- ../../../docs/architecture/feature_registration.spec.md
-- ../../providers/scheduler/scheduler.spec.md
+N/A
