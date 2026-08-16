@@ -61,7 +61,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run tests with coverage
-        run: bun run test:coverage
+        run: bun run test:coverage && bun run test:rules
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
