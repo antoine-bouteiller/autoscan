@@ -106,6 +106,10 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
   ): Effect.Effect<unknown, HttpClientError> {
     const { body, headers = {}, params, retry: retryEnabled = true, timeout = DEFAULT_TIMEOUT, validator } = options
     const url = createUrl(baseUrl, endpoint, params)
+    const requestHeaders = { ...globalHeaders, ...headers }
+    if (body !== undefined) {
+      requestHeaders['Content-Type'] = 'application/json'
+    }
 
     const fetchOnce = Effect.scoped(
       Effect.gen(function* () {
@@ -116,7 +120,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
           try: () =>
             fetch(url, {
               body: body === undefined ? undefined : encodeJson(body),
-              headers: { ...globalHeaders, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
+              headers: requestHeaders,
               method,
               signal,
             }),

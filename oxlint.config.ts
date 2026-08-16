@@ -19,6 +19,7 @@ export default defineConfig({
     typeCheck: true,
   },
   ignorePatterns: ['oxlint.config.ts', 'oxfmt.config.ts'],
+  jsPlugins: [{ name: 'autoscan', specifier: './oxlint/index.ts' }],
   overrides: [
     {
       // Every test builds and provides its own layers at the point where it runs.
@@ -82,5 +83,13 @@ export default defineConfig({
     // Effect schemas nest calls inherently; fs.ts exposes deliberate safe*Sync wrappers.
     'unicorn/max-nested-calls': 'off',
     'node/no-sync': 'off',
+
+    'autoscan/no-conditional-empty-object-spread': 'error',
+    'autoscan/no-known-value-widening': 'error',
+    'autoscan/no-module-mocking': 'error',
+    'autoscan/no-object-parameters': 'error',
+    'autoscan/no-shape-in-symbol-names': 'error',
+    'autoscan/no-unknown-type-aliases': 'error',
+    'autoscan/no-unsafe-dictionary-type': 'error',
   },
 })

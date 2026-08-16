@@ -23,9 +23,9 @@ import {
   TranscodeQueue,
   TranscodeScan,
   type AppRequirements,
-  type CallbackRuntimeShape,
-  type TranscodeQueueShape,
-  type WorkflowOwnerShape,
+  type CallbackRuntimeService,
+  type TranscodeQueueService,
+  type WorkflowOwner,
 } from '@/core/runtime.service'
 import { features } from '@/features/index'
 import { TraktAuthenticationTasks, TraktAuthenticationTasksLive } from '@/features/trakt_sync/services/authentication.service'
@@ -89,12 +89,12 @@ const TelegramBotLive = Layer.effect(
 const AppLive = Layer.mergeAll(HttpLive, SchedulerLive, TelegramBotLive).pipe(Layer.provideMerge(RuntimeGraph))
 
 interface ShutdownResources {
-  callbacks: Pick<CallbackRuntimeShape, 'awaitEmpty' | 'clear'>
+  callbacks: Pick<CallbackRuntimeService, 'awaitEmpty' | 'clear'>
   http: Pick<HttpProvider, 'stop'>
-  producers: readonly Pick<WorkflowOwnerShape, 'awaitEmpty' | 'clear' | 'stopIntake'>[]
+  producers: readonly Pick<WorkflowOwner, 'awaitEmpty' | 'clear' | 'stopIntake'>[]
   scheduler: Pick<SchedulerProvider, 'stopAll'>
   stopTelegram: Effect.Effect<void>
-  transcodeQueue: Pick<TranscodeQueueShape, 'awaitIdle' | 'stopIntake'>
+  transcodeQueue: Pick<TranscodeQueueService, 'awaitIdle' | 'stopIntake'>
 }
 
 export const shutdownRuntime = ({ callbacks, http, producers, scheduler, stopTelegram, transcodeQueue }: ShutdownResources) =>

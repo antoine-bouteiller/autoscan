@@ -13,12 +13,12 @@ const ANSI = {
 type LogLevel = 'DEBUG' | 'ERROR' | 'INFO' | 'WARN'
 type ConsoleMethod = 'debug' | 'error' | 'info' | 'warn'
 
-const LOG_CONFIG: Record<LogLevel, { color: string; method: ConsoleMethod }> = {
+const LOG_CONFIG = {
   DEBUG: { color: ANSI.CYAN, method: 'debug' },
   ERROR: { color: ANSI.RED, method: 'error' },
   INFO: { color: ANSI.GREEN, method: 'info' },
   WARN: { color: ANSI.YELLOW, method: 'warn' },
-}
+} satisfies Record<LogLevel, { color: string; method: ConsoleMethod }>
 
 const formatContext = (context: readonly string[], message: string): string => {
   const contextString = context.map((item) => `(${item})`).join('')

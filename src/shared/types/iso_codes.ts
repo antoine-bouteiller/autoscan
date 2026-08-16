@@ -434,7 +434,7 @@ export type ISOCode2B = (typeof ISO2B)[number] | Exclude<ISOCode2T, (typeof iso2
 type ISOCode2 = ISOCode2B | ISOCode2T
 
 // ISO 639-1 to ISO 639-2/T mapping
-export const iso1ToIso2T: Record<ISOCode1, ISOCode2T> = {
+export const iso1ToIso2T = {
   aa: 'aar',
   ab: 'abk',
   ae: 'ave',
@@ -619,10 +619,10 @@ export const iso1ToIso2T: Record<ISOCode1, ISOCode2T> = {
   za: 'zha',
   zh: 'zho',
   zu: 'zul',
-}
+} satisfies Record<ISOCode1, ISOCode2T>
 
 // ISO 639-2 to ISO 639-1 reverse mapping (includes both T and B codes)
-export const iso2ToIso1: Record<ISOCode2, ISOCode1> = {
+export const iso2ToIso1 = {
   aar: 'aa',
   abk: 'ab',
   afr: 'af',
@@ -827,4 +827,4 @@ export const iso2ToIso1: Record<ISOCode2, ISOCode1> = {
   zha: 'za',
   zho: 'zh',
   zul: 'zu',
-}
+} satisfies Record<ISOCode2, ISOCode1>

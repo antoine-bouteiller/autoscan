@@ -30,7 +30,7 @@ const hasUnimportableFiles = (item: QueueItem): boolean =>
 const isStalled = (item: QueueItem): boolean => item.status === 'warning' && item.errorMessage === 'The download is stalled with no connections'
 const hasNoDownloadSpeed = (item: QueueItem): boolean => item.status === 'downloading' && item.timeleft === undefined
 
-const processItem = (item: QueueItem, serviceName: string): { remove: boolean; strikes?: number } => {
+const processItem = (item: QueueItem, serviceName: string) => {
   const strikeCounts = getStrikeCounts(serviceName)
   let strikes: number | undefined
   if (isStalled(item) || hasNoDownloadSpeed(item)) {

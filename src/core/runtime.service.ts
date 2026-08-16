@@ -30,14 +30,14 @@ export class Http extends Context.Service<Http, HttpProvider>()('autoscan/core/r
 export class Scheduler extends Context.Service<Scheduler, SchedulerProvider>()('autoscan/core/runtime.service/Scheduler') {}
 export class TelegramBot extends Context.Service<TelegramBot, TelegramProvider>()('autoscan/core/runtime.service/TelegramBot') {}
 
-export interface TranscodeQueueShape {
+export interface TranscodeQueueService {
   readonly awaitIdle: Effect.Effect<void>
   readonly enqueue: (job: TranscodeJob) => Effect.Effect<boolean>
   readonly status: Effect.Effect<{ currentJob?: TranscodeJob; isProcessing: boolean; queueLength: number }>
   readonly stopIntake: Effect.Effect<void>
 }
 
-export class TranscodeQueue extends Context.Service<TranscodeQueue, TranscodeQueueShape>()('autoscan/core/runtime.service/TranscodeQueue') {}
+export class TranscodeQueue extends Context.Service<TranscodeQueue, TranscodeQueueService>()('autoscan/core/runtime.service/TranscodeQueue') {}
 
 type WorkflowRequirements =
   | ChildProcessSpawner.ChildProcessSpawner
@@ -55,13 +55,13 @@ type WorkflowRequirements =
   | TraktAuthenticationTasks
   | TranscodeQueue
 
-export interface WorkflowOwnerShape {
+export interface WorkflowOwner {
   readonly awaitEmpty: Effect.Effect<void>
   readonly clear: Effect.Effect<void>
   readonly stopIntake: Effect.Effect<void>
 }
 
-export interface TranscodeScanShape extends WorkflowOwnerShape {
+export interface TranscodeScanService extends WorkflowOwner {
   readonly isRunning: Effect.Effect<boolean>
   readonly run: <Success, Error, Requirements>(
     effect: Effect.Effect<Success, Error, Requirements>
@@ -71,15 +71,15 @@ export interface TranscodeScanShape extends WorkflowOwnerShape {
   ) => Effect.Effect<boolean, never, Requirements>
 }
 
-export class TranscodeScan extends Context.Service<TranscodeScan, TranscodeScanShape>()('autoscan/core/runtime.service/TranscodeScan') {}
+export class TranscodeScan extends Context.Service<TranscodeScan, TranscodeScanService>()('autoscan/core/runtime.service/TranscodeScan') {}
 
-export interface BackgroundTasksShape extends WorkflowOwnerShape {
+export interface BackgroundTasksService extends WorkflowOwner {
   readonly start: <Success, Error, Requirements extends WorkflowRequirements>(
     effect: Effect.Effect<Success, Error, Requirements>
   ) => Effect.Effect<boolean, never, Requirements>
 }
 
-export class BackgroundTasks extends Context.Service<BackgroundTasks, BackgroundTasksShape>()('autoscan/core/runtime.service/BackgroundTasks') {}
+export class BackgroundTasks extends Context.Service<BackgroundTasks, BackgroundTasksService>()('autoscan/core/runtime.service/BackgroundTasks') {}
 
 export const BackgroundTasksLive = Layer.effect(
   BackgroundTasks,
@@ -107,11 +107,11 @@ export const BackgroundTasksLive = Layer.effect(
 
 export type AppRequirements = BackgroundTasks | TranscodeScan | WorkflowRequirements
 
-export interface CallbackRuntimeShape {
+export interface CallbackRuntimeService {
   readonly awaitEmpty: Effect.Effect<void>
   readonly clear: Effect.Effect<void>
   readonly fibers: FiberSet.FiberSet
   readonly runPromise: <Success, Error>(effect: Effect.Effect<Success, Error, AppRequirements>) => Promise<Success>
 }
 
-export class CallbackRuntime extends Context.Service<CallbackRuntime, CallbackRuntimeShape>()('autoscan/core/runtime.service/CallbackRuntime') {}
+export class CallbackRuntime extends Context.Service<CallbackRuntime, CallbackRuntimeService>()('autoscan/core/runtime.service/CallbackRuntime') {}

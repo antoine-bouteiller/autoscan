@@ -1,5 +1,6 @@
 import { Schema } from 'effect'
 
+import { FileAccessError } from '@/features/transcoding/errors'
 import { safeReadFileSync } from '@/shared/utils/fs'
 import { NumberFromUnknown } from '@/shared/utils/schema'
 
@@ -20,7 +21,7 @@ export const loadFileSecrets = (target: Record<string, string | undefined>): voi
     const filePath = target[`${key}_FILE`]
     if (filePath !== undefined) {
       const content = safeReadFileSync(filePath)
-      if (typeof content === 'string') {
+      if (!(content instanceof FileAccessError)) {
         target[key] = content.trim()
       }
     }

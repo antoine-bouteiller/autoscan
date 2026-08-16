@@ -1,6 +1,6 @@
 import { Context, Effect, FiberMap, Layer, Ref, Semaphore } from 'effect'
 
-interface TraktAuthenticationTasksShape {
+interface TraktAuthenticationTasksService {
   readonly awaitEmpty: Effect.Effect<void>
   readonly clear: Effect.Effect<void>
   readonly isRunning: (chatId: number) => Effect.Effect<boolean>
@@ -8,7 +8,7 @@ interface TraktAuthenticationTasksShape {
   readonly stopIntake: Effect.Effect<void>
 }
 
-export class TraktAuthenticationTasks extends Context.Service<TraktAuthenticationTasks, TraktAuthenticationTasksShape>()(
+export class TraktAuthenticationTasks extends Context.Service<TraktAuthenticationTasks, TraktAuthenticationTasksService>()(
   'autoscan/features/trakt_sync/services/authentication.service/TraktAuthenticationTasks'
 ) {}
 

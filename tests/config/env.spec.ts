@@ -14,6 +14,8 @@ const writeTempSecret = (value: string): string => {
   return filePath
 }
 
+const getSecret = (target: Record<string, string | undefined>, key: string) => target[key]
+
 describe('env', () => {
   test('should expose required keys from process.env', () => {
     expect(process.env['PLEX_TOKEN']).toBe(env.PLEX_TOKEN)
@@ -41,45 +43,45 @@ describe('loadFileSecrets', () => {
   test('should load secret from _FILE path and trim whitespace', () => {
     const filePath = writeTempSecret('  my-secret\n')
     tempFiles.push(filePath)
-    const target: Record<string, string | undefined> = { PLEX_TOKEN_FILE: filePath }
+    const target = { PLEX_TOKEN_FILE: filePath } satisfies Record<string, string | undefined>
 
     loadFileSecrets(target)
 
-    expect(target['PLEX_TOKEN']).toBe('my-secret')
+    expect(getSecret(target, 'PLEX_TOKEN')).toBe('my-secret')
   })
 
   test('should leave target unchanged when no _FILE var is set', () => {
-    const target: Record<string, string | undefined> = { PLEX_TOKEN: 'existing' }
+    const target = { PLEX_TOKEN: 'existing' } satisfies Record<string, string | undefined>
 
     loadFileSecrets(target)
 
-    expect(target['PLEX_TOKEN']).toBe('existing')
+    expect(getSecret(target, 'PLEX_TOKEN')).toBe('existing')
   })
 
   test('should leave target unchanged when _FILE points to missing path', () => {
-    const target: Record<string, string | undefined> = {
+    const target = {
       PLEX_TOKEN: 'existing',
       PLEX_TOKEN_FILE: '/nonexistent/path',
-    }
+    } satisfies Record<string, string | undefined>
 
     loadFileSecrets(target)
 
-    expect(target['PLEX_TOKEN']).toBe('existing')
+    expect(getSecret(target, 'PLEX_TOKEN')).toBe('existing')
   })
 
   test('should load multiple secrets from different _FILE paths', () => {
     const plexFile = writeTempSecret('plex-secret')
     const tmdbFile = writeTempSecret('tmdb-secret')
     tempFiles.push(plexFile, tmdbFile)
-    const target: Record<string, string | undefined> = {
+    const target = {
       PLEX_TOKEN_FILE: plexFile,
       TMDB_API_TOKEN_FILE: tmdbFile,
-    }
+    } satisfies Record<string, string | undefined>
 
     loadFileSecrets(target)
 
-    expect(target['PLEX_TOKEN']).toBe('plex-secret')
-    expect(target['TMDB_API_TOKEN']).toBe('tmdb-secret')
+    expect(getSecret(target, 'PLEX_TOKEN')).toBe('plex-secret')
+    expect(getSecret(target, 'TMDB_API_TOKEN')).toBe('tmdb-secret')
   })
 })
 

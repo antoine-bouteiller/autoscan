@@ -43,7 +43,7 @@ const processAudioStream = (
   stream: FFprobeStream,
   streamIndex: number,
   params: { languageCriteria: Criteria[]; originalLanguage: ISOCode1; mediaTitle: string }
-): { commands: string[]; needsTranscode: boolean } => {
+) => {
   const { languageCriteria, originalLanguage, mediaTitle } = params
   const commands: string[] = [`-map`, `0:a:${streamIndex}`]
   let needsTranscode = false
