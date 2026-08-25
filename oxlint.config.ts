@@ -83,6 +83,7 @@ export default defineConfig({
     // Effect schemas nest calls inherently; fs.ts exposes deliberate safe*Sync wrappers.
     'unicorn/max-nested-calls': 'off',
     'node/no-sync': 'off',
+    'one-var': 'off',
 
     'autoscan/no-conditional-empty-object-spread': 'error',
     'autoscan/no-known-value-widening': 'error',
