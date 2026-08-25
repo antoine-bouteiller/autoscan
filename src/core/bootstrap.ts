@@ -1,6 +1,7 @@
 import { BunServices } from '@effect/platform-bun'
 import { Effect, Fiber, FiberSet, Layer, Option } from 'effect'
 import { isFailure as isExitFailure } from 'effect/Exit'
+import { FetchHttpClient, HttpClient } from 'effect/unstable/http'
 
 import { DatabaseLive } from '@/config/db'
 import { Env, EnvLive } from '@/config/env'
@@ -44,15 +45,57 @@ import { TelegramProvider } from '@/providers/telegram/telegram.provider'
 
 const ClientsLive = Layer.mergeAll(
   Layer.effect(Ffmpeg, makeFfmpegClient).pipe(Layer.provide(BunServices.layer)),
-  Layer.effect(Plex, Env.pipe(Effect.map((env) => new PlexClient({ token: env.PLEX_TOKEN, url: env.PLEX_URL })))),
-  Layer.effect(Radarr, Env.pipe(Effect.map((env) => new RadarrClient({ apiKey: env.RADARR_API_KEY, apiUrl: env.RADARR_API_URL })))),
-  Layer.effect(Sonarr, Env.pipe(Effect.map((env) => new SonarrClient({ apiKey: env.SONARR_API_KEY, apiUrl: env.SONARR_API_URL })))),
-  Layer.effect(Telegram, Env.pipe(Effect.map((env) => new TelegramClient(env.TELEGRAM_TOKEN)))),
-  Layer.effect(Tmdb, Env.pipe(Effect.map((env) => new TmdbClient({ apiToken: env.TMDB_API_TOKEN, apiUrl: env.TMDB_API_URL })))),
-  Layer.effect(Trakt, Env.pipe(Effect.map((env) => new TraktClient({ clientId: env.TRAKT_CLIENT_ID, clientSecret: env.TRAKT_CLIENT_SECRET }))))
+  Layer.effect(
+    Plex,
+    Effect.gen(function* () {
+      const env = yield* Env
+      const transport = yield* HttpClient.HttpClient
+      return new PlexClient({ token: env.PLEX_TOKEN, transport, url: env.PLEX_URL })
+    })
+  ),
+  Layer.effect(
+    Radarr,
+    Effect.gen(function* () {
+      const env = yield* Env
+      const transport = yield* HttpClient.HttpClient
+      return new RadarrClient({ apiKey: env.RADARR_API_KEY, apiUrl: env.RADARR_API_URL, transport })
+    })
+  ),
+  Layer.effect(
+    Sonarr,
+    Effect.gen(function* () {
+      const env = yield* Env
+      const transport = yield* HttpClient.HttpClient
+      return new SonarrClient({ apiKey: env.SONARR_API_KEY, apiUrl: env.SONARR_API_URL, transport })
+    })
+  ),
+  Layer.effect(
+    Telegram,
+    Effect.gen(function* () {
+      const env = yield* Env
+      const transport = yield* HttpClient.HttpClient
+      return new TelegramClient(env.TELEGRAM_TOKEN, transport)
+    })
+  ),
+  Layer.effect(
+    Tmdb,
+    Effect.gen(function* () {
+      const env = yield* Env
+      const transport = yield* HttpClient.HttpClient
+      return new TmdbClient({ apiToken: env.TMDB_API_TOKEN, apiUrl: env.TMDB_API_URL, transport })
+    })
+  ),
+  Layer.effect(
+    Trakt,
+    Effect.gen(function* () {
+      const env = yield* Env
+      const transport = yield* HttpClient.HttpClient
+      return new TraktClient({ clientId: env.TRAKT_CLIENT_ID, clientSecret: env.TRAKT_CLIENT_SECRET, transport })
+    })
+  )
 )
 
-const EnvGraph = EnvLive.pipe(Layer.provideMerge(BunServices.layer))
+const EnvGraph = EnvLive.pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, FetchHttpClient.layer)))
 const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive, TraktAuthenticationTasksLive).pipe(Layer.provideMerge(EnvGraph))
 const QueueGraph = TranscodeQueueLive.pipe(Layer.provideMerge(BaseLive))
 const BackgroundGraph = BackgroundTasksLive.pipe(Layer.provideMerge(QueueGraph))

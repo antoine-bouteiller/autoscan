@@ -1,5 +1,5 @@
 import { Clock, Effect, Random, Result, Schema } from 'effect'
-import { FetchHttpClient, HttpClient as EffectHttpClient, HttpClientRequest, type HttpMethod } from 'effect/unstable/http'
+import { HttpClientRequest, type HttpMethod } from 'effect/unstable/http'
 
 import { HttpError, RequestTimeoutError } from '@/shared/errors/http'
 import { NetworkError } from '@/shared/errors/network'
@@ -67,10 +67,10 @@ const parseRetryAfter = (value: string | undefined, now: number): number | undef
 const shouldRetry = (method: HttpMethod.HttpMethod, enabled: boolean, error: HttpClientError): boolean =>
   enabled && method === 'GET' && (error._tag === 'NetworkError' || (error._tag === 'HttpError' && (error.status === 429 || error.status >= 500)))
 
-const retry = <Success>(
-  request: () => Effect.Effect<Success, HttpClientError>,
+const retry = <Success, Requirements>(
+  request: () => Effect.Effect<Success, HttpClientError, Requirements>,
   options: { attempt?: number; deadline: number; enabled: boolean; method: HttpMethod.HttpMethod }
-): Effect.Effect<Success, HttpClientError> =>
+): Effect.Effect<Success, HttpClientError, Requirements> =>
   request().pipe(
     Effect.catch((error) => {
       const attempt = options.attempt ?? 0
@@ -96,7 +96,7 @@ const retry = <Success>(
     })
   )
 
-export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeaders = {}, serviceName }: HttpClientOptions): HttpClient => {
+export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeaders = {}, serviceName, transport }: HttpClientOptions): HttpClient => {
   function request(method: HttpMethod.HttpMethod, endpoint: string, options?: RequestWithoutResponseOption): HttpClientVoidResult
   function request<TSchema extends AnySchema>(
     method: HttpMethod.HttpMethod,
@@ -114,9 +114,8 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
     const requestHeaders = { ...globalHeaders, ...headers }
 
     const fetchOnce = Effect.gen(function* () {
-      const client = yield* EffectHttpClient.HttpClient
       const baseRequest = HttpClientRequest.make(method)(url, { headers: requestHeaders })
-      const response = yield* client
+      const response = yield* transport
         .execute(body === undefined ? baseRequest : HttpClientRequest.bodyJsonUnsafe(baseRequest, body))
         .pipe(Effect.mapError((cause) => new NetworkError({ cause, originalMessage: cause.message, serviceName })))
 
@@ -143,9 +142,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
       }
 
       return result.success
-      // The fetch transport is an implementation detail of this helper, so callers never see an HttpClient requirement.
-      // oxlint-disable-next-line effecttsgo/strict-effect-provide
-    }).pipe(Effect.provide(FetchHttpClient.layer))
+    })
 
     return Clock.currentTimeMillis.pipe(
       Effect.flatMap((startedAt) => retry(() => fetchOnce, { deadline: startedAt + timeout, enabled: retryEnabled, method })),

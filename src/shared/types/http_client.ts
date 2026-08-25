@@ -1,4 +1,5 @@
 import { type Effect, type Schema } from 'effect'
+import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
 
 import { type HttpError, type HttpErrorFormatter, type RequestTimeoutError } from '@/shared/errors/http'
 import { type NetworkError } from '@/shared/errors/network'
@@ -23,6 +24,7 @@ export interface HttpClientOptions {
   errorFormatter?: HttpErrorFormatter
   headers?: Record<string, string>
   serviceName: string
+  transport: EffectHttpClient.HttpClient
 }
 
 export type HttpClientError = HttpError | NetworkError | RequestTimeoutError | ValidationError

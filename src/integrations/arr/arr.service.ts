@@ -1,4 +1,5 @@
 import { Effect } from 'effect'
+import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
 
 import { type QueueResponse, queueResponseValidator } from '@/integrations/arr/queue.types'
 import { httpClient } from '@/shared/utils/http_client'
@@ -9,6 +10,7 @@ interface ArrClientConfig {
   apiKey: string
   baseUrl: string
   serviceName: string
+  transport: EffectHttpClient.HttpClient
 }
 
 export class ArrClient {
@@ -19,6 +21,7 @@ export class ArrClient {
       baseUrl: config.baseUrl,
       headers: { 'X-Api-Key': config.apiKey },
       serviceName: config.serviceName,
+      transport: config.transport,
     })
   }
 

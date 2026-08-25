@@ -1,4 +1,5 @@
 import { type Effect } from 'effect'
+import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
 
 import {
   deviceCodeResponseValidator,
@@ -38,6 +39,7 @@ export interface ITraktClient {
 interface TraktClientConfig {
   clientId: string
   clientSecret: string
+  transport: EffectHttpClient.HttpClient
 }
 
 export class TraktClient implements ITraktClient {
@@ -57,6 +59,7 @@ export class TraktClient implements ITraktClient {
         'trakt-api-version': '2',
       },
       serviceName: 'Trakt',
+      transport: config.transport,
     })
   }
 

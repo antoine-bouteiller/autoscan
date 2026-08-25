@@ -1,4 +1,5 @@
 import { Effect } from 'effect'
+import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
 
 import { getUpdatesResponseSchema, sendMessageResponseSchema, type TelegramUpdate } from '@/integrations/telegram/telegram.validator'
 import { type InlineKeyboardMarkup } from '@/providers/telegram/types'
@@ -30,11 +31,12 @@ const LONG_POLL_DEADLINE = 40_000
 export class TelegramClient implements ITelegramClient {
   private readonly client: ReturnType<typeof httpClient>
 
-  constructor(token: string) {
+  constructor(token: string, transport: EffectHttpClient.HttpClient) {
     this.client = httpClient({
       baseUrl: `https://api.telegram.org/bot${token}`,
       headers: { 'Content-Type': 'application/json' },
       serviceName: 'Telegram',
+      transport,
     })
   }
 

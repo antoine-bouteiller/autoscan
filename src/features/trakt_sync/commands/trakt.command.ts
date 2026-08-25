@@ -56,7 +56,6 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
         return
       }
     }).pipe(
-      Effect.provideService(Database, database),
       Effect.timeoutOrElse({
         duration: result.expires_in * 1000,
         orElse: () => client.sendMessage(chatId, 'Trakt authentication failed or timed out.').pipe(Effect.asVoid),
@@ -68,7 +67,8 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
               Effect.flatMap(() => client.sendMessage(chatId, 'Trakt authentication failed or timed out.')),
               Effect.asVoid
             )
-      )
+      ),
+      Effect.provideService(Database, database)
     )
 
     yield* tasks.start(chatId, polling)

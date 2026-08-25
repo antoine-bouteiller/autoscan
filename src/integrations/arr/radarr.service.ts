@@ -1,4 +1,5 @@
 import { Effect, Schema } from 'effect'
+import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
 
 import { ArrClient } from '@/integrations/arr/arr.service'
 import { type QueueService } from '@/integrations/arr/queue.types'
@@ -14,11 +15,12 @@ export interface IRadarrClient extends QueueService {
 interface RadarrClientConfig {
   apiKey: string
   apiUrl: string
+  transport: EffectHttpClient.HttpClient
 }
 
 export class RadarrClient extends ArrClient implements IRadarrClient {
   constructor(config: RadarrClientConfig) {
-    super({ apiKey: config.apiKey, baseUrl: `${config.apiUrl}/api/v3`, serviceName: 'Radarr' })
+    super({ apiKey: config.apiKey, baseUrl: `${config.apiUrl}/api/v3`, serviceName: 'Radarr', transport: config.transport })
   }
 
   refreshMovie(movieId: number) {

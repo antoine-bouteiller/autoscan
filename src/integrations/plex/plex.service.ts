@@ -1,4 +1,5 @@
 import { Effect, Path } from 'effect'
+import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
 
 import { PlexError } from '@/integrations/plex/plex.errors'
 import { plexResponseValidator, type PlexMedia } from '@/integrations/plex/plex.validator'
@@ -19,6 +20,7 @@ export interface IPlexClient {
 
 interface PlexClientConfig {
   token: string
+  transport: EffectHttpClient.HttpClient
   url: string
 }
 
@@ -30,6 +32,7 @@ export class PlexClient implements IPlexClient {
       baseUrl: config.url,
       headers: { Accept: 'application/json', 'X-Plex-Token': config.token },
       serviceName: 'Plex',
+      transport: config.transport,
     })
   }
 

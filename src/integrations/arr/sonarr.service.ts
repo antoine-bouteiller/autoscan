@@ -1,4 +1,5 @@
 import { Effect, Schema } from 'effect'
+import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
 
 import { ArrClient } from '@/integrations/arr/arr.service'
 import { type QueueService } from '@/integrations/arr/queue.types'
@@ -14,11 +15,12 @@ export interface ISonarrClient extends QueueService {
 interface SonarrClientConfig {
   apiKey: string
   apiUrl: string
+  transport: EffectHttpClient.HttpClient
 }
 
 export class SonarrClient extends ArrClient implements ISonarrClient {
   constructor(config: SonarrClientConfig) {
-    super({ apiKey: config.apiKey, baseUrl: `${config.apiUrl}/api/v3`, serviceName: 'Sonarr' })
+    super({ apiKey: config.apiKey, baseUrl: `${config.apiUrl}/api/v3`, serviceName: 'Sonarr', transport: config.transport })
   }
 
   refreshSeries(seriesId: number) {
