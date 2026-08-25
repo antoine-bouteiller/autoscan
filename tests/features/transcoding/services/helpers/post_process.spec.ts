@@ -2,11 +2,11 @@ import { afterEach } from 'bun:test'
 
 import { BunServices } from '@effect/platform-bun'
 import { provideTest } from '@tests/effect'
+import { testEnv as env } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
 import { makeTestDir, videosPath } from '@tests/utils'
 import { Cause, Effect, Exit, Fiber, FileSystem, Latch, Path, PlatformError, Result } from 'effect'
 
-import env from '@/config/env'
 import { FileAccessError } from '@/features/transcoding/errors'
 import { handlePostTranscode, replaceOutputs } from '@/features/transcoding/services/helpers/post_process'
 

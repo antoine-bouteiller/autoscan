@@ -1,8 +1,4 @@
-import { Schema } from 'effect'
-
-import { FileAccessError } from '@/features/transcoding/errors'
-import { safeReadFileSync } from '@/shared/utils/fs'
-import { NumberFromUnknown } from '@/shared/utils/schema'
+import { Config, ConfigProvider, Context, Effect, FileSystem, Layer, Schema } from 'effect'
 
 const FILE_SECRET_KEYS = [
   'PLEX_TOKEN',
@@ -16,19 +12,21 @@ const FILE_SECRET_KEYS = [
   'POSTGRES_PASSWORD_FILE',
 ]
 
-export const loadFileSecrets = (target: Record<string, string | undefined>): void => {
+export const loadFileSecrets = Effect.gen(function* () {
+  const fileSystem = yield* FileSystem.FileSystem
+  const secrets: Record<string, string> = {}
   for (const key of FILE_SECRET_KEYS) {
-    const filePath = target[`${key}_FILE`]
-    if (filePath !== undefined) {
-      const content = safeReadFileSync(filePath)
-      if (!(content instanceof FileAccessError)) {
-        target[key] = content.trim()
-      }
+    const filePath = yield* Config.string(`${key}_FILE`).pipe(Effect.orElseSucceed(() => undefined))
+    if (filePath === undefined) {
+      continue
+    }
+    const content = yield* fileSystem.readFileString(filePath).pipe(Effect.orElseSucceed(() => undefined))
+    if (content !== undefined) {
+      secrets[key] = content.trim()
     }
   }
-}
-
-loadFileSecrets(process.env)
+  return secrets
+})
 
 export const urlString = Schema.String.pipe(
   Schema.refine(
@@ -43,27 +41,35 @@ export const urlString = Schema.String.pipe(
   )
 )
 
-const envSchema = Schema.Struct({
-  PLEX_TOKEN: Schema.String,
-  PLEX_URL: urlString,
-  POSTGRES_DATABASE: Schema.String,
-  POSTGRES_HOST: Schema.String,
-  POSTGRES_PASSWORD: Schema.optional(Schema.String),
-  POSTGRES_PORT: NumberFromUnknown,
-  POSTGRES_USERNAME: Schema.String,
-  RADARR_API_KEY: Schema.String,
-  RADARR_API_URL: urlString,
-  SONARR_API_KEY: Schema.String,
-  SONARR_API_URL: urlString,
-  TELEGRAM_CHAT_ID: NumberFromUnknown,
-  TELEGRAM_TOKEN: Schema.String,
-  TMDB_API_TOKEN: Schema.String,
-  TMDB_API_URL: urlString,
-  TRAKT_CLIENT_ID: Schema.String,
-  TRAKT_CLIENT_SECRET: Schema.String,
-  TRANSCODE_PATH: Schema.String,
+const envConfig = Config.all({
+  PLEX_TOKEN: Config.string('PLEX_TOKEN'),
+  PLEX_URL: Config.schema(urlString, 'PLEX_URL'),
+  POSTGRES_DATABASE: Config.string('POSTGRES_DATABASE'),
+  POSTGRES_HOST: Config.string('POSTGRES_HOST'),
+  POSTGRES_PASSWORD: Config.string('POSTGRES_PASSWORD').pipe(Config.withDefault(undefined)),
+  POSTGRES_PORT: Config.number('POSTGRES_PORT'),
+  POSTGRES_USERNAME: Config.string('POSTGRES_USERNAME'),
+  RADARR_API_KEY: Config.string('RADARR_API_KEY'),
+  RADARR_API_URL: Config.schema(urlString, 'RADARR_API_URL'),
+  SONARR_API_KEY: Config.string('SONARR_API_KEY'),
+  SONARR_API_URL: Config.schema(urlString, 'SONARR_API_URL'),
+  TELEGRAM_CHAT_ID: Config.number('TELEGRAM_CHAT_ID'),
+  TELEGRAM_TOKEN: Config.string('TELEGRAM_TOKEN'),
+  TMDB_API_TOKEN: Config.string('TMDB_API_TOKEN'),
+  TMDB_API_URL: Config.schema(urlString, 'TMDB_API_URL'),
+  TRAKT_CLIENT_ID: Config.string('TRAKT_CLIENT_ID'),
+  TRAKT_CLIENT_SECRET: Config.string('TRAKT_CLIENT_SECRET'),
+  TRANSCODE_PATH: Config.string('TRANSCODE_PATH'),
 })
 
-const env = Schema.decodeUnknownSync(envSchema, { errors: 'all' })(process.env)
+export const loadEnv = Effect.gen(function* () {
+  const secrets = yield* loadFileSecrets
+  const provider = ConfigProvider.orElse(ConfigProvider.fromEnvRecord(secrets), ConfigProvider.fromEnv())
+  return yield* envConfig.pipe(Effect.provideService(ConfigProvider.ConfigProvider, provider))
+})
 
-export default env
+export type EnvValues = Effect.Success<typeof loadEnv>
+
+export class Env extends Context.Service<Env, EnvValues>()('autoscan/config/env') {}
+
+export const EnvLive = Layer.effect(Env, loadEnv)

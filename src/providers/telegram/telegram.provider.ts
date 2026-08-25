@@ -1,6 +1,5 @@
 import { Cause, Effect, Result } from 'effect'
 
-import env from '@/config/env'
 import { type AppRequirements } from '@/core/runtime.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramCallbackQuery, type TelegramMessageIn, type TelegramUpdate } from '@/integrations/telegram/telegram.validator'
@@ -25,9 +24,11 @@ export class TelegramProvider {
   private readonly conversations = new Map<string, Conversation>()
   private activeConversationKey?: string
   private readonly client: ITelegramClient
+  private readonly chatId: number
 
-  constructor(client: ITelegramClient) {
+  constructor(client: ITelegramClient, chatId: number) {
     this.client = client
+    this.chatId = chatId
   }
 
   registerCommand(command: string, handler: CommandHandler): this {
@@ -52,7 +53,7 @@ export class TelegramProvider {
           provider.activeConversationKey = undefined
           yield* Effect.logError(cause, 'Telegram')
           yield* provider.client
-            .sendMessage(env.TELEGRAM_CHAT_ID, 'An unexpected error occurred')
+            .sendMessage(provider.chatId, 'An unexpected error occurred')
             .pipe(
               Effect.catchCause((sendCause) =>
                 Cause.hasInterruptsOnly(sendCause) ? Effect.failCause(sendCause) : Effect.logError(sendCause, 'Telegram')
@@ -118,7 +119,7 @@ export class TelegramProvider {
     const provider = this
     return Effect.gen(function* () {
       const chatId = update.message?.chat.id ?? update.callback_query?.message?.chat.id
-      if (chatId !== env.TELEGRAM_CHAT_ID) {
+      if (chatId !== provider.chatId) {
         yield* Effect.logWarning(`Unknown chat sender ${chatId}`).pipe(Effect.annotateLogs('context', ['Telegram']))
         return
       }

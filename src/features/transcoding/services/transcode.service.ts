@@ -1,6 +1,6 @@
 import { Cause, Effect, FileSystem, Layer, Path, Queue, Schema } from 'effect'
 
-import env from '@/config/env'
+import { Env } from '@/config/env'
 import { Ffmpeg, Plex, TranscodeQueue } from '@/core/runtime.service'
 import { FileNameInvalidError, FileNotFoundError, ReplacementRollbackError } from '@/features/transcoding/errors'
 import { type TranscodeJob } from '@/features/transcoding/types'
@@ -17,6 +17,7 @@ const processJob = (job: TranscodeJob) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
+    const env = yield* Env
     const fileName = path.basename(job.file, job.file.slice(job.file.lastIndexOf('.')))
     if (fileName.length === 0) {
       return yield* new FileNameInvalidError({ mediaTitle: job.mediaTitle })

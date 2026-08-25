@@ -1,4 +1,5 @@
 import { makeTestContext, runTest, TestLoggerLive } from '@tests/effect'
+import { testEnv } from '@tests/env'
 import { MockTelegramClient } from '@tests/utils'
 import { Effect } from 'effect'
 
@@ -15,7 +16,7 @@ const runPromise: ConstructorParameters<typeof SchedulerProvider>[0]['runPromise
 registerFeatures([transcodingFeature, sendMessageFeature], {
   http: provider,
   scheduler: new SchedulerProvider({ cron: () => ({ stop: () => undefined }), runPromise }),
-  telegram: new TelegramProvider(new MockTelegramClient()),
+  telegram: new TelegramProvider(new MockTelegramClient(), testEnv.TELEGRAM_CHAT_ID),
 })
 
 export const http = {

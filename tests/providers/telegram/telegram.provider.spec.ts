@@ -1,9 +1,9 @@
 import { provideTest } from '@tests/effect'
+import { testEnv as env } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
 import { Effect, Fiber } from 'effect'
 import { adjust, type TestClock } from 'effect/testing/TestClock'
 
-import env from '@/config/env'
 import { type AppRequirements } from '@/core/runtime.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramUpdate } from '@/integrations/telegram/telegram.validator'
@@ -45,7 +45,7 @@ describe('TelegramProvider', () => {
   it.effect('uses a five-second retry delay and is interruptible', () => {
     const client = new PollClient()
     client.updates = Effect.fail(new NetworkError({ originalMessage: 'offline', serviceName: 'Telegram' }))
-    const provider = new TelegramProvider(client)
+    const provider = new TelegramProvider(client, env.TELEGRAM_CHAT_ID)
 
     return runControlled(
       client,
@@ -72,7 +72,7 @@ describe('TelegramProvider', () => {
       call++
       return call === 1 ? Effect.succeed([{ message: { chat: { id: env.TELEGRAM_CHAT_ID }, message_id: 1 }, update_id: 7 }]) : Effect.never
     })
-    const provider = new TelegramProvider(client)
+    const provider = new TelegramProvider(client, env.TELEGRAM_CHAT_ID)
 
     return runControlled(
       client,
@@ -95,7 +95,7 @@ describe('TelegramProvider', () => {
         ? Effect.succeed([{ message: { chat: { id: env.TELEGRAM_CHAT_ID }, message_id: 1, text: '/fail' }, update_id: 1 }])
         : Effect.never
     })
-    const provider = new TelegramProvider(client)
+    const provider = new TelegramProvider(client, env.TELEGRAM_CHAT_ID)
     provider.registerCommand('/fail', () => Effect.fail(new NetworkError({ originalMessage: 'failed', serviceName: 'Handler' })))
 
     return runControlled(

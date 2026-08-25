@@ -3,7 +3,7 @@ import { Effect, Fiber, FiberSet, Layer, Option } from 'effect'
 import { isFailure as isExitFailure } from 'effect/Exit'
 
 import { DatabaseLive } from '@/config/db'
-import env from '@/config/env'
+import { Env, EnvLive } from '@/config/env'
 import { LoggerLive } from '@/config/logger'
 import { registerFeatures } from '@/core/feature'
 import {
@@ -44,15 +44,16 @@ import { TelegramProvider } from '@/providers/telegram/telegram.provider'
 
 const ClientsLive = Layer.mergeAll(
   Layer.effect(Ffmpeg, makeFfmpegClient).pipe(Layer.provide(BunServices.layer)),
-  Layer.succeed(Plex, new PlexClient({ token: env.PLEX_TOKEN, url: env.PLEX_URL })),
-  Layer.succeed(Radarr, new RadarrClient({ apiKey: env.RADARR_API_KEY, apiUrl: env.RADARR_API_URL })),
-  Layer.succeed(Sonarr, new SonarrClient({ apiKey: env.SONARR_API_KEY, apiUrl: env.SONARR_API_URL })),
-  Layer.succeed(Telegram, new TelegramClient(env.TELEGRAM_TOKEN)),
-  Layer.succeed(Tmdb, new TmdbClient({ apiToken: env.TMDB_API_TOKEN, apiUrl: env.TMDB_API_URL })),
-  Layer.succeed(Trakt, new TraktClient({ clientId: env.TRAKT_CLIENT_ID, clientSecret: env.TRAKT_CLIENT_SECRET }))
+  Layer.effect(Plex, Env.pipe(Effect.map((env) => new PlexClient({ token: env.PLEX_TOKEN, url: env.PLEX_URL })))),
+  Layer.effect(Radarr, Env.pipe(Effect.map((env) => new RadarrClient({ apiKey: env.RADARR_API_KEY, apiUrl: env.RADARR_API_URL })))),
+  Layer.effect(Sonarr, Env.pipe(Effect.map((env) => new SonarrClient({ apiKey: env.SONARR_API_KEY, apiUrl: env.SONARR_API_URL })))),
+  Layer.effect(Telegram, Env.pipe(Effect.map((env) => new TelegramClient(env.TELEGRAM_TOKEN)))),
+  Layer.effect(Tmdb, Env.pipe(Effect.map((env) => new TmdbClient({ apiToken: env.TMDB_API_TOKEN, apiUrl: env.TMDB_API_URL })))),
+  Layer.effect(Trakt, Env.pipe(Effect.map((env) => new TraktClient({ clientId: env.TRAKT_CLIENT_ID, clientSecret: env.TRAKT_CLIENT_SECRET }))))
 )
 
-const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive, TraktAuthenticationTasksLive, BunServices.layer)
+const EnvGraph = EnvLive.pipe(Layer.provideMerge(BunServices.layer))
+const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive, TraktAuthenticationTasksLive).pipe(Layer.provideMerge(EnvGraph))
 const QueueGraph = TranscodeQueueLive.pipe(Layer.provideMerge(BaseLive))
 const BackgroundGraph = BackgroundTasksLive.pipe(Layer.provideMerge(QueueGraph))
 const WorkflowGraph = TranscodeScanLive.pipe(Layer.provideMerge(BackgroundGraph))
@@ -82,7 +83,8 @@ const TelegramBotLive = Layer.effect(
   TelegramBot,
   Effect.gen(function* () {
     const client = yield* Telegram
-    return TelegramBot.of(new TelegramProvider(client))
+    const env = yield* Env
+    return TelegramBot.of(new TelegramProvider(client, env.TELEGRAM_CHAT_ID))
   })
 )
 

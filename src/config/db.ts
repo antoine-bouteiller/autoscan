@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/bun-sql'
 import { migrate } from 'drizzle-orm/bun-sql/migrator'
 import { Data, Effect, Layer } from 'effect'
 
-import env from '@/config/env'
+import { Env, type EnvValues } from '@/config/env'
 import { Database } from '@/core/runtime.service'
 
 export class DatabaseQueryError extends Data.TaggedError('DatabaseQueryError')<{ readonly cause: unknown; readonly message: string }> {
@@ -38,18 +38,22 @@ export const makeDatabaseResource = <Sql, Db>(operations: DatabaseResourceOperat
     return { db, sql }
   })
 
-const databaseResource = makeDatabaseResource({
-  close: (sql: SQL) => sql.close(),
-  construct: (sql: SQL) => drizzle({ client: sql }),
-  migrate: (db) => migrate(db, { migrationsFolder: './migrations' }),
-  open: () =>
-    new SQL({
-      ...(env.POSTGRES_HOST.startsWith('/') ? { path: env.POSTGRES_HOST } : { hostname: env.POSTGRES_HOST }),
-      database: env.POSTGRES_DATABASE,
-      password: env.POSTGRES_PASSWORD,
-      port: env.POSTGRES_PORT,
-      username: env.POSTGRES_USERNAME,
-    }),
-})
+const databaseResource = (env: EnvValues) =>
+  makeDatabaseResource({
+    close: (sql: SQL) => sql.close(),
+    construct: (sql: SQL) => drizzle({ client: sql }),
+    migrate: (db) => migrate(db, { migrationsFolder: './migrations' }),
+    open: () =>
+      new SQL({
+        ...(env.POSTGRES_HOST.startsWith('/') ? { path: env.POSTGRES_HOST } : { hostname: env.POSTGRES_HOST }),
+        database: env.POSTGRES_DATABASE,
+        password: env.POSTGRES_PASSWORD,
+        port: env.POSTGRES_PORT,
+        username: env.POSTGRES_USERNAME,
+      }),
+  })
 
-export const DatabaseLive = Layer.effect(Database, databaseResource.pipe(Effect.map(({ db, sql }) => Database.of({ db, sql }))))
+export const DatabaseLive = Layer.effect(
+  Database,
+  Env.pipe(Effect.flatMap((env) => databaseResource(env).pipe(Effect.map(({ db, sql }) => Database.of({ db, sql })))))
+)

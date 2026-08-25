@@ -1,7 +1,7 @@
 import { Effect, FileSystem, type PlatformError, Result, Schema } from 'effect'
 import { type ChildProcessSpawner } from 'effect/unstable/process'
 
-import env from '@/config/env'
+import { Env } from '@/config/env'
 import { FileNotFoundError } from '@/features/transcoding/errors'
 import { ffprobeOutputValidator, type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
 import { type CommandExecutionError } from '@/shared/errors/command'
@@ -10,7 +10,7 @@ import { spawn } from '@/shared/utils/command'
 import { formatSchemaIssueMessage } from '@/shared/utils/schema'
 
 type FfmpegError = CommandExecutionError | FileNotFoundError | PlatformError.PlatformError | ValidationError
-type FfmpegRequirements = ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem
+type FfmpegRequirements = ChildProcessSpawner.ChildProcessSpawner | Env | FileSystem.FileSystem
 
 export interface IFfmpegClient {
   readonly execute: (...command: string[]) => Effect.Effect<string, CommandExecutionError>
@@ -26,6 +26,7 @@ export class FfmpegClient {
         return yield* new FileNotFoundError({ filePath: params.input })
       }
 
+      const env = yield* Env
       const directory = `${env.TRANSCODE_PATH}/${params.folderName}`
       yield* fs.makeDirectory(directory, { recursive: true })
       return yield* spawn({

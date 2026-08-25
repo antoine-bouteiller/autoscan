@@ -1,5 +1,6 @@
 import { BunServices } from '@effect/platform-bun'
 import { DatabaseTestLayer } from '@tests/database'
+import { EnvTestLayer } from '@tests/env'
 import { MockPlexClient, MockRadarrClient, MockSonarrClient, MockTelegramClient, MockTmdbClient, MockTraktClient } from '@tests/utils'
 import { Context, Effect, Layer, Logger } from 'effect'
 
@@ -29,7 +30,7 @@ export const TestLoggerLive = Logger.layer([])
 const makeTestLayer = (services: TestServices = {}) => {
   const ffmpeg =
     services.ffmpeg === undefined
-      ? Layer.effect(Ffmpeg, makeFfmpegClient).pipe(Layer.provide(BunServices.layer))
+      ? Layer.effect(Ffmpeg, makeFfmpegClient).pipe(Layer.provide(Layer.mergeAll(BunServices.layer, EnvTestLayer)))
       : Layer.succeed(Ffmpeg, services.ffmpeg)
   const clients = Layer.mergeAll(
     ffmpeg,
@@ -40,7 +41,7 @@ const makeTestLayer = (services: TestServices = {}) => {
     Layer.succeed(Tmdb, services.tmdb ?? new MockTmdbClient()),
     Layer.succeed(Trakt, services.trakt ?? new MockTraktClient())
   )
-  const base = Layer.mergeAll(clients, DatabaseTestLayer, TraktAuthenticationTasksLive, BunServices.layer)
+  const base = Layer.mergeAll(clients, DatabaseTestLayer, EnvTestLayer, TraktAuthenticationTasksLive, BunServices.layer)
   const queue = TranscodeQueueLive.pipe(Layer.provideMerge(base))
   const background = BackgroundTasksLive.pipe(Layer.provideMerge(queue))
   return TranscodeScanLive.pipe(Layer.provideMerge(background))

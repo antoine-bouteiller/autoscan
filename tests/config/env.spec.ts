@@ -1,88 +1,79 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, test } from 'bun:test'
 import { randomUUID } from 'node:crypto'
-import { existsSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 
-import { Result, Schema } from 'effect'
+import { BunServices } from '@effect/platform-bun'
+import { testEnv as env } from '@tests/env'
+import { describe, expect, it } from '@tests/it'
+import { Config, ConfigProvider, Effect, FileSystem, Result, Schema } from 'effect'
 
-import env, { loadFileSecrets, urlString } from '@/config/env'
-
-const writeTempSecret = (value: string): string => {
-  const filePath = join(tmpdir(), `autoscan-test-${randomUUID()}.txt`)
-  writeFileSync(filePath, value)
-  return filePath
-}
-
-const getSecret = (target: Record<string, string | undefined>, key: string) => target[key]
+import { loadFileSecrets, urlString } from '@/config/env'
 
 describe('env', () => {
-  test('should expose required keys from process.env', () => {
-    expect(process.env['PLEX_TOKEN']).toBe(env.PLEX_TOKEN)
-    expect(process.env['TRANSCODE_PATH']).toBe(env.TRANSCODE_PATH)
+  test('should expose required keys from the environment', () => {
+    expect(env.PLEX_TOKEN).toBe(Effect.runSync(Config.string('PLEX_TOKEN')))
+    expect(env.TRANSCODE_PATH).toBe(Effect.runSync(Config.string('TRANSCODE_PATH')))
   })
 
   test('should coerce TELEGRAM_CHAT_ID to a number', () => {
     expect(typeof env.TELEGRAM_CHAT_ID).toBe('number')
-    expect(env.TELEGRAM_CHAT_ID).toBe(Number(process.env['TELEGRAM_CHAT_ID']))
+    expect(env.TELEGRAM_CHAT_ID).toBe(Number(Effect.runSync(Config.string('TELEGRAM_CHAT_ID'))))
   })
 })
 
-describe('loadFileSecrets', () => {
-  const tempFiles: string[] = []
+const tempFiles: string[] = []
 
-  afterEach(() => {
-    for (const file of tempFiles) {
-      if (existsSync(file)) {
-        unlinkSync(file)
-      }
-    }
-    tempFiles.length = 0
-  })
-
-  test('should load secret from _FILE path and trim whitespace', () => {
-    const filePath = writeTempSecret('  my-secret\n')
+const writeTempSecret = (value: string) =>
+  Effect.gen(function* () {
+    const fileSystem = yield* FileSystem.FileSystem
+    const filePath = `${tmpdir()}/autoscan-test-${randomUUID()}.txt`
+    yield* fileSystem.writeFileString(filePath, value)
     tempFiles.push(filePath)
-    const target = { PLEX_TOKEN_FILE: filePath } satisfies Record<string, string | undefined>
-
-    loadFileSecrets(target)
-
-    expect(getSecret(target, 'PLEX_TOKEN')).toBe('my-secret')
+    return filePath
   })
 
-  test('should leave target unchanged when no _FILE var is set', () => {
-    const target = { PLEX_TOKEN: 'existing' } satisfies Record<string, string | undefined>
+const removeTempFiles = Effect.gen(function* () {
+  const fileSystem = yield* FileSystem.FileSystem
+  yield* Effect.forEach(tempFiles.splice(0), (file) => Effect.ignore(fileSystem.remove(file)), { discard: true })
+}).pipe(Effect.provide(BunServices.layer))
 
-    loadFileSecrets(target)
+const fileSecrets = (variables: Record<string, string>) =>
+  loadFileSecrets.pipe(Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnvRecord(variables)))
 
-    expect(getSecret(target, 'PLEX_TOKEN')).toBe('existing')
-  })
+describe('loadFileSecrets', () => {
+  afterEach(() => Effect.runPromise(removeTempFiles))
 
-  test('should leave target unchanged when _FILE points to missing path', () => {
-    const target = {
-      PLEX_TOKEN: 'existing',
-      PLEX_TOKEN_FILE: '/nonexistent/path',
-    } satisfies Record<string, string | undefined>
+  it.live('should load secret from _FILE path and trim whitespace', () =>
+    Effect.gen(function* () {
+      const filePath = yield* writeTempSecret('  my-secret\n')
 
-    loadFileSecrets(target)
+      expect(yield* fileSecrets({ PLEX_TOKEN_FILE: filePath })).toEqual({ PLEX_TOKEN: 'my-secret' })
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 
-    expect(getSecret(target, 'PLEX_TOKEN')).toBe('existing')
-  })
+  it.live('should return no secret when no _FILE var is set', () =>
+    Effect.gen(function* () {
+      expect(yield* fileSecrets({ PLEX_TOKEN: 'existing' })).toEqual({})
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 
-  test('should load multiple secrets from different _FILE paths', () => {
-    const plexFile = writeTempSecret('plex-secret')
-    const tmdbFile = writeTempSecret('tmdb-secret')
-    tempFiles.push(plexFile, tmdbFile)
-    const target = {
-      PLEX_TOKEN_FILE: plexFile,
-      TMDB_API_TOKEN_FILE: tmdbFile,
-    } satisfies Record<string, string | undefined>
+  it.live('should return no secret when _FILE points to missing path', () =>
+    Effect.gen(function* () {
+      expect(yield* fileSecrets({ PLEX_TOKEN: 'existing', PLEX_TOKEN_FILE: '/nonexistent/path' })).toEqual({})
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 
-    loadFileSecrets(target)
+  it.live('should load multiple secrets from different _FILE paths', () =>
+    Effect.gen(function* () {
+      const plexFile = yield* writeTempSecret('plex-secret')
+      const tmdbFile = yield* writeTempSecret('tmdb-secret')
 
-    expect(getSecret(target, 'PLEX_TOKEN')).toBe('plex-secret')
-    expect(getSecret(target, 'TMDB_API_TOKEN')).toBe('tmdb-secret')
-  })
+      expect(yield* fileSecrets({ PLEX_TOKEN_FILE: plexFile, TMDB_API_TOKEN_FILE: tmdbFile })).toEqual({
+        PLEX_TOKEN: 'plex-secret',
+        TMDB_API_TOKEN: 'tmdb-secret',
+      })
+    }).pipe(Effect.provide(BunServices.layer))
+  )
 })
 
 describe('urlString', () => {

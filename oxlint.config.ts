@@ -22,9 +22,10 @@ export default defineConfig({
   jsPlugins: [{ name: 'autoscan', specifier: './oxlint/index.ts' }],
   overrides: [
     {
-      // Every test builds and provides its own layers at the point where it runs.
+      // Every test builds and provides its own layers at the point where it runs,
+      // and the HTTP transport is exercised by spying on the global fetch.
       files: ['tests/**'],
-      rules: { 'effecttsgo/strict-effect-provide': 'off' },
+      rules: { 'effecttsgo/global-fetch': 'off', 'effecttsgo/strict-effect-provide': 'off' },
     },
     {
       // Reusable helpers are the only place a pipeable overload is expected.

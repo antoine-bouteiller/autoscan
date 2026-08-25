@@ -3,6 +3,7 @@ import { type BunSQLDatabase } from 'drizzle-orm/bun-sql/postgres'
 import { Context, type Crypto, Effect, FiberSet, type FileSystem, Layer, type Option, type Path, Ref, Semaphore } from 'effect'
 import { type ChildProcessSpawner } from 'effect/unstable/process'
 
+import { type Env } from '@/config/env'
 import { type TraktAuthenticationTasks } from '@/features/trakt_sync/services/authentication.service'
 import { type TranscodeJob } from '@/features/transcoding/types'
 import { type IRadarrClient } from '@/integrations/arr/radarr.service'
@@ -43,6 +44,7 @@ type WorkflowRequirements =
   | ChildProcessSpawner.ChildProcessSpawner
   | Crypto.Crypto
   | Database
+  | Env
   | Ffmpeg
   | FileSystem.FileSystem
   | Path.Path

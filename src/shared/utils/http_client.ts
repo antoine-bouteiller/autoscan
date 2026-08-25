@@ -1,4 +1,5 @@
 import { Clock, Effect, Random, Result, Schema } from 'effect'
+import { FetchHttpClient, HttpClient as EffectHttpClient, HttpClientRequest, type HttpMethod } from 'effect/unstable/http'
 
 import { HttpError, RequestTimeoutError } from '@/shared/errors/http'
 import { NetworkError } from '@/shared/errors/network'
@@ -49,8 +50,8 @@ const parseBody = (body: string): unknown => {
   }
 }
 
-const parseRetryAfter = (value: string | null, now: number): number | undefined => {
-  if (value === null) {
+const parseRetryAfter = (value: string | undefined, now: number): number | undefined => {
+  if (value === undefined) {
     return undefined
   }
 
@@ -63,12 +64,12 @@ const parseRetryAfter = (value: string | null, now: number): number | undefined 
   return Number.isFinite(date) ? Math.max(0, date - now) : undefined
 }
 
-const shouldRetry = (method: string, enabled: boolean, error: HttpClientError): boolean =>
+const shouldRetry = (method: HttpMethod.HttpMethod, enabled: boolean, error: HttpClientError): boolean =>
   enabled && method === 'GET' && (error._tag === 'NetworkError' || (error._tag === 'HttpError' && (error.status === 429 || error.status >= 500)))
 
 const retry = <Success>(
   request: () => Effect.Effect<Success, HttpClientError>,
-  options: { attempt?: number; deadline: number; enabled: boolean; method: string }
+  options: { attempt?: number; deadline: number; enabled: boolean; method: HttpMethod.HttpMethod }
 ): Effect.Effect<Success, HttpClientError> =>
   request().pipe(
     Effect.catch((error) => {
@@ -96,67 +97,55 @@ const retry = <Success>(
   )
 
 export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeaders = {}, serviceName }: HttpClientOptions): HttpClient => {
-  function request(method: string, endpoint: string, options?: RequestWithoutResponseOption): HttpClientVoidResult
-  function request<TSchema extends AnySchema>(method: string, endpoint: string, options?: RequestOptions<TSchema>): HttpClientResult<TSchema>
+  function request(method: HttpMethod.HttpMethod, endpoint: string, options?: RequestWithoutResponseOption): HttpClientVoidResult
+  function request<TSchema extends AnySchema>(
+    method: HttpMethod.HttpMethod,
+    endpoint: string,
+    options?: RequestOptions<TSchema>
+  ): HttpClientResult<TSchema>
 
   function request<TSchema extends AnySchema | undefined = undefined>(
-    method: string,
+    method: HttpMethod.HttpMethod,
     endpoint: string,
     options: RequestOptions<TSchema> = {}
   ): Effect.Effect<unknown, HttpClientError> {
     const { body, headers = {}, params, retry: retryEnabled = true, timeout = DEFAULT_TIMEOUT, validator } = options
     const url = createUrl(baseUrl, endpoint, params)
     const requestHeaders = { ...globalHeaders, ...headers }
-    if (body !== undefined) {
-      requestHeaders['Content-Type'] = 'application/json'
-    }
 
-    const fetchOnce = Effect.scoped(
-      Effect.gen(function* () {
-        const signal = yield* Effect.abortSignal
-        const response = yield* Effect.tryPromise({
-          catch: (cause) =>
-            new NetworkError({ cause, originalMessage: cause instanceof Error ? cause.message : 'Unknown network error', serviceName }),
-          try: () =>
-            fetch(url, {
-              body: body === undefined ? undefined : encodeJson(body),
-              headers: requestHeaders,
-              method,
-              signal,
-            }),
+    const fetchOnce = Effect.gen(function* () {
+      const client = yield* EffectHttpClient.HttpClient
+      const baseRequest = HttpClientRequest.make(method)(url, { headers: requestHeaders })
+      const response = yield* client
+        .execute(body === undefined ? baseRequest : HttpClientRequest.bodyJsonUnsafe(baseRequest, body))
+        .pipe(Effect.mapError((cause) => new NetworkError({ cause, originalMessage: cause.message, serviceName })))
+
+      if (response.status >= 400) {
+        const text = yield* response.text.pipe(Effect.orElseSucceed(() => ''))
+        const now = yield* Clock.currentTimeMillis
+        return yield* new HttpError({
+          body: (errorFormatter ?? defaultFormatter)(parseBody(text)),
+          retryAfterMs: parseRetryAfter(response.headers['retry-after'], now),
+          route: endpoint,
+          serviceName,
+          status: response.status,
         })
+      }
 
-        if (!response.ok) {
-          const text = yield* Effect.tryPromise({ catch: () => response.statusText, try: () => response.text() }).pipe(
-            Effect.catch((error) => Effect.succeed(error))
-          )
-          const now = yield* Clock.currentTimeMillis
-          return yield* new HttpError({
-            body: (errorFormatter ?? defaultFormatter)(parseBody(text)),
-            retryAfterMs: parseRetryAfter(response.headers.get('Retry-After'), now),
-            route: endpoint,
-            serviceName,
-            status: response.status,
-          })
-        }
+      if (validator === undefined) {
+        return undefined
+      }
 
-        if (validator === undefined) {
-          yield* Effect.promise(() => response.body?.cancel() ?? Promise.resolve())
-          return undefined
-        }
+      const json = yield* response.json.pipe(Effect.mapError((cause) => new ValidationError({ cause, details: 'Response is not valid JSON' })))
+      const result = Schema.decodeResult(validator, { errors: 'all' })(json)
+      if (Result.isFailure(result)) {
+        return yield* new ValidationError({ details: formatSchemaIssueMessage(result.failure.issue) })
+      }
 
-        const json = yield* Effect.tryPromise({
-          catch: (cause) => new ValidationError({ cause, details: 'Response is not valid JSON' }),
-          try: () => response.json(),
-        })
-        const result = Schema.decodeUnknownResult(validator, { errors: 'all' })(json)
-        if (Result.isFailure(result)) {
-          return yield* new ValidationError({ details: formatSchemaIssueMessage(result.failure.issue) })
-        }
-
-        return result.success
-      })
-    )
+      return result.success
+      // The fetch transport is an implementation detail of this helper, so callers never see an HttpClient requirement.
+      // oxlint-disable-next-line effecttsgo/strict-effect-provide
+    }).pipe(Effect.provide(FetchHttpClient.layer))
 
     return Clock.currentTimeMillis.pipe(
       Effect.flatMap((startedAt) => retry(() => fetchOnce, { deadline: startedAt + timeout, enabled: retryEnabled, method })),

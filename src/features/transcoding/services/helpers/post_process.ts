@@ -1,6 +1,6 @@
 import { Cause, Crypto, Effect, FileSystem, Option, Path, type PlatformError, Result } from 'effect'
 
-import env from '@/config/env'
+import { Env } from '@/config/env'
 import { Ffmpeg, Plex, Radarr, Sonarr } from '@/core/runtime.service'
 import {
   AudioStreamNotFoundError,
@@ -143,6 +143,7 @@ const installTranscode = (inputFile: string, mediaTitle: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
+    const env = yield* Env
     const outputDirectory = `${env.TRANSCODE_PATH}/${path.basename(inputFile, inputFile.slice(inputFile.lastIndexOf('.')))}`
     if (!(yield* fs.exists(outputDirectory))) {
       return { cleanupErrors: [], committed: false } as const

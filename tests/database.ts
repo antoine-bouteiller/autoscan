@@ -1,9 +1,9 @@
+import { testEnv as env } from '@tests/env'
 import { SQL } from 'bun'
 import { drizzle } from 'drizzle-orm/bun-sql'
 import { migrate } from 'drizzle-orm/bun-sql/migrator'
 import { Layer } from 'effect'
 
-import env from '@/config/env'
 import { Database } from '@/core/runtime.service'
 
 const sql = new SQL({

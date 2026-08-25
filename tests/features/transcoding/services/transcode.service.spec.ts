@@ -2,11 +2,11 @@ import { beforeEach } from 'bun:test'
 
 import { BunServices } from '@effect/platform-bun'
 import { provideTest } from '@tests/effect'
+import { testEnv as env } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
 import { makeTestDir, refreshSectionsMock, videosPath } from '@tests/utils'
 import { Effect, FileSystem, Path } from 'effect'
 
-import env from '@/config/env'
 import { TranscodeQueue } from '@/core/runtime.service'
 import { transcodeFile } from '@/features/transcoding/services/transcode.service'
 import { FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'

@@ -74,7 +74,7 @@ describe('httpClient', () => {
       yield* client().get('/resource', { headers: { Custom: 'yes' }, params: { page: 2 }, validator: schema })
       const [url, options] = fetchMock.mock.calls[0] ?? []
       expect(url instanceof Request ? url.url : url?.toString()).toBe('https://example.com/resource?page=2')
-      expect(options?.headers).toEqual({ Authorization: 'token', Custom: 'yes' })
+      expect(options?.headers).toMatchObject({ authorization: 'token', custom: 'yes' })
     })
   )
 
