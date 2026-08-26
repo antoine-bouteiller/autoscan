@@ -5,7 +5,7 @@
     "": {
       "name": "autoscan",
       "dependencies": {
-        "@effect/platform-bun": "4.0.0-rc.111",
+        "@effect/platform-bun": "4.0.0-rc.112",
         "drizzle-orm": "1.0.0-rc.4",
         "effect": "4.0.0-rc.111",
       },
@@ -31,7 +31,7 @@
     "lefthook",
   ],
   "overrides": {
-    "@effect/platform-node-shared": "4.0.0-rc.111",
+    "@effect/platform-node-shared": "4.0.0-rc.112",
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
@@ -80,9 +80,9 @@
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.12.0", "", {}, "sha512-mlUE+rZ8CatQekLhnaiN91Iemdd+e2gFKooGlnRB3oPTL3VghLfX24dx7HrzMNeC1JrIB/0kpsfyty3f5HNfxQ=="],
 
-    "@effect/platform-bun": ["@effect/platform-bun@4.0.0-rc.111", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.0-rc.111" }, "peerDependencies": { "effect": "^4.0.0-rc.111" } }, "sha512-z6MF1ztw8oSvh4nlvI90wraB63ib5K67JPaSYtz5K9IIAgjXgXYC0hjbcqF+PlC9ytlQmu8tWzk2+yGePWWe5A=="],
+    "@effect/platform-bun": ["@effect/platform-bun@4.0.0-rc.112", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.0-rc.112" }, "peerDependencies": { "effect": "^4.0.0-rc.112" } }, "sha512-Y5n2HhV/vsbrJls9ukX42RL7zqXQxISHegWFsP9njsCyDmGTnq7QYSO82rglwrLPwtTrv5dkSRTuGw4+oXxgMg=="],
 
-    "@effect/platform-node-shared": ["@effect/platform-node-shared@4.0.0-rc.111", "", { "dependencies": { "@types/ws": "^8.18.1", "ws": "^8.21.3" }, "peerDependencies": { "effect": "^4.0.0-rc.111" } }, "sha512-iES0Q9vmjhaUKqeW9ceonuD45MUg/Ouk08LzRSptZ+B5qB0w9WlRjDmUz5TJmY2betNop5FRI5k4AD4mtQt3Bw=="],
+    "@effect/platform-node-shared": ["@effect/platform-node-shared@4.0.0-rc.112", "", { "dependencies": { "@types/ws": "^8.18.1", "ws": "^8.21.3" }, "peerDependencies": { "effect": "^4.0.0-rc.112" } }, "sha512-ttjz0xKamFN7vL8pNDYVwddJLjZvqKePc05djlz2VcdaKbLsnYbtMnL1rbOfHgEnIUSHGh7FkjaN4DM1Ov81sQ=="],
 
     "@effect/tsgo": ["@effect/tsgo@0.36.5", "", { "optionalDependencies": { "@effect/tsgo-darwin-arm64": "0.36.5", "@effect/tsgo-darwin-x64": "0.36.5", "@effect/tsgo-linux-arm": "0.36.5", "@effect/tsgo-linux-arm64": "0.36.5", "@effect/tsgo-linux-x64": "0.36.5", "@effect/tsgo-win32-arm64": "0.36.5", "@effect/tsgo-win32-x64": "0.36.5" }, "bin": { "effect-tsgo": "dist/effect-tsgo.cjs" } }, "sha512-BHxVjeRK1/XlqYHWXkbT4W9JpOrT3sNA2wrfwQPBTojD5OSyxI2TUIltobYhWudyfuCrn770qP6uOpDjdrmghA=="],
 
