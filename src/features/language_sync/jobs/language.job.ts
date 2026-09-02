@@ -18,8 +18,9 @@ export const updatePlexSelectedLanguages = Effect.gen(function* () {
             (media) =>
               getCompleteMediaDetails(Number(media.ratingKey)).pipe(
                 Effect.flatMap((details) => handleUpdateLanguage(details)),
-                Effect.catchCause((cause) =>
-                  Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'updatePlexSelectedLanguages')
+                Effect.catchCauseIf(
+                  (cause) => !Cause.hasInterruptsOnly(cause),
+                  (cause) => Effect.logError(cause, 'updatePlexSelectedLanguages')
                 )
               ),
             { discard: true }

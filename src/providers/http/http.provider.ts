@@ -45,6 +45,8 @@ const notFoundRoute = HttpRouter.route('*', '*', jsonResponse({ error: { code: '
 const routerConfig = { caseSensitive: true, ignoreTrailingSlash: false }
 const isInterruptedOnly = (cause: Cause.Cause<unknown>): cause is Cause.Cause<never> =>
   cause.reasons.length > 0 && cause.reasons.every(Cause.isInterruptReason)
+const failedCause = <Err>(cause: Cause.Cause<Err>): Result.Result<Cause.Cause<Err>, Cause.Cause<never>> =>
+  isInterruptedOnly(cause) ? Result.fail(cause) : Result.succeed(cause)
 
 export class HttpProvider {
   private readonly options: Required<Omit<HttpProviderOptions, 'server'>>
@@ -142,11 +144,8 @@ export class HttpProvider {
 
       return yield* handler(appRequest, reply).pipe(
         Effect.andThen(Effect.sync(() => jsonResponse(payload, statusCode))),
-        Effect.catchCause((cause) => {
-          if (isInterruptedOnly(cause)) {
-            return Effect.failCause(cause)
-          }
-          return Effect.logError(cause, 'HTTP request failed').pipe(
+        Effect.catchCauseFilter(failedCause, (cause) =>
+          Effect.logError(cause, 'HTTP request failed').pipe(
             Effect.andThen(DateTime.now),
             Effect.map((now) =>
               jsonResponse(
@@ -159,7 +158,7 @@ export class HttpProvider {
               )
             )
           )
-        })
+        )
       )
     })
   }

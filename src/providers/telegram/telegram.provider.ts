@@ -44,24 +44,22 @@ export class TelegramProvider {
   private recoverHandler(effect: Effect.Effect<ConversationState, Error, AppRequirements>) {
     const provider = this
     return effect.pipe(
-      Effect.catchCause((cause) => {
-        if (Cause.hasInterruptsOnly(cause)) {
-          return Effect.failCause(cause)
-        }
-        return Effect.gen(function* () {
-          provider.conversationState = { step: 'idle' }
-          provider.activeConversationKey = undefined
-          yield* Effect.logError(cause, 'Telegram')
-          yield* provider.client
-            .sendMessage(provider.chatId, 'An unexpected error occurred')
-            .pipe(
-              Effect.catchCause((sendCause) =>
-                Cause.hasInterruptsOnly(sendCause) ? Effect.failCause(sendCause) : Effect.logError(sendCause, 'Telegram')
+      Effect.catchCauseIf(
+        (cause) => !Cause.hasInterruptsOnly(cause),
+        (cause) =>
+          Effect.gen(function* () {
+            provider.conversationState = { step: 'idle' }
+            provider.activeConversationKey = undefined
+            yield* Effect.logError(cause, 'Telegram')
+            yield* provider.client.sendMessage(provider.chatId, 'An unexpected error occurred').pipe(
+              Effect.catchCauseIf(
+                (sendCause) => !Cause.hasInterruptsOnly(sendCause),
+                (sendCause) => Effect.logError(sendCause, 'Telegram')
               )
             )
-          return provider.conversationState
-        })
-      })
+            return provider.conversationState
+          })
+      )
     )
   }
 
