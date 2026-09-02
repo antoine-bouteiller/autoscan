@@ -18,4 +18,12 @@
   'pre-commit': {
     enabled: true,
   },
+  vulnerabilityAlerts: {
+    enabled: true,
+    addLabels: ['security'],
+    semanticCommitType: 'fix',
+    semanticCommitScope: 'deps',
+    minimumReleaseAge: null,
+    schedule: ['at any time'],
+  },
 }
