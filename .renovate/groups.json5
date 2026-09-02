@@ -10,12 +10,12 @@
     {
       description: 'Oxc Group',
       groupName: 'oxc',
-      matchPackageNames: ['oxlint', 'oxfmt', 'oxlint-tsgolint', '@oxlint/plugin'],
+      matchPackageNames: ['oxlint', 'oxfmt', 'oxlint-tsgolint', '@oxlint/plugin', '@effect/tsgo'],
     },
     {
       description: 'Effect Group',
       groupName: 'effect',
-      matchPackageNames: ['effect', '@effect/**'],
+      matchPackageNames: ['effect', '@effect/**', '!@effect/tsgo'],
     },
   ],
 }
