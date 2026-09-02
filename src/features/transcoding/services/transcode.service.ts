@@ -100,7 +100,10 @@ export const TranscodeQueueLive = Layer.effect(
           })
         ),
         Effect.flatMap(processJob),
-        Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'Transcode Queue'))),
+        Effect.catchCauseIf(
+          (cause) => !Cause.hasInterruptsOnly(cause),
+          (cause) => Effect.logError(cause, 'Transcode Queue')
+        ),
         Effect.ensuring(
           Effect.sync(() => {
             if (currentJob !== undefined) {
@@ -183,8 +186,9 @@ export const transcodeFile = (params: { file: string; mediaTitle: string; origin
     }
 
     const result = yield* getTranscodeCommand(params.file, params.mediaTitle, params.originalLanguage).pipe(
-      Effect.catchCause((cause) =>
-        Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'transcodeFile').pipe(Effect.as(undefined))
+      Effect.catchCauseIf(
+        (cause) => !Cause.hasInterruptsOnly(cause),
+        (cause) => Effect.logError(cause, 'transcodeFile').pipe(Effect.as(undefined))
       )
     )
     if (result === undefined) {

@@ -25,9 +25,9 @@ export const TranscodeScanLive = Layer.effect(
             acquired
               ? Ref.set(running, true).pipe(
                   Effect.flatMap(() => effect),
-                  Effect.map(Option.some)
+                  Effect.asSome
                 )
-              : Effect.succeed(Option.none()),
+              : Effect.succeedNone,
           (acquired) =>
             acquired
               ? Ref.set(running, false).pipe(
@@ -47,7 +47,10 @@ export const TranscodeScanLive = Layer.effect(
               yield* FiberSet.run(
                 fibers,
                 effect.pipe(
-                  Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'Transcode Scan'))),
+                  Effect.catchCauseIf(
+                    (cause) => !Cause.hasInterruptsOnly(cause),
+                    (cause) => Effect.logError(cause, 'Transcode Scan')
+                  ),
                   Effect.ensuring(
                     Ref.set(running, false).pipe(
                       Effect.flatMap(() => semaphore.release(1)),
@@ -81,7 +84,10 @@ const scan = Effect.gen(function* () {
             originalLanguage: details.originalLanguage,
           })
         ),
-        Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'runTranscodeProcess')))
+        Effect.catchCauseIf(
+          (cause) => !Cause.hasInterruptsOnly(cause),
+          (cause) => Effect.logError(cause, 'runTranscodeProcess')
+        )
       )
     }
   }

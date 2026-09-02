@@ -78,8 +78,9 @@ const analyzeMedia = (plexClient: IPlexClient) =>
       const medias = yield* plexClient.getSectionMedia(section.key, section.type)
       for (const media of medias) {
         const details = yield* getCompleteMediaDetails(Number(media.ratingKey)).pipe(
-          Effect.catchCause((cause) =>
-            Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'subtitleScan').pipe(Effect.as(undefined))
+          Effect.catchCauseIf(
+            (cause) => !Cause.hasInterruptsOnly(cause),
+            (cause) => Effect.logError(cause, 'subtitleScan').pipe(Effect.as(undefined))
           )
         )
         if (details === undefined || details.originalLanguage === 'fr') {
@@ -131,7 +132,10 @@ export const subtitleScanCommand = (client: ITelegramClient, message: TelegramMe
           ? client.sendMessage(message.chat.id, report, { parseMode: 'Markdown' })
           : client.sendMessage(message.chat.id, 'All media have matching subtitles.')
       }),
-      Effect.catchCause((cause) => (Cause.hasInterruptsOnly(cause) ? Effect.failCause(cause) : Effect.logError(cause, 'Subtitle Scan')))
+      Effect.catchCauseIf(
+        (cause) => !Cause.hasInterruptsOnly(cause),
+        (cause) => Effect.logError(cause, 'Subtitle Scan')
+      )
     )
     yield* tasks.start(task)
     return { step: 'idle' } as const

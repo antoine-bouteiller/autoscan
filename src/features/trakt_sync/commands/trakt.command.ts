@@ -44,9 +44,12 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
     const polling = Effect.gen(function* () {
       while (true) {
         yield* Effect.sleep(result.interval * 1000)
-        const token = yield* traktClient
-          .pollDeviceToken(result.device_code)
-          .pipe(Effect.catch((error) => (error instanceof HttpError && error.status === 400 ? Effect.void : Effect.fail(error))))
+        const token = yield* traktClient.pollDeviceToken(result.device_code).pipe(
+          Effect.catchIf(
+            (error) => error instanceof HttpError && error.status === 400,
+            () => Effect.void
+          )
+        )
         if (token === undefined) {
           continue
         }
@@ -60,13 +63,13 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
         duration: result.expires_in * 1000,
         orElse: () => client.sendMessage(chatId, 'Trakt authentication failed or timed out.').pipe(Effect.asVoid),
       }),
-      Effect.catchCause((cause) =>
-        Cause.hasInterruptsOnly(cause)
-          ? Effect.failCause(cause)
-          : Effect.logError(cause, 'Trakt Auth').pipe(
-              Effect.flatMap(() => client.sendMessage(chatId, 'Trakt authentication failed or timed out.')),
-              Effect.asVoid
-            )
+      Effect.catchCauseIf(
+        (cause) => !Cause.hasInterruptsOnly(cause),
+        (cause) =>
+          Effect.logError(cause, 'Trakt Auth').pipe(
+            Effect.flatMap(() => client.sendMessage(chatId, 'Trakt authentication failed or timed out.')),
+            Effect.asVoid
+          )
       ),
       Effect.provideService(Database, database)
     )
