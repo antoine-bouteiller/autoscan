@@ -21,6 +21,13 @@ export const media = pgTable(
   ]
 )
 
+export const plexTokens = pgTable('plex_tokens', {
+  authToken: text('auth_token').notNull(),
+  clientIdentifier: text('client_identifier').notNull(),
+  id: serial().primaryKey(),
+  linkedAt: timestamp('linked_at').notNull(),
+})
+
 export const traktTokens = pgTable('trakt_tokens', {
   accessToken: text('access_token').notNull(),
   expiresAt: integer('expires_at').notNull(),

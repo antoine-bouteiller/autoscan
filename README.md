@@ -14,7 +14,6 @@ Media automation service that integrates Radarr, Sonarr, Plex, and TMDB to autom
 ## Configuration
 
 ```
-PLEX_TOKEN=
 PLEX_URL=
 RADARR_API_KEY=
 RADARR_API_URL=

@@ -5,11 +5,18 @@ import { Effect } from 'effect'
 
 import { PlexError } from '@/integrations/plex/plex.errors'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
-import { type PlexMedia } from '@/integrations/plex/plex.validator'
+import { type PlexMedia, type PlexPin } from '@/integrations/plex/plex.validator'
+import { NetworkError } from '@/shared/errors/network'
 
 export const updateStreamMock = jest.fn().mockResolvedValue(undefined)
 const refreshSectionMock = jest.fn().mockResolvedValue(undefined)
 export const refreshSectionsMock = jest.fn().mockResolvedValue(undefined)
+export const createPinMock = jest.fn<(clientIdentifier: string) => Promise<PlexPin>>().mockResolvedValue({ code: 'PIN1', expiresIn: 900, id: 42 })
+export const checkPinMock = jest.fn<(id: number, clientIdentifier: string) => Promise<string | undefined>>().mockResolvedValue(undefined)
+export const verifyTokenMock = jest.fn<(token: string, clientIdentifier: string) => Promise<boolean>>().mockResolvedValue(true)
+
+const fromPromise = <Value>(run: () => Promise<Value>) =>
+  Effect.tryPromise({ catch: (cause) => new NetworkError({ cause, originalMessage: String(cause), serviceName: 'PlexTest' }), try: run })
 
 const movies = [
   {
@@ -88,5 +95,17 @@ export class MockPlexClient implements IPlexClient {
 
   updateStream(partsId: number, streamId: number, type: 'audio' | 'subtitle') {
     return Effect.promise(() => updateStreamMock(partsId, streamId, type))
+  }
+
+  createPin(clientIdentifier: string) {
+    return fromPromise(() => createPinMock(clientIdentifier))
+  }
+
+  checkPin(id: number, clientIdentifier: string) {
+    return fromPromise(() => checkPinMock(id, clientIdentifier))
+  }
+
+  verifyToken(token: string, clientIdentifier: string) {
+    return fromPromise(() => verifyTokenMock(token, clientIdentifier))
   }
 }

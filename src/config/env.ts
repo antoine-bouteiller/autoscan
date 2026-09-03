@@ -1,7 +1,6 @@
 import { Config, ConfigProvider, Context, Effect, FileSystem, Layer, Schema } from 'effect'
 
 const FILE_SECRET_KEYS = [
-  'PLEX_TOKEN',
   'RADARR_API_KEY',
   'SONARR_API_KEY',
   'TELEGRAM_CHAT_ID',
@@ -42,7 +41,6 @@ export const urlString = Schema.String.pipe(
 )
 
 const envConfig = Config.all({
-  PLEX_TOKEN: Config.string('PLEX_TOKEN'),
   PLEX_URL: Config.schema(urlString, 'PLEX_URL'),
   POSTGRES_DATABASE: Config.string('POSTGRES_DATABASE'),
   POSTGRES_HOST: Config.string('POSTGRES_HOST'),

@@ -63,5 +63,13 @@ export const plexResponseValidator = Schema.Struct({
   }),
 })
 
+export const plexPinValidator = Schema.Struct({
+  authToken: Schema.optional(Schema.NullOr(Schema.String)),
+  code: Schema.String,
+  expiresIn: Schema.Finite,
+  id: Schema.Finite,
+})
+
 export type PlexMediaStream = typeof streamValidator.Type
 export type PlexMedia = typeof plexMediaValidator.Type
+export type PlexPin = typeof plexPinValidator.Type

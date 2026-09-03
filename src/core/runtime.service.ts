@@ -1,10 +1,10 @@
 import { type SQL } from 'bun'
 import { type BunSQLDatabase } from 'drizzle-orm/bun-sql/postgres'
-import { Context, type Crypto, Effect, FiberSet, type FileSystem, Layer, type Option, type Path, Ref, Semaphore } from 'effect'
+import { Context, type Crypto, Effect, FiberMap, FiberSet, type FileSystem, Layer, type Option, type Path, Ref, Semaphore } from 'effect'
 import { type ChildProcessSpawner } from 'effect/unstable/process'
 
 import { type Env } from '@/config/env'
-import { type TraktAuthenticationTasks } from '@/features/trakt_sync/services/authentication.service'
+import { type PlexTokenStore } from '@/features/plex_auth/services/plex_token.service'
 import { type TranscodeJob } from '@/features/transcoding/types'
 import { type IRadarrClient } from '@/integrations/arr/radarr.service'
 import { type ISonarrClient } from '@/integrations/arr/sonarr.service'
@@ -51,10 +51,11 @@ type WorkflowRequirements =
   | Plex
   | Radarr
   | Sonarr
+  | AuthenticationTasks
+  | PlexTokenStore
   | Telegram
   | Tmdb
   | Trakt
-  | TraktAuthenticationTasks
   | TranscodeQueue
 
 export interface WorkflowOwner {
@@ -99,6 +100,40 @@ export const BackgroundTasksLive = Layer.effect(
               return false
             }
             yield* FiberSet.run(fibers, effect)
+            return true
+          })
+        ),
+      stopIntake: admission.withPermits(1)(Ref.set(accepting, false)),
+    })
+  })
+)
+
+interface AuthenticationTasksService extends WorkflowOwner {
+  readonly isRunning: (key: string) => Effect.Effect<boolean>
+  readonly start: (key: string, task: Effect.Effect<void, Error>) => Effect.Effect<boolean>
+}
+
+export class AuthenticationTasks extends Context.Service<AuthenticationTasks, AuthenticationTasksService>()(
+  'autoscan/core/runtime.service/AuthenticationTasks'
+) {}
+
+export const AuthenticationTasksLive = Layer.effect(
+  AuthenticationTasks,
+  Effect.gen(function* () {
+    const tasks = yield* FiberMap.make<string, void, Error>()
+    const accepting = yield* Ref.make(true)
+    const admission = yield* Semaphore.make(1)
+    return AuthenticationTasks.of({
+      awaitEmpty: Effect.ignore(FiberMap.awaitEmpty(tasks)),
+      clear: FiberMap.clear(tasks),
+      isRunning: (key) => FiberMap.has(tasks, key),
+      start: (key, task) =>
+        admission.withPermits(1)(
+          Effect.gen(function* () {
+            if (!(yield* Ref.get(accepting)) || FiberMap.hasUnsafe(tasks, key)) {
+              return false
+            }
+            yield* FiberMap.run(tasks, key, task, { onlyIfMissing: true })
             return true
           })
         ),

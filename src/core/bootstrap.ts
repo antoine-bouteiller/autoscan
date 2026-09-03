@@ -8,6 +8,8 @@ import { Env, EnvLive } from '@/config/env'
 import { LoggerLive } from '@/config/logger'
 import { registerFeatures } from '@/core/feature'
 import {
+  AuthenticationTasks,
+  AuthenticationTasksLive,
   BackgroundTasks,
   BackgroundTasksLive,
   CallbackRuntime,
@@ -29,7 +31,7 @@ import {
   type WorkflowOwner,
 } from '@/core/runtime.service'
 import { features } from '@/features/index'
-import { TraktAuthenticationTasks, TraktAuthenticationTasksLive } from '@/features/trakt_sync/services/authentication.service'
+import { PlexTokenStore, PlexTokenStoreLive } from '@/features/plex_auth/services/plex_token.service'
 import { TranscodeScanLive } from '@/features/transcoding/jobs/transcode.job'
 import { TranscodeQueueLive } from '@/features/transcoding/services/transcode.service'
 import { RadarrClient } from '@/integrations/arr/radarr.service'
@@ -49,8 +51,9 @@ const ClientsLive = Layer.mergeAll(
     Plex,
     Effect.gen(function* () {
       const env = yield* Env
+      const store = yield* PlexTokenStore
       const transport = yield* HttpClient.HttpClient
-      return new PlexClient({ token: env.PLEX_TOKEN, transport, url: env.PLEX_URL })
+      return new PlexClient({ invalidate: store.invalidate, token: store.get, transport, url: env.PLEX_URL })
     })
   ),
   Layer.effect(
@@ -96,7 +99,8 @@ const ClientsLive = Layer.mergeAll(
 )
 
 const EnvGraph = EnvLive.pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, FetchHttpClient.layer)))
-const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive, TraktAuthenticationTasksLive).pipe(Layer.provideMerge(EnvGraph))
+const CredentialsLive = Layer.mergeAll(AuthenticationTasksLive, PlexTokenStoreLive)
+const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive).pipe(Layer.provideMerge(CredentialsLive), Layer.provideMerge(EnvGraph))
 const QueueGraph = TranscodeQueueLive.pipe(Layer.provideMerge(BaseLive))
 const BackgroundGraph = BackgroundTasksLive.pipe(Layer.provideMerge(QueueGraph))
 const WorkflowGraph = TranscodeScanLive.pipe(Layer.provideMerge(BackgroundGraph))
@@ -170,7 +174,7 @@ export const program = Effect.gen(function* () {
   const telegram = yield* TelegramBot
   const callbacks = yield* CallbackRuntime
   const backgroundTasks = yield* BackgroundTasks
-  const authenticationTasks = yield* TraktAuthenticationTasks
+  const authenticationTasks = yield* AuthenticationTasks
   const transcodeQueue = yield* TranscodeQueue
   const transcodeScan = yield* TranscodeScan
   const producers = [backgroundTasks, authenticationTasks, transcodeScan]

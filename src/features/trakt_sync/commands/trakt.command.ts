@@ -1,8 +1,7 @@
 import { Cause, Effect, Result } from 'effect'
 
-import { Database, Trakt } from '@/core/runtime.service'
+import { AuthenticationTasks, Database, Trakt } from '@/core/runtime.service'
 import { upsertTokens } from '@/features/trakt_sync/repositories/trakt.repository'
-import { TraktAuthenticationTasks } from '@/features/trakt_sync/services/authentication.service'
 import { getValidAccessToken, syncPlexToTrakt } from '@/features/trakt_sync/services/plextraktsync.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
@@ -17,8 +16,9 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
       return { step: 'idle' } as const
     }
 
-    const tasks = yield* TraktAuthenticationTasks
-    if (yield* tasks.isRunning(chatId)) {
+    const tasks = yield* AuthenticationTasks
+    const taskKey = `trakt:${chatId}`
+    if (yield* tasks.isRunning(taskKey)) {
       yield* client.sendMessage(chatId, 'Trakt authentication is already in progress.')
       return { step: 'idle' } as const
     }
@@ -74,7 +74,7 @@ export const traktAuthCommand = (client: ITelegramClient, message: TelegramMessa
       Effect.provideService(Database, database)
     )
 
-    yield* tasks.start(chatId, polling)
+    yield* tasks.start(taskKey, polling)
     return { step: 'idle' } as const
   })
 

@@ -7,7 +7,6 @@ const container = await new PostgreSqlContainer('postgres:18-alpine').start()
 
 Object.assign(process.env, {
   NODE_ENV: 'test',
-  PLEX_TOKEN: 'test-plex-token',
   PLEX_URL: 'http://plex.test',
   POSTGRES_DATABASE: container.getDatabase(),
   POSTGRES_HOST: container.getHost(),

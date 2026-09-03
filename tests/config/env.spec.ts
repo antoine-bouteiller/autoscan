@@ -11,7 +11,7 @@ import { loadFileSecrets, urlString } from '@/config/env'
 
 describe('env', () => {
   test('should expose required keys from the environment', () => {
-    expect(env.PLEX_TOKEN).toBe(Effect.runSync(Config.string('PLEX_TOKEN')))
+    expect(env.TMDB_API_TOKEN).toBe(Effect.runSync(Config.string('TMDB_API_TOKEN')))
     expect(env.TRANSCODE_PATH).toBe(Effect.runSync(Config.string('TRANSCODE_PATH')))
   })
 
@@ -47,29 +47,29 @@ describe('loadFileSecrets', () => {
     Effect.gen(function* () {
       const filePath = yield* writeTempSecret('  my-secret\n')
 
-      expect(yield* fileSecrets({ PLEX_TOKEN_FILE: filePath })).toEqual({ PLEX_TOKEN: 'my-secret' })
+      expect(yield* fileSecrets({ TMDB_API_TOKEN_FILE: filePath })).toEqual({ TMDB_API_TOKEN: 'my-secret' })
     }).pipe(Effect.provide(BunServices.layer))
   )
 
   it.live('should return no secret when no _FILE var is set', () =>
     Effect.gen(function* () {
-      expect(yield* fileSecrets({ PLEX_TOKEN: 'existing' })).toEqual({})
+      expect(yield* fileSecrets({ TMDB_API_TOKEN: 'existing' })).toEqual({})
     }).pipe(Effect.provide(BunServices.layer))
   )
 
   it.live('should return no secret when _FILE points to missing path', () =>
     Effect.gen(function* () {
-      expect(yield* fileSecrets({ PLEX_TOKEN: 'existing', PLEX_TOKEN_FILE: '/nonexistent/path' })).toEqual({})
+      expect(yield* fileSecrets({ TMDB_API_TOKEN: 'existing', TMDB_API_TOKEN_FILE: '/nonexistent/path' })).toEqual({})
     }).pipe(Effect.provide(BunServices.layer))
   )
 
   it.live('should load multiple secrets from different _FILE paths', () =>
     Effect.gen(function* () {
-      const plexFile = yield* writeTempSecret('plex-secret')
+      const radarrFile = yield* writeTempSecret('radarr-secret')
       const tmdbFile = yield* writeTempSecret('tmdb-secret')
 
-      expect(yield* fileSecrets({ PLEX_TOKEN_FILE: plexFile, TMDB_API_TOKEN_FILE: tmdbFile })).toEqual({
-        PLEX_TOKEN: 'plex-secret',
+      expect(yield* fileSecrets({ RADARR_API_KEY_FILE: radarrFile, TMDB_API_TOKEN_FILE: tmdbFile })).toEqual({
+        RADARR_API_KEY: 'radarr-secret',
         TMDB_API_TOKEN: 'tmdb-secret',
       })
     }).pipe(Effect.provide(BunServices.layer))

@@ -4,8 +4,19 @@ import { EnvTestLayer } from '@tests/env'
 import { MockPlexClient, MockRadarrClient, MockSonarrClient, MockTelegramClient, MockTmdbClient, MockTraktClient } from '@tests/utils'
 import { Context, Effect, Layer, Logger } from 'effect'
 
-import { BackgroundTasksLive, Ffmpeg, Plex, Radarr, Sonarr, Telegram, Tmdb, Trakt, type AppRequirements } from '@/core/runtime.service'
-import { TraktAuthenticationTasksLive } from '@/features/trakt_sync/services/authentication.service'
+import {
+  AuthenticationTasksLive,
+  BackgroundTasksLive,
+  Ffmpeg,
+  Plex,
+  Radarr,
+  Sonarr,
+  Telegram,
+  Tmdb,
+  Trakt,
+  type AppRequirements,
+} from '@/core/runtime.service'
+import { PlexTokenStoreLive } from '@/features/plex_auth/services/plex_token.service'
 import { TranscodeScanLive } from '@/features/transcoding/jobs/transcode.job'
 import { TranscodeQueueLive } from '@/features/transcoding/services/transcode.service'
 import { type IRadarrClient } from '@/integrations/arr/radarr.service'
@@ -41,7 +52,7 @@ const makeTestLayer = (services: TestServices = {}) => {
     Layer.succeed(Tmdb, services.tmdb ?? new MockTmdbClient()),
     Layer.succeed(Trakt, services.trakt ?? new MockTraktClient())
   )
-  const base = Layer.mergeAll(clients, DatabaseTestLayer, EnvTestLayer, TraktAuthenticationTasksLive, BunServices.layer)
+  const base = Layer.mergeAll(clients, DatabaseTestLayer, EnvTestLayer, AuthenticationTasksLive, PlexTokenStoreLive, BunServices.layer)
   const queue = TranscodeQueueLive.pipe(Layer.provideMerge(base))
   const background = BackgroundTasksLive.pipe(Layer.provideMerge(queue))
   return TranscodeScanLive.pipe(Layer.provideMerge(background))
