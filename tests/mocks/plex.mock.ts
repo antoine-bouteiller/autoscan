@@ -20,7 +20,6 @@ const movies = [
     title: 'Movie 1',
     type: 'movie',
     viewCount: 1,
-    year: 2023,
   },
   {
     Media: [{ Part: [{ file: '/path/to/Synced (2023) {tmdb-456}.mkv', id: 2 }] }],
@@ -29,7 +28,6 @@ const movies = [
     title: 'Already Synced',
     type: 'movie',
     viewCount: 1,
-    year: 2023,
   },
   {
     Media: [{ Part: [{ file: '/path/to/Unwatched (2023) {tmdb-789}.mkv', id: 3 }] }],
@@ -38,7 +36,6 @@ const movies = [
     title: 'Not Watched',
     type: 'movie',
     viewCount: 0,
-    year: 2023,
   },
 ] satisfies PlexMedia[]
 
@@ -53,7 +50,6 @@ const episodes = [
     title: 'Episode 1',
     type: 'episode',
     viewCount: 1,
-    year: 2023,
   },
 ] satisfies PlexMedia[]
 

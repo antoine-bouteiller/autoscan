@@ -48,7 +48,6 @@ const plexMediaValidator = Schema.Struct({
   title: Schema.String,
   type: Schema.Literals(['episode', 'movie']),
   viewCount: Schema.optional(Schema.Finite),
-  year: Schema.Finite,
 })
 
 const plexDirectoryValidator = Schema.Struct({

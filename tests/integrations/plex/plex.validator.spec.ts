@@ -28,7 +28,6 @@ describe('plexResponseValidator', () => {
             ratingKey: '1',
             title: 'Example',
             type: 'movie',
-            year: 2026,
           },
         ],
       },
