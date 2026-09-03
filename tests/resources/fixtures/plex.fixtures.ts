@@ -19,7 +19,6 @@ export const plexMetadata: Record<number, PlexMedia> = {
     ratingKey: '123',
     title: 'Test Movie',
     type: 'movie',
-    year: 2023,
   },
   234: {
     Media: [
@@ -41,7 +40,6 @@ export const plexMetadata: Record<number, PlexMedia> = {
     ratingKey: '234',
     title: 'Episode 1',
     type: 'episode',
-    year: 2023,
   },
   345: {
     Media: [],
@@ -51,7 +49,6 @@ export const plexMetadata: Record<number, PlexMedia> = {
     ratingKey: '345',
     title: 'Test Movie No Media',
     type: 'movie',
-    year: 2023,
   },
   567: {
     Media: [
@@ -71,6 +68,5 @@ export const plexMetadata: Record<number, PlexMedia> = {
     ratingKey: '567',
     title: 'Test No TMDB id',
     type: 'movie',
-    year: 2023,
   },
 }
