@@ -50,7 +50,7 @@ A `Feature` has a required name and optional collections for HTTP route installe
 
 ### Registry and dispatch
 
-The registry explicitly imports the language-sync, queue-cleanup, send-message, Trakt-sync, and transcoding declarations and exposes them in their registration order (`src/features/index.ts:1`). `registerFeatures` iterates that array and forwards each present category to the corresponding provider, skipping absent collections (`src/core/feature.ts:43`).
+The registry explicitly imports the language-sync, queue-cleanup, send-message, and transcoding declarations (Trakt-sync is implemented but intentionally not registered) and exposes them in their registration order (`src/features/index.ts:1`). `registerFeatures` iterates that array and forwards each present category to the corresponding provider, skipping absent collections (`src/core/feature.ts:43`).
 
 ### Provider-bound behavior
 
