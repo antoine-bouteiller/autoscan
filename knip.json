@@ -3,6 +3,5 @@
   "tags": ["-lintignore"],
   "entry": ["tests/**/*.spec.ts"],
   "project": ["src/**/*.ts", "tests/**/*.ts"],
-  "ignore": ["src/features/trakt_sync/feature.ts"],
-  "ignoreDependencies": ["@commitlint/cli", "lefthook"]
+  "ignore": ["src/features/trakt_sync/feature.ts"]
 }
