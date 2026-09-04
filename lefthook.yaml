@@ -12,7 +12,12 @@ pre-commit:
       run: bunx oxlint --fix --fix-suggestions {staged_files}
       stage_fixed: true
     - name: Format
+      exclude: '*.nix'
       run: bunx oxfmt {staged_files}
+      stage_fixed: true
+    - name: Format Nix
+      glob: '*.nix'
+      run: alejandra --quiet {staged_files}
       stage_fixed: true
     - name: Update bun.nix
       glob: 'bun.lock'
