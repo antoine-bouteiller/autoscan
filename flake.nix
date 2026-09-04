@@ -21,31 +21,37 @@
       packages = forAllSystems (system: let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        # The bun2nix binary carries its `mkDerivation` / `fetchBunDeps` /
-        # `writeBunApplication` helpers in its passthru.
-        inherit (bun2nix.packages.${system}.default) writeBunApplication fetchBunDeps;
+        # The bun2nix binary carries its `mkDerivation` / `fetchBunDeps`
+        # helpers in its passthru.
+        inherit (bun2nix.packages.${system}.default) mkDerivation fetchBunDeps;
 
-        # Autoscan runs from source under Bun (it needs the original `src`
-        # directory and a valid `node_modules` for the drizzle migrations
-        # folder and dynamic imports), so `writeBunApplication` is a better
-        # fit than compiling a standalone binary.
-        autoscan = writeBunApplication {
+        # `bun build --compile` bundles `src/index.ts` into a standalone
+        # binary; only the drizzle migrations folder is still needed at
+        # runtime, and `db.ts` resolves it relative to the cwd.
+        autoscan = mkDerivation {
           pname = "autoscan";
           version = "unstable";
 
           src = pkgs.lib.cleanSource ./.;
 
-          # Run directly from TypeScript source — no bundling step.
-          dontUseBunBuild = true;
+          module = "src/index.ts";
+          # `bun build --bytecode` fails on this bundle (CommonJS-only feature).
+          bunCompileToBytecode = false;
+          removeBunBuildFlags = ["--sourcemap"];
           dontUseBunCheck = true;
           # Lifecycle scripts (lefthook git hooks, our bun2nix postinstall) are
           # irrelevant inside the sandbox and would fail without a git repo.
           dontRunLifecycleScripts = true;
 
-          runtimeInputs = [pkgs.ffmpeg];
+          nativeBuildInputs = [pkgs.makeWrapper];
 
-          startScript = ''
-            exec bun ./src/index.ts "$@"
+          postInstall = ''
+            mkdir -p "$out/share/autoscan"
+            cp -r ./migrations "$out/share/autoscan/migrations"
+
+            wrapProgram "$out/bin/autoscan" \
+              --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.ffmpeg]} \
+              --chdir "$out/share/autoscan"
           '';
 
           bunDeps = fetchBunDeps {
