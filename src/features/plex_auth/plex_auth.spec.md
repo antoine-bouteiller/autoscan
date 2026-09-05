@@ -34,7 +34,7 @@ Every Plex call the service makes — metadata reads, section refreshes, stream 
 - `[PI-1]` Runtime credential — the Plex token is application state, not configuration; nothing reads it from the environment.
 - `[PI-2]` Explicit unauthenticated state — a missing or rejected token is a named, typed failure, never an empty result or a generic HTTP error.
 - `[PI-3]` One live link — a chat can have at most one PIN poll in flight, and it never outlives the runtime scope.
-- `[PI-4]` No secret in a message — Telegram receives the link URL and PIN code, never the resulting token.
+- `[PI-4]` No secret in a message — Telegram receives the link URL only, never the PIN code or the resulting token.
 
 ## 5. Non-Goals
 
@@ -140,13 +140,13 @@ readonly checkPin: (id: number, clientIdentifier: string) => Effect.Effect<strin
                               createPin ─fail─▶ log + "Failed to start Plex authentication."
                                              │
                                              ▼
-        send link + code, then poll checkPin every 5s until a token or expiresIn elapses
+           send link, then poll checkPin every 5s until a token or expiresIn elapses
                                              │
-                          token ─▶ store.set ─▶ "Plex authentication successful!"
-                        expiry/error ─▶ log + "Plex authentication failed or timed out."
+                  token ─▶ store.set ─▶ edit link message: "Plex authentication successful!"
+            expiry/error ─▶ log + edit link message: "Plex authentication failed or timed out."
 ```
 
-The link message carries the PIN code and the authorization URL built from the attempt's identifier:
+The link message is a single Markdown link, `[Authorize Autoscan on Plex](url)`, built from the attempt's identifier; the PIN code is carried in the URL only. Its message id is kept so the outcome edits that message in place rather than adding a new one.
 
 ```ts
 const url = `https://app.plex.tv/auth#?clientID=${clientIdentifier}&code=${pin.code}&context%5Bdevice%5D%5Bproduct%5D=Autoscan`

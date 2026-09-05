@@ -3,7 +3,7 @@ import { beforeEach } from 'bun:test'
 import { testDatabase as db } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
-import { checkPinMock, createPinMock, MockTelegramClient, sendMessageMock, verifyTokenMock } from '@tests/utils'
+import { checkPinMock, createPinMock, editMessageTextMock, MockTelegramClient, sendMessageMock, verifyTokenMock } from '@tests/utils'
 import { DateTime, Effect } from 'effect'
 import { TestClock } from 'effect/testing'
 
@@ -25,6 +25,7 @@ describe('Plex auth command', () => {
       Effect.gen(function* () {
         yield* Effect.promise(() => db.delete(plexTokens))
         sendMessageMock.mockClear().mockResolvedValue(100)
+        editMessageTextMock.mockClear()
         createPinMock.mockClear().mockResolvedValue({ code: 'PIN1', expiresIn: 900, id: 42 })
         checkPinMock.mockClear().mockResolvedValue(undefined)
         verifyTokenMock.mockClear().mockResolvedValue(true)
@@ -47,8 +48,9 @@ describe('Plex auth command', () => {
       yield* storeToken
       verifyTokenMock.mockResolvedValue(false)
       yield* provideTest(plexAuthCommand(client, message))
-      expect(sendMessageMock.mock.calls.some((call) => call[1].includes('https://app.plex.tv/auth#?clientID='))).toBeTrue()
-      expect(sendMessageMock.mock.calls.some((call) => call[1].includes('PIN1'))).toBeTrue()
+      expect(
+        sendMessageMock.mock.calls.some((call) => call[1].includes('[Authorize Autoscan on Plex](https://app.plex.tv/auth#?clientID='))
+      ).toBeTrue()
     })
   )
 
@@ -75,7 +77,7 @@ describe('Plex auth command', () => {
 
       const rows = yield* Effect.promise(() => db.select().from(plexTokens))
       expect(rows[0]?.authToken).toBe('granted')
-      expect(sendMessageMock).toHaveBeenLastCalledWith(1, 'Plex authentication successful!', undefined)
+      expect(editMessageTextMock).toHaveBeenLastCalledWith(1, 100, { text: 'Plex authentication successful!' })
     })
   )
 
@@ -93,7 +95,7 @@ describe('Plex auth command', () => {
       )
 
       expect(yield* Effect.promise(() => db.select().from(plexTokens))).toHaveLength(0)
-      expect(sendMessageMock).toHaveBeenLastCalledWith(1, 'Plex authentication failed or timed out.', undefined)
+      expect(editMessageTextMock).toHaveBeenLastCalledWith(1, 100, { text: 'Plex authentication failed or timed out.' })
     })
   )
 })

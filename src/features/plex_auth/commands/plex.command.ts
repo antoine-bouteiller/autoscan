@@ -36,8 +36,7 @@ export const plexAuthCommand = (client: ITelegramClient, message: TelegramMessag
 
     const { code, expiresIn, id } = pin.success
     const url = `https://app.plex.tv/auth#?clientID=${clientIdentifier}&code=${code}&context%5Bdevice%5D%5Bproduct%5D=Autoscan`
-    const authMessage = ['To authorize this application, please visit:', url, '', `And enter the following code: *${code}*`].join('\n')
-    yield* client.sendMessage(chatId, authMessage, { parseMode: 'Markdown' })
+    const messageId = yield* client.sendMessage(chatId, `[Authorize Autoscan on Plex](${url})`, { parseMode: 'Markdown' })
 
     const store = yield* PlexTokenStore
     const database = yield* Database
@@ -49,20 +48,19 @@ export const plexAuthCommand = (client: ITelegramClient, message: TelegramMessag
           continue
         }
         yield* store.set(token, clientIdentifier)
-        yield* client.sendMessage(chatId, 'Plex authentication successful!')
+        yield* client.editMessageText(chatId, messageId, { text: 'Plex authentication successful!' })
         return
       }
     }).pipe(
       Effect.timeoutOrElse({
         duration: expiresIn * 1000,
-        orElse: () => client.sendMessage(chatId, 'Plex authentication failed or timed out.').pipe(Effect.asVoid),
+        orElse: () => client.editMessageText(chatId, messageId, { text: 'Plex authentication failed or timed out.' }),
       }),
       Effect.catchCauseIf(
         (cause) => !Cause.hasInterruptsOnly(cause),
         (cause) =>
           Effect.logError(cause, 'Plex Auth').pipe(
-            Effect.flatMap(() => client.sendMessage(chatId, 'Plex authentication failed or timed out.')),
-            Effect.asVoid
+            Effect.flatMap(() => client.editMessageText(chatId, messageId, { text: 'Plex authentication failed or timed out.' }))
           )
       ),
       Effect.provideService(Database, database)
