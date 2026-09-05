@@ -22,7 +22,6 @@ import {
   Telegram,
   TelegramBot,
   Tmdb,
-  Trakt,
   TranscodeQueue,
   TranscodeScan,
   type AppRequirements,
@@ -40,7 +39,6 @@ import { makeFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { PlexClient } from '@/integrations/plex/plex.service'
 import { TelegramClient } from '@/integrations/telegram/telegram.service'
 import { TmdbClient } from '@/integrations/tmdb/tmdb.service'
-import { TraktClient } from '@/integrations/trakt/trakt.service'
 import { HttpProvider } from '@/providers/http/http.provider'
 import { SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
 import { TelegramProvider } from '@/providers/telegram/telegram.provider'
@@ -86,14 +84,6 @@ const ClientsLive = Layer.mergeAll(
       const env = yield* Env
       const transport = yield* HttpClient.HttpClient
       return new TmdbClient({ apiToken: env.TMDB_API_TOKEN, apiUrl: env.TMDB_API_URL, transport })
-    })
-  ),
-  Layer.effect(
-    Trakt,
-    Effect.gen(function* () {
-      const env = yield* Env
-      const transport = yield* HttpClient.HttpClient
-      return new TraktClient({ clientId: env.TRAKT_CLIENT_ID, clientSecret: env.TRAKT_CLIENT_SECRET, transport })
     })
   )
 )

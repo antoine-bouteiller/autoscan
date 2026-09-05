@@ -5,7 +5,6 @@ export { MockRadarrClient, mockRadarrQueue, mockRadarrRemoveQueueItem } from './
 export { MockSonarrClient, mockSonarrQueue, mockSonarrRemoveQueueItem } from './mocks/sonarr.mock.ts'
 export { answerCallbackQueryMock, editMessageTextMock, MockTelegramClient, sendMessageMock } from './mocks/telegram.mock.ts'
 export { MockTmdbClient } from './mocks/tmdb.mock.ts'
-export { getDeviceCodeMock, MockTraktClient, refreshTokenMock, syncWatchedHistoryMock } from './mocks/trakt.mock.ts'
 
 export class TestFailure extends Data.TaggedError('TestFailure')<{ readonly message: string }> {}
 

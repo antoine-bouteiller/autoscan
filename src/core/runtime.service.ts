@@ -12,7 +12,6 @@ import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type ITmdbClient } from '@/integrations/tmdb/tmdb.service'
-import { type ITraktClient } from '@/integrations/trakt/trakt.service'
 import { type HttpProvider } from '@/providers/http/http.provider'
 import { type SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
 import { type TelegramProvider } from '@/providers/telegram/telegram.provider'
@@ -21,7 +20,6 @@ export class Database extends Context.Service<Database, { readonly db: BunSQLDat
   'autoscan/core/runtime.service/Database'
 ) {}
 export class Telegram extends Context.Service<Telegram, ITelegramClient>()('autoscan/core/runtime.service/Telegram') {}
-export class Trakt extends Context.Service<Trakt, ITraktClient>()('autoscan/core/runtime.service/Trakt') {}
 export class Plex extends Context.Service<Plex, IPlexClient>()('autoscan/core/runtime.service/Plex') {}
 export class Tmdb extends Context.Service<Tmdb, ITmdbClient>()('autoscan/core/runtime.service/Tmdb') {}
 export class Radarr extends Context.Service<Radarr, IRadarrClient>()('autoscan/core/runtime.service/Radarr') {}
@@ -55,7 +53,6 @@ type WorkflowRequirements =
   | PlexTokenStore
   | Telegram
   | Tmdb
-  | Trakt
   | TranscodeQueue
 
 export interface WorkflowOwner {

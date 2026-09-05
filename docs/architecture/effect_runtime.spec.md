@@ -51,7 +51,7 @@ N/A — goals are owned by `docs/architecture/architecture.spec.md`.
 
 ### Callback and workflow ownership
 
-`CallbackRuntime` contains a `FiberSet`, a Promise runner, and drain/clear operations (`src/core/runtime.service.ts:110`). The scheduler stores that runner and uses it only while accepting callbacks; duplicate job names are skipped by the provider (`src/providers/scheduler/scheduler.provider.ts:19`). `BackgroundTasks` guards admission with a semaphore and tracks admitted fibers in its own set (`src/core/runtime.service.ts:84`); keyed Trakt authentication uses the equivalent `FiberMap` pattern (`src/features/trakt_sync/services/authentication.service.ts:13`).
+`CallbackRuntime` contains a `FiberSet`, a Promise runner, and drain/clear operations (`src/core/runtime.service.ts:110`). The scheduler stores that runner and uses it only while accepting callbacks; duplicate job names are skipped by the provider (`src/providers/scheduler/scheduler.provider.ts:19`). `BackgroundTasks` guards admission with a semaphore and tracks admitted fibers in its own set (`src/core/runtime.service.ts:84`); keyed authentication polling uses the equivalent `FiberMap` pattern (`src/core/authentication.service.ts`).
 
 ### Native adapters and polling
 

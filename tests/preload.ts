@@ -21,8 +21,6 @@ Object.assign(process.env, {
   TELEGRAM_TOKEN: 'test-telegram-token',
   TMDB_API_TOKEN: 'test-tmdb-token',
   TMDB_API_URL: 'http://tmdb.test',
-  TRAKT_CLIENT_ID: 'test-trakt-id',
-  TRAKT_CLIENT_SECRET: 'test-trakt-secret',
   TRANSCODE_PATH: 'resources/transcode',
 })
 

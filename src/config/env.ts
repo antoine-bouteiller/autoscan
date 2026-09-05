@@ -1,15 +1,6 @@
 import { Config, ConfigProvider, Context, Effect, FileSystem, Layer, Schema } from 'effect'
 
-const FILE_SECRET_KEYS = [
-  'RADARR_API_KEY',
-  'SONARR_API_KEY',
-  'TELEGRAM_CHAT_ID',
-  'TELEGRAM_TOKEN',
-  'TMDB_API_TOKEN',
-  'TRAKT_CLIENT_ID',
-  'TRAKT_CLIENT_SECRET',
-  'POSTGRES_PASSWORD_FILE',
-]
+const FILE_SECRET_KEYS = ['RADARR_API_KEY', 'SONARR_API_KEY', 'TELEGRAM_CHAT_ID', 'TELEGRAM_TOKEN', 'TMDB_API_TOKEN', 'POSTGRES_PASSWORD_FILE']
 
 export const loadFileSecrets = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem
@@ -55,8 +46,6 @@ const envConfig = Config.all({
   TELEGRAM_TOKEN: Config.string('TELEGRAM_TOKEN'),
   TMDB_API_TOKEN: Config.string('TMDB_API_TOKEN'),
   TMDB_API_URL: Config.schema(urlString, 'TMDB_API_URL'),
-  TRAKT_CLIENT_ID: Config.string('TRAKT_CLIENT_ID'),
-  TRAKT_CLIENT_SECRET: Config.string('TRAKT_CLIENT_SECRET'),
   TRANSCODE_PATH: Config.string('TRANSCODE_PATH'),
 })
 

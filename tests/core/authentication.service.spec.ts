@@ -12,11 +12,11 @@ describe('AuthenticationTasks', () => {
       const result = yield* run(
         Effect.gen(function* () {
           const tasks = yield* AuthenticationTasks
-          const first = yield* tasks.start('trakt:1', Effect.never)
-          const duplicate = yield* tasks.start('trakt:1', Effect.never)
-          const otherKey = yield* tasks.start('plex:1', Effect.never)
+          const first = yield* tasks.start('plex:1', Effect.never)
+          const duplicate = yield* tasks.start('plex:1', Effect.never)
+          const otherKey = yield* tasks.start('plex:2', Effect.never)
           yield* Effect.yieldNow
-          const running = yield* tasks.isRunning('trakt:1')
+          const running = yield* tasks.isRunning('plex:1')
           yield* tasks.clear
           yield* tasks.awaitEmpty
           return { duplicate, first, otherKey, running }
@@ -31,7 +31,7 @@ describe('AuthenticationTasks', () => {
       const accepted = yield* run(
         Effect.gen(function* () {
           const tasks = yield* AuthenticationTasks
-          const results = yield* Effect.all([tasks.start('trakt:1', Effect.never), tasks.start('trakt:1', Effect.never)], {
+          const results = yield* Effect.all([tasks.start('plex:1', Effect.never), tasks.start('plex:1', Effect.never)], {
             concurrency: 'unbounded',
           })
           yield* tasks.clear
@@ -48,9 +48,9 @@ describe('AuthenticationTasks', () => {
       const result = yield* run(
         Effect.gen(function* () {
           const tasks = yield* AuthenticationTasks
-          expect(yield* tasks.start('trakt:1', Effect.void)).toBeTrue()
+          expect(yield* tasks.start('plex:1', Effect.void)).toBeTrue()
           yield* tasks.awaitEmpty
-          const running = yield* tasks.isRunning('trakt:1')
+          const running = yield* tasks.isRunning('plex:1')
           yield* tasks.stopIntake
           const accepted = yield* tasks.start('plex:1', Effect.never)
           return { accepted, running }
