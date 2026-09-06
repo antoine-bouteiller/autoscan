@@ -1,6 +1,16 @@
+<div align="center">
+
+<img src=".github/logo.svg" width="128" alt="Autoscan logo">
+
 # Autoscan
 
-[![codecov](https://codecov.io/github/antoine-bouteiller/autoscan/graph/badge.svg?token=O2HLEE8XOI)](https://codecov.io/github/antoine-bouteiller/autoscan)
+<p align="center">
+  <a href="https://github.com/antoine-bouteiller/autoscan/actions/workflows/quality-checks.yaml"><img alt="Quality Checks" src="https://img.shields.io/github/actions/workflow/status/antoine-bouteiller/autoscan/quality-checks.yaml?style=for-the-badge&branch=main&label=quality%20checks&logo=github"></a>
+  <a href="https://codecov.io/github/antoine-bouteiller/autoscan"><img alt="Codecov" src="https://img.shields.io/codecov/c/github/antoine-bouteiller/autoscan?style=for-the-badge&token=O2HLEE8XOI&logo=codecov"></a>
+  <a href="https://github.com/antoine-bouteiller/autoscan/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/antoine-bouteiller/autoscan?style=for-the-badge&logo=git&logoColor=white"></a>
+</p>
+
+</div>
 
 Media automation service that integrates Radarr, Sonarr, Plex, and TMDB to automatically transcode, clean up, and manage media libraries.
 
