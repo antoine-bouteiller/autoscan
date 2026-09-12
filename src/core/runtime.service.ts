@@ -8,6 +8,7 @@ import { type PlexTokenStore } from '@/features/plex_auth/services/plex_token.se
 import { type TranscodeJob } from '@/features/transcoding/types'
 import { type IRadarrClient } from '@/integrations/arr/radarr.service'
 import { type ISonarrClient } from '@/integrations/arr/sonarr.service'
+import { type IBazarrClient } from '@/integrations/bazarr/bazarr.service'
 import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
@@ -19,6 +20,7 @@ import { type TelegramProvider } from '@/providers/telegram/telegram.provider'
 export class Database extends Context.Service<Database, { readonly db: BunSQLDatabase; readonly sql: SQL }>()(
   'autoscan/core/runtime.service/Database'
 ) {}
+export class Bazarr extends Context.Service<Bazarr, IBazarrClient>()('autoscan/core/runtime.service/Bazarr') {}
 export class Telegram extends Context.Service<Telegram, ITelegramClient>()('autoscan/core/runtime.service/Telegram') {}
 export class Plex extends Context.Service<Plex, IPlexClient>()('autoscan/core/runtime.service/Plex') {}
 export class Tmdb extends Context.Service<Tmdb, ITmdbClient>()('autoscan/core/runtime.service/Tmdb') {}
@@ -50,6 +52,7 @@ type WorkflowRequirements =
   | Radarr
   | Sonarr
   | AuthenticationTasks
+  | Bazarr
   | PlexTokenStore
   | Telegram
   | Tmdb
@@ -72,6 +75,8 @@ export interface TranscodeScanService extends WorkflowOwner {
 }
 
 export class TranscodeScan extends Context.Service<TranscodeScan, TranscodeScanService>()('autoscan/core/runtime.service/TranscodeScan') {}
+
+export class SubtitleScan extends Context.Service<SubtitleScan, Semaphore.Semaphore>()('autoscan/core/runtime.service/SubtitleScan') {}
 
 export interface BackgroundTasksService extends WorkflowOwner {
   readonly start: <Success, Error, Requirements extends WorkflowRequirements>(
@@ -139,7 +144,7 @@ export const AuthenticationTasksLive = Layer.effect(
   })
 )
 
-export type AppRequirements = BackgroundTasks | TranscodeScan | WorkflowRequirements
+export type AppRequirements = BackgroundTasks | SubtitleScan | TranscodeScan | WorkflowRequirements
 
 export interface CallbackRuntimeService {
   readonly awaitEmpty: Effect.Effect<void>

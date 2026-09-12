@@ -118,6 +118,11 @@
             };
             sonarrApiUrl = lib.mkOption {type = lib.types.str;};
             radarrApiUrl = lib.mkOption {type = lib.types.str;};
+            bazarrApiUrl = lib.mkOption {type = lib.types.str;};
+            bazarrFrenchProfile = lib.mkOption {
+              type = lib.types.str;
+              description = "Bazarr profile name requesting French forced subtitles only.";
+            };
             transcodePath = lib.mkOption {
               type = lib.types.path;
               description = "Directory for temporary transcode files.";
@@ -149,6 +154,7 @@
             tmdbApiTokenFile = lib.mkOption {type = lib.types.path;};
             sonarrApiKeyFile = lib.mkOption {type = lib.types.path;};
             radarrApiKeyFile = lib.mkOption {type = lib.types.path;};
+            bazarrApiKeyFile = lib.mkOption {type = lib.types.path;};
             postgresPasswordFile = lib.mkOption {
               type = lib.types.nullOr lib.types.path;
               default = null;
@@ -201,6 +207,8 @@
                 TMDB_API_URL = cfg.settings.tmdbApiUrl;
                 SONARR_API_URL = cfg.settings.sonarrApiUrl;
                 RADARR_API_URL = cfg.settings.radarrApiUrl;
+                BAZARR_API_URL = cfg.settings.bazarrApiUrl;
+                BAZARR_FRENCH_PROFILE = cfg.settings.bazarrFrenchProfile;
                 NODE_ENV = "production";
 
                 TELEGRAM_CHAT_ID_FILE = toString cfg.secrets.telegramChatIdFile;
@@ -208,6 +216,7 @@
                 TMDB_API_TOKEN_FILE = toString cfg.secrets.tmdbApiTokenFile;
                 SONARR_API_KEY_FILE = toString cfg.secrets.sonarrApiKeyFile;
                 RADARR_API_KEY_FILE = toString cfg.secrets.radarrApiKeyFile;
+                BAZARR_API_KEY_FILE = toString cfg.secrets.bazarrApiKeyFile;
                 POSTGRES_PASSWORD_FILE = toString cfg.secrets.postgresPasswordFile;
 
                 POSTGRES_HOST = cfg.settings.postgres.host;

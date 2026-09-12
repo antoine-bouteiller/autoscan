@@ -6,6 +6,9 @@ import { Effect } from 'effect'
 const container = await new PostgreSqlContainer('postgres:18-alpine').start()
 
 Object.assign(process.env, {
+  BAZARR_API_KEY: 'test-bazarr-key',
+  BAZARR_API_URL: 'http://bazarr.test',
+  BAZARR_FRENCH_PROFILE: 'French forced',
   NODE_ENV: 'test',
   PLEX_URL: 'http://plex.test',
   POSTGRES_DATABASE: container.getDatabase(),
