@@ -24,6 +24,9 @@ Media automation service that integrates Radarr, Sonarr, Plex, and TMDB to autom
 ## Configuration
 
 ```
+BAZARR_API_URL=
+BAZARR_API_KEY=
+BAZARR_FRENCH_PROFILE=
 PLEX_URL=
 RADARR_API_KEY=
 RADARR_API_URL=
@@ -34,6 +37,10 @@ TELEGRAM_TOKEN=
 TMDB_API_TOKEN=
 TMDB_API_URL=
 ```
+
+`BAZARR_API_URL` is the Bazarr root URL (without `/api`). `BAZARR_API_KEY_FILE` can supply the key from a secret file instead. `BAZARR_FRENCH_PROFILE` must name a profile requesting French forced subtitles only; profile assignment/release applies to movies, not series. Plex, Bazarr, and Autoscan must see identical media paths.
+
+Before deploying the subtitle scan, verify the Bazarr API on a disposable library: movie/episode lookup, wanted lists, profiles, subtitle delete/sync/translate, and movie profile assign/clear. The adapter targets Bazarr 1.4.0.
 
 ## Deployment
 
@@ -80,14 +87,16 @@ Configure Radarr and Sonarr to send `Download` webhooks to:
 Trigger a full library transcode manually from the Telegram bot:
 
 - `/transcode`
+- `/subtitlescan` — starts the incremental subtitle pass (overlapping runs are skipped; no per-pass report).
 
 ### Scheduled jobs
 
-| Job           | Schedule         | Description                    |
-| ------------- | ---------------- | ------------------------------ |
-| Cleanup       | Every 10 minutes | Removes orphaned media entries |
-| Language Sync | Every 12 hours   | Syncs Plex languages from TMDB |
-| Transcode     | Every 12 hours   | Transcodes pending media files |
+| Job           | Schedule         | Description                                                          |
+| ------------- | ---------------- | -------------------------------------------------------------------- |
+| Cleanup       | Every 10 minutes | Removes orphaned media entries                                       |
+| Language Sync | Every 12 hours   | Syncs Plex languages from TMDB                                       |
+| Transcode     | Every 12 hours   | Transcodes pending media files                                       |
+| Subtitle Scan | Daily at 05:00   | Checks sidecars through Bazarr and handles overdue missing subtitles |
 
 ## Development
 

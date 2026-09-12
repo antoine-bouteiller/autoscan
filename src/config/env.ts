@@ -1,6 +1,14 @@
 import { Config, ConfigProvider, Context, Effect, FileSystem, Layer, Schema } from 'effect'
 
-const FILE_SECRET_KEYS = ['RADARR_API_KEY', 'SONARR_API_KEY', 'TELEGRAM_CHAT_ID', 'TELEGRAM_TOKEN', 'TMDB_API_TOKEN', 'POSTGRES_PASSWORD_FILE']
+const FILE_SECRET_KEYS = [
+  'BAZARR_API_KEY',
+  'RADARR_API_KEY',
+  'SONARR_API_KEY',
+  'TELEGRAM_CHAT_ID',
+  'TELEGRAM_TOKEN',
+  'TMDB_API_TOKEN',
+  'POSTGRES_PASSWORD_FILE',
+]
 
 export const loadFileSecrets = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem
@@ -32,6 +40,9 @@ export const urlString = Schema.String.pipe(
 )
 
 const envConfig = Config.all({
+  BAZARR_API_KEY: Config.string('BAZARR_API_KEY'),
+  BAZARR_API_URL: Config.schema(urlString, 'BAZARR_API_URL'),
+  BAZARR_FRENCH_PROFILE: Config.string('BAZARR_FRENCH_PROFILE'),
   PLEX_URL: Config.schema(urlString, 'PLEX_URL'),
   POSTGRES_DATABASE: Config.string('POSTGRES_DATABASE'),
   POSTGRES_HOST: Config.string('POSTGRES_HOST'),

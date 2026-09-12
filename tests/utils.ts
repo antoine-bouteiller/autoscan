@@ -1,5 +1,6 @@
 import { Crypto, Data, Effect, FileSystem } from 'effect'
 
+export { MockBazarrClient } from './mocks/bazarr.mock.ts'
 export { checkPinMock, createPinMock, MockPlexClient, refreshSectionsMock, updateStreamMock, verifyTokenMock } from './mocks/plex.mock.ts'
 export { MockRadarrClient, mockRadarrQueue, mockRadarrRemoveQueueItem } from './mocks/radarr.mock.ts'
 export { MockSonarrClient, mockSonarrQueue, mockSonarrRemoveQueueItem } from './mocks/sonarr.mock.ts'

@@ -11,6 +11,7 @@ import { loadFileSecrets, urlString } from '@/config/env'
 
 describe('env', () => {
   test('should expose required keys from the environment', () => {
+    expect(env.BAZARR_API_KEY).toBe(Effect.runSync(Config.string('BAZARR_API_KEY')))
     expect(env.TMDB_API_TOKEN).toBe(Effect.runSync(Config.string('TMDB_API_TOKEN')))
     expect(env.TRANSCODE_PATH).toBe(Effect.runSync(Config.string('TRANSCODE_PATH')))
   })
@@ -66,9 +67,11 @@ describe('loadFileSecrets', () => {
   it.live('should load multiple secrets from different _FILE paths', () =>
     Effect.gen(function* () {
       const radarrFile = yield* writeTempSecret('radarr-secret')
+      const bazarrFile = yield* writeTempSecret('bazarr-secret')
       const tmdbFile = yield* writeTempSecret('tmdb-secret')
 
-      expect(yield* fileSecrets({ RADARR_API_KEY_FILE: radarrFile, TMDB_API_TOKEN_FILE: tmdbFile })).toEqual({
+      expect(yield* fileSecrets({ BAZARR_API_KEY_FILE: bazarrFile, RADARR_API_KEY_FILE: radarrFile, TMDB_API_TOKEN_FILE: tmdbFile })).toEqual({
+        BAZARR_API_KEY: 'bazarr-secret',
         RADARR_API_KEY: 'radarr-secret',
         TMDB_API_TOKEN: 'tmdb-secret',
       })

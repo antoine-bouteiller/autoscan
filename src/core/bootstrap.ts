@@ -9,6 +9,7 @@ import { LoggerLive } from '@/config/logger'
 import { registerFeatures } from '@/core/feature'
 import {
   AuthenticationTasks,
+  Bazarr,
   AuthenticationTasksLive,
   BackgroundTasks,
   BackgroundTasksLive,
@@ -31,10 +32,12 @@ import {
 } from '@/core/runtime.service'
 import { features } from '@/features/index'
 import { PlexTokenStore, PlexTokenStoreLive } from '@/features/plex_auth/services/plex_token.service'
+import { SubtitleScanLive } from '@/features/subtitle_scan/jobs/subtitle_scan.job'
 import { TranscodeScanLive } from '@/features/transcoding/jobs/transcode.job'
 import { TranscodeQueueLive } from '@/features/transcoding/services/transcode.service'
 import { RadarrClient } from '@/integrations/arr/radarr.service'
 import { SonarrClient } from '@/integrations/arr/sonarr.service'
+import { BazarrClient } from '@/integrations/bazarr/bazarr.service'
 import { makeFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { PlexClient } from '@/integrations/plex/plex.service'
 import { TelegramClient } from '@/integrations/telegram/telegram.service'
@@ -45,6 +48,14 @@ import { TelegramProvider } from '@/providers/telegram/telegram.provider'
 
 const ClientsLive = Layer.mergeAll(
   Layer.effect(Ffmpeg, makeFfmpegClient).pipe(Layer.provide(BunServices.layer)),
+  Layer.effect(
+    Bazarr,
+    Effect.gen(function* () {
+      const env = yield* Env
+      const transport = yield* HttpClient.HttpClient
+      return new BazarrClient({ apiKey: env.BAZARR_API_KEY, apiUrl: env.BAZARR_API_URL, transport })
+    })
+  ),
   Layer.effect(
     Plex,
     Effect.gen(function* () {
@@ -94,6 +105,7 @@ const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive).pipe(Layer.provideMer
 const QueueGraph = TranscodeQueueLive.pipe(Layer.provideMerge(BaseLive))
 const BackgroundGraph = BackgroundTasksLive.pipe(Layer.provideMerge(QueueGraph))
 const WorkflowGraph = TranscodeScanLive.pipe(Layer.provideMerge(BackgroundGraph))
+const SubtitleScanGraph = SubtitleScanLive.pipe(Layer.provideMerge(WorkflowGraph))
 
 const CallbackRuntimeLive = Layer.effect(
   CallbackRuntime,
@@ -104,7 +116,7 @@ const CallbackRuntimeLive = Layer.effect(
   })
 )
 
-const RuntimeGraph = CallbackRuntimeLive.pipe(Layer.provideMerge(WorkflowGraph))
+const RuntimeGraph = CallbackRuntimeLive.pipe(Layer.provideMerge(SubtitleScanGraph))
 
 const HttpLive = Layer.succeed(Http, new HttpProvider({ port: 3030 }))
 
