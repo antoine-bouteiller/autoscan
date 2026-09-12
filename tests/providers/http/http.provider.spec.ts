@@ -3,6 +3,7 @@ import { describe, expect, it } from '@tests/it'
 import { TestFailure } from '@tests/utils'
 import { Cause, Effect, Fiber, Latch, Logger, Result, Schema } from 'effect'
 import { HttpServer } from 'effect/unstable/http'
+import { NetAddress } from 'effect/unstable/net'
 
 import { HttpProvider, type InjectOptions } from '@/providers/http/http.provider'
 
@@ -121,7 +122,7 @@ describe('HttpProvider', () => {
       const server = Effect.acquireRelease(
         Effect.succeed(
           HttpServer.make({
-            address: { _tag: 'TcpAddress', hostname: 'test', port: 0 },
+            address: NetAddress.inetAddressFromIpStringUnsafe('127.0.0.1', 0),
             serve: () => Effect.die('serve failed'),
           })
         ),

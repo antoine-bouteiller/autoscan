@@ -18,7 +18,7 @@ describe('spawn', () => {
   it.effect('passes environment variables while inheriting the parent environment', () =>
     Effect.gen(function* () {
       const output = yield* run(spawn({ args: ['-c', 'printf "$AUTOSCAN_TEST:$PATH"'], command: 'sh', env: { AUTOSCAN_TEST: 'value' } }))
-      expect(output).toBe(`value:${yield* Config.string('PATH')}`)
+      expect(output).toBe(`value:${yield* Config.String('PATH')}`)
     })
   )
 
