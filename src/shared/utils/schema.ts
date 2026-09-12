@@ -2,7 +2,7 @@ import { Effect, Schema, SchemaGetter, SchemaIssue } from 'effect'
 
 export const NumberFromUnknown = Schema.Unknown.pipe(
   Schema.decodeTo(Schema.Finite, {
-    decode: SchemaGetter.transformOrFail((value) =>
+    decode: SchemaGetter.transformEffect((value) =>
       Effect.try({
         catch: () => new SchemaIssue.InvalidValue({ message: 'Expected a number' }),
         try: () => Number(value),

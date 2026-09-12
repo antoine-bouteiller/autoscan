@@ -11,13 +11,13 @@ import { loadFileSecrets, urlString } from '@/config/env'
 
 describe('env', () => {
   test('should expose required keys from the environment', () => {
-    expect(env.TMDB_API_TOKEN).toBe(Effect.runSync(Config.string('TMDB_API_TOKEN')))
-    expect(env.TRANSCODE_PATH).toBe(Effect.runSync(Config.string('TRANSCODE_PATH')))
+    expect(env.TMDB_API_TOKEN).toBe(Effect.runSync(Config.String('TMDB_API_TOKEN')))
+    expect(env.TRANSCODE_PATH).toBe(Effect.runSync(Config.String('TRANSCODE_PATH')))
   })
 
   test('should coerce TELEGRAM_CHAT_ID to a number', () => {
     expect(typeof env.TELEGRAM_CHAT_ID).toBe('number')
-    expect(env.TELEGRAM_CHAT_ID).toBe(Number(Effect.runSync(Config.string('TELEGRAM_CHAT_ID'))))
+    expect(env.TELEGRAM_CHAT_ID).toBe(Number(Effect.runSync(Config.String('TELEGRAM_CHAT_ID'))))
   })
 })
 

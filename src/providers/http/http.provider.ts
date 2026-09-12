@@ -1,6 +1,6 @@
 import { BunHttpServer } from '@effect/platform-bun'
 import { Cause, type Context, DateTime, Effect, Exit, Result, Schema, Scope } from 'effect'
-import { HttpRouter, HttpServer, type HttpServerRequest, HttpServerResponse } from 'effect/unstable/http'
+import { HttpRouter, HttpServer, type HttpServerError, type HttpServerRequest, HttpServerResponse } from 'effect/unstable/http'
 
 import { type AppRequirements } from '@/core/runtime.service'
 import { badRequest } from '@/providers/http/response'
@@ -10,7 +10,7 @@ import { formatSchemaIssue } from '@/shared/utils/schema'
 interface HttpProviderOptions {
   hostname?: string
   port?: number
-  server?: Effect.Effect<HttpServer.HttpServer['Service'], never, Scope.Scope>
+  server?: Effect.Effect<HttpServer.HttpServer['Service'], HttpServerError.ServeError, Scope.Scope>
 }
 type HttpMethod = 'GET' | 'POST'
 
@@ -171,7 +171,7 @@ export class HttpProvider {
       }
       const scope = yield* Scope.make()
       provider.serverScope = scope
-      const acquireServer: Effect.Effect<HttpServer.HttpServer['Service'], never, Scope.Scope> =
+      const acquireServer: Effect.Effect<HttpServer.HttpServer['Service'], HttpServerError.ServeError, Scope.Scope> =
         provider.server ??
         BunHttpServer.make({
           gracefulShutdownTimeout: 30_000,

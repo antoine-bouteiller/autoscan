@@ -6,7 +6,7 @@ export const loadFileSecrets = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem
   const secrets: Record<string, string> = {}
   for (const key of FILE_SECRET_KEYS) {
-    const filePath = yield* Config.string(`${key}_FILE`).pipe(Effect.orElseSucceed(() => undefined))
+    const filePath = yield* Config.String(`${key}_FILE`).pipe(Effect.orElseSucceed(() => undefined))
     if (filePath === undefined) {
       continue
     }
@@ -33,20 +33,20 @@ export const urlString = Schema.String.pipe(
 
 const envConfig = Config.all({
   PLEX_URL: Config.schema(urlString, 'PLEX_URL'),
-  POSTGRES_DATABASE: Config.string('POSTGRES_DATABASE'),
-  POSTGRES_HOST: Config.string('POSTGRES_HOST'),
-  POSTGRES_PASSWORD: Config.string('POSTGRES_PASSWORD').pipe(Config.withDefault(undefined)),
-  POSTGRES_PORT: Config.number('POSTGRES_PORT'),
-  POSTGRES_USERNAME: Config.string('POSTGRES_USERNAME'),
-  RADARR_API_KEY: Config.string('RADARR_API_KEY'),
+  POSTGRES_DATABASE: Config.String('POSTGRES_DATABASE'),
+  POSTGRES_HOST: Config.String('POSTGRES_HOST'),
+  POSTGRES_PASSWORD: Config.String('POSTGRES_PASSWORD').pipe(Config.withDefault(undefined)),
+  POSTGRES_PORT: Config.Number('POSTGRES_PORT'),
+  POSTGRES_USERNAME: Config.String('POSTGRES_USERNAME'),
+  RADARR_API_KEY: Config.String('RADARR_API_KEY'),
   RADARR_API_URL: Config.schema(urlString, 'RADARR_API_URL'),
-  SONARR_API_KEY: Config.string('SONARR_API_KEY'),
+  SONARR_API_KEY: Config.String('SONARR_API_KEY'),
   SONARR_API_URL: Config.schema(urlString, 'SONARR_API_URL'),
-  TELEGRAM_CHAT_ID: Config.number('TELEGRAM_CHAT_ID'),
-  TELEGRAM_TOKEN: Config.string('TELEGRAM_TOKEN'),
-  TMDB_API_TOKEN: Config.string('TMDB_API_TOKEN'),
+  TELEGRAM_CHAT_ID: Config.Number('TELEGRAM_CHAT_ID'),
+  TELEGRAM_TOKEN: Config.String('TELEGRAM_TOKEN'),
+  TMDB_API_TOKEN: Config.String('TMDB_API_TOKEN'),
   TMDB_API_URL: Config.schema(urlString, 'TMDB_API_URL'),
-  TRANSCODE_PATH: Config.string('TRANSCODE_PATH'),
+  TRANSCODE_PATH: Config.String('TRANSCODE_PATH'),
 })
 
 export const loadEnv = Effect.gen(function* () {
