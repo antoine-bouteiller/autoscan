@@ -159,6 +159,49 @@ class CountingBazarr extends MockBazarrClient {
 }
 
 describe('subtitle scan job', () => {
+  it.live('limits each scheduled and manual pass to 10 media across sections, including failed attempts', () =>
+    Effect.gen(function* () {
+      const plex = new MockPlexClient()
+      const [template] = [plexMetadata[123]]
+      if (template === undefined) {
+        throw new Error('Missing Plex fixture')
+      }
+      const attempted: number[] = []
+      const sections: number[] = []
+      Object.defineProperties(plex, {
+        getPlexMetadata: {
+          value: (ratingKey: number) => Effect.sync(() => attempted.push(ratingKey)).pipe(Effect.flatMap(() => Effect.die('metadata unavailable'))),
+        },
+        getSectionMedia: {
+          value: (id: number) => {
+            sections.push(id)
+            return Effect.succeed(Array.from({ length: 6 }, (_entry, index) => ({ ...template, ratingKey: String((id - 1) * 6 + index) })))
+          },
+        },
+        getSections: {
+          value: Effect.succeed([1, 2, 3].map((key) => ({ key, title: `Section ${key}`, type: 'movie' as const }))),
+        },
+      })
+      const bazarr = new CountingBazarr({ id: 1, kind: 'movie', missingSubtitles: [], path: '', subtitles: [], title: '' })
+      yield* provideTest(
+        Effect.gen(function* () {
+          yield* runSubtitleScan
+          expect(attempted).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+          expect(sections).toEqual([1, 2])
+          attempted.length = 0
+          sections.length = 0
+          expect(yield* startSubtitleScan).toBeTrue()
+          const tasks = yield* BackgroundTasks
+          yield* tasks.awaitEmpty
+          expect(attempted).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+          expect(sections).toEqual([1, 2])
+        }),
+        { bazarr, plex }
+      )
+      expect(bazarr).toMatchObject({ wantedEpisodes: 2, wantedMovies: 2 })
+    })
+  )
+
   it.live('does not queue simultaneous manual or scheduled scans', () =>
     Effect.gen(function* () {
       const release = yield* Deferred.make<void>()
