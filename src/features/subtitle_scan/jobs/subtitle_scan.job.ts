@@ -45,6 +45,7 @@ const traverse = (presetId: number | undefined) =>
   Effect.gen(function* () {
     const plex = yield* Plex
     const sections = yield* plex.getSections
+    let scanned = 0
     for (const section of sections) {
       const media = yield* catchAndLog(plex.getSectionMedia(section.key, section.type), `Listing Plex section ${section.title}`)
       if (media === undefined) {
@@ -55,6 +56,10 @@ const traverse = (presetId: number | undefined) =>
           Effect.flatMap((details) => scanMedia(details, presetId)),
           (effect) => catchAndLog(effect, `Resolving Plex media ${entry.title}`)
         )
+        scanned++
+        if (scanned >= 10) {
+          return
+        }
       }
     }
   })

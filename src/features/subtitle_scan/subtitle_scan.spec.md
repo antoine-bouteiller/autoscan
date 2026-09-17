@@ -93,6 +93,8 @@ cron 0 5 * * *
 
 `runSubtitleScan` acquires a single scan permit (an item is skipped, not queued, when a pass is running), reads Plex sections and media, resolves `getCompleteMediaDetails` per item, and runs `scanMediaSubtitles` then `applyFrenchProfilePolicy` for each. `applyMissingPolicy` runs once per pass after traversal because it is driven by Bazarr's wanted list rather than by Plex items. Non-interruption failures per item are logged with the media title and the loop continues; the job's own failure is logged at the scheduler boundary.
 
+For a safe initial rollout, traversal stops after 10 media attempts total across all Plex sections, including failed attempts. This fixed cap applies to scheduled and manual passes and covers subtitle analysis and French-profile processing. Each pass starts from the beginning in Plex order; no cursor or rotation is kept. Missing-subtitle reconciliation, translations, and alerts remain library-wide and run after the capped traversal.
+
 `/subtitlescan` submits the same pass to `BackgroundTasks`, replies `Starting subtitle scan...` or `A subtitle scan is already running.` according to permit admission, and returns `{ step: 'idle' }`; it produces no report (`[NG-4]`).
 
 ### Scan registry
@@ -241,7 +243,8 @@ N/A — `[OQ-1]` (manual trigger: this feature owns `/subtitlescan`, folded into
 
 ## Changelog
 
-| Date       | Amendment                                                                                 | Sections affected | Reason                                                                                            |
-| ---------- | ----------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
-| 2026-09-11 | Clarify durable passing records and independence from the transcode passed-file registry. | 8                 | Skip successful file versions across restarts without one feature suppressing the other's checks. |
-| 2026-09-11 | Version subtitle scan verdicts with `SUBTITLE_SCAN_VERSION`.                              | 2–4, 8            | Re-analyze unchanged subtitles after behavior changes without resetting unrelated policy state.   |
+| Date       | Amendment                                                                                           | Sections affected | Reason                                                                                            |
+| ---------- | --------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
+| 2026-09-11 | Clarify durable passing records and independence from the transcode passed-file registry.           | 8                 | Skip successful file versions across restarts without one feature suppressing the other's checks. |
+| 2026-09-11 | Version subtitle scan verdicts with `SUBTITLE_SCAN_VERSION`.                                        | 2–4, 8            | Re-analyze unchanged subtitles after behavior changes without resetting unrelated policy state.   |
+| 2026-09-17 | Temporarily cap Plex traversal at 10 media per pass; keep missing-subtitle processing library-wide. | 8                 | Limit initial scan impact.                                                                        |
