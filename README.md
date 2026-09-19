@@ -12,109 +12,89 @@
 
 </div>
 
-Media automation service that integrates Radarr, Sonarr, Plex, and TMDB to automatically transcode, clean up, and manage media libraries.
+Media automation for Radarr, Sonarr, Plex, TMDB, and Bazarr, built with Bun and Effect.
 
 ## Features
 
-- **Automatic transcoding** - Transcodes media files received from Radarr/Sonarr webhooks using FFmpeg
-- **Language sync** - Syncs preferred audio/subtitle languages from TMDB to Plex
-- **Media cleanup** - Periodically removes outdated or orphaned media entries
-- **Telegram bot** - Interactive bot for managing language preferences
+- **Transcoding** — FFmpeg processing from download webhooks or Plex library scans.
+- **Language sync** — Selects Plex audio/subtitles using TMDB metadata and per-title preferences.
+- **Queue cleanup** — Removes and blocklists stalled or unimportable Radarr/Sonarr downloads.
+- **Subtitle maintenance** — Checks external SRT files through Bazarr, manages French forced-subtitle profiles, and handles overdue missing subtitles.
+- **Telegram control** — Plex authentication, language preferences, manual scans, and notifications.
 
-## Configuration
+## Setup
 
-```
-BAZARR_API_URL=
+Requires Bun 1.4.2, FFmpeg, PostgreSQL, and access to the services above. Create a PostgreSQL database and a `.env` file in the repository root:
+
+```dotenv
+BAZARR_API_URL=http://localhost:6767
 BAZARR_API_KEY=
-BAZARR_FRENCH_PROFILE=
-PLEX_URL=
+BAZARR_FRENCH_PROFILE=French forced
+PLEX_URL=http://localhost:32400
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DATABASE=autoscan
+POSTGRES_USERNAME=autoscan
+POSTGRES_PASSWORD=
+RADARR_API_URL=http://localhost:7878
 RADARR_API_KEY=
-RADARR_API_URL=
+SONARR_API_URL=http://localhost:8989
 SONARR_API_KEY=
-SONARR_API_URL=
 TELEGRAM_CHAT_ID=
 TELEGRAM_TOKEN=
+TMDB_API_URL=https://api.themoviedb.org/3
 TMDB_API_TOKEN=
-TMDB_API_URL=
+TRANSCODE_PATH=/path/to/transcode
 ```
 
-`BAZARR_API_URL` is the Bazarr root URL (without `/api`). `BAZARR_API_KEY_FILE` can supply the key from a secret file instead. `BAZARR_FRENCH_PROFILE` must name a profile requesting French forced subtitles only; profile assignment/release applies to movies, not series. Plex, Bazarr, and Autoscan must see identical media paths.
-
-Before deploying the subtitle scan, verify the Bazarr API on a disposable library: movie/episode lookup, wanted lists, profiles, subtitle delete/sync/translate, and movie profile assign/clear. The adapter targets Bazarr 1.4.0.
-
-## Deployment
-
-### Docker Compose
-
-```yaml
-services:
-  autoscan:
-    build: .
-    ports:
-      - '3030:3030'
-    env_file: .env
-    volumes:
-      - ./resources:/autoscan/resources
-    restart: unless-stopped
-```
+- Replace example URLs and fill in credentials. `POSTGRES_PASSWORD` is optional when database authentication does not require it.
+- Bazarr, Radarr, and Sonarr API keys, Telegram chat ID/token, and the TMDB token support a corresponding `*_FILE` variable instead.
+- `BAZARR_API_URL` is the root URL, without `/api`. `BAZARR_FRENCH_PROFILE` must name a profile requesting only French forced subtitles; profile changes apply to movies, not series.
+- Use identical media paths across Autoscan, Plex, Radarr/Sonarr, and Bazarr. Autoscan needs writable media and transcoding directories.
 
 ```bash
-docker compose up -d
+bun install
+bun run start
 ```
 
-### Docker
+Bun loads `.env` automatically. Database migrations run at startup. Send `/plex` to the Telegram bot and follow the authorization link before using Plex-dependent features.
 
-```bash
-docker build -t autoscan .
-docker run -d \
-  --name autoscan \
-  -p 3030:3030 \
-  --env-file .env \
-  -v ./resources:/autoscan/resources \
-  --restart unless-stopped \
-  autoscan
-```
+For Nix, run `nix build`; the flake also exports a [NixOS module](flake.nix) under `nixosModules.default` with `services.autoscan` options.
 
 ## Usage
 
-### Webhooks
+The HTTP server listens on port **3030**. Keep it on a trusted network or behind an authenticated proxy; its routes have no built-in authentication.
 
-Configure Radarr and Sonarr to send `Download` webhooks to:
+- Configure Radarr/Sonarr `Download` webhooks at `POST /radarr` and `POST /sonarr`.
+- Send notifications to Telegram with `POST /send_message` and JSON `{"text":"Hello"}`.
 
-- `POST /radarr`
-- `POST /sonarr`
+Telegram commands:
 
-Trigger a full library transcode manually from the Telegram bot:
+- `/plex` — Link the Plex account; credentials persist in PostgreSQL.
+- `/setlanguage` — Set a movie or series language preference.
+- `/transcode` — Start a full-library transcode scan.
+- `/subtitlescan` — Start an incremental subtitle pass; overlapping passes are skipped.
 
-- `/transcode`
-- `/subtitlescan` — starts the incremental subtitle pass (overlapping runs are skipped; no per-pass report).
+Scheduled jobs:
 
-### Scheduled jobs
+| Job            | Schedule         |
+| -------------- | ---------------- |
+| Queue cleanup  | Every 10 minutes |
+| Language sync  | Every 12 hours   |
+| Transcode scan | Every 12 hours   |
+| Subtitle scan  | Daily at 05:00   |
 
-| Job           | Schedule         | Description                                                          |
-| ------------- | ---------------- | -------------------------------------------------------------------- |
-| Cleanup       | Every 10 minutes | Removes orphaned media entries                                       |
-| Language Sync | Every 12 hours   | Syncs Plex languages from TMDB                                       |
-| Transcode     | Every 12 hours   | Transcodes pending media files                                       |
-| Subtitle Scan | Daily at 05:00   | Checks sidecars through Bazarr and handles overdue missing subtitles |
+Subtitle traversal currently checks only the first 10 media entries per pass, with no rotation; missing-subtitle handling remains library-wide. The Bazarr adapter targets 1.4.0: verify lookup, wanted lists, subtitle actions, and profile changes on a disposable library before deployment. See the [subtitle scan spec](src/features/subtitle_scan/subtitle_scan.spec.md) for policies and limits.
 
 ## Development
 
-Requires [Bun](https://bun.sh) and FFmpeg. Everything runs through Bun. The asynchronous runtime targets pinned Effect v4 beta packages; oxlint is patched by Effect TSGO to enforce Effect requirements, errors, and lifecycle usage. Formatting uses oxfmt directly.
+Tests require Docker for the PostgreSQL testcontainer and FFmpeg.
 
 ```bash
-bun install       # Install dependencies
-bun run dev       # Development with watch mode (Bun)
-bun run test      # Run tests
-bun run lint      # Repair lint findings with oxlint
-bun run fmt       # Repair formatting with oxfmt
+bun run dev                  # Watch mode
+bun run test                 # Application and lint-rule tests
+bun run fmt                  # Format
+bun run lint                 # Auto-fix lint findings and check types
 ```
 
-The application runs on Bun (`bun src/index.ts`). The Nix package is built with
-[bun2nix](https://github.com/nix-community/bun2nix); the `bun.nix` dependency
-manifest is regenerated from `bun.lock` on every `bun install` via the
-`postinstall` script.
-
-```bash
-nix build         # Build the bun2nix package
-```
+`bun install` regenerates `bun.nix` via bun2nix; commit it with `bun.lock` when dependencies change. See [project structure](docs/project_structure.spec.md) and feature-local specs under `src/features/` for implementation details.
