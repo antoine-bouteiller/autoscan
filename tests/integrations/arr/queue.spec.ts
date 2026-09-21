@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { Result, Schema } from 'effect'
+import { Effect, Result, Schema } from 'effect'
 
 import { queueResponseValidator } from '@/integrations/arr/queue.types'
 
@@ -9,7 +9,7 @@ const queueItem = { id: 1, status: 'downloading', title: 'Example' }
 describe('queueResponseValidator', () => {
   test('normalizes a null timeleft to undefined', () => {
     const input = { records: [{ ...queueItem, timeleft: JSON.parse('null') }], totalRecords: 1 }
-    const result = Schema.decodeSync(queueResponseValidator)(input)
+    const result = Effect.runSync(Schema.decodeEffect(queueResponseValidator)(input))
     expect(result.records[0]?.timeleft).toBeUndefined()
   })
 
@@ -24,7 +24,7 @@ describe('queueResponseValidator', () => {
       totalRecords: 1,
     }
 
-    expect(Schema.decodeSync(queueResponseValidator)(input)).toEqual(input)
+    expect(Effect.runSync(Schema.decodeEffect(queueResponseValidator)(input))).toEqual(input)
   })
 
   test('rejects an invalid timeleft', () => {

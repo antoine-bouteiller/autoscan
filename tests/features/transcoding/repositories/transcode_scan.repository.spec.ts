@@ -40,64 +40,90 @@ describe('transcode scan repository', () => {
   )
 
   it.live('migrates both scan tables together, retaining the latest record per path', () =>
-    Effect.promise(async () => {
-      const previous = await Bun.file('migrations/20260921160752_chemical_blue_marvel/migration.sql').text()
-      const subtitleSchema = await Bun.file('migrations/20260912073633_subtitle_scan/migration.sql').text()
+    Effect.gen(function* () {
+      const [previous, subtitleSchema, migration] = yield* Effect.all([
+        Effect.promise(() => Bun.file('migrations/20260921160752_chemical_blue_marvel/migration.sql').text()),
+        Effect.promise(() => Bun.file('migrations/20260912073633_subtitle_scan/migration.sql').text()),
+        Effect.promise(() => Bun.file('migrations/20260921190858_scan_path_primary_keys/migration.sql').text()),
+      ])
       const subtitleTable = subtitleSchema.slice(subtitleSchema.indexOf('CREATE TABLE "subtitle_scans"'))
-      const migration = await Bun.file('migrations/20260921190858_scan_path_primary_keys/migration.sql').text()
-      await db.transaction(async (tx) => {
-        await tx.execute(sql.raw(previous.replace('CREATE TABLE', 'CREATE TEMP TABLE').replace(');', ') ON COMMIT DROP;')))
-        await tx.execute(sql.raw(subtitleTable.replace('CREATE TABLE', 'CREATE TEMP TABLE').replace(');', ') ON COMMIT DROP;')))
-        await tx.execute(sql`
-          INSERT INTO subtitle_scans (hash, file_path, scan_version, scanned_at, verdict) VALUES
-            ('old', '/movie.en.srt', 1, '2026-09-01', 'sync_requested'),
-            ('same-date', '/movie.en.srt', 1, '2026-09-01', 'forced_removed'),
-            ('new', '/movie.en.srt', 1, '2026-09-02', 'passed'),
-            ('new', '/movie.en.srt', 2, '2026-09-03', 'passed'),
-            ('other', '/other/movie.en.srt', 1, '2026-09-01', 'forced_removed'),
-            ('tied-old', '/tied.en.srt', 1, '2026-09-02', 'passed'),
-            ('tied-new', '/tied.en.srt', 2, '2026-09-02', 'sync_requested')
-        `)
-        await tx.execute(sql`
-          INSERT INTO transcode_scans (hash, extension, file_path, original_language, scan_version, scanned_at) VALUES
-            ('old', 'mp4', '/movie.mp4', 'en', 1, '2026-09-01'),
-            ('same-date', 'mp4', '/movie.mp4', 'en', 1, '2026-09-01'),
-            ('new', 'mp4', '/movie.mp4', 'en', 1, '2026-09-02'),
-            ('new', 'mp4', '/movie.mp4', 'fr', 1, '2026-09-01'),
-            ('new', 'mp4', '/movie.mp4', 'fr', 2, '2026-09-03'),
-            ('other', 'mp4', '/other/movie.mp4', 'en', 1, '2026-09-01'),
-            ('tied-old', 'mp4', '/tied.mp4', 'en', 1, '2026-09-02'),
-            ('tied-new', 'mp4', '/tied.mp4', 'fr', 2, '2026-09-02')
-        `)
-        for (const statement of migration.split('--> statement-breakpoint')) {
-          await tx.execute(sql.raw(statement))
-        }
-        await tx.execute(sql`
-          INSERT INTO transcode_scans (file_path, original_language, scan_version, scanned_at)
-          VALUES ('/movie.mp4', 'de', 99, '2026-09-04') ON CONFLICT DO NOTHING
-        `)
-        await tx.execute(sql`
-          INSERT INTO subtitle_scans (file_path, scan_version, scanned_at, verdict)
-          VALUES ('/movie.en.srt', 99, '2026-09-04', 'sync_requested') ON CONFLICT DO NOTHING
-        `)
-        const subtitles = await tx.execute(sql`
-          SELECT file_path, scan_version, scanned_at::text, verdict FROM subtitle_scans ORDER BY file_path
-        `)
-        expect([...subtitles]).toEqual([
-          { file_path: '/movie.en.srt', scan_version: 2, scanned_at: '2026-09-03 00:00:00', verdict: 'passed' },
-          { file_path: '/other/movie.en.srt', scan_version: 1, scanned_at: '2026-09-01 00:00:00', verdict: 'forced_removed' },
-          { file_path: '/tied.en.srt', scan_version: 2, scanned_at: '2026-09-02 00:00:00', verdict: 'sync_requested' },
-        ])
-        const rows = await tx.execute(sql`
-          SELECT file_path, original_language, scan_version, scanned_at::text
-          FROM transcode_scans ORDER BY file_path, original_language, scan_version
-        `)
-        expect([...rows]).toEqual([
-          { file_path: '/movie.mp4', original_language: 'fr', scan_version: 2, scanned_at: '2026-09-03 00:00:00' },
-          { file_path: '/other/movie.mp4', original_language: 'en', scan_version: 1, scanned_at: '2026-09-01 00:00:00' },
-          { file_path: '/tied.mp4', original_language: 'fr', scan_version: 2, scanned_at: '2026-09-02 00:00:00' },
-        ])
-      })
+      const context = yield* Effect.context()
+
+      yield* Effect.promise(() =>
+        db.transaction((tx) =>
+          Effect.runPromiseWith(context)(
+            Effect.gen(function* () {
+              yield* Effect.promise(() =>
+                tx.execute(sql.raw(previous.replace('CREATE TABLE', 'CREATE TEMP TABLE').replace(');', ') ON COMMIT DROP;')))
+              )
+              yield* Effect.promise(() =>
+                tx.execute(sql.raw(subtitleTable.replace('CREATE TABLE', 'CREATE TEMP TABLE').replace(');', ') ON COMMIT DROP;')))
+              )
+              yield* Effect.promise(() =>
+                tx.execute(sql`
+                  INSERT INTO subtitle_scans (hash, file_path, scan_version, scanned_at, verdict) VALUES
+                    ('old', '/movie.en.srt', 1, '2026-09-01', 'sync_requested'),
+                    ('same-date', '/movie.en.srt', 1, '2026-09-01', 'forced_removed'),
+                    ('new', '/movie.en.srt', 1, '2026-09-02', 'passed'),
+                    ('new', '/movie.en.srt', 2, '2026-09-03', 'passed'),
+                    ('other', '/other/movie.en.srt', 1, '2026-09-01', 'forced_removed'),
+                    ('tied-old', '/tied.en.srt', 1, '2026-09-02', 'passed'),
+                    ('tied-new', '/tied.en.srt', 2, '2026-09-02', 'sync_requested')
+                `)
+              )
+              yield* Effect.promise(() =>
+                tx.execute(sql`
+                  INSERT INTO transcode_scans (hash, extension, file_path, original_language, scan_version, scanned_at) VALUES
+                    ('old', 'mp4', '/movie.mp4', 'en', 1, '2026-09-01'),
+                    ('same-date', 'mp4', '/movie.mp4', 'en', 1, '2026-09-01'),
+                    ('new', 'mp4', '/movie.mp4', 'en', 1, '2026-09-02'),
+                    ('new', 'mp4', '/movie.mp4', 'fr', 1, '2026-09-01'),
+                    ('new', 'mp4', '/movie.mp4', 'fr', 2, '2026-09-03'),
+                    ('other', 'mp4', '/other/movie.mp4', 'en', 1, '2026-09-01'),
+                    ('tied-old', 'mp4', '/tied.mp4', 'en', 1, '2026-09-02'),
+                    ('tied-new', 'mp4', '/tied.mp4', 'fr', 2, '2026-09-02')
+                `)
+              )
+              for (const statement of migration.split('--> statement-breakpoint')) {
+                yield* Effect.promise(() => tx.execute(sql.raw(statement)))
+              }
+              yield* Effect.promise(() =>
+                tx.execute(sql`
+                  INSERT INTO transcode_scans (file_path, original_language, scan_version, scanned_at)
+                  VALUES ('/movie.mp4', 'de', 99, '2026-09-04') ON CONFLICT DO NOTHING
+                `)
+              )
+              yield* Effect.promise(() =>
+                tx.execute(sql`
+                  INSERT INTO subtitle_scans (file_path, scan_version, scanned_at, verdict)
+                  VALUES ('/movie.en.srt', 99, '2026-09-04', 'sync_requested') ON CONFLICT DO NOTHING
+                `)
+              )
+              const subtitles = yield* Effect.promise(() =>
+                tx.execute(sql`
+                  SELECT file_path, scan_version, scanned_at::text, verdict FROM subtitle_scans ORDER BY file_path
+                `)
+              )
+              expect([...subtitles]).toEqual([
+                { file_path: '/movie.en.srt', scan_version: 2, scanned_at: '2026-09-03 00:00:00', verdict: 'passed' },
+                { file_path: '/other/movie.en.srt', scan_version: 1, scanned_at: '2026-09-01 00:00:00', verdict: 'forced_removed' },
+                { file_path: '/tied.en.srt', scan_version: 2, scanned_at: '2026-09-02 00:00:00', verdict: 'sync_requested' },
+              ])
+              const rows = yield* Effect.promise(() =>
+                tx.execute(sql`
+                  SELECT file_path, original_language, scan_version, scanned_at::text
+                  FROM transcode_scans ORDER BY file_path, original_language, scan_version
+                `)
+              )
+              expect([...rows]).toEqual([
+                { file_path: '/movie.mp4', original_language: 'fr', scan_version: 2, scanned_at: '2026-09-03 00:00:00' },
+                { file_path: '/other/movie.mp4', original_language: 'en', scan_version: 1, scanned_at: '2026-09-01 00:00:00' },
+                { file_path: '/tied.mp4', original_language: 'fr', scan_version: 2, scanned_at: '2026-09-02 00:00:00' },
+              ])
+            })
+          )
+        )
+      )
     })
   )
 

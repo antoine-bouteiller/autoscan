@@ -13,7 +13,7 @@ import { handlePostTranscode } from './helpers/post_process.js'
 import { isForcedSubtitle, processSubtitleStreams } from './helpers/subtitle.js'
 import { processVideoStreams } from './helpers/video.js'
 
-const encodeRecoveryMarker = Schema.encodeSync(Schema.fromJsonString(Schema.Struct({ file: Schema.String, mediaTitle: Schema.String })))
+const encodeRecoveryMarker = Schema.encodeEffect(Schema.fromJsonString(Schema.Struct({ file: Schema.String, mediaTitle: Schema.String })))
 
 const processJob = (job: TranscodeJob) =>
   Effect.gen(function* () {
@@ -47,7 +47,7 @@ const processJob = (job: TranscodeJob) =>
     const work = Effect.gen(function* () {
       yield* cleanup
       yield* fs.makeDirectory(outputDirectory, { recursive: true })
-      yield* fs.writeFileString(recoveryMarker, encodeRecoveryMarker({ file: job.file, mediaTitle: job.mediaTitle }))
+      yield* fs.writeFileString(recoveryMarker, yield* encodeRecoveryMarker({ file: job.file, mediaTitle: job.mediaTitle }))
       const ffmpeg = yield* Ffmpeg
       for (const subtitle of job.subtitlesToExtract) {
         const subtitleOutput = `${fileName}.${subtitle.language}.srt`

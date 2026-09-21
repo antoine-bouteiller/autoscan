@@ -1,5 +1,4 @@
 import { beforeEach, spyOn } from 'bun:test'
-import { appendFileSync } from 'node:fs'
 
 import { BunServices } from '@effect/platform-bun'
 import { testDatabase as db } from '@tests/database'
@@ -149,7 +148,7 @@ describe('transcodeFile', () => {
       const probing = `${directory}/Probing.mp4`
       yield* fs.writeFileString(probing, 'content')
       const probeResult = yield* provideTest(transcode(probing), {
-        ffmpeg: ffmpeg(() => Effect.sync(() => appendFileSync(probing, 'changed')).pipe(Effect.as(passedProbe))),
+        ffmpeg: ffmpeg(() => fs.writeFileString(probing, 'changed', { flag: 'a' }).pipe(Effect.as(passedProbe))),
       })
       expect(probeResult).toBeFalse()
       expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(0)

@@ -1,16 +1,17 @@
 import { describe, expect, test } from 'bun:test'
 
-import { Result, Schema } from 'effect'
+import { Effect, Result, Schema } from 'effect'
 
 import { NumberFromUnknown } from '@/shared/utils/schema'
 
 const decode = Schema.decodeUnknownResult(NumberFromUnknown)
+const decodeSync = (input: unknown) => Effect.runSync(Schema.decodeUnknownEffect(NumberFromUnknown)(input))
 
 describe('NumberFromUnknown', () => {
   test('matches JavaScript number coercion', () => {
-    expect(Schema.decodeSync(NumberFromUnknown)('42')).toBe(42)
-    expect(Schema.decodeSync(NumberFromUnknown)('')).toBe(0)
-    expect(Schema.decodeSync(NumberFromUnknown)(true)).toBe(1)
+    expect(decodeSync('42')).toBe(42)
+    expect(decodeSync('')).toBe(0)
+    expect(decodeSync(true)).toBe(1)
   })
 
   test('rejects invalid values without throwing', () => {

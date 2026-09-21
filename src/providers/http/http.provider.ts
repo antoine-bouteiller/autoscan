@@ -35,7 +35,7 @@ export interface InjectResponse {
 }
 
 const unknownFromJsonString = Schema.fromJsonString(Schema.Unknown)
-const encodeJson = Schema.encodeSync(unknownFromJsonString)
+const encodeJson = Schema.encodeEffect(unknownFromJsonString)
 const decodeInjectResponse = Schema.decodeUnknownResult(Schema.fromJsonString(injectResponseBodySchema))
 
 const jsonResponse = (data: unknown, statusCode: number): HttpServerResponse.HttpServerResponse =>
@@ -84,10 +84,15 @@ export class HttpProvider {
       const webHandler = HttpRouter.toWebHandler(provider.routesLayer, { disableLogger: true, routerConfig })
       const signal = yield* Effect.abortSignal
       return yield* Effect.gen(function* () {
+        const requestBody =
+          options.body ??
+          (options.payload === undefined
+            ? undefined
+            : yield* encodeJson(options.payload).pipe(Effect.mapError((cause) => new Cause.UnknownError(cause))))
         const response = yield* Effect.tryPromise(() =>
           webHandler.handler(
             new Request(`http://localhost${options.url}`, {
-              body: options.body ?? (options.payload === undefined ? undefined : encodeJson(options.payload)),
+              body: requestBody,
               headers: { 'content-type': 'application/json' },
               method: options.method,
               signal,

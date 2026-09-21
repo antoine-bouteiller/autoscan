@@ -47,6 +47,19 @@ describe('HttpProvider', () => {
     })
   )
 
+  it.live('reports payload encoding failures and lets an explicit body bypass encoding', () =>
+    Effect.gen(function* () {
+      const provider = makeProvider()
+      provider.post('/body', Schema.Unknown, (request, reply) => Effect.sync(() => reply.send({ data: request.body, success: true })))
+
+      const result = yield* Effect.result(inject(provider, { method: 'POST', payload: 1n, url: '/body' }))
+      expect(Result.isFailure(result) && Cause.isUnknownError(result.failure)).toBeTrue()
+
+      const response = yield* inject(provider, { body: '{"text":"hello"}', method: 'POST', payload: 1n, url: '/body' })
+      expect(response.json()).toEqual({ data: { text: 'hello' }, success: true })
+    })
+  )
+
   it.live('rejects injected responses outside the API contract', () =>
     Effect.gen(function* () {
       const provider = makeProvider()
