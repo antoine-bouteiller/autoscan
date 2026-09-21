@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { Result, Schema } from 'effect'
+import { Effect, Result, Schema } from 'effect'
 
 import { sendMessageValidator } from '@/features/send_message/validators/send_message.validator'
 
@@ -14,7 +14,7 @@ describe('sendMessageValidator', () => {
   })
 
   test('should strip extra fields', () => {
-    const result = Schema.decodeUnknownSync(sendMessageValidator)({ ignored: true, text: 'hello' })
+    const result = Effect.runSync(Schema.decodeUnknownEffect(sendMessageValidator)({ ignored: true, text: 'hello' }))
     expect(result).toEqual({ text: 'hello' })
   })
 

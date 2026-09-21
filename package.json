@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "fmt": "oxfmt",
-    "lint": "oxlint --fix --fix-suggestions",
+    "lint": "oxlint --fix --fix-suggestions --max-warnings=0",
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "db:generate": "drizzle-kit generate",

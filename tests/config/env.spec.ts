@@ -1,11 +1,10 @@
 import { afterEach, test } from 'bun:test'
-import { randomUUID } from 'node:crypto'
 import { tmpdir } from 'node:os'
 
 import { BunServices } from '@effect/platform-bun'
 import { testEnv as env } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
-import { Config, ConfigProvider, Effect, FileSystem, Result, Schema } from 'effect'
+import { Config, ConfigProvider, Crypto, Effect, FileSystem, Result, Schema } from 'effect'
 
 import { loadFileSecrets, urlString } from '@/config/env'
 
@@ -27,7 +26,8 @@ const tempFiles: string[] = []
 const writeTempSecret = (value: string) =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem
-    const filePath = `${tmpdir()}/autoscan-test-${randomUUID()}.txt`
+    const crypto = yield* Crypto.Crypto
+    const filePath = `${tmpdir()}/autoscan-test-${yield* crypto.randomUUIDv4}.txt`
     yield* fileSystem.writeFileString(filePath, value)
     tempFiles.push(filePath)
     return filePath

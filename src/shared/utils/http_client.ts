@@ -22,8 +22,8 @@ import { formatSchemaIssueMessage } from '@/shared/utils/schema'
 const DEFAULT_TIMEOUT = 30_000
 const RETRY_DELAYS = [250, 500] as const
 
-const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown))
-const defaultFormatter = (body: unknown): string => (typeof body === 'string' ? body : encodeJson(body))
+const encodeJson = Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown))
+const defaultFormatter = (body: unknown) => (typeof body === 'string' ? Effect.succeed(body) : encodeJson(body).pipe(Effect.orDie))
 
 const createUrl = (baseUrl: string, endpoint: string, params?: RequestParams): URL => {
   const cleanBase = baseUrl.replace(/\/+$/, '')
@@ -122,8 +122,10 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
       if (response.status >= 400) {
         const text = yield* response.text.pipe(Effect.orElseSucceed(() => ''))
         const now = yield* Clock.currentTimeMillis
+        const parsedBody = parseBody(text)
+        const formattedBody = errorFormatter === undefined ? yield* defaultFormatter(parsedBody) : errorFormatter(parsedBody)
         return yield* new HttpError({
-          body: (errorFormatter ?? defaultFormatter)(parseBody(text)),
+          body: formattedBody,
           retryAfterMs: parseRetryAfter(response.headers['retry-after'], now),
           route: endpoint,
           serviceName,

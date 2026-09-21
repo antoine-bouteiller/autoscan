@@ -4,7 +4,6 @@ import { Effect, Fiber, Result, Schema } from 'effect'
 import { adjust } from 'effect/testing/TestClock'
 import { type HttpClient } from 'effect/unstable/http'
 
-import { HttpError } from '@/shared/errors/http'
 import { NetworkError } from '@/shared/errors/network'
 import { ValidationError } from '@/shared/errors/validation'
 import { httpClient } from '@/shared/utils/http_client'
@@ -53,7 +52,19 @@ describe('httpClient', () => {
     Effect.gen(function* () {
       const stub = httpStub(respondWith(() => Response.json({ message: 'bad' }, { status: 400 })))
       const result = yield* Effect.result(client(stub.client).post('/resource'))
-      expect(Result.isFailure(result) && result.failure).toBeInstanceOf(HttpError)
+      expect(Result.isFailure(result) && result.failure).toMatchObject({ _tag: 'HttpError', body: '{"message":"bad"}' })
+    })
+  )
+
+  it.effect('preserves plain-text errors and custom error formatting', () =>
+    Effect.gen(function* () {
+      const stub = httpStub(respondWith(() => new Response('bad', { status: 400 })))
+      const result = yield* Effect.result(client(stub.client).post('/resource'))
+      expect(Result.isFailure(result) && result.failure).toMatchObject({ _tag: 'HttpError', body: 'bad' })
+
+      const custom = httpClient({ errorFormatter: (body) => `custom: ${String(body)}`, serviceName: 'Test', transport: stub.client })
+      const formatted = yield* Effect.result(custom.post('https://example.com/resource'))
+      expect(Result.isFailure(formatted) && formatted.failure).toMatchObject({ _tag: 'HttpError', body: 'custom: bad' })
     })
   )
 
