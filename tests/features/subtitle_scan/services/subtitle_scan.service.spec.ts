@@ -3,7 +3,9 @@ import { beforeEach, spyOn } from 'bun:test'
 import { BunServices } from '@effect/platform-bun'
 import { testDatabase as db } from '@tests/database'
 import { provideTest } from '@tests/effect'
+import { testEnv } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
+import { sendMessageMock } from '@tests/utils'
 import { DateTime, Effect, FileSystem } from 'effect'
 
 import { subtitleScans } from '@/database/schema'
@@ -74,7 +76,10 @@ const run = (media: SubtitleScanMedia, item: BazarrItem | undefined, client: IBa
   provideTest(scanMediaSubtitles(media, Effect.succeed(item)), { bazarr: client, ffmpeg })
 
 describe('scanMediaSubtitles', () => {
-  beforeEach(() => Effect.runPromise(clean()))
+  beforeEach(() => {
+    sendMessageMock.mockReset().mockResolvedValue(100)
+    return Effect.runPromise(clean())
+  })
 
   it.live('passes once, skips reruns and renames globally, while a rewrite and old version remain eligible', () =>
     Effect.gen(function* () {
@@ -136,11 +141,48 @@ describe('scanMediaSubtitles', () => {
       yield* run(details(file), item, client)
       expect(synced).toEqual(expect.arrayContaining([french, paths[2]]))
       expect(synced).toHaveLength(2)
+      expect(sendMessageMock.mock.calls).toEqual([
+        [testEnv.TELEGRAM_CHAT_ID, `Subtitle resync requested for Movie (de)\n${paths[2]}`, undefined],
+        [testEnv.TELEGRAM_CHAT_ID, `Subtitle resync requested for Movie (fr)\n${french}`, undefined],
+      ])
+      yield* run(details(file), item, client)
+      expect(sendMessageMock).toHaveBeenCalledTimes(2)
+      expect(synced).toHaveLength(2)
 
       yield* Effect.promise(() => db.delete(subtitleScans))
       synced.length = 0
+      sendMessageMock.mockClear()
       yield* run(details(file), item, client)
       expect(synced).toHaveLength(3)
+      expect(sendMessageMock).toHaveBeenCalledTimes(3)
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
+  it.live('keeps sync verdicts and continues notifying when Telegram fails, without retrying on the next pass', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const directory = yield* fs.makeTempDirectoryScoped()
+      const file = `${directory}/Movie.mkv`
+      const paths = [`${directory}/Movie.en.srt`, `${directory}/Movie.fr.srt`]
+      yield* fs.writeFileString(file, '')
+      for (const [index, path] of paths.entries()) {
+        yield* fs.writeFileString(path, subtitleContent(index * 2))
+      }
+      const synced: string[] = []
+      const { client, item } = bazarr(file, paths, (subtitle) => Effect.sync(() => void synced.push(subtitle.path)))
+      sendMessageMock.mockRejectedValueOnce(new Error('Telegram unavailable'))
+
+      yield* run(details(file), item, client)
+      expect(synced).toHaveLength(2)
+      expect(sendMessageMock).toHaveBeenCalledTimes(2)
+      for (const path of paths) {
+        const { hash } = yield* snapshot(file, path)
+        expect(yield* provideTest(getScan(hash, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
+      }
+
+      yield* run(details(file), item, client)
+      expect(synced).toHaveLength(2)
+      expect(sendMessageMock).toHaveBeenCalledTimes(2)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
@@ -180,6 +222,7 @@ describe('scanMediaSubtitles', () => {
       expect(result._tag).toBe('Failure')
       expect(yield* provideTest(getScan(firstSnapshot.hash, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
       expect(yield* provideTest(getScan(secondSnapshot.hash, SUBTITLE_SCAN_VERSION))).toBeUndefined()
+      expect(sendMessageMock).toHaveBeenCalledTimes(1)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
@@ -359,6 +402,7 @@ describe('scanMediaSubtitles', () => {
       const failing = bazarr(file, [candidate, reference], () => Effect.fail(new NetworkError({ originalMessage: 'offline', serviceName: 'test' })))
       yield* run(details(file), failing.item, failing.client)
       expect(yield* provideTest(getScan(candidateSnapshot.hash, SUBTITLE_SCAN_VERSION))).toBeUndefined()
+      expect(sendMessageMock).not.toHaveBeenCalled()
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 })

@@ -1,6 +1,7 @@
 import { Cause, DateTime, Effect } from 'effect'
 
-import { Bazarr, Ffmpeg } from '@/core/runtime.service'
+import { Env } from '@/config/env'
+import { Bazarr, Ffmpeg, Telegram } from '@/core/runtime.service'
 import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { getScan, recordScan, type SubtitleScanRecord, type SubtitleVerdict } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
 import { discoverSubtitleFiles, type SubtitleFileSnapshot } from '@/features/subtitle_scan/services/subtitle_files.service'
@@ -108,6 +109,12 @@ export const scanMediaSubtitles = <Requirements>(
       const synced = yield* logFailure(bazarr.syncSubtitle(item, subtitle).pipe(Effect.as(true)), `Synchronizing subtitle ${file.path}`)
       if (synced !== undefined) {
         yield* record(file, 'sync_requested')
+        const telegram = yield* Telegram
+        const env = yield* Env
+        yield* logFailure(
+          telegram.sendMessage(env.TELEGRAM_CHAT_ID, `Subtitle resync requested for ${details.mediaTitle} (${file.language})\n${file.path}`),
+          `Notifying subtitle resync for ${file.path}`
+        )
       }
     }
     for (const file of surviving) {
