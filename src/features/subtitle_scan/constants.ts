@@ -1,1 +1,1 @@
-export const SUBTITLE_SCAN_VERSION = 1
+export const SUBTITLE_SCAN_VERSION = 2
