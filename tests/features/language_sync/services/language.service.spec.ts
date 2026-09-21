@@ -2,9 +2,10 @@ import { beforeEach } from 'bun:test'
 
 import { testDatabase as db } from '@tests/database'
 import { provideTest } from '@tests/effect'
+import { testEnv } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
-import { editMessageTextMock, MockPlexClient, MockTelegramClient, updateStreamMock } from '@tests/utils'
-import { Effect } from 'effect'
+import { editMessageTextMock, MockPlexClient, MockTelegramClient, sendMessageMock, updateStreamMock } from '@tests/utils'
+import { Cause, Effect, Exit } from 'effect'
 
 import { media } from '@/database/schema'
 import {
@@ -17,8 +18,15 @@ import {
   selectMedia,
   selectMediaType,
 } from '@/features/language_sync/services/language.service'
+import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 
 const client = new MockTelegramClient()
+
+class InterruptingTelegramClient extends MockTelegramClient {
+  override sendMessage(_chatId: number, _text: string, _options?: Parameters<ITelegramClient['sendMessage']>[2]) {
+    return Effect.interrupt
+  }
+}
 
 const insertMedia = () =>
   Effect.promise(() => db.insert(media).values({ originalLanguage: 'en', preferredLanguage: 'en', title: 'Movie', tmdbId: 1, type: 'movie' }))
@@ -29,6 +37,7 @@ describe('language service', () => {
       Effect.gen(function* () {
         yield* Effect.promise(() => db.delete(media))
         editMessageTextMock.mockClear()
+        sendMessageMock.mockReset().mockResolvedValue(100)
         updateStreamMock.mockClear()
       })
     )
@@ -91,6 +100,40 @@ describe('language service', () => {
       )
       expect(updateStreamMock).toHaveBeenNthCalledWith(1, 2, 3, 'audio')
       expect(updateStreamMock).toHaveBeenNthCalledWith(2, 2, 0, 'subtitle')
+      expect(sendMessageMock).not.toHaveBeenCalled()
+    })
+  )
+
+  it.live('notifies Telegram when the preferred audio stream is missing', () =>
+    Effect.gen(function* () {
+      yield* provideTest(
+        handleUpdateLanguage({
+          mediaTitle: 'Movie',
+          partsId: 2,
+          preferredLanguage: 'fr',
+          streams: [{ id: 3, languageCode: 'eng', selected: false, streamType: 2 }],
+        })
+      )
+      expect(sendMessageMock.mock.calls).toEqual([[testEnv.TELEGRAM_CHAT_ID, 'No fr audio stream found for Movie', undefined]])
+      expect(updateStreamMock).not.toHaveBeenCalled()
+    })
+  )
+
+  it.live('continues when the missing-audio notification fails', () =>
+    Effect.gen(function* () {
+      sendMessageMock.mockRejectedValueOnce(new Error('Telegram unavailable'))
+      expect(yield* provideTest(handleUpdateLanguage({ mediaTitle: 'Movie', partsId: 2, preferredLanguage: 'fr', streams: [] }))).toBeUndefined()
+    })
+  )
+
+  it.live('preserves interruption from the missing-audio notification', () =>
+    Effect.gen(function* () {
+      const exit = yield* Effect.exit(
+        provideTest(handleUpdateLanguage({ mediaTitle: 'Movie', partsId: 2, preferredLanguage: 'fr', streams: [] }), {
+          telegram: new InterruptingTelegramClient(),
+        })
+      )
+      expect(Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause)).toBeTrue()
     })
   )
 
@@ -105,6 +148,7 @@ describe('language service', () => {
         })
       )
       expect(updateStreamMock).not.toHaveBeenCalled()
+      expect(sendMessageMock).not.toHaveBeenCalled()
     })
   )
 })

@@ -6,13 +6,14 @@ import { testDatabase as db } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { testEnv as env } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
-import { makeTestDir, refreshSectionsMock, videosPath } from '@tests/utils'
+import { makeTestDir, MockTelegramClient, refreshSectionsMock, sendMessageMock, videosPath } from '@tests/utils'
 import { CryptoHasher } from 'bun'
-import { Effect, FileSystem, Path } from 'effect'
+import { Cause, Effect, FileSystem, Path } from 'effect'
 
 import { TranscodeQueue } from '@/core/runtime.service'
 import { transcodeScans } from '@/database/schema'
 import { TRANSCODE_SCAN_VERSION } from '@/features/transcoding/constants'
+import { FileNotFoundError } from '@/features/transcoding/errors'
 import { transcodeFile } from '@/features/transcoding/services/transcode.service'
 import { type IFfmpegClient, FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
@@ -45,6 +46,7 @@ const transcodeAndWait = (file: string) =>
 describe('transcodeFile', () => {
   beforeEach(() => {
     refreshSectionsMock.mockClear()
+    sendMessageMock.mockReset().mockResolvedValue(100)
     return Effect.runPromise(cleanScans())
   })
 
@@ -158,6 +160,48 @@ describe('transcodeFile', () => {
       })
       expect(hashResult).toBeFalse()
       expect(probeResult).toBeFalse()
+      expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(0)
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
+  it.live('notifies Telegram only for no streams kept, best-effort without swallowing interruption', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const directory = yield* fs.makeTempDirectoryScoped()
+      const file = `${directory}/Movie.mp4`
+      yield* fs.writeFileString(file, 'content')
+      const noStreams = ffmpeg(() =>
+        Effect.succeed({
+          duration: 100,
+          streams: [
+            { codec_name: 'h264', codec_type: 'video' },
+            { codec_name: 'aac', codec_type: 'audio', tags: { language: 'de' } },
+          ] satisfies FFprobeStream[],
+        })
+      )
+      expect(yield* provideTest(transcode(file), { ffmpeg: noStreams })).toBeFalse()
+      expect(sendMessageMock).toHaveBeenCalledWith(
+        env.TELEGRAM_CHAT_ID,
+        `Transcoding failed: (Movie) No audio tracks would be kept after processing\n${file}`,
+        undefined
+      )
+      sendMessageMock.mockClear()
+      expect(
+        yield* provideTest(transcode(file), {
+          ffmpeg: ffmpeg(() => Effect.fail(new FileNotFoundError({ filePath: file }))),
+        })
+      ).toBeFalse()
+      expect(sendMessageMock).not.toHaveBeenCalled()
+
+      sendMessageMock.mockRejectedValueOnce(new Error('Telegram unavailable'))
+      expect(yield* provideTest(transcode(file), { ffmpeg: noStreams })).toBeFalse()
+      const telegram = new MockTelegramClient()
+      spyOn(telegram, 'sendMessage').mockReturnValue(Effect.interrupt)
+      const interrupted = yield* Effect.exit(provideTest(transcode(file), { ffmpeg: noStreams, telegram }))
+      expect(interrupted._tag).toBe('Failure')
+      if (interrupted._tag === 'Failure') {
+        expect(Cause.hasInterrupts(interrupted.cause)).toBeTrue()
+      }
       expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(0)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )

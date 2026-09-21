@@ -54,6 +54,7 @@ Media releases vary in container, stream codec, language metadata, and subtitle 
 - `[C-4]` Sidecar subtitle analysis and Bazarr actions belong to `src/features/subtitle_scan/subtitle_scan.spec.md`; a transcode pass does not certify subtitle quality.
 - `[C-5]` Identifying unchanged media still requires a streaming content hash and registry lookup; skipping means no ffprobe, stream selection, or queue work, not no filesystem reads. A changed extension or original language requires a fresh check, and changes to selection rules require bumping `TRANSCODE_SCAN_VERSION`, not clearing the registry.
 - `[C-6]` A generated output is a new file version. Output validation alone does not certify a no-work verdict; the installed file is checked on its next submission and recorded only if no further work is required.
+- `[C-7]` When audio selection fails with `NoStreamsKeptError`, Telegram receives `Transcoding failed: (<mediaTitle>) No audio tracks would be kept after processing` followed by the source path on a new line, using `TELEGRAM_CHAT_ID`. Notification failures are logged without changing the failed analysis outcome; interruption is preserved. Other analysis failures remain log-only.
 
 ## 7. High-Level Components
 
@@ -132,8 +133,10 @@ The registry is independent of `subtitleScans`: media passing transcode criteria
 ### Outcomes and acceptance
 
 - `[SO-1]` Passed media skips probing across scans and process restarts — demonstrated by `[VC-1]` and `[VC-2]`.
+- `[SO-2]` Operators are notified when audio selection would keep no tracks — demonstrated by `[VC-3]`.
 - `[VC-1]` A successful no-work check followed by another submission, including a renamed copy with the same extension, does not call ffprobe. Changing content, extension, original language, or scan version causes a fresh check.
 - `[VC-2]` Failed, interrupted, queued, rejected, or changing-file checks never create passing records; registry failure cannot suppress analysis. Service and repository regressions exercise these cases.
+- `[VC-3]` A no-tracks-kept failure sends the media title and file path to the configured Telegram chat and returns `false` without queueing or recording a pass. Failed notification delivery remains best-effort; interruption propagates.
 
 ## 9. Open Questions
 

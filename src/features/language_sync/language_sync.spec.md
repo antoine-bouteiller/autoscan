@@ -1,6 +1,6 @@
 ---
 title: Language Sync
-status: implemented
+status: amended
 author: Antoine Bouteiller
 date: 2026-08-14
 related:
@@ -40,7 +40,7 @@ Plex playback needs to use each media record's preferred audio language without 
 
 ## 6. Caveats
 
-- `[C-1]` A media item without a matching audio stream is warned and skipped.
+- `[C-1]` A media item without a matching audio stream is warned, reported to `TELEGRAM_CHAT_ID`, and skipped. Telegram delivery is best-effort: non-interruption failures are logged and do not affect the pass; interruptions propagate.
 - `[C-2]` The conversation loads at most 100 media records per selected type and displays ten per page.
 - `[C-3]` Invalid callback data leaves the current conversation state unchanged.
 
@@ -60,7 +60,7 @@ The job reads Plex sections, obtains their media, resolves complete media detail
 
 ### Language service
 
-For each part, the service finds an audio stream with `streamType === 2` whose normalized code equals `preferredLanguage`. If that stream is not selected, it updates audio; for `fr`, it then sets subtitle stream `0` (`src/features/language_sync/services/language.service.ts:55`, `src/features/language_sync/services/language.service.ts:68`). Absence of a match logs a warning and makes no selection.
+For each part, the service finds an audio stream with `streamType === 2` whose normalized code equals `preferredLanguage`. If that stream is not selected, it updates audio; for `fr`, it then sets subtitle stream `0` (`src/features/language_sync/services/language.service.ts:55`, `src/features/language_sync/services/language.service.ts:80`). Absence of a match logs a warning, sends `No <language> audio stream found for <media title>` to `TELEGRAM_CHAT_ID`, and makes no selection. Telegram delivery is best-effort: a non-interruption failure is logged, while interruption propagates.
 
 The conversation transitions as follows:
 
@@ -73,6 +73,11 @@ It offers movie/show, a paginated media keyboard, then ISO-639-1 codes in six-co
 ### Set-language conversation
 
 The command sends the media-type keyboard. Each callback is acknowledged and dispatched only when its payload matches the active state; otherwise the state is retained (`src/features/language_sync/commands/language.command.ts:38`).
+
+### Outcomes and acceptance
+
+- `[SO-1]` Operators receive a Telegram alert identifying the media and missing preferred audio language — demonstrated by `[VC-1]`.
+- `[VC-1]` When no preferred audio stream exists, alignment sends the documented message to the configured chat without mutating Plex. A matching stream does not notify. Failed delivery does not fail alignment, while interruption propagates; covered by language-service regressions.
 
 ## 9. Open Questions
 

@@ -1,8 +1,9 @@
 import { and, eq } from 'drizzle-orm'
-import { Effect } from 'effect'
+import { Cause, Effect } from 'effect'
 
 import { DatabaseQueryError } from '@/config/db'
-import { Database, Plex } from '@/core/runtime.service'
+import { Env } from '@/config/env'
+import { Database, Plex, Telegram } from '@/core/runtime.service'
 import { media, type Media } from '@/database/schema'
 import { getMediaByTypeWithPagination } from '@/domains/media/repositories/media.repository'
 import { type UpdateLanguageParams } from '@/features/language_sync/types'
@@ -58,7 +59,16 @@ export const handleUpdateLanguage = (params: UpdateLanguageParams) =>
     const audioStream = streams.find((stream) => stream.streamType === 2 && normalizeToIso1(stream.languageCode) === preferredLanguage)
 
     if (audioStream === undefined) {
-      yield* Effect.logWarning(`No ${preferredLanguage} audio stream found`).pipe(Effect.annotateLogs('context', ['Language', mediaTitle]))
+      const message = `No ${preferredLanguage} audio stream found for ${mediaTitle}`
+      yield* Effect.logWarning(message).pipe(Effect.annotateLogs('context', ['Language', mediaTitle]))
+      const telegram = yield* Telegram
+      const env = yield* Env
+      yield* telegram.sendMessage(env.TELEGRAM_CHAT_ID, message).pipe(
+        Effect.catchCauseIf(
+          (cause) => !Cause.hasInterrupts(cause),
+          (cause) => Effect.logWarning(cause, `Notifying missing ${preferredLanguage} audio for ${mediaTitle}`)
+        )
+      )
       return
     }
 
