@@ -52,7 +52,7 @@ cannot, and keeps Bazarr's per-media language requests aligned with the audio ac
 - `[NG-1]` Running ffsubsync or any audio-based alignment locally.
 - `[NG-2]` Choosing subtitle providers, scores, or languages beyond the profiles configured in Bazarr.
 - `[NG-3]` Scanning subtitle streams embedded in the media container; only sidecar `.srt` files are analyzed.
-- `[NG-4]` Reporting a per-pass summary to Telegram; only the all-missing alert is user-facing.
+- `[NG-4]` Reporting a per-pass summary to Telegram; only all-missing alerts and per-subtitle resync notifications are user-facing.
 
 ## 6. Caveats
 
@@ -165,11 +165,13 @@ remaining ← candidates not removed
 for each pair (a, b) of non-forced sidecars with at least one in remaining:
   if divergent(a, b):
     targets ← pair members not registered `passed` at version
-    for t in targets: bazarr.syncSubtitle(item, lang(t)); record(hash(t), version, sync_requested)
+    for t in targets: bazarr.syncSubtitle(item, lang(t)); record(hash(t), version, sync_requested); notify Telegram
 record(hash, version, passed) for every remaining candidate not marked sync_requested
 ```
 
 `isForcedSubtitleContent`, `parseStartTimestamps`, and the divergence rule are shared helpers: fewer than 3 cues per minute or under 15% screen-time ratio for forced; fewer than 50% of the shorter track's starts matched within 300 ms for divergence. Both parsers handle LF and CRLF cue separators. Matching sorts timestamps and advances through both tracks, consumes each matched cue once, and skips unmatched starts instead of shifting all subsequent comparisons. An empty track provides no timing evidence and does not trigger sync. The Bazarr item is resolved once per media by path (`getMovieByPath` or `getEpisodeByPath`); an unresolvable item logs a warning and records nothing, so the media is retried next pass. A file that is deleted or sync-requested is never recorded as `passed` in the same pass.
+
+After a successful Bazarr sync request and `sync_requested` registry write, send one plain-text message to `TELEGRAM_CHAT_ID`: `Subtitle resync requested for <media title> (<language>)\n<subtitle path>`. This reports a request, not verified subtitle alignment. Failed or unresolved sync requests and cached hashes produce no notification. Telegram failures are logged without undoing the verdict or stopping other targets; notifications are best-effort and are not retried on later passes. Notification-only changes do not increment `SUBTITLE_SCAN_VERSION` (still 2) or replay existing results.
 
 ### Missing policy
 
@@ -237,11 +239,13 @@ interface BazarrItem extends BazarrItemRef {
 
 The client is built on `httpClient` with header `X-API-KEY` and base `${BAZARR_API_URL}/api`, registered as a `Bazarr` service key in `src/core/runtime.service.ts` and constructed in the composition root beside the arr clients. Sync, translate, and delete map to `PATCH`/`DELETE /subtitles` with `action` `sync` or `translate`; profile assignment maps to `POST /movies` or `POST /episodes` with `profileid`. Responses are validated with co-located Effect Schemas that read only the fields above. `BAZARR_API_KEY` supports the `_FILE` secret convention (`src/config/env.ts:3`).
 
-### Timing acceptance
+### Timing and notification acceptance
 
 - `[SO-1]` Differently segmented translations no longer trigger sync solely because cue indices differ; genuine timing differences remain eligible for Bazarr sync. CRLF sidecars are parsed like LF files instead of appearing to contain a single cue.
 - `[VC-1]` Anora's opening English/French timestamps pass in either argument order; a one-second shifted copy fails. Split/omitted cues, ordering, one-to-one matching, 300 ms tolerance, and the strict majority boundary are covered in `tests/shared/utils/subtitle.spec.ts` — demonstrates `[SO-1]`.
 - `[VC-2]` LF and CRLF representations produce identical cue starts and forced verdicts — demonstrates `[SO-1]`.
+- `[SO-3]` Each newly recorded subtitle resync request attempts a Telegram notification without changing scan eligibility.
+- `[VC-4]` Service tests verify the configured recipient, title, language, path, one notification per sync target, silence for cached/failed requests, and continued scanning with retained verdicts after Telegram failure — demonstrates `[SO-3]`.
 
 Anora's complete downloaded sidecars provide real-media validation: 2,435 English and 2,471 French cues produce 98.03% positional divergence, but 1,348 starts match one-to-one within 300 ms (55.36% of the shorter track), so the revised rule does not request sync. Full-track ffsubsync against the movie's English audio estimates offsets of +10 ms (English) and 0 ms (French), both with framerate scale 1.000. Even after that audio alignment, positional divergence remains 97.95%, explaining why repeated Bazarr rewrites could not satisfy the former rule.
 
