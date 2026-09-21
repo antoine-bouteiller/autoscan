@@ -133,8 +133,8 @@ describe('scanMediaSubtitles', () => {
       expect(synced).toEqual(expect.arrayContaining([french, paths[2]]))
       expect(synced).toHaveLength(2)
       expect(sendMessageMock.mock.calls).toEqual([
-        [testEnv.TELEGRAM_CHAT_ID, `Subtitle resync requested for Movie (de)\n${paths[2]}`, undefined],
-        [testEnv.TELEGRAM_CHAT_ID, `Subtitle resync requested for Movie (fr)\n${french}`, undefined],
+        [testEnv.TELEGRAM_CHAT_ID, 'Subtitle resync requested for Movie (de)', undefined],
+        [testEnv.TELEGRAM_CHAT_ID, 'Subtitle resync requested for Movie (fr)', undefined],
       ])
       yield* run(details(file), item, client)
       expect(sendMessageMock).toHaveBeenCalledTimes(2)
