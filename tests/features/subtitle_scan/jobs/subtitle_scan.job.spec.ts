@@ -3,10 +3,13 @@ import { describe, expect, it } from '@tests/it'
 import { MockPlexClient } from '@tests/mocks/plex.mock'
 import { plexMetadata } from '@tests/resources/fixtures/plex.fixtures'
 import { MockBazarrClient, MockTmdbClient } from '@tests/utils'
-import { Context, Deferred, Effect, Fiber, FileSystem } from 'effect'
+import { Context, DateTime, Deferred, Effect, Fiber, FileSystem } from 'effect'
 
 import { BackgroundTasks, Bazarr, Ffmpeg, Plex, SubtitleScan, Tmdb } from '@/core/runtime.service'
+import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { runSubtitleScan, startSubtitleScan } from '@/features/subtitle_scan/jobs/subtitle_scan.job'
+import { getScan, recordScan } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
+import { discoverSubtitleFiles } from '@/features/subtitle_scan/services/subtitle_files.service'
 import { type BazarrItem } from '@/integrations/bazarr/bazarr.service'
 import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
@@ -104,6 +107,25 @@ const makeTypedFailingTopLevelPlex = (): IPlexClient => {
 
 type FrenchProfileLookup = 'failed' | 'missing' | 'present'
 
+class CandidateBazarr extends MockBazarrClient {
+  readonly lookups: string[] = []
+
+  override getMovieByPath(path: string) {
+    const subtitle = path.replace(/\.mkv$/, '.en.srt')
+    const item: BazarrItem = {
+      id: this.lookups.length + 1,
+      kind: 'movie',
+      missingSubtitles: [],
+      path,
+      subtitles: [{ forced: false, hi: false, language: 'en', path: subtitle }],
+      title: path,
+    }
+    return Effect.sync(() => {
+      this.lookups.push(path)
+    }).pipe(Effect.as(item))
+  }
+}
+
 class CountingBazarr extends MockBazarrClient {
   lookups = 0
   profiles = 0
@@ -159,7 +181,7 @@ class CountingBazarr extends MockBazarrClient {
 }
 
 describe('subtitle scan job', () => {
-  it.live('limits each scheduled and manual pass to 10 media across sections, including failed attempts', () =>
+  it.live('does not cap metadata failures without eligible subtitle candidates', () =>
     Effect.gen(function* () {
       const plex = new MockPlexClient()
       const [template] = [plexMetadata[123]]
@@ -186,19 +208,135 @@ describe('subtitle scan job', () => {
       yield* provideTest(
         Effect.gen(function* () {
           yield* runSubtitleScan
-          expect(attempted).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-          expect(sections).toEqual([1, 2])
+          expect(attempted).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
+          expect(sections).toEqual([1, 2, 3])
           attempted.length = 0
           sections.length = 0
           expect(yield* startSubtitleScan).toBeTrue()
           const tasks = yield* BackgroundTasks
           yield* tasks.awaitEmpty
-          expect(attempted).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-          expect(sections).toEqual([1, 2])
+          expect(attempted).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
+          expect(sections).toEqual([1, 2, 3])
         }),
         { bazarr, plex }
       )
       expect(bazarr).toMatchObject({ wantedEpisodes: 2, wantedMovies: 2 })
+    })
+  )
+
+  it.scoped('caps only unregistered non-forced sidecars, advances past cached media, and counts analysis failures', () =>
+    Effect.gen(function* () {
+      const context = yield* makeTestContext()
+      const fs = Context.get(context, FileSystem.FileSystem)
+      const directory = yield* fs.makeTempDirectoryScoped()
+      const [template] = [plexMetadata[123]]
+      if (template === undefined) {
+        throw new Error('Missing Plex fixture')
+      }
+
+      const files = new Map<number, string>()
+      const fileFor = (ratingKey: number) => {
+        const file = files.get(ratingKey)
+        if (file === undefined) {
+          throw new Error(`Missing media file ${ratingKey}`)
+        }
+        return file
+      }
+      const media = (ratingKey: number) => {
+        const file = fileFor(ratingKey)
+        return {
+          ...template,
+          Media: template.Media.map((entry) => ({ ...entry, Part: entry.Part.map((part) => ({ ...part, file })) })),
+          ratingKey: String(ratingKey),
+          title: `Movie ${ratingKey}`,
+        }
+      }
+      const createMedia = (ratingKey: number, sidecar: 'cached' | 'forced' | 'new') =>
+        Effect.gen(function* () {
+          const file = `${directory}/Movie ${ratingKey} {tmdb-${ratingKey}}.mkv`
+          files.set(ratingKey, file)
+          yield* fs.writeFileString(file, '')
+          if (sidecar === 'forced') {
+            yield* fs.writeFileString(file.replace(/\.mkv$/, '.en.forced.srt'), '1\n00:00:00,000 --> 00:00:01,000\nforced')
+          } else {
+            const subtitle = file.replace(/\.mkv$/, '.en.srt')
+            yield* fs.writeFileString(subtitle, `1\n00:00:00,000 --> 00:00:02,000\nsubtitle ${ratingKey}`)
+            if (sidecar === 'cached') {
+              const [snapshot] = yield* discoverSubtitleFiles(file).pipe(Effect.provide(context))
+              if (snapshot === undefined) {
+                throw new Error(`Missing cached subtitle ${ratingKey}`)
+              }
+              const scannedAt = yield* DateTime.nowAsDate.pipe(Effect.provide(context))
+              yield* recordScan({
+                filePath: snapshot.path,
+                hash: snapshot.hash,
+                scanVersion: SUBTITLE_SCAN_VERSION,
+                scannedAt,
+                verdict: 'passed',
+              }).pipe(Effect.provide(context))
+            }
+          }
+        })
+
+      yield* Effect.forEach([1, 2], (ratingKey) => createMedia(ratingKey, 'cached'))
+      yield* Effect.forEach([3, 4], (ratingKey) => createMedia(ratingKey, 'forced'))
+      yield* Effect.forEach(
+        Array.from({ length: 20 }, (_entry, index) => index + 5),
+        (ratingKey) => createMedia(ratingKey, 'new')
+      )
+
+      const sections = new Map([
+        [1, [1, 2, 3, 4, 5, 6, 7, 8]],
+        [2, [9, 10, 11]],
+        [3, Array.from({ length: 13 }, (_entry, index) => index + 12)],
+      ])
+      const plex = new MockPlexClient()
+      Object.defineProperties(plex, {
+        getPlexMetadata: { value: (ratingKey: number) => Effect.succeed(media(ratingKey)) },
+        getSectionMedia: { value: (section: number) => Effect.succeed((sections.get(section) ?? []).map(media)) },
+        getSections: {
+          value: Effect.succeed([1, 2, 3].map((key) => ({ key, title: `Section ${key}`, type: 'movie' as const }))),
+        },
+      })
+      const probed: string[] = []
+      const failedFile = fileFor(14)
+      let failAnalysis = true
+      const countedFfmpeg: IFfmpegClient = {
+        ...ffmpeg,
+        ffprobe: (file) =>
+          Effect.sync(() => {
+            probed.push(file)
+          }).pipe(
+            Effect.flatMap(() =>
+              file === failedFile && failAnalysis ? Effect.die('ffprobe unavailable') : Effect.succeed({ duration: 10, streams: [] })
+            )
+          ),
+      }
+      const bazarr = new CandidateBazarr()
+      const overridden = Context.add(Context.add(Context.add(context, Bazarr, bazarr), Ffmpeg, countedFfmpeg), Plex, plex)
+
+      yield* runSubtitleScan.pipe(Effect.provide(overridden))
+      const firstPass = Array.from({ length: 10 }, (_entry, index) => fileFor(index + 5))
+      expect(probed).toEqual(firstPass)
+      expect(bazarr.lookups).toEqual(firstPass)
+      const [passed] = yield* discoverSubtitleFiles(fileFor(13)).pipe(Effect.provide(overridden))
+      const [failed] = yield* discoverSubtitleFiles(failedFile).pipe(Effect.provide(overridden))
+      if (passed === undefined || failed === undefined) {
+        throw new Error('Missing candidate sidecar')
+      }
+      expect(yield* getScan(passed.hash, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toMatchObject({ verdict: 'passed' })
+      expect(yield* getScan(failed.hash, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toBeUndefined()
+
+      probed.length = 0
+      bazarr.lookups.length = 0
+      failAnalysis = false
+      const accepted = yield* startSubtitleScan.pipe(Effect.provide(overridden))
+      expect(accepted).toBeTrue()
+      const tasks = Context.get(overridden, BackgroundTasks)
+      yield* tasks.awaitEmpty
+      const secondPass = Array.from({ length: 10 }, (_entry, index) => fileFor(index + 14))
+      expect(probed).toEqual(secondPass)
+      expect(bazarr.lookups).toEqual(secondPass)
     })
   )
 
