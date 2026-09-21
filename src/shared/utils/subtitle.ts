@@ -24,7 +24,7 @@ export const isForcedSubtitleContent = Function.dual<
     return false
   }
 
-  const blocks = content.trim().split(/\n\n+/)
+  const blocks = content.trim().split(/\r?\n(?:\r?\n)+/)
   let totalScreenTime = 0
 
   for (const block of blocks) {
@@ -48,7 +48,7 @@ export const isForcedSubtitleContent = Function.dual<
 
 export const parseStartTimestamps = (content: string): number[] => {
   const timestamps: number[] = []
-  for (const block of content.trim().split(/\n\n+/)) {
+  for (const block of content.trim().split(/\r?\n(?:\r?\n)+/)) {
     const match = /(?<start>\d{2}:\d{2}:\d{2},\d{3})\s*-->/.exec(block)
     if (match?.groups !== undefined) {
       timestamps.push(parseTimestampMs(match.groups['start']))
@@ -61,18 +61,27 @@ export const areSubtitlesOutOfSync = Function.dual<
   (contentB: string) => (contentA: string) => boolean,
   (contentA: string, contentB: string) => boolean
 >(2, (contentA, contentB) => {
-  const timestampsA = parseStartTimestamps(contentA)
-  const timestampsB = parseStartTimestamps(contentB)
+  const timestampsA = parseStartTimestamps(contentA).toSorted((left, right) => left - right)
+  const timestampsB = parseStartTimestamps(contentB).toSorted((left, right) => left - right)
   const length = Math.min(timestampsA.length, timestampsB.length)
   if (length === 0) {
     return false
   }
 
-  let outOfSync = 0
-  for (let index = 0; index < length; index++) {
-    if (Math.abs(timestampsA[index] - timestampsB[index]) > SYNC_THRESHOLD_MS) {
-      outOfSync++
+  let matched = 0
+  let indexA = 0
+  let indexB = 0
+  while (indexA < timestampsA.length && indexB < timestampsB.length) {
+    const difference = timestampsA[indexA] - timestampsB[indexB]
+    if (Math.abs(difference) <= SYNC_THRESHOLD_MS) {
+      matched++
+      indexA++
+      indexB++
+    } else if (difference < 0) {
+      indexA++
+    } else {
+      indexB++
     }
   }
-  return outOfSync / length > 0.5
+  return matched / length < 0.5
 })
