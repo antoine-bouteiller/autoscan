@@ -33,24 +33,20 @@ const clean = () =>
 describe('subtitle scan repository', () => {
   beforeEach(() => Effect.runPromise(clean()))
 
-  it.live('stores one verdict per hash and scan version across rebuilt layers', () =>
+  it.live('updates one verdict per full path across scan versions and rebuilt layers', () =>
     Effect.gen(function* () {
-      yield* provideTest(
-        recordScan({ filePath: '/library/original.en.srt', hash: 'shared-content', scanVersion: 1, scannedAt: firstSeen, verdict: 'passed' })
-      )
-      yield* provideTest(
-        recordScan({ filePath: '/library/renamed.en.srt', hash: 'shared-content', scanVersion: 1, scannedAt: later, verdict: 'sync_requested' })
-      )
-      yield* provideTest(
-        recordScan({ filePath: '/library/renamed.en.srt', hash: 'shared-content', scanVersion: 2, scannedAt: later, verdict: 'sync_requested' })
-      )
+      const filePath = '/library/movie.en.srt'
+      yield* provideTest(recordScan({ filePath, scanVersion: 1, scannedAt: firstSeen, verdict: 'passed' }))
+      expect(yield* provideTest(getScan(filePath, 1))).toMatchObject({ filePath, scannedAt: firstSeen, verdict: 'passed' })
+      yield* provideTest(recordScan({ filePath, scanVersion: 2, scannedAt: later, verdict: 'sync_requested' }))
+      yield* provideTest(recordScan({ filePath: '/other/movie.en.srt', scanVersion: 1, scannedAt: later, verdict: 'forced_removed' }))
 
-      expect(yield* provideTest(getScan('shared-content', 1))).toMatchObject({
-        filePath: '/library/original.en.srt',
-        scannedAt: firstSeen,
-        verdict: 'passed',
-      })
-      expect(yield* provideTest(getScan('shared-content', 2))).toMatchObject({ verdict: 'sync_requested' })
+      expect(yield* provideTest(getScan(filePath, 1))).toBeUndefined()
+      expect(yield* provideTest(getScan(filePath, 2))).toMatchObject({ scannedAt: later, verdict: 'sync_requested' })
+      expect(yield* Effect.promise(() => db.select().from(subtitleScans))).toHaveLength(2)
+      expect(yield* provideTest(getScan('/other/movie.en.srt', 1))).toMatchObject({ verdict: 'forced_removed' })
+      expect(yield* provideTest(getScan('/library/renamed.en.srt', 1))).toBeUndefined()
+      expect(yield* provideTest(getScan(filePath, 3))).toBeUndefined()
     })
   )
 

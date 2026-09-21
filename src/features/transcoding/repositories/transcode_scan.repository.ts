@@ -6,7 +6,7 @@ import { Database } from '@/core/runtime.service'
 import { transcodeScans } from '@/database/schema'
 
 export type TranscodeScanRecord = typeof transcodeScans.$inferSelect
-export type TranscodeScanKey = Pick<TranscodeScanRecord, 'hash' | 'extension' | 'originalLanguage' | 'scanVersion'>
+export type TranscodeScanKey = Pick<TranscodeScanRecord, 'filePath' | 'originalLanguage' | 'scanVersion'>
 
 const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => new DatabaseQueryError(cause), try: run })
 
@@ -18,8 +18,7 @@ export const getScan = (key: TranscodeScanKey) =>
         .from(transcodeScans)
         .where(
           and(
-            eq(transcodeScans.hash, key.hash),
-            eq(transcodeScans.extension, key.extension),
+            eq(transcodeScans.filePath, key.filePath),
             eq(transcodeScans.originalLanguage, key.originalLanguage),
             eq(transcodeScans.scanVersion, key.scanVersion)
           )
@@ -28,4 +27,6 @@ export const getScan = (key: TranscodeScanKey) =>
   )
 
 export const recordScan = (row: TranscodeScanRecord) =>
-  Database.use(({ db }) => query(() => db.insert(transcodeScans).values(row).onConflictDoNothing())).pipe(Effect.asVoid)
+  Database.use(({ db }) => query(() => db.insert(transcodeScans).values(row).onConflictDoUpdate({ set: row, target: transcodeScans.filePath }))).pipe(
+    Effect.asVoid
+  )

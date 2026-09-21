@@ -30,30 +30,19 @@ export const plexTokens = pgTable('plex_tokens', {
   linkedAt: timestamp('linked_at').notNull(),
 })
 
-export const subtitleScans = pgTable(
-  'subtitle_scans',
-  {
-    filePath: text('file_path').notNull(),
-    hash: text().notNull(),
-    scanVersion: integer('scan_version').notNull(),
-    scannedAt: timestamp('scanned_at').notNull(),
-    verdict: subtitleVerdictEnum().notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.hash, table.scanVersion] })]
-)
+export const subtitleScans = pgTable('subtitle_scans', {
+  filePath: text('file_path').primaryKey(),
+  scanVersion: integer('scan_version').notNull(),
+  scannedAt: timestamp('scanned_at').notNull(),
+  verdict: subtitleVerdictEnum().notNull(),
+})
 
-export const transcodeScans = pgTable(
-  'transcode_scans',
-  {
-    extension: text().notNull(),
-    filePath: text('file_path').notNull(),
-    hash: text().notNull(),
-    originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
-    scanVersion: integer('scan_version').notNull(),
-    scannedAt: timestamp('scanned_at').notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.hash, table.extension, table.originalLanguage, table.scanVersion] })]
-)
+export const transcodeScans = pgTable('transcode_scans', {
+  filePath: text('file_path').primaryKey(),
+  originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
+  scanVersion: integer('scan_version').notNull(),
+  scannedAt: timestamp('scanned_at').notNull(),
+})
 
 export const missingSubtitles = pgTable(
   'missing_subtitles',

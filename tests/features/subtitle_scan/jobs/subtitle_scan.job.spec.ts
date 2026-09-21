@@ -269,7 +269,6 @@ describe('subtitle scan job', () => {
               const scannedAt = yield* DateTime.nowAsDate.pipe(Effect.provide(context))
               yield* recordScan({
                 filePath: snapshot.path,
-                hash: snapshot.hash,
                 scanVersion: SUBTITLE_SCAN_VERSION,
                 scannedAt,
                 verdict: 'passed',
@@ -324,8 +323,8 @@ describe('subtitle scan job', () => {
       if (passed === undefined || failed === undefined) {
         throw new Error('Missing candidate sidecar')
       }
-      expect(yield* getScan(passed.hash, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toMatchObject({ verdict: 'passed' })
-      expect(yield* getScan(failed.hash, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toBeUndefined()
+      expect(yield* getScan(passed.path, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toMatchObject({ verdict: 'passed' })
+      expect(yield* getScan(failed.path, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toBeUndefined()
 
       probed.length = 0
       bazarr.lookups.length = 0
