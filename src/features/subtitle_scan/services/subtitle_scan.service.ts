@@ -41,7 +41,8 @@ const divergentCandidates = (candidates: readonly SubtitleFileSnapshot[], refere
 
 export const scanMediaSubtitles = <Requirements>(
   details: SubtitleScanMedia,
-  getItem: Effect.Effect<BazarrItem | undefined, HttpClientError, Requirements>
+  getItem: Effect.Effect<BazarrItem | undefined, HttpClientError, Requirements>,
+  onScan: Effect.Effect<void> = Effect.void
 ) =>
   Effect.gen(function* () {
     const files = yield* discoverSubtitleFiles(details.file)
@@ -66,6 +67,7 @@ export const scanMediaSubtitles = <Requirements>(
       return
     }
 
+    yield* onScan
     const item = yield* getItem
     if (item === undefined) {
       yield* Effect.logWarning(`Bazarr item not found for ${details.file}`)
