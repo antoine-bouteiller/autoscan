@@ -2,9 +2,9 @@ import { CryptoHasher } from 'bun'
 import { Cause, DateTime, Effect, Equal, FileSystem, Layer, Path, Queue, Schema, Stream } from 'effect'
 
 import { Env } from '@/config/env'
-import { Ffmpeg, Plex, TranscodeQueue } from '@/core/runtime.service'
+import { Ffmpeg, Plex, Telegram, TranscodeQueue } from '@/core/runtime.service'
 import { TRANSCODE_SCAN_VERSION } from '@/features/transcoding/constants'
-import { FileNameInvalidError, FileNotFoundError, ReplacementRollbackError } from '@/features/transcoding/errors'
+import { FileNameInvalidError, FileNotFoundError, NoStreamsKeptError, ReplacementRollbackError } from '@/features/transcoding/errors'
 import { getScan, recordScan } from '@/features/transcoding/repositories/transcode_scan.repository'
 import { type TranscodeJob } from '@/features/transcoding/types'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
@@ -195,6 +195,14 @@ const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage:
       mediaTitle
     )
     if (audio instanceof Error) {
+      if (audio instanceof NoStreamsKeptError) {
+        const telegram = yield* Telegram
+        const env = yield* Env
+        yield* logFailure(
+          telegram.sendMessage(env.TELEGRAM_CHAT_ID, `Transcoding failed: ${audio.message}\n${file}`),
+          `Notifying transcode failure for ${file}`
+        )
+      }
       return yield* audio
     }
     const subtitlesToExtract = processSubtitleStreams(
