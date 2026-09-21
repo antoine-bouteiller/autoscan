@@ -1,5 +1,4 @@
-import { CryptoHasher } from 'bun'
-import { Cause, DateTime, Effect, Equal, FileSystem, Layer, Path, Queue, Schema, Stream } from 'effect'
+import { Cause, DateTime, Effect, Equal, FileSystem, Layer, Path, Queue, Schema } from 'effect'
 
 import { Env } from '@/config/env'
 import { Ffmpeg, Plex, Telegram, TranscodeQueue } from '@/core/runtime.service'
@@ -162,24 +161,13 @@ const sameFile = (before: FileSystem.File.Info, after: FileSystem.File.Info) =>
 const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage: ISOCode1) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
-    const before = yield* fs.stat(file)
-    const hasher = new CryptoHasher('sha256')
-    yield* fs.stream(file).pipe(
-      Stream.runForEach((chunk) =>
-        Effect.sync(() => {
-          hasher.update(chunk)
-        })
-      )
-    )
-    if (!sameFile(before, yield* fs.stat(file))) {
-      return undefined
-    }
-    const extension = file.split('.').pop() ?? ''
-    const key = { extension, hash: hasher.digest('hex'), originalLanguage, scanVersion: TRANSCODE_SCAN_VERSION }
+    const key = { filePath: file, originalLanguage, scanVersion: TRANSCODE_SCAN_VERSION }
     if ((yield* logFailure(getScan(key), `Reading transcode scan for ${file}`)) !== undefined) {
       return undefined
     }
 
+    const before = yield* fs.stat(file)
+    const extension = file.split('.').pop() ?? ''
     const ffmpeg = yield* Ffmpeg
     const probe = yield* ffmpeg.ffprobe(file)
     const video = processVideoStreams(
@@ -216,7 +204,7 @@ const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage:
     }
     if (sameFile(before, yield* fs.stat(file))) {
       const scannedAt = yield* DateTime.nowAsDate
-      yield* logFailure(recordScan({ ...key, filePath: file, scannedAt }), `Recording transcode scan for ${file}`)
+      yield* logFailure(recordScan({ ...key, scannedAt }), `Recording transcode scan for ${file}`)
     }
     return undefined
   })

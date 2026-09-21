@@ -20,7 +20,7 @@ subtitles for days because no provider has them, and French-audio media keep req
 The feature is a scheduled, incremental scan that fixes what it can through Bazarr, alerts the operator on what it
 cannot, and keeps Bazarr's per-media language requests aligned with the audio actually played.
 
-- `[G-1]` Analyze every sidecar subtitle file once per content hash and scan version; never re-analyze a file that already passed at the current scan version.
+- `[G-1]` Analyze every sidecar subtitle file once per full file path and scan version; never re-analyze a file that already passed at the current scan version.
 - `[G-2]` Remove unwanted forced subtitles and re-synchronize out-of-sync subtitles through Bazarr.
 - `[G-3]` For media missing subtitles for more than 3 days, alert on Telegram when none exist and translate through Bazarr when one exists.
 - `[G-4]` Assign the Bazarr French preset to French-audio media and release the request after 7 days without a forced subtitle.
@@ -30,8 +30,8 @@ cannot, and keeps Bazarr's per-media language requests aligned with the audio ac
 | Decision                        | Choice                                                                                                                                                                        | Rationale                                                                                                                                                                                                                                                                                                                              |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `[KD-1]` Entry points           | Register `Subtitle Scan` on `0 5 * * *` and the `/subtitlescan` Telegram command as the manual trigger for the same pass.                                                     | Subtitle changes arrive through Bazarr on its own schedule; a daily pass is enough to honor 3-day and 7-day windows while keeping the library traversal off the 12-hour jobs. One command name means one owner, so this feature is the sole registrant of `/subtitlescan`.                                                             |
-| `[KD-2.1]` Scan identity        | Key the scan registry by `(SHA-256 of subtitle content, SUBTITLE_SCAN_VERSION)`, not by path.                                                                                 | A content hash detects Bazarr rewrites without invalidating renames; the scan version makes unchanged files eligible when analysis behavior changes.                                                                                                                                                                                   |
-| `[KD-3.1]` Registry scope       | Record every analyzed `(hash, scanVersion)` with its verdict (`passed`, `forced_removed`, `sync_requested`), and skip any pair already present.                               | Only passing files must be skipped (`[G-1]`), but recording actioned hashes too prevents re-requesting the same Bazarr sync every day when Bazarr leaves the file untouched; an actual rewrite yields a new hash and is analyzed again.                                                                                                |
+| `[KD-2.1]` Scan identity        | Key the scan registry solely by full subtitle path; `SUBTITLE_SCAN_VERSION` is a lookup-validity filter.                                                                      | Path identity supersedes content hashing to skip registered files without reading their contents. Same-path replacements intentionally reuse a verdict only while its version remains current; renames and version changes require analysis. Full paths distinguish matching basenames in different directories.                       |
+| `[KD-3.1]` Registry scope       | Retain one latest analyzed record per `filePath`, with its scan version and verdict (`passed`, `forced_removed`, `sync_requested`); skip it only when its version is current. | Recording actioned paths as well as passing paths prevents repeated Bazarr requests. A successful re-analysis at a changed version replaces the path's prior row, so no historical versions are retained. Identical contents at different paths are independent candidates, not one global verdict.                                    |
 | `[KD-4]` Unwanted forced        | A `.<lang>.srt` file (no `.forced.` marker) whose content satisfies the forced heuristic is unwanted and is deleted through Bazarr.                                           | A forced track in the full-subtitle slot hides the real gap from Bazarr; deleting through Bazarr rather than the filesystem updates its history so the language returns to the wanted list and is searched again. Files named `.forced.srt` are wanted by construction. Replacement search is left to Bazarr's wanted-search schedule. |
 | `[KD-5]` Out-of-sync detection  | Match sorted start timestamps one-to-one within 300 ms between sibling `.srt` files; a pair is divergent when fewer than half the shorter track's cues match.                 | Translations split or omit cues, so cue indices are not correspondence. Time-based matching avoids Anora's false positive without relaxing the 300 ms threshold; sibling agreement remains a heuristic, not proof of audio alignment.                                                                                                  |
 | `[KD-6.1]` Sync target          | In a divergent pair, request Bazarr sync only for files not yet registered as `passed` at the current scan version; when neither is registered, sync both.                    | A file that already passed against an earlier sibling is the more trustworthy side; syncing only the newcomer avoids disturbing a known-good file. Bazarr's sync aligns against audio, so syncing both when nothing is known converges regardless of which drifted.                                                                    |
@@ -42,7 +42,7 @@ cannot, and keeps Bazarr's per-media language requests aligned with the audio ac
 
 ## 4. Principles & Intents
 
-- `[PI-1]` Incremental by default — at the same scan version, a pass over an unchanged library performs hashes and lookups only; every mutation is triggered by a new hash, a scan-version bump, or an elapsed window.
+- `[PI-1]` Incremental by default — file analysis over a fully registered library performs directory listings and registry lookups only, without hashing or reading subtitle contents. Mutations are triggered by an unregistered path, a scan-version bump, or an elapsed window.
 - `[PI-2]` Bazarr owns subtitle files — deletion, sync, translation, and download are Bazarr requests; the feature never writes a subtitle file itself.
 - `[PI-3]` Per-item resilience — a media, Bazarr, or filesystem failure is logged and the traversal continues, as in `src/features/language_sync/jobs/language.job.ts:20`.
 - `[PI-4]` Act once — every time-window action (alert, translate, release) is recorded so a daily cadence never repeats it.
@@ -59,7 +59,7 @@ cannot, and keeps Bazarr's per-media language requests aligned with the audio ac
 - `[C-1]` Bazarr, Plex, and this service must see the same file paths; item lookup matches Bazarr's `path` against the Plex part path, like `src/integrations/arr/sonarr.service.ts:34`.
 - `[C-2]` The forced heuristic requires the media duration, which comes from an ffprobe of the media file (`src/features/transcoding/services/helpers/subtitle.ts:18`). The probe runs only for media with at least one unregistered subtitle file.
 - `[C-3]` A media with a single sidecar subtitle cannot be checked for sync and passes on the forced check alone.
-- `[C-4]` A file rewritten by Bazarr sync that is still divergent is analyzed and synced again on the next pass; convergence relies on ffsubsync. No attempt counter is kept.
+- `[C-4]` Same-path rewrites and replacements reuse their current-version verdict, including `sync_requested` and `forced_removed`. This intentionally trades content-change detection for faster passes; a replaced or still-divergent file is not retried automatically. Renaming or bumping the scan version makes it eligible again.
 - `[C-5]` Bazarr API paths and payloads (`/api/movies/wanted`, `/api/episodes/wanted`, `/api/subtitles`, `/api/system/languages/profiles`, `/api/movies`, `/api/episodes`) follow Bazarr 1.4; the integration validators pin the fields the feature reads and must be checked against the deployed version.
 - `[C-6]` The French preset is resolved by name from `BAZARR_FRENCH_PROFILE`; a missing profile fails the French policy for the whole pass and is logged, while the scan and missing-subtitle policies still run.
 - `[C-7]` Releasing a profile sets the Bazarr item's language profile to none; Bazarr then stops listing it as wanted, so the `released` state lives only in this feature's table.
@@ -71,7 +71,7 @@ cannot, and keeps Bazarr's per-media language requests aligned with the audio ac
 ```text
 cron 0 5 * * *
   └─ scan job ── Plex sections ──► media details (media domain)
-        ├─ file scan ─── hash ▸ registry miss ▸ forced? ▸ delete via Bazarr
+        ├─ file scan ─── path ▸ registry miss ▸ forced? ▸ delete via Bazarr
         │                                   ▸ divergent pair? ▸ sync via Bazarr
         │                                   ▸ else record passed
         ├─ missing policy ── Bazarr wanted ▸ first-seen rows ▸ >3d ▸ alert | translate
@@ -81,8 +81,8 @@ cron 0 5 * * *
 | Component             | Module type                   | Responsibility                                                           | Public API surface                                                                                 |
 | --------------------- | ----------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | Scan job              | Effect job + Telegram command | Traverse Plex media and run the three policies per item under one permit | `runSubtitleScan`, `/subtitlescan`                                                                 |
-| Scan registry         | Drizzle schema + repository   | Persist analyzed hashes, missing first-seen rows, and profile lifecycle  | `subtitleScans`, `missingSubtitles`, `frenchProfiles`, repository functions                        |
-| Analysis service      | Effect service                | Hash, classify forced and divergent files, request Bazarr actions        | `scanMediaSubtitles`                                                                               |
+| Scan registry         | Drizzle schema + repository   | Persist analyzed paths, missing first-seen rows, and profile lifecycle   | `subtitleScans`, `missingSubtitles`, `frenchProfiles`, repository functions                        |
+| Analysis service      | Effect service                | Classify unregistered files and request Bazarr actions                   | `scanMediaSubtitles`                                                                               |
 | Missing policy        | Effect service                | Reconcile wanted list with first-seen rows and act after 3 days          | `applyMissingPolicy`                                                                               |
 | French profile policy | Effect service                | Assign the French preset and release it after 7 days without forced      | `applyFrenchProfilePolicy`                                                                         |
 | Bazarr client         | Integration                   | Typed Bazarr HTTP surface                                                | `IBazarrClient`, `Bazarr` service key, `BAZARR_API_URL`, `BAZARR_API_KEY`, `BAZARR_FRENCH_PROFILE` |
@@ -93,34 +93,29 @@ cron 0 5 * * *
 
 `runSubtitleScan` acquires a single scan permit (an item is skipped, not queued, when a pass is running), reads Plex sections and media, resolves `getCompleteMediaDetails` per item, and runs `scanMediaSubtitles` then `applyFrenchProfilePolicy` for each. `applyMissingPolicy` runs once per pass after traversal because it is driven by Bazarr's wanted list rather than by Plex items. Non-interruption failures per item are logged with the media title and the loop continues; the job's own failure is logged at the scheduler boundary.
 
-For a safe initial rollout, traversal stops after 10 media with unregistered non-forced subtitle content at the current scan version across all Plex sections. Each movie/episode counts once regardless of its number of new sidecars, including analysis failures after candidates are identified. Media with no candidates and failures before eligibility is known do not consume the cap. This fixed cap applies to scheduled and manual passes; French-profile processing still runs for every traversed media. Each pass starts from the beginning in Plex order; the registry lets later passes advance past already-scanned content without a cursor. Missing-subtitle reconciliation, translations, and alerts remain library-wide and run after the capped traversal.
+For a safe initial rollout, traversal stops after 10 media with unregistered non-forced subtitle paths at the current scan version across all Plex sections. Each movie/episode counts once regardless of its number of new sidecars, including analysis failures after candidates are identified. Media with no candidates and failures before eligibility is known do not consume the cap. This fixed cap applies to scheduled and manual passes; French-profile processing still runs for every traversed media. Each pass starts from the beginning in Plex order; the registry lets later passes advance past already-scanned paths without a cursor. Missing-subtitle reconciliation, translations, and alerts remain library-wide and run after the capped traversal.
 
-- `[SO-4]` Already-scanned media no longer consume the 10-media scan budget, allowing later passes to reach new content — demonstrated by `[VC-5]`.
-- `[VC-5]` Job tests verify cached and forced-only media are skipped by the counter, new candidates are capped across sections even when analysis fails, metadata failures do not consume slots, and a following manual pass advances past content registered by a scheduled pass — demonstrates `[SO-4]`.
+- `[SO-4]` Already-scanned media no longer consume the 10-media scan budget, allowing later passes to reach new paths — demonstrated by `[VC-5]`.
+- `[VC-5]` Job tests verify cached and forced-only media are skipped by the counter, new candidates are capped across sections even when analysis fails, metadata failures do not consume slots, and a following manual pass advances past paths registered by a scheduled pass — demonstrates `[SO-4]`.
 
 `/subtitlescan` submits the same pass to `BackgroundTasks`, replies `Starting subtitle scan...` or `A subtitle scan is already running.` according to permit admission, and returns `{ step: 'idle' }`; it produces no report (`[NG-4]`).
 
 ### Scan registry
 
-The feature owns `SUBTITLE_SCAN_VERSION = 2`, a positive integer constant shared by `/subtitlescan` and the scheduled pass. Increment it when forced detection, timing comparison, or other file-analysis behavior changes. The next pass treats all hashes without a verdict at that exact version as unregistered, including hashes with older `passed`, `forced_removed`, or `sync_requested` verdicts. Old verdicts are neither skip signals nor trusted sync references. A bump does not launch a pass itself; the schedule or command does.
+The feature owns `SUBTITLE_SCAN_VERSION = 2`, a positive integer constant shared by `/subtitlescan` and the scheduled pass. Increment it when forced detection, timing comparison, or other file-analysis behavior changes. The next pass treats all paths without a verdict at that exact version as unregistered, including paths with older `passed`, `forced_removed`, or `sync_requested` verdicts. Old verdicts are neither skip signals nor trusted sync references. A bump does not launch a pass itself; the schedule or command does.
 
-Versions increase monotonically and are not reused for different behavior. Old rows may remain: all lookups and writes include the current version, so no registry purge is needed. The version is not a Telegram argument or environment setting. It does not reset `missingSubtitles` clocks/action markers or `frenchProfiles` lifecycle state, and it does not invalidate transcode results.
+Versions increase monotonically and are not reused for different behavior. A row is valid only when its stored version matches the current version; a successful re-analysis replaces the row for that path with the new version and verdict, so no historical versions are retained and no registry purge is needed. The version is not a Telegram argument or environment setting. It does not reset `missingSubtitles` clocks/action markers or `frenchProfiles` lifecycle state, and it does not invalidate transcode results.
 
 ```ts
 export const subtitleVerdictEnum = pgEnum('subtitle_verdict', ['passed', 'forced_removed', 'sync_requested'])
 export const bazarrKindEnum = pgEnum('bazarr_kind', ['movie', 'episode'])
 
-export const subtitleScans = pgTable(
-  'subtitle_scans',
-  {
-    hash: text().notNull(), // hex SHA-256 of file content
-    scanVersion: integer('scan_version').notNull(),
-    filePath: text('file_path').notNull(), // last path seen; informational
-    verdict: subtitleVerdictEnum().notNull(),
-    scannedAt: timestamp('scanned_at').notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.hash, t.scanVersion] })]
-)
+export const subtitleScans = pgTable('subtitle_scans', {
+  filePath: text('file_path').primaryKey(),
+  scanVersion: integer('scan_version').notNull(),
+  verdict: subtitleVerdictEnum().notNull(),
+  scannedAt: timestamp('scanned_at').notNull(),
+})
 
 export const missingSubtitles = pgTable(
   'missing_subtitles',
@@ -146,11 +141,11 @@ export const frenchProfiles = pgTable(
 )
 ```
 
-Repository functions follow `src/domains/media/repositories/media.repository.ts`: each wraps Drizzle in `Database.use` and maps rejections to `DatabaseQueryError`. `subtitleScans` inserts use `onConflictDoNothing` so two files with identical content share one row per scan version. The tables live in `src/database/schema.ts` with a generated migration under `migrations/`.
+Repository functions follow `src/domains/media/repositories/media.repository.ts`: each wraps Drizzle in `Database.use` and maps rejections to `DatabaseQueryError`. Lookups require both `filePath` and the current scan version. `subtitleScans` writes use `onConflictDoUpdate({ target: subtitleScans.filePath, set: row })`, replacing the entire row after a successful analysis so each full path has one latest record. The tables live in `src/database/schema.ts` with migrations under `migrations/`. `migrations/20260921190858_scan_path_primary_keys` updates both scan tables, retaining the latest record per full path by `scanned_at DESC, ctid DESC` before making inline `filePath` its sole primary key. No version bump is needed for the identity change.
 
-Passing records survive restarts and have no time-based expiry. Scheduled and manual passes use the same registry: an unchanged passing hash is never analyzed or actioned again at that scan version, though its contents may be read as a reference for an unregistered sibling (`[KD-6.1]`). A content rewrite or scan-version bump is a new candidate; a rename alone is not. Failed or interrupted analysis never records `passed`, and a failed registry write leaves the hash eligible for a later pass.
+Passing records survive restarts and have no time-based expiry. Scheduled and manual passes use the same registry: a passing path is never analyzed or actioned again at that scan version, though its contents may be read as a reference for an unregistered sibling (`[KD-6.1]`). A rename or scan-version bump is a new candidate; a content rewrite at the same path is not. Failed or interrupted analysis never records `passed`, and a failed registry write leaves the path eligible for a later pass.
 
-This registry is independent of the passed-file registry in `src/features/transcoding/transcoding.spec.md`. A successfully checked media file skips further transcode analysis for that identity, not subtitle analysis or the missing/French policies. Transcoding never marks extracted sidecars as passed: they enter this scan as unregistered subtitle hashes. Conversely, a passing subtitle does not certify the media's transcode criteria.
+This registry is independent of the passed-file registry in `src/features/transcoding/transcoding.spec.md`. A successfully checked media file skips further transcode analysis for that identity, not subtitle analysis or the missing/French policies. Transcoding never marks extracted sidecars as passed: new sidecar paths enter this scan as unregistered candidates. Conversely, a passing subtitle does not certify the media's transcode criteria.
 
 ### Analysis service
 
@@ -158,23 +153,24 @@ This registry is independent of the passed-file registry in `src/features/transc
 
 ```text
 version ← SUBTITLE_SCAN_VERSION
-for each sidecar: hash ← sha256(content); known ← registry.get(hash, version)
+for each non-forced sidecar: known ← registry.get(path, version)
 candidates ← sidecars with known = undefined and no `.forced.` marker
-if candidates is empty → return           # PI-1: no probe, no Bazarr call
+if candidates is empty → return           # PI-1: no content reads, probe, or Bazarr call
+read candidates and passed sibling references as needed; never hash contents
 duration ← ffprobe(details.file).duration
 for each candidate:
-  if isForcedSubtitle(path, duration) → bazarr.deleteSubtitle(item, lang); record(hash, version, forced_removed)
+  if isForcedSubtitle(path, duration) → bazarr.deleteSubtitle(item, lang); record(path, version, forced_removed)
 remaining ← candidates not removed
 for each pair (a, b) of non-forced sidecars with at least one in remaining:
   if divergent(a, b):
     targets ← pair members not registered `passed` at version
-    for t in targets: bazarr.syncSubtitle(item, lang(t)); record(hash(t), version, sync_requested); notify Telegram
-record(hash, version, passed) for every remaining candidate not marked sync_requested
+    for t in targets: bazarr.syncSubtitle(item, lang(t)); record(path(t), version, sync_requested); notify Telegram
+record(path, version, passed) for every remaining candidate not marked sync_requested
 ```
 
 `isForcedSubtitleContent`, `parseStartTimestamps`, and the divergence rule are shared helpers: fewer than 3 cues per minute or under 15% screen-time ratio for forced; fewer than 50% of the shorter track's starts matched within 300 ms for divergence. Both parsers handle LF and CRLF cue separators. Matching sorts timestamps and advances through both tracks, consumes each matched cue once, and skips unmatched starts instead of shifting all subsequent comparisons. An empty track provides no timing evidence and does not trigger sync. The Bazarr item is resolved once per media by path (`getMovieByPath` or `getEpisodeByPath`); an unresolvable item logs a warning and records nothing, so the media is retried next pass. A file that is deleted or sync-requested is never recorded as `passed` in the same pass.
 
-After a successful Bazarr sync request and `sync_requested` registry write, send one plain-text message to `TELEGRAM_CHAT_ID`: `Subtitle resync requested for <media title> (<language>)\n<subtitle path>`. This reports a request, not verified subtitle alignment. Failed or unresolved sync requests and cached hashes produce no notification. Telegram failures are logged without undoing the verdict or stopping other targets; notifications are best-effort and are not retried on later passes. Notification-only changes do not increment `SUBTITLE_SCAN_VERSION` (still 2) or replay existing results.
+After a successful Bazarr sync request and `sync_requested` registry write, send one plain-text message to `TELEGRAM_CHAT_ID`: `Subtitle resync requested for <media title> (<language>)\n<subtitle path>`. This reports a request, not verified subtitle alignment. Failed or unresolved sync requests and cached paths produce no notification. Telegram failures are logged without undoing the verdict or stopping other targets; notifications are best-effort and are not retried on later passes. Notification-only changes do not increment `SUBTITLE_SCAN_VERSION` (still 2) or replay existing results.
 
 ### Missing policy
 
@@ -249,6 +245,9 @@ The client is built on `httpClient` with header `X-API-KEY` and base `${BAZARR_A
 - `[VC-2]` LF and CRLF representations produce identical cue starts and forced verdicts — demonstrates `[SO-1]`.
 - `[SO-3]` Each newly recorded subtitle resync request attempts a Telegram notification without changing scan eligibility.
 - `[VC-4]` Service tests verify the configured recipient, title, language, path, one notification per sync target, silence for cached/failed requests, and continued scanning with retained verdicts after Telegram failure — demonstrates `[SO-3]`.
+- `[SO-5]` Registered subtitle paths skip hashing and unnecessary content reads across passes and restarts, including same-path replacements — demonstrated by `[VC-6]` and `[VC-7]`.
+- `[VC-6]` Discovery and service tests verify no contents are read when every path is registered, renamed paths and identical contents at different paths are independently eligible, version changes recheck files, and passed siblings remain trusted sync references — demonstrates `[SO-5]`.
+- `[VC-7]` `tests/features/subtitle_scan/repositories/subtitle_scan.repository.spec.ts` verifies that a version-change upsert replaces the full row for a path; the combined migration regression is covered by `tests/features/transcoding/repositories/transcode_scan.repository.spec.ts` — demonstrates `[SO-5]`.
 
 Anora's complete downloaded sidecars provide real-media validation: 2,435 English and 2,471 French cues produce 98.03% positional divergence, but 1,348 starts match one-to-one within 300 ms (55.36% of the shorter track), so the revised rule does not request sync. Full-track ffsubsync against the movie's English audio estimates offsets of +10 ms (English) and 0 ms (French), both with framerate scale 1.000. Even after that audio alignment, positional divergence remains 97.95%, explaining why repeated Bazarr rewrites could not satisfy the former rule.
 

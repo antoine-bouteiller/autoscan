@@ -50,25 +50,34 @@ describe('transcodeFile', () => {
     return Effect.runPromise(cleanScans())
   })
 
-  it.live('persists passed scans across contexts and renamed paths without probing again', () =>
+  it.live('persists passed paths across contexts without hashing, but checks renamed paths and matching basenames separately', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
       const file = `${directory}/Movie.mp4`
       const renamed = `${directory}/Renamed.mp4`
+      const other = `${directory}/Other/Movie.mp4`
+      yield* fs.makeDirectory(`${directory}/Other`)
+      yield* fs.writeFileString(other, 'unchanged')
       yield* fs.writeFileString(file, 'unchanged')
+      const hashSpy = spyOn(CryptoHasher.prototype, 'update')
       let probes = 0
       const client = ffmpeg(() => Effect.sync(() => ++probes).pipe(Effect.as(passedProbe)))
 
       expect(yield* provideTest(transcode(file), { ffmpeg: client })).toBeFalse()
+      yield* fs.writeFileString(file, 'replaced at the same path')
       expect(yield* provideTest(transcode(file), { ffmpeg: client })).toBeFalse()
+      expect(probes).toBe(1)
       yield* fs.rename(file, renamed)
       expect(yield* provideTest(transcode(renamed), { ffmpeg: client })).toBeFalse()
-      expect(probes).toBe(1)
+      expect(yield* provideTest(transcode(other), { ffmpeg: client })).toBeFalse()
+      expect(probes).toBe(3)
+      expect(hashSpy).not.toHaveBeenCalled()
+      hashSpy.mockRestore()
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('invalidates passed scans for content, exact extension, language, and version', () =>
+  it.live('invalidates passed scans for path, language, and version', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
@@ -78,15 +87,13 @@ describe('transcodeFile', () => {
       let probes = 0
       const client = ffmpeg(() => Effect.sync(() => ++probes).pipe(Effect.as(passedProbe)))
       yield* provideTest(transcode(mp4), { ffmpeg: client })
-      yield* fs.writeFileString(mp4, 'changed-content')
-      yield* provideTest(transcode(mp4), { ffmpeg: client })
-      yield* fs.writeFileString(mkv, 'changed-content')
+      yield* fs.writeFileString(mkv, 'same-content')
       yield* provideTest(transcode(mkv), { ffmpeg: client })
       yield* provideTest(transcode(mp4, 'fr'), { ffmpeg: client })
 
       yield* Effect.promise(() => db.update(transcodeScans).set({ scanVersion: TRANSCODE_SCAN_VERSION - 1 }))
       yield* provideTest(transcode(mp4), { ffmpeg: client })
-      expect(probes).toBe(5)
+      expect(probes).toBe(4)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
@@ -135,30 +142,15 @@ describe('transcodeFile', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('does not persist scans when the file changes while hashing or probing', () =>
+  it.live('does not persist scans when the file changes while probing', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
-      const hashing = `${directory}/Hashing.mp4`
       const probing = `${directory}/Probing.mp4`
-      yield* fs.writeFileString(hashing, 'content')
       yield* fs.writeFileString(probing, 'content')
-      const hashSpy = spyOn(CryptoHasher.prototype, 'update')
-      hashSpy.mockImplementation(function update(this: CryptoHasher, chunk) {
-        hashSpy.mockRestore()
-        appendFileSync(hashing, 'changed')
-        return CryptoHasher.prototype.update.call(this, chunk)
-      })
-      let probes = 0
-      const hashResult = yield* provideTest(transcode(hashing), {
-        ffmpeg: ffmpeg(() => Effect.sync(() => ++probes).pipe(Effect.as(passedProbe))),
-      })
-      hashSpy.mockRestore()
-      expect(probes).toBe(0)
       const probeResult = yield* provideTest(transcode(probing), {
         ffmpeg: ffmpeg(() => Effect.sync(() => appendFileSync(probing, 'changed')).pipe(Effect.as(passedProbe))),
       })
-      expect(hashResult).toBeFalse()
       expect(probeResult).toBeFalse()
       expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(0)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))

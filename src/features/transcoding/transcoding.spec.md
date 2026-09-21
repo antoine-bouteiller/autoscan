@@ -19,24 +19,24 @@ Media releases vary in container, stream codec, language metadata, and subtitle 
 
 - `[G-1]` Normalize eligible media into MP4 with acceptable audio and language metadata.
 - `[G-2]` Extract selected subtitles and identify forced subtitles.
-- `[G-3]` Avoid duplicate work while accepting webhook, scheduled, and Telegram entry points; persist successfully passed file versions and skip their subsequent transcode analysis at the same scan version.
+- `[G-3]` Avoid duplicate work while accepting webhook, scheduled, and Telegram entry points; persist successfully passed file paths and skip their subsequent transcode analysis at the same original language and scan version.
 - `[G-4]` Replace source outputs only after validation and durable staging.
 
 ## 3. Key Design Decisions
 
-| Decision                           | Choice                                                                                                                                                                            | Rationale                                                                                                                                                                                                                                                                |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `[KD-1.1]` Entry points            | Register Radarr/Sonarr webhooks, a twelve-hour scan, and `/transcode`; the Subtitle Scan feature owns `/subtitlescan`.                                                            | Arr downloads need prompt handling while library scans and operator commands cover media outside webhook delivery; separate command ownership prevents duplicate registration.                                                                                           |
-| `[KD-2]` Work admission            | Use one scan permit and a scoped serial queue deduplicated by source path.                                                                                                        | A single worker avoids concurrent replacement of the same file, and scan admission prevents overlapping library traversal (`src/features/transcoding/services/transcode.service.ts:81`).                                                                                 |
-| `[KD-3]` Command construction      | Probe streams, copy by default, and transcode only selected nonconforming streams; `.mp4` is mandatory.                                                                           | Stream-level work limits CPU while still making container and codec output predictable.                                                                                                                                                                                  |
-| `[KD-4]` Output safety             | Write under `TRANSCODE_PATH`, validate generated video and audio, stage beside the source, then atomically install with rollback.                                                 | Separating production from installation protects the source library from partial FFmpeg output.                                                                                                                                                                          |
-| `[KD-5]` Post-install notification | Refresh and rename through Radarr or Sonarr, then refresh Plex.                                                                                                                   | Each consumer needs to observe the installed media path and metadata after replacement.                                                                                                                                                                                  |
-| `[KD-6.1]` Passed-file registry    | Persist a successful no-work verdict keyed by media content SHA-256, file extension, original language, and `TRANSCODE_SCAN_VERSION`; check it in `transcodeFile` before probing. | All entry points share this boundary. Content identity detects replacements; extension and original language affect stream selection (`src/features/transcoding/services/transcode.service.ts:148`). A version bump invalidates verdicts when analysis behavior changes. |
+| Decision                           | Choice                                                                                                                                                            | Rationale                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[KD-1.1]` Entry points            | Register Radarr/Sonarr webhooks, a twelve-hour scan, and `/transcode`; the Subtitle Scan feature owns `/subtitlescan`.                                            | Arr downloads need prompt handling while library scans and operator commands cover media outside webhook delivery; separate command ownership prevents duplicate registration.                                                                                                                                       |
+| `[KD-2]` Work admission            | Use one scan permit and a scoped serial queue deduplicated by source path.                                                                                        | A single worker avoids concurrent replacement of the same file, and scan admission prevents overlapping library traversal (`src/features/transcoding/services/transcode.service.ts:81`).                                                                                                                             |
+| `[KD-3]` Command construction      | Probe streams, copy by default, and transcode only selected nonconforming streams; `.mp4` is mandatory.                                                           | Stream-level work limits CPU while still making container and codec output predictable.                                                                                                                                                                                                                              |
+| `[KD-4]` Output safety             | Write under `TRANSCODE_PATH`, validate generated video and audio, stage beside the source, then atomically install with rollback.                                 | Separating production from installation protects the source library from partial FFmpeg output.                                                                                                                                                                                                                      |
+| `[KD-5]` Post-install notification | Refresh and rename through Radarr or Sonarr, then refresh Plex.                                                                                                   | Each consumer needs to observe the installed media path and metadata after replacement.                                                                                                                                                                                                                              |
+| `[KD-6.1]` Passed-file registry    | Persist one successful no-work verdict keyed solely by full file path; original language and `TRANSCODE_SCAN_VERSION` are lookup-validity filters before probing. | Path identity supersedes content hashing to avoid full-video reads on every submission. Full paths distinguish matching basenames in different directories. Same-path replacements may reuse a verdict only while its language and version remain current; changed settings require re-analysis and replace the row. |
 
 ## 4. Principles & Intents
 
 - `[PI-1]` Probe-led selection — ffprobe, rather than webhook data, determines streams and duration.
-- `[PI-2]` Idempotent admission — a persisted passing file version at the current scan version bypasses probing and queue admission; the in-memory known-path set separately deduplicates active work.
+- `[PI-2]` Idempotent admission — a persisted passing file path at the current original language and scan version bypasses probing and queue admission; the in-memory known-path set separately deduplicates active work.
 - `[PI-3]` Interruptible preparation, durable commit — filesystem copies may stop safely; staging and installation maintain recovery artifacts if rollback cannot complete.
 - `[PI-4]` Criteria-driven streams — language rules belong in audio and subtitle criteria rather than entry-point branches.
 
@@ -52,8 +52,8 @@ Media releases vary in container, stream codec, language metadata, and subtitle 
 - `[C-2]` Non-`Download` arr events are accepted but do not transcode.
 - `[C-3]` Unresolved replacement markers or recovery artifacts stop processing so recovery material is preserved.
 - `[C-4]` Sidecar subtitle analysis and Bazarr actions belong to `src/features/subtitle_scan/subtitle_scan.spec.md`; a transcode pass does not certify subtitle quality.
-- `[C-5]` Identifying unchanged media still requires a streaming content hash and registry lookup; skipping means no ffprobe, stream selection, or queue work, not no filesystem reads. A changed extension or original language requires a fresh check, and changes to selection rules require bumping `TRANSCODE_SCAN_VERSION`, not clearing the registry.
-- `[C-6]` A generated output is a new file version. Output validation alone does not certify a no-work verdict; the installed file is checked on its next submission and recorded only if no further work is required.
+- `[C-5]` A registry hit requires only source existence and a database lookup: no content hashing, ffprobe, stream selection, or queue work. Same-path replacements may be skipped even when content changes. Renaming or moving a file, changing its original language, or bumping `TRANSCODE_SCAN_VERSION` requires a fresh check. Library scans still traverse Plex and resolve media metadata.
+- `[C-6]` Output validation alone does not certify a no-work verdict. An installed output without an existing passing path record is checked on its next submission and recorded only if no further work is required; a previously passed destination follows the accepted same-path replacement behavior in `[C-5]`.
 - `[C-7]` When audio selection fails with `NoStreamsKeptError`, Telegram receives `Transcoding failed: (<mediaTitle>) No audio tracks would be kept after processing` followed by the source path on a new line, using `TELEGRAM_CHAT_ID`. Notification failures are logged without changing the failed analysis outcome; interruption is preserved. Other analysis failures remain log-only.
 
 ## 7. High-Level Components
@@ -79,7 +79,7 @@ The scheduled feature runs on `0 */12 * * *` (`src/features/transcoding/feature.
 
 ### Transcode service and queue
 
-`transcodeFile` checks source existence, computes the versioned file identity, and returns `false` on a passed-file registry hit at the current scan version without probing or enqueueing. On a miss it probes FFmpeg streams, selects video/audio/subtitles, and only enqueues work when a codec, selected subtitle, or non-MP4 extension requires it (`src/features/transcoding/services/transcode.service.ts:173`). A successful check requiring no work persists the passing identity and returns `false`; a handled probe or selection failure returns `false` without recording a pass. Webhook callers retain their Plex refresh behavior for `false` results. The scoped queue records known paths, admits each path once, and processes jobs serially. Jobs write subtitles and the MP4 to `${TRANSCODE_PATH}/<fileName>/`; forced subtitles are renamed based on duration analysis before the main output is installed.
+`transcodeFile` checks source existence, builds the path identity, and returns `false` on a passed-file registry hit with the current original language and scan version without probing or enqueueing. On a miss it probes FFmpeg streams, selects video/audio/subtitles, and only enqueues work when a codec, selected subtitle, or non-MP4 extension requires it (`src/features/transcoding/services/transcode.service.ts:173`). A successful check requiring no work persists the passing identity and returns `false`; a handled probe or selection failure returns `false` without recording a pass. Webhook callers retain their Plex refresh behavior for `false` results. The scoped queue records known paths, admits each path once, and processes jobs serially. Jobs write subtitles and the MP4 to `${TRANSCODE_PATH}/<fileName>/`; forced subtitles are renamed based on duration analysis before the main output is installed.
 
 ### Post-process service
 
@@ -93,32 +93,26 @@ Post-processing verifies the generated MP4 has video and audio, stages all outpu
 
 The feature owns `TRANSCODE_SCAN_VERSION = 1`, a positive integer constant shared by `/transcode`, scheduled scans, and arr webhooks through `transcodeFile`. Increment it when probing, stream selection, or other transcode-analysis behavior changes. Versions increase monotonically and are not reused for different behavior. A bump makes unchanged files eligible on their next submission; it does not launch a scan itself or force transcoding when the fresh check finds no work.
 
-Only an exact version match can skip analysis. Old rows may remain, with no registry purge needed. The version is not a Telegram argument or environment setting and is independent of `SUBTITLE_SCAN_VERSION`.
+Only an exact version and original-language match can skip analysis. A successful re-analysis after either changes replaces the row for that path, so no historical versions or languages are retained and no registry purge is needed. The version is not a Telegram argument or environment setting and is independent of `SUBTITLE_SCAN_VERSION`.
 
 `transcodeScans` lives in `src/database/schema.ts` and stores only successful checks:
 
 ```ts
-export const transcodeScans = pgTable(
-  'transcode_scans',
-  {
-    hash: text().notNull(), // hex SHA-256 of media content, streamed rather than buffered
-    extension: text().notNull(), // exact extension used by container selection
-    originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
-    scanVersion: integer('scan_version').notNull(),
-    filePath: text('file_path').notNull(), // path at successful check; informational
-    scannedAt: timestamp('scanned_at').notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.hash, t.extension, t.originalLanguage, t.scanVersion] })]
-)
+export const transcodeScans = pgTable('transcode_scans', {
+  filePath: text('file_path').primaryKey(),
+  originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
+  scanVersion: integer('scan_version').notNull(),
+  scannedAt: timestamp('scanned_at').notNull(),
+})
 ```
 
-Feature-local repository functions use `Database.use`, map database failures to `DatabaseQueryError`, and insert with `onConflictDoNothing`, following `src/domains/media/repositories/media.repository.ts`. Rows survive process restarts and have no time-based expiry; all lookups and writes include the current scan version. The table is created through a generated migration under `migrations/`.
+Feature-local repository functions use `Database.use`, map database failures to `DatabaseQueryError`, and use `onConflictDoUpdate({ target: transcodeScans.filePath, set: row })` to replace the entire row after a successful check, following `src/domains/media/repositories/media.repository.ts`. Rows survive process restarts and have no time-based expiry; lookups require the current path, original language, and scan version. The table is managed through migrations under `migrations/`. `migrations/20260921190858_scan_path_primary_keys` updates both scan tables, retaining the latest record per full path by `scanned_at DESC, ctid DESC` before making inline `filePath` its sole primary key and removing obsolete hash/extension columns. No version bump or library-wide re-analysis is required to adopt the new identity.
 
 ```text
 transcodeFile(file, originalLanguage):
   require source exists
-  identity ← (sha256(file content), extension, originalLanguage, TRANSCODE_SCAN_VERSION)
-  if registry contains identity → return false
+  identity ← full file path
+  if registry contains (identity, originalLanguage, TRANSCODE_SCAN_VERSION) → return false
   result ← probe and select streams             # failure is not a no-work verdict
   if result requires work → return queue.enqueue(result)
   if file changed during the check → return false without recording
@@ -126,17 +120,18 @@ transcodeFile(file, originalLanguage):
   return false
 ```
 
-A file changing during hashing or analysis is not recorded and remains eligible on the next submission. Missing files, hash/probe/selection errors, rejected or pending queue work, failed jobs, and interrupted checks never create passing records. Registry failures are logged and do not create a hit; a failed write leaves the file eligible for another check. Queue acceptance is not completion, and the source hash is never marked passed merely because transcoding it succeeded. Installed outputs follow `[C-6]`.
+A file changing during analysis is not recorded and remains eligible on the next submission. Missing files, probe/selection errors, rejected or pending queue work, failed jobs, and interrupted checks never create passing records. Registry failures are logged and do not create a hit; a failed write leaves the file eligible for another check. Queue acceptance is not completion, and the source path is never marked passed merely because transcoding it succeeded. Installed outputs follow `[C-6]`.
 
 The registry is independent of `subtitleScans`: media passing transcode criteria neither marks sidecar subtitles passed nor suppresses their scan. Conversely, a passing subtitle never suppresses transcode analysis.
 
 ### Outcomes and acceptance
 
-- `[SO-1]` Passed media skips probing across scans and process restarts — demonstrated by `[VC-1]` and `[VC-2]`.
+- `[SO-1]` Passed media skips content hashing and probing across scans and process restarts, including records preserved during migration — demonstrated by `[VC-1]`, `[VC-2]`, and `[VC-4]`.
 - `[SO-2]` Operators are notified when audio selection would keep no tracks — demonstrated by `[VC-3]`.
-- `[VC-1]` A successful no-work check followed by another submission, including a renamed copy with the same extension, does not call ffprobe. Changing content, extension, original language, or scan version causes a fresh check.
+- `[VC-1]` A successful no-work check followed by another submission at the same path does not call ffprobe, even after content replacement. No submission hashes video content. A renamed path, matching basename in a different directory, changed original language, or changed scan version causes a fresh check.
 - `[VC-2]` Failed, interrupted, queued, rejected, or changing-file checks never create passing records; registry failure cannot suppress analysis. Service and repository regressions exercise these cases.
 - `[VC-3]` A no-tracks-kept failure sends the media title and file path to the configured Telegram chat and returns `false` without queueing or recording a pass. Failed notification delivery remains best-effort; interruption propagates.
+- `[VC-4]` `tests/features/transcoding/repositories/transcode_scan.repository.spec.ts` verifies the combined migration preserves the latest scanned record per full path in each table, including duplicate paths and identical timestamps; ties resolve by descending `ctid`. The subtitle repository test independently verifies version-change replacement. Repository migration tests verify preservation and path uniqueness.
 
 ## 9. Open Questions
 

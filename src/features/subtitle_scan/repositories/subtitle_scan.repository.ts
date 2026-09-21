@@ -19,18 +19,20 @@ interface FrenchProfileInsert {
 
 const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => new DatabaseQueryError(cause), try: run })
 
-export const getScan = (hash: string, scanVersion: number) =>
+export const getScan = (filePath: string, scanVersion: number) =>
   Database.use(({ db }) =>
     query(() =>
       db
         .select()
         .from(subtitleScans)
-        .where(and(eq(subtitleScans.hash, hash), eq(subtitleScans.scanVersion, scanVersion)))
+        .where(and(eq(subtitleScans.filePath, filePath), eq(subtitleScans.scanVersion, scanVersion)))
     ).pipe(Effect.map((rows) => rows[0]))
   )
 
 export const recordScan = (row: SubtitleScanRecord) =>
-  Database.use(({ db }) => query(() => db.insert(subtitleScans).values(row).onConflictDoNothing())).pipe(Effect.asVoid)
+  Database.use(({ db }) => query(() => db.insert(subtitleScans).values(row).onConflictDoUpdate({ set: row, target: subtitleScans.filePath }))).pipe(
+    Effect.asVoid
+  )
 
 export const listMissing = Database.use(({ db }) => query(() => db.select().from(missingSubtitles)))
 

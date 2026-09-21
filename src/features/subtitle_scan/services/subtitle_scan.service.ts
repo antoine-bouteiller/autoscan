@@ -4,7 +4,7 @@ import { Env } from '@/config/env'
 import { Bazarr, Ffmpeg, Telegram } from '@/core/runtime.service'
 import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { getScan, recordScan, type SubtitleScanRecord, type SubtitleVerdict } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
-import { discoverSubtitleFiles, type SubtitleFileSnapshot } from '@/features/subtitle_scan/services/subtitle_files.service'
+import { discoverSubtitleFiles, readSubtitleFile, type SubtitleFileSnapshot } from '@/features/subtitle_scan/services/subtitle_files.service'
 import { type SubtitleScanMedia } from '@/features/subtitle_scan/types'
 import { type BazarrItem } from '@/integrations/bazarr/bazarr.service'
 import { type HttpClientError } from '@/shared/types/http_client'
@@ -26,13 +26,13 @@ const divergentCandidates = (candidates: readonly SubtitleFileSnapshot[], refere
       continue
     }
     if (references.some((reference) => areSubtitlesOutOfSync(candidate.content, reference.content))) {
-      targets.set(candidate.hash, candidate)
+      targets.set(candidate.path, candidate)
     }
     for (let otherIndex = index + 1; otherIndex < candidates.length; otherIndex++) {
       const other = candidates[otherIndex]
       if (other !== undefined && areSubtitlesOutOfSync(candidate.content, other.content)) {
-        targets.set(candidate.hash, candidate)
-        targets.set(other.hash, other)
+        targets.set(candidate.path, candidate)
+        targets.set(other.path, other)
       }
     }
   }
@@ -49,20 +49,10 @@ export const scanMediaSubtitles = <Requirements>(
     const nonForced = files.filter((file) => !file.forced)
     const scans = new Map<string, SubtitleScanRecord | undefined>()
     for (const file of nonForced) {
-      if (!scans.has(file.hash)) {
-        scans.set(file.hash, yield* getScan(file.hash, SUBTITLE_SCAN_VERSION))
-      }
+      scans.set(file.path, yield* getScan(file.path, SUBTITLE_SCAN_VERSION))
     }
 
-    // One stable representative owns each new hash; a verdict is global, not path-specific.
-    const candidates = [
-      ...new Map(
-        nonForced
-          .filter((file) => scans.get(file.hash) === undefined)
-          .toSorted((left, right) => left.path.localeCompare(right.path))
-          .map((file) => [file.hash, file])
-      ).values(),
-    ]
+    const candidates = nonForced.filter((file) => scans.get(file.path) === undefined)
     if (candidates.length === 0) {
       return
     }
@@ -77,12 +67,14 @@ export const scanMediaSubtitles = <Requirements>(
     const { duration } = yield* ffmpeg.ffprobe(details.file)
     const bazarr = yield* Bazarr
     const now = yield* DateTime.nowAsDate
+    const references = nonForced.filter((file) => scans.get(file.path)?.verdict === 'passed')
+    const candidateSnapshots = yield* Effect.forEach(readSubtitleFile)(candidates)
     const record = (file: SubtitleFileSnapshot, verdict: SubtitleVerdict) =>
-      recordScan({ filePath: file.path, hash: file.hash, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: now, verdict })
+      recordScan({ filePath: file.path, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: now, verdict })
     const subtitleAt = (file: SubtitleFileSnapshot) => item.subtitles.find((subtitle) => subtitle.path === file.path)
 
     const surviving: SubtitleFileSnapshot[] = []
-    for (const file of candidates) {
+    for (const file of candidateSnapshots) {
       if (!isForcedSubtitleContent(file.content, duration)) {
         surviving.push(file)
         continue
@@ -98,9 +90,8 @@ export const scanMediaSubtitles = <Requirements>(
       }
     }
 
-    // Only current-version passed snapshots are trusted references; actioned and old rows are deliberately excluded.
-    const references = nonForced.filter((file) => scans.get(file.hash)?.verdict === 'passed')
-    const targets = divergentCandidates(surviving, references)
+    const referenceSnapshots = surviving.length === 0 ? [] : yield* Effect.forEach(readSubtitleFile)(references)
+    const targets = divergentCandidates(surviving, referenceSnapshots)
 
     for (const file of targets.values()) {
       const subtitle = subtitleAt(file)
@@ -120,7 +111,7 @@ export const scanMediaSubtitles = <Requirements>(
       }
     }
     for (const file of surviving) {
-      if (!targets.has(file.hash)) {
+      if (!targets.has(file.path)) {
         yield* record(file, 'passed')
       }
     }
