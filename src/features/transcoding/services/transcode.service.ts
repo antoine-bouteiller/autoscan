@@ -1,8 +1,11 @@
-import { Cause, Effect, FileSystem, Layer, Path, Queue, Schema } from 'effect'
+import { CryptoHasher } from 'bun'
+import { Cause, DateTime, Effect, Equal, FileSystem, Layer, Path, Queue, Schema, Stream } from 'effect'
 
 import { Env } from '@/config/env'
 import { Ffmpeg, Plex, TranscodeQueue } from '@/core/runtime.service'
+import { TRANSCODE_SCAN_VERSION } from '@/features/transcoding/constants'
 import { FileNameInvalidError, FileNotFoundError, ReplacementRollbackError } from '@/features/transcoding/errors'
+import { getScan, recordScan } from '@/features/transcoding/repositories/transcode_scan.repository'
 import { type TranscodeJob } from '@/features/transcoding/types'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
 
@@ -145,8 +148,38 @@ export const TranscodeQueueLive = Layer.effect(
   })
 )
 
+const logFailure = <Success, Error, Requirements>(effect: Effect.Effect<Success, Error, Requirements>, operation: string) =>
+  effect.pipe(
+    Effect.catchCauseIf(
+      (cause) => !Cause.hasInterrupts(cause),
+      (cause) => Effect.logWarning(cause, operation).pipe(Effect.as(undefined))
+    )
+  )
+
+const sameFile = (before: FileSystem.File.Info, after: FileSystem.File.Info) =>
+  before.size === after.size && before.dev === after.dev && Equal.equals(before.ino, after.ino) && Equal.equals(before.mtime, after.mtime)
+
 const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage: ISOCode1) =>
   Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const before = yield* fs.stat(file)
+    const hasher = new CryptoHasher('sha256')
+    yield* fs.stream(file).pipe(
+      Stream.runForEach((chunk) =>
+        Effect.sync(() => {
+          hasher.update(chunk)
+        })
+      )
+    )
+    if (!sameFile(before, yield* fs.stat(file))) {
+      return undefined
+    }
+    const extension = file.split('.').pop() ?? ''
+    const key = { extension, hash: hasher.digest('hex'), originalLanguage, scanVersion: TRANSCODE_SCAN_VERSION }
+    if ((yield* logFailure(getScan(key), `Reading transcode scan for ${file}`)) !== undefined) {
+      return undefined
+    }
+
     const ffmpeg = yield* Ffmpeg
     const probe = yield* ffmpeg.ffprobe(file)
     const video = processVideoStreams(
@@ -169,9 +202,15 @@ const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage:
       originalLanguage,
       mediaTitle
     )
-    const extension = file.split('.').pop()
     const shouldExecute = video.shouldExecute || audio.shouldExecute || subtitlesToExtract.length > 0 || extension !== 'mp4'
-    return shouldExecute ? { command: ['-c', 'copy', ...video.command, ...audio.command], duration: probe.duration, subtitlesToExtract } : undefined
+    if (shouldExecute) {
+      return { command: ['-c', 'copy', ...video.command, ...audio.command], duration: probe.duration, subtitlesToExtract }
+    }
+    if (sameFile(before, yield* fs.stat(file))) {
+      const scannedAt = yield* DateTime.nowAsDate
+      yield* logFailure(recordScan({ ...key, filePath: file, scannedAt }), `Recording transcode scan for ${file}`)
+    }
+    return undefined
   })
 
 export const transcodeFile = (params: { file: string; mediaTitle: string; originalLanguage: ISOCode1; mediaType: 'movie' | 'show' }) =>
@@ -187,7 +226,7 @@ export const transcodeFile = (params: { file: string; mediaTitle: string; origin
 
     const result = yield* getTranscodeCommand(params.file, params.mediaTitle, params.originalLanguage).pipe(
       Effect.catchCauseIf(
-        (cause) => !Cause.hasInterruptsOnly(cause),
+        (cause) => !Cause.hasInterrupts(cause),
         (cause) => Effect.logError(cause, 'transcodeFile').pipe(Effect.as(undefined))
       )
     )

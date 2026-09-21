@@ -129,6 +129,12 @@ A file changing during hashing or analysis is not recorded and remains eligible 
 
 The registry is independent of `subtitleScans`: media passing transcode criteria neither marks sidecar subtitles passed nor suppresses their scan. Conversely, a passing subtitle never suppresses transcode analysis.
 
+### Outcomes and acceptance
+
+- `[SO-1]` Passed media skips probing across scans and process restarts — demonstrated by `[VC-1]` and `[VC-2]`.
+- `[VC-1]` A successful no-work check followed by another submission, including a renamed copy with the same extension, does not call ffprobe. Changing content, extension, original language, or scan version causes a fresh check.
+- `[VC-2]` Failed, interrupted, queued, rejected, or changing-file checks never create passing records; registry failure cannot suppress analysis. Service and repository regressions exercise these cases.
+
 ## 9. Open Questions
 
 N/A
