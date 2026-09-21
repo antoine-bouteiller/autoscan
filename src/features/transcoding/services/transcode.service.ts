@@ -187,7 +187,7 @@ const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage:
         const telegram = yield* Telegram
         const env = yield* Env
         yield* logFailure(
-          telegram.sendMessage(env.TELEGRAM_CHAT_ID, `Transcoding failed: ${audio.message}\n${file}`),
+          telegram.sendMessage(env.TELEGRAM_CHAT_ID, `Transcoding failed: ${audio.message}`),
           `Notifying transcode failure for ${file}`
         )
       }

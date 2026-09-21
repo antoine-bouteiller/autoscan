@@ -174,7 +174,7 @@ describe('transcodeFile', () => {
       expect(yield* provideTest(transcode(file), { ffmpeg: noStreams })).toBeFalse()
       expect(sendMessageMock).toHaveBeenCalledWith(
         env.TELEGRAM_CHAT_ID,
-        `Transcoding failed: (Movie) No audio tracks would be kept after processing\n${file}`,
+        'Transcoding failed: (Movie) No audio tracks would be kept after processing',
         undefined
       )
       sendMessageMock.mockClear()

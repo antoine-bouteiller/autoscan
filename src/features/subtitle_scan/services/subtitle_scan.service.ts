@@ -105,7 +105,7 @@ export const scanMediaSubtitles = <Requirements>(
         const telegram = yield* Telegram
         const env = yield* Env
         yield* logFailure(
-          telegram.sendMessage(env.TELEGRAM_CHAT_ID, `Subtitle resync requested for ${details.mediaTitle} (${file.language})\n${file.path}`),
+          telegram.sendMessage(env.TELEGRAM_CHAT_ID, `Subtitle resync requested for ${details.mediaTitle} (${file.language})`),
           `Notifying subtitle resync for ${file.path}`
         )
       }

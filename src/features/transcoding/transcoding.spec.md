@@ -54,7 +54,7 @@ Media releases vary in container, stream codec, language metadata, and subtitle 
 - `[C-4]` Sidecar subtitle analysis and Bazarr actions belong to `src/features/subtitle_scan/subtitle_scan.spec.md`; a transcode pass does not certify subtitle quality.
 - `[C-5]` A registry hit requires only source existence and a database lookup: no content hashing, ffprobe, stream selection, or queue work. Same-path replacements may be skipped even when content changes. Renaming or moving a file, changing its original language, or bumping `TRANSCODE_SCAN_VERSION` requires a fresh check. Library scans still traverse Plex and resolve media metadata.
 - `[C-6]` Output validation alone does not certify a no-work verdict. An installed output without an existing passing path record is checked on its next submission and recorded only if no further work is required; a previously passed destination follows the accepted same-path replacement behavior in `[C-5]`.
-- `[C-7]` When audio selection fails with `NoStreamsKeptError`, Telegram receives `Transcoding failed: (<mediaTitle>) No audio tracks would be kept after processing` followed by the source path on a new line, using `TELEGRAM_CHAT_ID`. Notification failures are logged without changing the failed analysis outcome; interruption is preserved. Other analysis failures remain log-only.
+- `[C-7]` When audio selection fails with `NoStreamsKeptError`, Telegram receives `Transcoding failed: (<mediaTitle>) No audio tracks would be kept after processing`, without a file path, using `TELEGRAM_CHAT_ID`. Notification failures are logged without changing the failed analysis outcome; interruption is preserved. Other analysis failures remain log-only.
 
 ## 7. High-Level Components
 
@@ -130,7 +130,7 @@ The registry is independent of `subtitleScans`: media passing transcode criteria
 - `[SO-2]` Operators are notified when audio selection would keep no tracks — demonstrated by `[VC-3]`.
 - `[VC-1]` A successful no-work check followed by another submission at the same path does not call ffprobe, even after content replacement. No submission hashes video content. A renamed path, matching basename in a different directory, changed original language, or changed scan version causes a fresh check.
 - `[VC-2]` Failed, interrupted, queued, rejected, or changing-file checks never create passing records; registry failure cannot suppress analysis. Service and repository regressions exercise these cases.
-- `[VC-3]` A no-tracks-kept failure sends the media title and file path to the configured Telegram chat and returns `false` without queueing or recording a pass. Failed notification delivery remains best-effort; interruption propagates.
+- `[VC-3]` A no-tracks-kept failure sends the media title and reason, without a file path, to the configured Telegram chat and returns `false` without queueing or recording a pass. Failed notification delivery remains best-effort; interruption propagates.
 - `[VC-4]` `tests/features/transcoding/repositories/transcode_scan.repository.spec.ts` verifies the combined migration preserves the latest scanned record per full path in each table, including duplicate paths and identical timestamps; ties resolve by descending `ctid`. The subtitle repository test independently verifies version-change replacement. Repository migration tests verify preservation and path uniqueness.
 
 ## 9. Open Questions
