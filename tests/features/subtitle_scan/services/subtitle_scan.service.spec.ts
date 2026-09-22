@@ -132,12 +132,12 @@ describe('scanMediaSubtitles', () => {
       yield* run(details(file), item, client)
       expect(synced).toEqual(expect.arrayContaining([french, paths[2]]))
       expect(synced).toHaveLength(2)
-      expect(sendMessageMock.mock.calls).toEqual([
-        [testEnv.TELEGRAM_CHAT_ID, 'Subtitle resync requested for Movie (de)', undefined],
-        [testEnv.TELEGRAM_CHAT_ID, 'Subtitle resync requested for Movie (fr)', undefined],
-      ])
+      expect(sendMessageMock).not.toHaveBeenCalled()
       yield* run(details(file), item, client)
-      expect(sendMessageMock).toHaveBeenCalledTimes(2)
+      expect(sendMessageMock.mock.calls).toEqual([
+        [testEnv.TELEGRAM_CHAT_ID, 'Invalid subtitle for Movie (de)', undefined],
+        [testEnv.TELEGRAM_CHAT_ID, 'Invalid subtitle for Movie (fr)', undefined],
+      ])
       expect(synced).toHaveLength(2)
 
       yield* Effect.promise(() => db.delete(subtitleScans))
@@ -145,11 +145,11 @@ describe('scanMediaSubtitles', () => {
       sendMessageMock.mockClear()
       yield* run(details(file), item, client)
       expect(synced).toHaveLength(3)
-      expect(sendMessageMock).toHaveBeenCalledTimes(3)
+      expect(sendMessageMock).not.toHaveBeenCalled()
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('keeps sync verdicts and continues notifying when Telegram fails, without retrying on the next pass', () =>
+  it.live('rechecks sync requests and continues after Telegram failures without syncing again', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
@@ -165,6 +165,8 @@ describe('scanMediaSubtitles', () => {
 
       yield* run(details(file), item, client)
       expect(synced).toHaveLength(2)
+      expect(sendMessageMock).not.toHaveBeenCalled()
+      yield* run(details(file), item, client)
       expect(sendMessageMock).toHaveBeenCalledTimes(2)
       for (const path of paths) {
         expect(yield* provideTest(getScan(path, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
@@ -172,7 +174,63 @@ describe('scanMediaSubtitles', () => {
 
       yield* run(details(file), item, client)
       expect(synced).toHaveLength(2)
+      expect(sendMessageMock).toHaveBeenCalledTimes(4)
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
+  it.live('passes corrected sync requests and alerts on forced rechecks without deleting or requiring a Bazarr subtitle entry', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const directory = yield* fs.makeTempDirectoryScoped()
+      const file = `${directory}/Movie.mkv`
+      const english = `${directory}/Movie.en.srt`
+      const french = `${directory}/Movie.fr.srt`
+      yield* fs.writeFileString(file, '')
+      yield* fs.writeFileString(english, subtitleContent())
+      yield* fs.writeFileString(french, subtitleContent(2))
+      const synced: string[] = []
+      const { client, item } = bazarr(file, [english, french], (subtitle) => Effect.sync(() => void synced.push(subtitle.path)))
+      yield* run(details(file), item, client)
+      expect(synced).toHaveLength(2)
+      expect(sendMessageMock).not.toHaveBeenCalled()
+
+      yield* fs.writeFileString(french, subtitleContent())
+      let scans = 0
+      yield* provideTest(
+        scanMediaSubtitles(
+          details(file),
+          Effect.succeed(item),
+          Effect.sync(() => {
+            scans++
+          })
+        ),
+        { bazarr: client, ffmpeg }
+      )
+      expect(scans).toBe(1)
+      for (const path of [english, french]) {
+        expect(yield* provideTest(getScan(path, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'passed' })
+      }
+      yield* run(details(file), item, client)
+      expect(sendMessageMock).not.toHaveBeenCalled()
+      expect(synced).toHaveLength(2)
+
+      yield* provideTest(
+        recordScan({ filePath: french, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: yield* DateTime.nowAsDate, verdict: 'sync_requested' })
+      )
+      yield* fs.writeFileString(french, '1\n00:00:00,000 --> 00:00:01,000\nforced')
+      const noActions: IBazarrClient = {
+        ...client,
+        deleteSubtitle: () => Effect.die('must not delete a sync recheck'),
+        syncSubtitle: () => Effect.die('must not resync a sync recheck'),
+      }
+      yield* run(details(file), { ...item, subtitles: [] }, noActions)
+      expect(sendMessageMock.mock.calls).toEqual([[testEnv.TELEGRAM_CHAT_ID, 'Invalid subtitle for Movie (fr)', undefined]])
+      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
+
+      yield* fs.writeFileString(french, subtitleContent(2))
+      yield* run(details(file), { ...item, subtitles: [] }, noActions)
       expect(sendMessageMock).toHaveBeenCalledTimes(2)
+      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
@@ -208,7 +266,7 @@ describe('scanMediaSubtitles', () => {
       expect(result._tag).toBe('Failure')
       expect(yield* provideTest(getScan(firstCandidate, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
       expect(yield* provideTest(getScan(secondCandidate, SUBTITLE_SCAN_VERSION))).toBeUndefined()
-      expect(sendMessageMock).toHaveBeenCalledTimes(1)
+      expect(sendMessageMock).not.toHaveBeenCalled()
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
@@ -267,7 +325,7 @@ describe('scanMediaSubtitles', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('removes heuristic forced candidates and never reuses actioned paths as references', () =>
+  it.live('removes heuristic forced candidates and never reuses removed paths as references', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
@@ -306,7 +364,7 @@ describe('scanMediaSubtitles', () => {
           filePath: actioned,
           scanVersion: SUBTITLE_SCAN_VERSION,
           scannedAt: yield* DateTime.nowAsDate,
-          verdict: 'sync_requested',
+          verdict: 'forced_removed',
         })
       )
       const synced: string[] = []

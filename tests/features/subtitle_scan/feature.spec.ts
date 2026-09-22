@@ -149,7 +149,7 @@ describe('subtitle scan feature', () => {
 
   beforeEach(cleanSubtitleScanRows)
 
-  it.scoped('accepts scheduled and manual passes across rebuilt runtimes without reprocessing known subtitle state', () =>
+  it.scoped('accepts scheduled and manual passes across rebuilt runtimes, rechecking only pending syncs', () =>
     Effect.gen(function* () {
       const initial = yield* makeTestContext()
       const fs = Context.get(initial, FileSystem.FileSystem)
@@ -254,6 +254,7 @@ describe('subtitle scan feature', () => {
       expect(yield* Ref.get(probes)).toEqual([primaryFile, primaryFile])
       expect(bazarr.syncs).toEqual([{ forced: false, hi: false, language: 'fr', path: french }])
       expect(bazarr.syncs).not.toContainEqual({ forced: false, hi: false, language: 'en', path: english })
+      expect(yield* Ref.get(alerts)).toEqual(['Starting subtitle scan...'])
       expect(bazarr.profileWrites).toEqual([[frenchMovie, 7]])
 
       yield* TestClock.adjust(3 * DAY + 1)
@@ -262,8 +263,10 @@ describe('subtitle scan feature', () => {
       expect((yield* Ref.get(alerts)).filter((message) => message.startsWith('No subtitles'))).toEqual([
         'No subtitles for Episode after 3 days (missing: en)',
       ])
-      expect(bazarr.lookups.get(primaryFile)).toBe(2)
-      expect(yield* Ref.get(probes)).toEqual([primaryFile, primaryFile])
+      expect(bazarr.lookups.get(primaryFile)).toBe(3)
+      expect(yield* Ref.get(probes)).toEqual([primaryFile, primaryFile, primaryFile])
+      expect(bazarr.syncs).toHaveLength(1)
+      expect((yield* Ref.get(alerts)).filter((message) => message.startsWith('Invalid subtitle'))).toEqual(['Invalid subtitle for Item 2 (fr)'])
       expect(bazarr.profileWrites).toEqual([[frenchMovie, 7]])
       expect(yield* Effect.promise(() => db.select().from(subtitleScans))).toHaveLength(2)
     })

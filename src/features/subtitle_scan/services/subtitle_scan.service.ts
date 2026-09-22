@@ -52,7 +52,7 @@ export const scanMediaSubtitles = <Requirements>(
       scans.set(file.path, yield* getScan(file.path, SUBTITLE_SCAN_VERSION))
     }
 
-    const candidates = nonForced.filter((file) => scans.get(file.path) === undefined)
+    const candidates = nonForced.filter((file) => scans.get(file.path) === undefined || scans.get(file.path)?.verdict === 'sync_requested')
     if (candidates.length === 0) {
       return
     }
@@ -72,11 +72,27 @@ export const scanMediaSubtitles = <Requirements>(
     const record = (file: SubtitleFileSnapshot, verdict: SubtitleVerdict) =>
       recordScan({ filePath: file.path, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: now, verdict })
     const subtitleAt = (file: SubtitleFileSnapshot) => item.subtitles.find((subtitle) => subtitle.path === file.path)
+    const alertInvalid = (file: SubtitleFileSnapshot) =>
+      Effect.gen(function* () {
+        yield* Effect.logWarning(`Subtitle remains invalid after sync: ${file.path}`)
+        const telegram = yield* Telegram
+        const env = yield* Env
+        yield* logFailure(
+          telegram
+            .sendMessage(env.TELEGRAM_CHAT_ID, `Invalid subtitle for ${details.mediaTitle} (${file.language})`)
+            .pipe(Effect.tap(() => Effect.logInfo(`Sent invalid subtitle alert for ${file.path}`))),
+          `Notifying invalid subtitle for ${file.path}`
+        )
+      })
 
     const surviving: SubtitleFileSnapshot[] = []
     for (const file of candidateSnapshots) {
       if (!isForcedSubtitleContent(file.content, duration)) {
         surviving.push(file)
+        continue
+      }
+      if (scans.get(file.path)?.verdict === 'sync_requested') {
+        yield* alertInvalid(file)
         continue
       }
       const subtitle = subtitleAt(file)
@@ -86,6 +102,7 @@ export const scanMediaSubtitles = <Requirements>(
       }
       const removed = yield* logFailure(bazarr.deleteSubtitle(item, subtitle).pipe(Effect.as(true)), `Removing forced subtitle ${file.path}`)
       if (removed !== undefined) {
+        yield* Effect.logInfo(`Removed forced subtitle ${file.path}`)
         yield* record(file, 'forced_removed')
       }
     }
@@ -93,26 +110,28 @@ export const scanMediaSubtitles = <Requirements>(
     const referenceSnapshots = surviving.length === 0 ? [] : yield* Effect.forEach(readSubtitleFile)(references)
     const targets = divergentCandidates(surviving, referenceSnapshots)
 
-    for (const file of targets.values()) {
-      const subtitle = subtitleAt(file)
-      if (subtitle === undefined) {
-        yield* Effect.logWarning(`Bazarr subtitle not found for sync sidecar ${file.path}`)
-        continue
-      }
-      const synced = yield* logFailure(bazarr.syncSubtitle(item, subtitle).pipe(Effect.as(true)), `Synchronizing subtitle ${file.path}`)
-      if (synced !== undefined) {
-        yield* record(file, 'sync_requested')
-        const telegram = yield* Telegram
-        const env = yield* Env
-        yield* logFailure(
-          telegram.sendMessage(env.TELEGRAM_CHAT_ID, `Subtitle resync requested for ${details.mediaTitle} (${file.language})`),
-          `Notifying subtitle resync for ${file.path}`
-        )
-      }
-    }
+    yield* Effect.forEach(targets.values(), (file) =>
+      Effect.gen(function* () {
+        if (scans.get(file.path)?.verdict === 'sync_requested') {
+          yield* alertInvalid(file)
+          return
+        }
+        const subtitle = subtitleAt(file)
+        if (subtitle === undefined) {
+          yield* Effect.logWarning(`Bazarr subtitle not found for sync sidecar ${file.path}`)
+          return
+        }
+        const synced = yield* logFailure(bazarr.syncSubtitle(item, subtitle).pipe(Effect.as(true)), `Synchronizing subtitle ${file.path}`)
+        if (synced !== undefined) {
+          yield* Effect.logInfo(`Requested subtitle sync for ${file.path}`)
+          yield* record(file, 'sync_requested')
+        }
+      })
+    )
     for (const file of surviving) {
       if (!targets.has(file.path)) {
         yield* record(file, 'passed')
+        yield* Effect.logInfo(`Subtitle passed: ${file.path}`)
       }
     }
   })
