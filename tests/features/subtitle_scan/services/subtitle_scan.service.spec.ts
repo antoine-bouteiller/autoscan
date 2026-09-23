@@ -30,7 +30,9 @@ const subtitleContent = (offset = 0) =>
 const ffmpeg: IFfmpegClient = {
   execute: (..._command) => Effect.succeed(''),
   executeFfmpeg: (_params) => Effect.succeed(''),
-  ffprobe: (_input) => Effect.succeed({ duration: 100, streams: [] }),
+  ffprobe: (_input) => Effect.succeed({ duration: 100, streams: [{ codec_type: 'audio', index: 0, tags: { language: 'en' } }] }),
+  speechActivity: (_input, _streamIndex) =>
+    Effect.succeed({ duration: 100, intervals: Array.from({ length: 6 }, (_entry, index): [number, number] => [index * 10, index * 10 + 4]) }),
 }
 
 const bazarr = (
@@ -105,7 +107,7 @@ describe('scanMediaSubtitles', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('syncs a newcomer against a passed reference, both new divergent files, and deduplicates three-way targets', () =>
+  it.live('checks each candidate against audio without condemning the correct sibling or trusting passed references', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
@@ -144,7 +146,8 @@ describe('scanMediaSubtitles', () => {
       synced.length = 0
       sendMessageMock.mockClear()
       yield* run(details(file), item, client)
-      expect(synced).toHaveLength(3)
+      expect(synced).toHaveLength(2)
+      expect(yield* provideTest(getScan(english, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'passed' })
       expect(sendMessageMock).not.toHaveBeenCalled()
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
@@ -156,8 +159,8 @@ describe('scanMediaSubtitles', () => {
       const file = `${directory}/Movie.mkv`
       const paths = [`${directory}/Movie.en.srt`, `${directory}/Movie.fr.srt`]
       yield* fs.writeFileString(file, '')
-      for (const [index, path] of paths.entries()) {
-        yield* fs.writeFileString(path, subtitleContent(index * 2))
+      for (const path of paths) {
+        yield* fs.writeFileString(path, subtitleContent(2))
       }
       const synced: string[] = []
       const { client, item } = bazarr(file, paths, (subtitle) => Effect.sync(() => void synced.push(subtitle.path)))
@@ -203,7 +206,7 @@ describe('scanMediaSubtitles', () => {
       const synced: string[] = []
       const { client, item } = bazarr(file, [english, french], (subtitle) => Effect.sync(() => void synced.push(subtitle.path)))
       yield* run(details(file), item, client)
-      expect(synced).toHaveLength(2)
+      expect(synced).toEqual([french])
       expect(sendMessageMock).not.toHaveBeenCalled()
 
       yield* fs.writeFileString(french, subtitleContent().replaceAll(',000', ',500'))
@@ -224,7 +227,7 @@ describe('scanMediaSubtitles', () => {
       }
       yield* run(details(file), item, client)
       expect(sendMessageMock).not.toHaveBeenCalled()
-      expect(synced).toHaveLength(2)
+      expect(synced).toHaveLength(1)
 
       yield* provideTest(
         recordScan({ filePath: french, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: yield* DateTime.nowAsDate, verdict: 'sync_requested' })
@@ -246,6 +249,106 @@ describe('scanMediaSubtitles', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
+  it.live('analyzes preferred audio once for all candidates, including a lone wrong subtitle, and never reads cached siblings', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const directory = yield* fs.makeTempDirectoryScoped()
+      const file = `${directory}/Movie.mkv`
+      const english = `${directory}/Movie.en.srt`
+      const french = `${directory}/Movie.fr.srt`
+      const cached = `${directory}/Movie.it.srt`
+      yield* fs.writeFileString(file, '')
+      yield* fs.writeFileString(english, subtitleContent())
+      yield* fs.writeFileString(french, subtitleContent(2))
+      yield* fs.symlink(`${directory}/missing.srt`, cached)
+      yield* provideTest(
+        recordScan({ filePath: cached, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: yield* DateTime.nowAsDate, verdict: 'passed' })
+      )
+      const selected: number[] = []
+      const measured: IFfmpegClient = {
+        ...ffmpeg,
+        ffprobe: () =>
+          Effect.succeed({
+            duration: 100,
+            streams: [
+              { codec_type: 'video', index: 0 },
+              { codec_type: 'audio', index: 1, tags: { language: 'fr' } },
+              { codec_type: 'audio', index: 2, tags: { language: 'en' } },
+            ],
+          }),
+        speechActivity: (input, index) =>
+          Effect.sync(() => {
+            selected.push(index)
+          }).pipe(Effect.andThen(ffmpeg.speechActivity(input, index))),
+      }
+      const synced: string[] = []
+      const { client, item } = bazarr(file, [english, french], (subtitle) => Effect.sync(() => void synced.push(subtitle.path)))
+      yield* provideTest(scanMediaSubtitles(details(file), Effect.succeed(item)), { bazarr: client, ffmpeg: measured })
+      expect(selected).toEqual([2])
+      expect(synced).toEqual([french])
+      expect(yield* provideTest(getScan(english, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'passed' })
+
+      yield* fs.remove(english)
+      yield* fs.remove(cached)
+      yield* provideTest(scanMediaSubtitles({ ...details(file), preferredLanguage: 'de' }, Effect.succeed(item)), {
+        bazarr: client,
+        ffmpeg: measured,
+      })
+      expect(selected).toEqual([2, 1])
+      expect(synced).toEqual([french])
+      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
+  it.live(
+    'records insufficient audio evidence as terminal inconclusive and alerts once without syncing, while extraction failures stay eligible',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const directory = yield* fs.makeTempDirectoryScoped()
+        const file = `${directory}/Movie.mkv`
+        const candidate = `${directory}/Movie.en.srt`
+        yield* fs.writeFileString(file, '')
+        yield* fs.writeFileString(candidate, subtitleContent())
+        const { item, client } = bazarr(file, [candidate], () => Effect.die('inconclusive must not sync'))
+        const silent: IFfmpegClient = { ...ffmpeg, speechActivity: () => Effect.succeed({ duration: 100, intervals: [] }) }
+        const setVerdict = (verdict: 'sync_requested') =>
+          Effect.gen(function* () {
+            yield* provideTest(recordScan({ filePath: candidate, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: yield* DateTime.nowAsDate, verdict }))
+          })
+        yield* provideTest(scanMediaSubtitles(details(file), Effect.succeed(item)), { bazarr: client, ffmpeg: silent })
+        expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'inconclusive' })
+
+        let onScan = 0
+        const skipped: IFfmpegClient = { ...ffmpeg, ffprobe: () => Effect.die('inconclusive must not be probed again') }
+        yield* provideTest(
+          scanMediaSubtitles(
+            details(file),
+            Effect.succeed(item),
+            Effect.sync(() => void onScan++)
+          ),
+          { bazarr: client, ffmpeg: skipped }
+        )
+        expect(onScan).toBe(0)
+
+        yield* setVerdict('sync_requested')
+        yield* provideTest(scanMediaSubtitles(details(file), Effect.succeed(item)), { bazarr: client, ffmpeg: silent })
+        expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'inconclusive' })
+
+        yield* setVerdict('sync_requested')
+        const failing: IFfmpegClient = { ...ffmpeg, speechActivity: () => Effect.die('audio unavailable') }
+        expect(
+          (yield* Effect.exit(provideTest(scanMediaSubtitles(details(file), Effect.succeed(item)), { bazarr: client, ffmpeg: failing })))._tag
+        ).toBe('Failure')
+        expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
+        const noAudio: IFfmpegClient = { ...failing, ffprobe: () => Effect.succeed({ duration: 100, streams: [] }) }
+        yield* provideTest(scanMediaSubtitles(details(file), Effect.succeed(item)), { bazarr: client, ffmpeg: noAudio })
+        expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'inconclusive' })
+        expect(sendMessageMock).toHaveBeenCalledTimes(3)
+        expect(sendMessageMock).toHaveBeenCalledWith(testEnv.TELEGRAM_CHAT_ID, 'Inconclusive subtitle check for Movie (en)', undefined)
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
   it.live('does not turn a successful sync into passed when the verdict registry write fails', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
@@ -255,8 +358,8 @@ describe('scanMediaSubtitles', () => {
       const secondCandidate = `${directory}/Movie.fr.srt`
       const reference = `${directory}/Movie.it.srt`
       yield* fs.writeFileString(file, '')
-      yield* fs.writeFileString(firstCandidate, subtitleContent())
-      yield* fs.writeFileString(secondCandidate, subtitleContent(2))
+      yield* fs.writeFileString(firstCandidate, subtitleContent(2))
+      yield* fs.writeFileString(secondCandidate, subtitleContent(4))
       yield* fs.writeFileString(reference, subtitleContent(4))
       yield* provideTest(
         recordScan({
@@ -310,7 +413,7 @@ describe('scanMediaSubtitles', () => {
       expect((yield* Effect.exit(run(details(file), empty.item, empty.client)))._tag).toBe('Failure')
       expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toBeUndefined()
       yield* fs.remove(candidate)
-      yield* fs.writeFileString(candidate, subtitleContent())
+      yield* fs.writeFileString(candidate, subtitleContent(2))
 
       const reference = `${directory}/Movie.fr.srt`
       yield* fs.writeFileString(reference, subtitleContent(2))
@@ -370,7 +473,7 @@ describe('scanMediaSubtitles', () => {
       const actioned = `${directory}/Movie.fr.srt`
       const newcomer = `${directory}/Movie.de.srt`
       yield* fs.symlink(`${directory}/missing-actioned.srt`, actioned)
-      yield* fs.writeFileString(newcomer, subtitleContent(2))
+      yield* fs.writeFileString(newcomer, subtitleContent())
       yield* provideTest(
         recordScan({
           filePath: actioned,
@@ -452,6 +555,7 @@ describe('scanMediaSubtitles', () => {
           verdict: 'passed',
         })
       )
+      yield* fs.writeFileString(candidate, subtitleContent(2))
       const failing = bazarr(file, [candidate, reference], () => Effect.fail(new NetworkError({ originalMessage: 'offline', serviceName: 'test' })))
       yield* run(details(file), failing.item, failing.client)
       expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toBeUndefined()

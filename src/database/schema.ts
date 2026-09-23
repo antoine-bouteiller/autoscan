@@ -3,7 +3,7 @@ import { integer, pgEnum, pgTable, primaryKey, serial, text, timestamp } from 'd
 import { ISO1 } from '@/shared/types/iso_codes'
 
 export const mediaTypeEnum = pgEnum('media_type', ['movie', 'show'])
-export const subtitleVerdictEnum = pgEnum('subtitle_verdict', ['passed', 'forced_removed', 'sync_requested', 'invalid'])
+export const subtitleVerdictEnum = pgEnum('subtitle_verdict', ['passed', 'forced_removed', 'sync_requested', 'invalid', 'inconclusive'])
 export const bazarrKindEnum = pgEnum('bazarr_kind', ['movie', 'episode'])
 
 export const media = pgTable(

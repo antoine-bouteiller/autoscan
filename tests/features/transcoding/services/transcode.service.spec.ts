@@ -29,6 +29,7 @@ const ffmpeg = (ffprobe: IFfmpegClient['ffprobe'] = () => Effect.succeed(passedP
   execute: (..._command) => Effect.succeed(''),
   executeFfmpeg: (_params) => Effect.succeed(''),
   ffprobe,
+  speechActivity: () => Effect.die('transcoding must not analyze subtitle speech timing'),
 })
 
 const transcode = (file: string, originalLanguage: 'en' | 'fr' = 'en') =>

@@ -48,6 +48,9 @@
           postInstall = ''
             mkdir -p "$out/share/autoscan"
             cp -r ./migrations "$out/share/autoscan/migrations"
+            mkdir -p "$out/share/licenses/autoscan"
+            cp ./src/integrations/ffmpeg/models/LICENSE "$out/share/licenses/autoscan/SILERO_LICENSE"
+            cp ./src/integrations/ffmpeg/models/ONNX_RUNTIME_* "$out/share/licenses/autoscan/"
 
             wrapProgram "$out/bin/autoscan" \
               --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.ffmpeg]} \
