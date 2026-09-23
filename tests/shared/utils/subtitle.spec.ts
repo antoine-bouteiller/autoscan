@@ -28,7 +28,7 @@ describe('subtitle content helpers', () => {
   test('parses starts and keeps timing and majority thresholds strict', () => {
     const aligned = `${cue('00:00:01,000')}\n\n${cue('00:00:04,000')}`
     const exactlyThreeHundredMs = `${cue('00:00:01,300')}\n\n${cue('00:00:04,300')}`
-    const oneOfTwoOffset = `${cue('00:00:01,500')}\n\n${cue('00:00:04,000')}`
+    const oneOfTwoOffset = `${cue('00:00:01,501')}\n\n${cue('00:00:04,000')}`
 
     expect(parseStartTimestamps(aligned)).toEqual([1000, 4000])
     expect(parseStartTimestamps(aligned.replaceAll('\n', '\r\n'))).toEqual([1000, 4000])
@@ -37,7 +37,14 @@ describe('subtitle content helpers', () => {
     expect(areSubtitlesOutOfSync(aligned, exactlyThreeHundredMs)).toBe(false)
     expect(areSubtitlesOutOfSync(aligned, oneOfTwoOffset)).toBe(false)
     expect(areSubtitlesOutOfSync('', aligned)).toBe(false)
-    expect(areSubtitlesOutOfSync(aligned, `${cue('00:00:01,500')}\n\n${cue('00:00:04,500')}\n\n${cue('00:00:08,000')}`)).toBe(true)
+    expect(areSubtitlesOutOfSync(aligned, `${cue('00:00:01,501')}\n\n${cue('00:00:04,501')}\n\n${cue('00:00:08,000')}`)).toBe(true)
+  })
+
+  test.each([300, 400, 500, 501])('allows offsets up to 500 ms inclusively: %i ms', (offset) => {
+    const original = `${cue('00:00:01,000')}\n\n${cue('00:00:04,000')}`
+    const shifted = `${cue(`00:00:01,${offset}`)}\n\n${cue(`00:00:04,${offset}`)}`
+    expect(areSubtitlesOutOfSync(original, shifted)).toBe(offset > 500)
+    expect(areSubtitlesOutOfSync(shifted, original)).toBe(offset > 500)
   })
 
   test('matches timestamps rather than cue numbers when translations split or omit cues', () => {

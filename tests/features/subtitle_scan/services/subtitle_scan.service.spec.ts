@@ -178,7 +178,7 @@ describe('scanMediaSubtitles', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('passes corrected sync requests and alerts on forced rechecks without deleting or requiring a Bazarr subtitle entry', () =>
+  it.live('passes sync rechecks within 500 ms and alerts on forced rechecks without deleting or requiring a Bazarr subtitle entry', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
@@ -194,7 +194,7 @@ describe('scanMediaSubtitles', () => {
       expect(synced).toHaveLength(2)
       expect(sendMessageMock).not.toHaveBeenCalled()
 
-      yield* fs.writeFileString(french, subtitleContent())
+      yield* fs.writeFileString(french, subtitleContent().replaceAll(',000', ',500'))
       let scans = 0
       yield* provideTest(
         scanMediaSubtitles(

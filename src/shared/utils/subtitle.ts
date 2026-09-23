@@ -2,7 +2,7 @@ import { Function } from 'effect'
 
 const FORCED_SUBTITLE_LPM_THRESHOLD = 3
 const FORCED_SUBTITLE_SCREEN_RATIO_THRESHOLD = 0.15
-const SYNC_THRESHOLD_MS = 300
+const SYNC_THRESHOLD_MS = 500
 
 const parseSrtTimestamp = (timestamp: string): number => {
   const [hours, minutes, rest] = timestamp.split(':')
