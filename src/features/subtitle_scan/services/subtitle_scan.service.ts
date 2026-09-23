@@ -74,6 +74,7 @@ export const scanMediaSubtitles = <Requirements>(
     const subtitleAt = (file: SubtitleFileSnapshot) => item.subtitles.find((subtitle) => subtitle.path === file.path)
     const alertInvalid = (file: SubtitleFileSnapshot) =>
       Effect.gen(function* () {
+        yield* record(file, 'invalid')
         yield* Effect.logWarning(`Subtitle remains invalid after sync: ${file.path}`)
         const telegram = yield* Telegram
         const env = yield* Env
