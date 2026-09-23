@@ -149,7 +149,7 @@ describe('scanMediaSubtitles', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('rechecks sync requests and continues after Telegram failures without syncing again', () =>
+  it.live('marks failed sync rechecks invalid even after Telegram failures and skips them on later passes', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
@@ -169,12 +169,24 @@ describe('scanMediaSubtitles', () => {
       yield* run(details(file), item, client)
       expect(sendMessageMock).toHaveBeenCalledTimes(2)
       for (const path of paths) {
-        expect(yield* provideTest(getScan(path, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
+        expect(yield* provideTest(getScan(path, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
+        yield* fs.remove(path)
+        yield* fs.symlink(`${directory}/missing.srt`, path)
       }
 
-      yield* run(details(file), item, client)
+      yield* provideTest(
+        scanMediaSubtitles(details(file), Effect.die('invalid paths must not look up Bazarr'), Effect.die('invalid paths must not count as scans')),
+        { bazarr: client, ffmpeg: { ...ffmpeg, ffprobe: () => Effect.die('invalid paths must not probe media') } }
+      )
       expect(synced).toHaveLength(2)
-      expect(sendMessageMock).toHaveBeenCalledTimes(4)
+      expect(sendMessageMock).toHaveBeenCalledTimes(2)
+
+      const newcomer = `${directory}/Movie.de.srt`
+      yield* fs.writeFileString(newcomer, subtitleContent())
+      yield* run(details(file), item, client)
+      expect(yield* provideTest(getScan(newcomer, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'passed' })
+      expect(synced).toHaveLength(2)
+      expect(sendMessageMock).toHaveBeenCalledTimes(2)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
@@ -225,12 +237,12 @@ describe('scanMediaSubtitles', () => {
       }
       yield* run(details(file), { ...item, subtitles: [] }, noActions)
       expect(sendMessageMock.mock.calls).toEqual([[testEnv.TELEGRAM_CHAT_ID, 'Invalid subtitle for Movie (fr)', undefined]])
-      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
+      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
 
       yield* fs.writeFileString(french, subtitleContent(2))
       yield* run(details(file), { ...item, subtitles: [] }, noActions)
-      expect(sendMessageMock).toHaveBeenCalledTimes(2)
-      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
+      expect(sendMessageMock).toHaveBeenCalledTimes(1)
+      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
