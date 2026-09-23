@@ -5,10 +5,11 @@ import { Bazarr, Ffmpeg, Telegram } from '@/core/runtime.service'
 import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { getScan, recordScan, type SubtitleScanRecord, type SubtitleVerdict } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
 import { discoverSubtitleFiles, readSubtitleFile, type SubtitleFileSnapshot } from '@/features/subtitle_scan/services/subtitle_files.service'
+import { assessSubtitleTiming } from '@/features/subtitle_scan/services/subtitle_timing'
 import { type SubtitleScanMedia } from '@/features/subtitle_scan/types'
 import { type BazarrItem } from '@/integrations/bazarr/bazarr.service'
 import { type HttpClientError } from '@/shared/types/http_client'
-import { areSubtitlesOutOfSync, isForcedSubtitleContent } from '@/shared/utils/subtitle'
+import { isForcedSubtitleContent } from '@/shared/utils/subtitle'
 
 const logFailure = <Success, Error, Requirements>(effect: Effect.Effect<Success, Error, Requirements>, operation: string) =>
   effect.pipe(
@@ -17,27 +18,6 @@ const logFailure = <Success, Error, Requirements>(effect: Effect.Effect<Success,
       (cause) => Effect.logWarning(cause, operation).pipe(Effect.as(undefined))
     )
   )
-
-const divergentCandidates = (candidates: readonly SubtitleFileSnapshot[], references: readonly SubtitleFileSnapshot[]) => {
-  const targets = new Map<string, SubtitleFileSnapshot>()
-  for (let index = 0; index < candidates.length; index++) {
-    const candidate = candidates[index]
-    if (candidate === undefined) {
-      continue
-    }
-    if (references.some((reference) => areSubtitlesOutOfSync(candidate.content, reference.content))) {
-      targets.set(candidate.path, candidate)
-    }
-    for (let otherIndex = index + 1; otherIndex < candidates.length; otherIndex++) {
-      const other = candidates[otherIndex]
-      if (other !== undefined && areSubtitlesOutOfSync(candidate.content, other.content)) {
-        targets.set(candidate.path, candidate)
-        targets.set(other.path, other)
-      }
-    }
-  }
-  return targets
-}
 
 export const scanMediaSubtitles = <Requirements>(
   details: SubtitleScanMedia,
@@ -64,25 +44,27 @@ export const scanMediaSubtitles = <Requirements>(
       return
     }
     const ffmpeg = yield* Ffmpeg
-    const { duration } = yield* ffmpeg.ffprobe(details.file)
+    const { duration, streams } = yield* ffmpeg.ffprobe(details.file)
     const bazarr = yield* Bazarr
     const now = yield* DateTime.nowAsDate
-    const references = nonForced.filter((file) => scans.get(file.path)?.verdict === 'passed')
     const candidateSnapshots = yield* Effect.forEach(readSubtitleFile)(candidates)
     const record = (file: SubtitleFileSnapshot, verdict: SubtitleVerdict) =>
       recordScan({ filePath: file.path, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: now, verdict })
     const subtitleAt = (file: SubtitleFileSnapshot) => item.subtitles.find((subtitle) => subtitle.path === file.path)
-    const alertInvalid = (file: SubtitleFileSnapshot) =>
+    const alert = (file: SubtitleFileSnapshot, verdict: 'invalid' | 'inconclusive') =>
       Effect.gen(function* () {
-        yield* record(file, 'invalid')
-        yield* Effect.logWarning(`Subtitle remains invalid after sync: ${file.path}`)
+        yield* record(file, verdict)
+        yield* Effect.logWarning(
+          verdict === 'invalid' ? `Subtitle remains invalid after sync: ${file.path}` : `Insufficient speech evidence for subtitle: ${file.path}`
+        )
         const telegram = yield* Telegram
         const env = yield* Env
+        const message = verdict === 'invalid' ? 'Invalid subtitle' : 'Inconclusive subtitle check'
         yield* logFailure(
           telegram
-            .sendMessage(env.TELEGRAM_CHAT_ID, `Invalid subtitle for ${details.mediaTitle} (${file.language})`)
-            .pipe(Effect.tap(() => Effect.logInfo(`Sent invalid subtitle alert for ${file.path}`))),
-          `Notifying invalid subtitle for ${file.path}`
+            .sendMessage(env.TELEGRAM_CHAT_ID, `${message} for ${details.mediaTitle} (${file.language})`)
+            .pipe(Effect.tap(() => Effect.logInfo(`Sent ${verdict} subtitle alert for ${file.path}`))),
+          `Notifying ${verdict} subtitle for ${file.path}`
         )
       })
 
@@ -93,7 +75,7 @@ export const scanMediaSubtitles = <Requirements>(
         continue
       }
       if (scans.get(file.path)?.verdict === 'sync_requested') {
-        yield* alertInvalid(file)
+        yield* alert(file, 'invalid')
         continue
       }
       const subtitle = subtitleAt(file)
@@ -108,13 +90,32 @@ export const scanMediaSubtitles = <Requirements>(
       }
     }
 
-    const referenceSnapshots = surviving.length === 0 ? [] : yield* Effect.forEach(readSubtitleFile)(references)
-    const targets = divergentCandidates(surviving, referenceSnapshots)
-
-    yield* Effect.forEach(targets.values(), (file) =>
+    if (surviving.length === 0) {
+      return
+    }
+    const audio = streams.filter((stream) => stream.codec_type === 'audio')
+    const selected = audio.find((stream) => stream.tags?.language === details.preferredLanguage) ?? audio[0]
+    if (selected?.index === undefined) {
+      yield* Effect.logWarning(`No audio stream for subtitle validation: ${details.file}`)
+      yield* Effect.forEach((file: SubtitleFileSnapshot) => alert(file, 'inconclusive'))(surviving)
+      return
+    }
+    const activity = yield* ffmpeg.speechActivity(details.file, selected.index)
+    yield* Effect.forEach((file: SubtitleFileSnapshot) =>
       Effect.gen(function* () {
+        const timing = assessSubtitleTiming(file.content, activity)
+        yield* Effect.logInfo(`Subtitle speech timing: ${file.path}`, timing)
+        if (timing.verdict === 'inconclusive') {
+          yield* alert(file, 'inconclusive')
+          return
+        }
+        if (timing.verdict === 'aligned') {
+          yield* record(file, 'passed')
+          yield* Effect.logInfo(`Subtitle passed: ${file.path}`)
+          return
+        }
         if (scans.get(file.path)?.verdict === 'sync_requested') {
-          yield* alertInvalid(file)
+          yield* alert(file, 'invalid')
           return
         }
         const subtitle = subtitleAt(file)
@@ -128,11 +129,5 @@ export const scanMediaSubtitles = <Requirements>(
           yield* record(file, 'sync_requested')
         }
       })
-    )
-    for (const file of surviving) {
-      if (!targets.has(file.path)) {
-        yield* record(file, 'passed')
-        yield* Effect.logInfo(`Subtitle passed: ${file.path}`)
-      }
-    }
+    )(surviving)
   })

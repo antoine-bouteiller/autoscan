@@ -2,7 +2,6 @@ import { Function } from 'effect'
 
 const FORCED_SUBTITLE_LPM_THRESHOLD = 3
 const FORCED_SUBTITLE_SCREEN_RATIO_THRESHOLD = 0.15
-const SYNC_THRESHOLD_MS = 500
 
 const parseSrtTimestamp = (timestamp: string): number => {
   const [hours, minutes, rest] = timestamp.split(':')
@@ -44,44 +43,4 @@ export const isForcedSubtitleContent = Function.dual<
   const lowScreenTime = totalScreenTime / durationSeconds < FORCED_SUBTITLE_SCREEN_RATIO_THRESHOLD
 
   return fewLines || lowScreenTime
-})
-
-export const parseStartTimestamps = (content: string): number[] => {
-  const timestamps: number[] = []
-  for (const block of content.trim().split(/\r?\n(?:\r?\n)+/)) {
-    const match = /(?<start>\d{2}:\d{2}:\d{2},\d{3})\s*-->/.exec(block)
-    if (match?.groups !== undefined) {
-      timestamps.push(parseTimestampMs(match.groups['start']))
-    }
-  }
-  return timestamps
-}
-
-export const areSubtitlesOutOfSync = Function.dual<
-  (contentB: string) => (contentA: string) => boolean,
-  (contentA: string, contentB: string) => boolean
->(2, (contentA, contentB) => {
-  const timestampsA = parseStartTimestamps(contentA).toSorted((left, right) => left - right)
-  const timestampsB = parseStartTimestamps(contentB).toSorted((left, right) => left - right)
-  const length = Math.min(timestampsA.length, timestampsB.length)
-  if (length === 0) {
-    return false
-  }
-
-  let matched = 0
-  let indexA = 0
-  let indexB = 0
-  while (indexA < timestampsA.length && indexB < timestampsB.length) {
-    const difference = timestampsA[indexA] - timestampsB[indexB]
-    if (Math.abs(difference) <= SYNC_THRESHOLD_MS) {
-      matched++
-      indexA++
-      indexB++
-    } else if (difference < 0) {
-      indexA++
-    } else {
-      indexB++
-    }
-  }
-  return matched / length < 0.5
 })

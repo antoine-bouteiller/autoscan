@@ -20,6 +20,17 @@ const ffmpeg: IFfmpegClient = {
   execute: () => Effect.succeed(''),
   executeFfmpeg: () => Effect.succeed(''),
   ffprobe: () => Effect.succeed({ duration: 100, streams: [] }),
+  speechActivity: () =>
+    Effect.succeed({
+      duration: 10,
+      intervals: [
+        [0, 1],
+        [2, 3],
+        [4, 5],
+        [6, 7],
+        [8, 9],
+      ],
+    }),
 }
 
 const makeCountingFfmpeg = () => {
@@ -260,7 +271,12 @@ describe('subtitle scan job', () => {
             yield* fs.writeFileString(file.replace(/\.mkv$/, '.en.forced.srt'), '1\n00:00:00,000 --> 00:00:01,000\nforced')
           } else {
             const subtitle = file.replace(/\.mkv$/, '.en.srt')
-            yield* fs.writeFileString(subtitle, `1\n00:00:00,000 --> 00:00:02,000\nsubtitle ${ratingKey}`)
+            yield* fs.writeFileString(
+              subtitle,
+              [0, 2, 4, 6, 8]
+                .map((start, index) => `${index + 1}\n00:00:0${start},000 --> 00:00:0${start + 1},000\nsubtitle ${ratingKey}`)
+                .join('\n\n')
+            )
             if (sidecar === 'cached') {
               const [snapshot] = yield* discoverSubtitleFiles(file).pipe(Effect.provide(context))
               if (snapshot === undefined) {
@@ -307,7 +323,9 @@ describe('subtitle scan job', () => {
             probed.push(file)
           }).pipe(
             Effect.flatMap(() =>
-              file === failedFile && failAnalysis ? Effect.die('ffprobe unavailable') : Effect.succeed({ duration: 10, streams: [] })
+              file === failedFile && failAnalysis
+                ? Effect.die('ffprobe unavailable')
+                : Effect.succeed({ duration: 10, streams: [{ codec_type: 'audio', index: 0 }] })
             )
           ),
       }

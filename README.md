@@ -19,7 +19,7 @@ Media automation for Radarr, Sonarr, Plex, TMDB, and Bazarr, built with Bun and 
 - **Transcoding** — FFmpeg processing from download webhooks or Plex library scans.
 - **Language sync** — Selects Plex audio/subtitles using TMDB metadata and per-title preferences.
 - **Queue cleanup** — Removes and blocklists stalled or unimportable Radarr/Sonarr downloads.
-- **Subtitle maintenance** — Checks external SRT files through Bazarr, manages French forced-subtitle profiles, and handles overdue missing subtitles.
+- **Subtitle maintenance** — Independently checks external SRT timing against the selected audio's speech activity, requests fixes through Bazarr, manages French forced-subtitle profiles, and handles overdue missing subtitles.
 - **Telegram control** — Plex authentication, language preferences, manual scans, and notifications.
 
 ## Setup
@@ -84,7 +84,7 @@ Scheduled jobs:
 | Transcode scan | Every 12 hours   |
 | Subtitle scan  | Daily at 05:00   |
 
-Subtitle traversal currently checks only the first 10 media entries per pass, with no rotation; missing-subtitle handling remains library-wide. The Bazarr adapter targets 1.4.0: verify lookup, wanted lists, subtitle actions, and profile changes on a disposable library before deployment. See the [subtitle scan spec](src/features/subtitle_scan/subtitle_scan.spec.md) for policies and limits.
+Subtitle analysis is capped at 10 eligible media per pass; current-version terminal verdicts (including inconclusive checks) are skipped, while pending syncs are rechecked once. Missing-subtitle handling remains library-wide. When candidates survive the forced-subtitle check, the media's selected audio is decoded once per pass and reused to check those sidecars independently, including a lone subtitle. Speech detection uses Silero VAD with Microsoft's ONNX Runtime WASM on a single CPU thread. The pinned model and runtime are embedded in the Bun executable: no Python, GPU, account, or runtime download is required. This checks timing, not whether the words match the dialogue; uncertain evidence causes no sync or passing verdict, only a one-time Telegram alert for manual review. The Bazarr adapter targets 1.4.0: verify lookup, wanted lists, subtitle actions, and profile changes on a disposable library before deployment. See the [subtitle scan spec](src/features/subtitle_scan/subtitle_scan.spec.md) for policies and limits.
 
 ## Development
 

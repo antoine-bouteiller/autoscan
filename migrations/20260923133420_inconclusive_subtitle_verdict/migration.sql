@@ -1,0 +1,1 @@
+ALTER TYPE "subtitle_verdict" ADD VALUE 'inconclusive';

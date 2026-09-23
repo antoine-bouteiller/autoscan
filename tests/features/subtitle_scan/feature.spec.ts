@@ -160,7 +160,7 @@ describe('subtitle scan feature', () => {
       const episodeFile = `${directory}/Episode {tmdb-81003}.mkv`
       const forcedEpisode = `${directory}/Episode {tmdb-81003}.fr.forced.srt`
       yield* fs.writeFileString(primaryFile, '')
-      yield* fs.writeFileString(english, subtitle([0, 20, 40]))
+      yield* fs.writeFileString(english, subtitle([0, 10, 20, 30, 40, 50]))
       yield* fs.writeFileString(episodeFile, '')
       yield* fs.writeFileString(forcedEpisode, subtitle([0]))
 
@@ -214,7 +214,10 @@ describe('subtitle scan feature', () => {
       const ffmpeg: IFfmpegClient = {
         execute: () => Effect.succeed(''),
         executeFfmpeg: () => Effect.succeed(''),
-        ffprobe: (file) => Ref.update(probes, (calls) => [...calls, file]).pipe(Effect.as({ duration: 60, streams: [] })),
+        ffprobe: (file) =>
+          Ref.update(probes, (calls) => [...calls, file]).pipe(Effect.as({ duration: 60, streams: [{ codec_type: 'audio', index: 0 }] })),
+        speechActivity: () =>
+          Effect.succeed({ duration: 60, intervals: [0, 10, 20, 30, 40, 50].map((start): [number, number] => [start, start + 4]) }),
       }
       const alerts = yield* Ref.make<string[]>([])
       const telegram = new MockTelegramClient()
@@ -247,7 +250,7 @@ describe('subtitle scan feature', () => {
       expect(yield* Ref.get(probes)).toEqual([primaryFile])
       expect(bazarr.profileWrites).toEqual([[frenchMovie, 7]])
 
-      yield* fs.writeFileString(french, subtitle([5, 25, 45]))
+      yield* fs.writeFileString(french, subtitle([5, 15, 25, 35, 45, 55]))
       primary.subtitles.push({ forced: false, hi: false, language: 'fr', path: french })
       yield* pass()
       expect(bazarr.lookups.get(primaryFile)).toBe(2)

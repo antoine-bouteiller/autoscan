@@ -19,7 +19,8 @@
   "dependencies": {
     "@effect/platform-bun": "4.0.0-rc.117",
     "drizzle-orm": "1.0.0-rc.4",
-    "effect": "4.0.0-rc.117"
+    "effect": "4.0.0-rc.117",
+    "onnxruntime-web": "1.30.0"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
