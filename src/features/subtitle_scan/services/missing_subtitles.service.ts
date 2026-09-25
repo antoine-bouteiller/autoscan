@@ -75,6 +75,7 @@ export const applyMissingPolicy = Effect.gen(function* () {
     }
   }
 
+  let translationRequests = 0
   for (const { item, rows: itemRows } of items.values()) {
     const due = itemRows.filter((row) => row.firstSeenAt.getTime() < now - THREE_DAYS)
     if (due.length === 0) {
@@ -94,7 +95,8 @@ export const applyMissingPolicy = Effect.gen(function* () {
       continue
     }
 
-    for (const row of due) {
+    for (const row of due.slice(0, Math.max(0, 3 - translationRequests))) {
+      translationRequests++
       yield* logFailure(
         bazarr
           .translateSubtitle(item, source, row.language)

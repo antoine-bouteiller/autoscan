@@ -240,11 +240,13 @@ for each row with first_seen_at < now - 3d and acted_at is null:
   if item.subtitles (non-forced) is empty:
     telegram.sendMessage(TELEGRAM_CHAT_ID, "No subtitles for <title> after 3 days (missing: en, fr)")   # once per item, not per language
   else:
-    bazarr.translateSubtitle(item, source = item.subtitles[0], target = row.language)
-  set acted_at = now
+    if fewer than 3 translation requests have been made this pass:
+      bazarr.translateSubtitle(item, source = item.subtitles[0], target = row.language)
+      set acted_at = now on success
+  else set acted_at = now after a successful alert
 ```
 
-The all-missing alert groups every unacted row of one item into one message and marks all of them acted. A Bazarr or Telegram failure leaves `actedAt` null so the action is retried on the next pass.
+The all-missing alert groups every unacted row of one item into one message and marks all of them acted. At most three translation requests (including failed requests) are sent per pass across movies and episodes; excess rows stay unacted until a later pass. Alerts do not consume translation slots. A Bazarr or Telegram failure leaves `actedAt` null so the action is retried on the next pass.
 
 ### French profile policy
 
