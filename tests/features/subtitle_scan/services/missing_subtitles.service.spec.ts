@@ -214,6 +214,37 @@ describe('applyMissingPolicy', () => {
     })
   )
 
+  it.effect('limits translation requests to three per pass, including failures, without delaying alerts', () =>
+    Effect.gen(function* () {
+      const source = { forced: false, hi: false, language: 'es' as const, path: '/library/source.es.srt' }
+      const movies = [1, 2, 3].map((id) => item({ id, subtitles: [source] }))
+      const episode: BazarrItem = { ...item({ id: 4, subtitles: [source] }), kind: 'episode', seriesId: 5 }
+      const attempts = yield* Ref.make<BazarrItemRef[]>([])
+      const messages = yield* Ref.make<string[]>([])
+      const bazarr = new WantedBazarr(
+        [...movies, item({ id: 5, title: 'Unsubtitled' })],
+        (translatedItem) =>
+          Ref.updateAndGet(attempts, (items) => [...items, translatedItem]).pipe(
+            Effect.flatMap((items) => (items.length === 1 ? Effect.fail(networkError()) : Effect.void))
+          ),
+        [episode]
+      )
+      const telegram = new RecordingTelegram((_chatId, text) => Ref.update(messages, (texts) => [...texts, text]).pipe(Effect.as(1)))
+      yield* run(bazarr, telegram)
+      yield* TestClock.adjust(3 * DAY + 1)
+      yield* run(bazarr, telegram)
+      expect(yield* Ref.get(attempts)).toHaveLength(3)
+      expect(yield* Ref.get(messages)).toEqual(['No subtitles for Unsubtitled after 3 days (missing: en)'])
+      expect((yield* provideTest(listMissing)).filter((row) => row.bazarrId !== 5 && row.actedAt === null)).toHaveLength(2)
+
+      yield* run(bazarr, telegram)
+      expect(yield* Ref.get(attempts)).toHaveLength(5)
+      expect(new Set((yield* Ref.get(attempts)).map((ref) => `${ref.kind}:${ref.id}`)).size).toBe(4)
+      expect((yield* provideTest(listMissing)).every((row) => row.actedAt !== null)).toBe(true)
+      expect(yield* Ref.get(messages)).toHaveLength(1)
+    })
+  )
+
   it.effect('resets the clock after disappearance and reappearance', () =>
     Effect.gen(function* () {
       const initial = yield* service([item()])
