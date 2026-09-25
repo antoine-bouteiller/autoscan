@@ -37,8 +37,11 @@ const scanMedia = (details: SubtitleScanMedia, presetId: number | undefined, onS
   Effect.gen(function* () {
     const bazarr = yield* Bazarr
     const getItem = yield* Effect.cached(details.mediaType === 'movie' ? bazarr.getMovieByPath(details.file) : bazarr.getEpisodeByPath(details.file))
+    if (details.mediaType === 'movie' && details.preferredLanguage === 'fr') {
+      yield* catchAndLog(applyFrenchProfilePolicy(details, getItem, presetId), `Applying French profile policy for ${details.mediaTitle}`)
+      return
+    }
     yield* catchAndLog(scanMediaSubtitles(details, getItem, onScan), `Scanning subtitles for ${details.mediaTitle}`)
-    yield* catchAndLog(applyFrenchProfilePolicy(details, getItem, presetId), `Applying French profile policy for ${details.mediaTitle}`)
   })
 
 const traverse = (presetId: number | undefined) =>

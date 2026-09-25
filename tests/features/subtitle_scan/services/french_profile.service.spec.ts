@@ -8,17 +8,18 @@ import { MockBazarrClient, setProfileMock } from '@tests/mocks/bazarr.mock'
 import { DateTime, Effect, Exit, FileSystem, PlatformError } from 'effect'
 import { TestClock } from 'effect/testing'
 
+import { Bazarr } from '@/core/runtime.service'
 import { frenchProfiles } from '@/database/schema'
 import { getFrenchProfile, insertFrenchProfile } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
 import { applyFrenchProfilePolicy } from '@/features/subtitle_scan/services/french_profile.service'
 import { type SubtitleScanMedia } from '@/features/subtitle_scan/types'
-import { type BazarrItem } from '@/integrations/bazarr/bazarr.service'
+import { type BazarrItem, type BazarrItemRef, type BazarrSubtitleRef } from '@/integrations/bazarr/bazarr.service'
 
 const movie = {
   id: 42,
   kind: 'movie',
   missingSubtitles: [],
-  path: '/library/Movie.with.dots.mkv',
+  path: `${process.cwd()}/Movie.with.dots.mkv`,
   subtitles: [],
   title: 'Movie',
 } satisfies BazarrItem
@@ -50,14 +51,106 @@ describe('French movie profile policy', () => {
     })
   )
 
-  it.effect('does not look up episodes, non-French-preferred movies, or a disabled preset', () =>
+  it.effect('does not look up episodes or non-French-preferred movies', () =>
     provideTest(
       Effect.gen(function* () {
         const lookup = Effect.die('ineligible lookup')
         yield* applyFrenchProfilePolicy({ ...details, mediaType: 'show' }, lookup, 7)
         yield* applyFrenchProfilePolicy({ ...details, preferredLanguage: 'en' }, lookup, 7)
-        yield* applyFrenchProfilePolicy(details, lookup, undefined)
         expect(setProfileMock).not.toHaveBeenCalled()
+      })
+    )
+  )
+
+  it.effect('cleans only exact Bazarr-matched non-forced sidecars on assignment and later passes', () =>
+    provideTest(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const directory = yield* fs.makeTempDirectoryScoped()
+        const file = `${directory}/Movie.with.dots.mkv`
+        const english = `${directory}/Movie.with.dots.en.srt`
+        const french = `${directory}/Movie.with.dots.fr.srt`
+        const forced = `${directory}/Movie.with.dots.fr.forced.srt`
+        const unrelated = `${directory}/Other.en.srt`
+        const unmatched = `${directory}/Movie.with.dots.it.srt`
+        const markedForced = `${directory}/Movie.with.dots.es.srt`
+        yield* Effect.forEach([english, french, forced, unrelated, unmatched, markedForced], (path) => fs.writeFileString(path, 'subtitle'))
+        const subtitles: BazarrSubtitleRef[] = [
+          { forced: false, hi: false, language: 'en', path: english },
+          { forced: false, hi: false, language: 'fr', path: french },
+          { forced: true, hi: false, language: 'fr', path: forced },
+          { forced: true, hi: false, language: 'es', path: markedForced },
+          { forced: false, hi: false, language: 'en', path: unrelated },
+          { forced: false, hi: false, language: 'en', path: `${directory}/Movie.with.dots.de.srt` },
+        ]
+        const item = { ...movie, path: file, subtitles }
+        const removed: string[] = []
+        const actions: string[] = []
+        class TrackingBazarr extends MockBazarrClient {
+          override setProfile() {
+            return Effect.sync(() => {
+              actions.push('profile')
+            })
+          }
+          override deleteSubtitle(_item: BazarrItemRef, subtitle: BazarrSubtitleRef) {
+            return Effect.sync(() => {
+              actions.push(`delete:${subtitle.path}`)
+              removed.push(subtitle.path)
+              if (subtitle.path === french && removed.filter((path) => path === french).length === 1) {
+                throw new Error('temporary deletion failure')
+              }
+            })
+          }
+        }
+        const policy = applyFrenchProfilePolicy({ ...details, file }, Effect.succeed(item), 7)
+        const tracking = new TrackingBazarr()
+        yield* policy.pipe(Effect.provideService(Bazarr, tracking))
+        expect(actions).toEqual(['profile', `delete:${english}`, `delete:${french}`])
+        expect(yield* getFrenchProfile(item)).toMatchObject({ releasedAt: null })
+        yield* policy.pipe(Effect.provideService(Bazarr, tracking))
+        expect(removed).toEqual([english, french, english, french])
+        expect(yield* fs.exists(forced)).toBeTrue()
+        expect(yield* fs.exists(english)).toBeTrue()
+        yield* applyFrenchProfilePolicy({ ...details, file }, Effect.succeed(item), undefined).pipe(Effect.provideService(Bazarr, tracking))
+        expect(removed).toHaveLength(6)
+      })
+    )
+  )
+
+  it.effect('does not delete before assignment and still cleans a released row without a preset', () =>
+    provideTest(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const directory = yield* fs.makeTempDirectoryScoped()
+        const file = `${directory}/Movie.with.dots.mkv`
+        const subtitle = `${directory}/Movie.with.dots.en.srt`
+        yield* fs.writeFileString(subtitle, 'subtitle')
+        const item = { ...movie, path: file, subtitles: [{ forced: false, hi: false, language: 'en' as const, path: subtitle }] }
+        const deletes: string[] = []
+        class TrackingBazarr extends MockBazarrClient {
+          override deleteSubtitle(_item: BazarrItemRef, ref: BazarrSubtitleRef) {
+            return Effect.sync(() => {
+              deletes.push(ref.path)
+            })
+          }
+        }
+        const bazarr = new TrackingBazarr()
+        const policy = (preset: number | undefined) =>
+          applyFrenchProfilePolicy({ ...details, file }, Effect.succeed(item), preset).pipe(Effect.provideService(Bazarr, bazarr))
+        yield* policy(undefined)
+        expect(deletes).toEqual([])
+        expect(yield* getFrenchProfile(item)).toBeUndefined()
+        setProfileMock.mockRejectedValueOnce(new Error('assignment failed'))
+        expect(Exit.isFailure(yield* Effect.exit(policy(7)))).toBeTrue()
+        expect(deletes).toEqual([])
+        expect(yield* getFrenchProfile(item)).toBeUndefined()
+        yield* assign
+        yield* TestClock.adjust(week + 1)
+        yield* policy(7)
+        expect(deletes).toEqual([subtitle])
+        yield* policy(undefined)
+        expect(deletes).toEqual([subtitle, subtitle])
+        expect((yield* getFrenchProfile(item))?.releasedAt).not.toBeNull()
       })
     )
   )
@@ -99,6 +192,7 @@ describe('French movie profile policy', () => {
       Effect.gen(function* () {
         yield* applyFrenchProfilePolicy(details, new MockBazarrClient().getMovieByPath(details.file), 7)
         yield* applyFrenchProfilePolicy(details, Effect.succeed({ ...movie, kind: 'episode', seriesId: 3 }), 7)
+        yield* applyFrenchProfilePolicy(details, Effect.succeed({ ...movie, path: '/different/movie.mkv' }), 7)
         expect(yield* getFrenchProfile(movie)).toBeUndefined()
         expect(setProfileMock).not.toHaveBeenCalled()
       })

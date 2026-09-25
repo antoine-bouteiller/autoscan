@@ -10,7 +10,7 @@ import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { runSubtitleScan, startSubtitleScan } from '@/features/subtitle_scan/jobs/subtitle_scan.job'
 import { getScan, recordScan } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
 import { discoverSubtitleFiles } from '@/features/subtitle_scan/services/subtitle_files.service'
-import { type BazarrItem } from '@/integrations/bazarr/bazarr.service'
+import { type BazarrItem, type BazarrItemRef } from '@/integrations/bazarr/bazarr.service'
 import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
 import { type PlexMedia } from '@/integrations/plex/plex.validator'
@@ -430,7 +430,7 @@ describe('subtitle scan job', () => {
     })
   )
 
-  it.scoped('continues after a failed section and shares one lazy lookup between analysis and French policy', () =>
+  it.scoped('continues after a failed section and uses one lookup for French policy without analysis', () =>
     Effect.gen(function* () {
       const context = yield* makeTestContext()
       const fs = Context.get(context, FileSystem.FileSystem)
@@ -459,10 +459,11 @@ describe('subtitle scan job', () => {
       yield* runSubtitleScan.pipe(Effect.provide(overridden))
       expect(plex.sectionCalls).toEqual([1, 2])
       expect(bazarr).toMatchObject({ lookups: 1, profileWrites: 1, profiles: 1, wantedEpisodes: 1, wantedMovies: 1 })
+      expect(yield* getScan(subtitle, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toBeUndefined()
     })
   )
 
-  it.scoped('disables only French policy when its preset is missing or lookup fails', () =>
+  it.scoped('skips French analysis even when its preset is missing or lookup fails', () =>
     Effect.gen(function* () {
       const context = yield* makeTestContext()
       const fs = Context.get(context, FileSystem.FileSystem)
@@ -500,9 +501,115 @@ describe('subtitle scan job', () => {
         results.push({ bazarr, probes: countedFfmpeg.probes() })
       }
       for (const { bazarr, probes } of results) {
-        expect(probes).toBe(1)
+        expect(probes).toBe(0)
         expect(bazarr).toMatchObject({ lookups: 1, profileWrites: 0, profiles: 1, wantedEpisodes: 1, wantedMovies: 1 })
       }
+    })
+  )
+
+  it.scoped('does not spend scan slots on French movies, including cached and pending sidecars, in scheduled or manual passes', () =>
+    Effect.gen(function* () {
+      const context = yield* makeTestContext()
+      const fs = Context.get(context, FileSystem.FileSystem)
+      const directory = yield* fs.makeTempDirectoryScoped()
+      const [template] = [plexMetadata[123]]
+      if (template === undefined) {
+        throw new Error('Missing Plex fixture')
+      }
+      const media = Array.from({ length: 22 }, (_entry, index) => {
+        const id = 90_000 + index
+        const file = `${directory}/Movie {tmdb-${id}}.mkv`
+        return {
+          ...template,
+          Media: template.Media.map((entry) => ({ ...entry, Part: entry.Part.map((part) => ({ ...part, file })) })),
+          ratingKey: String(id),
+          title: `Movie ${id}`,
+        }
+      })
+      const items = new Map<string, BazarrItem>()
+      for (const [index, entry] of media.entries()) {
+        const file = entry.Media[0]?.Part[0]?.file
+        if (file === undefined) {
+          throw new Error('Missing file')
+        }
+        const subtitle = file.replace(/\.mkv$/, '.en.srt')
+        yield* fs.writeFileString(subtitle, '1\n00:00:00,000 --> 00:00:02,000\nsubtitle')
+        items.set(file, {
+          id: 90_000 + index,
+          kind: 'movie',
+          missingSubtitles: [],
+          path: file,
+          subtitles: [{ forced: false, hi: false, language: 'en', path: subtitle }],
+          title: entry.title,
+        })
+        if (index < 11 && index % 2 === 0) {
+          yield* recordScan({ filePath: subtitle, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: yield* DateTime.nowAsDate, verdict: 'passed' }).pipe(
+            Effect.provide(context)
+          )
+        } else if (index < 11) {
+          yield* recordScan({
+            filePath: subtitle,
+            scanVersion: SUBTITLE_SCAN_VERSION,
+            scannedAt: yield* DateTime.nowAsDate,
+            verdict: 'sync_requested',
+          }).pipe(Effect.provide(context))
+        }
+      }
+      const plex = new MockPlexClient()
+      Object.defineProperties(plex, {
+        getPlexMetadata: { value: (id: number) => Effect.succeed(media[id - 90_000]) },
+        getSectionMedia: { value: (section: number) => Effect.succeed(section === 1 ? media.slice(0, 12) : media.slice(12)) },
+        getSections: { value: Effect.succeed([1, 2].map((key) => ({ key, title: `Section ${key}`, type: 'movie' as const }))) },
+      })
+      const tmdb = new MockTmdbClient()
+      for (let index = 0; index < 11; index++) {
+        tmdb.mediaMap.set(`${90_000 + index}-movie`, { data: { original_language: 'fr', title: 'Movie' }, type: 'movie' })
+      }
+      const probed: string[] = []
+      const countedFfmpeg: IFfmpegClient = {
+        ...ffmpeg,
+        ffprobe: (file) =>
+          Effect.sync(() => {
+            probed.push(file)
+          }).pipe(Effect.as({ duration: 10, streams: [] })),
+      }
+      class TrackingBazarr extends MockBazarrClient {
+        readonly lookups: string[] = []
+        readonly deleted: string[] = []
+        wanted = 0
+        override getMovieByPath(path: string) {
+          return Effect.sync(() => {
+            this.lookups.push(path)
+          }).pipe(Effect.as(items.get(path)))
+        }
+        override get getProfiles() {
+          return Effect.succeed([{ name: 'French forced', profileId: 7 }])
+        }
+        override deleteSubtitle(_item: BazarrItemRef, subtitle: BazarrItem['subtitles'][number]) {
+          return Effect.sync(() => {
+            this.deleted.push(subtitle.path)
+          })
+        }
+        override get getWantedMovies() {
+          return Effect.sync(() => {
+            this.wanted++
+          }).pipe(Effect.as([]))
+        }
+      }
+      const bazarr = new TrackingBazarr()
+      const provided = Context.add(Context.add(Context.add(Context.add(context, Plex, plex), Tmdb, tmdb), Bazarr, bazarr), Ffmpeg, countedFfmpeg)
+      yield* runSubtitleScan.pipe(Effect.provide(provided))
+      expect(probed).toHaveLength(10)
+      expect(probed).toEqual(media.slice(11, 21).map((entry) => entry.Media[0]?.Part[0]?.file))
+      expect(bazarr.lookups).toHaveLength(21)
+      expect(bazarr.deleted).toHaveLength(11)
+      expect(bazarr.wanted).toBe(1)
+      probed.length = 0
+      expect(yield* startSubtitleScan.pipe(Effect.provide(provided))).toBeTrue()
+      yield* Context.get(context, BackgroundTasks).awaitEmpty
+      expect(probed).toEqual([media[21]?.Media[0]?.Part[0]?.file])
+      expect(bazarr.deleted).toHaveLength(22)
+      expect(bazarr.wanted).toBe(2)
     })
   )
 
