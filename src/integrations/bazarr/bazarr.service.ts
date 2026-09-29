@@ -1,5 +1,5 @@
 import { Effect, Result, Schema } from 'effect'
-import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
+import { type HttpClient as EffectHttpClient } from 'effect/http'
 
 import {
   type BazarrEpisodeRow,

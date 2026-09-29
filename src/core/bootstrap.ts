@@ -1,7 +1,7 @@
 import { BunServices } from '@effect/platform-bun'
 import { Effect, Fiber, FiberSet, Layer, Option } from 'effect'
 import { isFailure as isExitFailure } from 'effect/Exit'
-import { FetchHttpClient, HttpClient } from 'effect/unstable/http'
+import { FetchHttpClient, HttpClient } from 'effect/http'
 
 import { DatabaseLive } from '@/config/db'
 import { Env, EnvLive } from '@/config/env'

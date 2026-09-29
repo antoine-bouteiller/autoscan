@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
+import { type HttpClient as EffectHttpClient } from 'effect/http'
 
 import { ArrClient } from '@/integrations/arr/arr.service'
 import { type QueueService } from '@/integrations/arr/queue.types'

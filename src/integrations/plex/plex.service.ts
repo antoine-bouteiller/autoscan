@@ -1,5 +1,5 @@
 import { Effect, Path } from 'effect'
-import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
+import { type HttpClient as EffectHttpClient } from 'effect/http'
 
 import { type DatabaseQueryError } from '@/config/db'
 import { type Database } from '@/core/runtime.service'

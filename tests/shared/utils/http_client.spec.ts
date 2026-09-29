@@ -1,8 +1,8 @@
 import { httpStub, transportFailure } from '@tests/http_client_stub'
 import { describe, expect, it } from '@tests/it'
 import { Effect, Fiber, Result, Schema } from 'effect'
+import { type HttpClient } from 'effect/http'
 import { adjust } from 'effect/testing/TestClock'
-import { type HttpClient } from 'effect/unstable/http'
 
 import { NetworkError } from '@/shared/errors/network'
 import { ValidationError } from '@/shared/errors/validation'

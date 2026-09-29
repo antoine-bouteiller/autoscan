@@ -1,5 +1,5 @@
 import { type Effect, type Schema } from 'effect'
-import { type HttpRouter } from 'effect/unstable/http'
+import { type HttpRouter } from 'effect/http'
 
 import { type AppRequirements } from '@/core/runtime.service'
 import { type HttpProvider } from '@/providers/http/http.provider'

@@ -2,7 +2,7 @@ import { DatabaseTestLayer } from '@tests/database'
 import { httpStub } from '@tests/http_client_stub'
 import { describe, expect, it } from '@tests/it'
 import { Effect, Ref } from 'effect'
-import { type HttpClient } from 'effect/unstable/http'
+import { type HttpClient } from 'effect/http'
 
 import { PlexUnauthenticatedError } from '@/integrations/plex/plex.errors'
 import { PlexClient } from '@/integrations/plex/plex.service'

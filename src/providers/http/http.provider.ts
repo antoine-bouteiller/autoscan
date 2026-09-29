@@ -1,6 +1,6 @@
 import { BunHttpServer } from '@effect/platform-bun'
 import { Cause, type Context, DateTime, Effect, Exit, Result, Schema, Scope } from 'effect'
-import { HttpRouter, HttpServer, type HttpServerError, type HttpServerRequest, HttpServerResponse } from 'effect/unstable/http'
+import { HttpRouter, HttpServer, type HttpServerError, type HttpServerRequest, HttpServerResponse } from 'effect/http'
 
 import { type AppRequirements } from '@/core/runtime.service'
 import { badRequest } from '@/providers/http/response'

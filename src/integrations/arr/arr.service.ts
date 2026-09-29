@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
+import { type HttpClient as EffectHttpClient } from 'effect/http'
 
 import { type QueueResponse, queueResponseValidator } from '@/integrations/arr/queue.types'
 import { httpClient } from '@/shared/utils/http_client'

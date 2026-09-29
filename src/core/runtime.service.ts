@@ -1,7 +1,7 @@
 import { type SQL } from 'bun'
 import { type BunSQLDatabase } from 'drizzle-orm/bun-sql/postgres'
 import { Context, type Crypto, Effect, FiberMap, FiberSet, type FileSystem, Layer, type Option, type Path, Ref, Semaphore } from 'effect'
-import { type ChildProcessSpawner } from 'effect/unstable/process'
+import { type ChildProcessSpawner } from 'effect/process'
 
 import { type Env } from '@/config/env'
 import { type PlexTokenStore } from '@/features/plex_auth/services/plex_token.service'
