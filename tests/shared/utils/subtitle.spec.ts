@@ -6,6 +6,17 @@ import { areSubtitlesOutOfSync, isForcedSubtitleContent, parseStartTimestamps, p
 
 const cue = (start: string, end = '00:00:03,000') => `1\n${start} --> ${end}\nText`
 
+const content = (starts: number[], offset = 0) =>
+  starts
+    .map((start) =>
+      cue(
+        DateTime.formatIso(DateTime.makeUnsafe(start + offset))
+          .slice(11, 23)
+          .replace('.', ',')
+      )
+    )
+    .join('\n\n')
+
 describe('subtitle content helpers', () => {
   test('converts zero, milliseconds, and hour-long timestamps', () => {
     expect(parseTimestampMs('00:00:00,000')).toBe(0)
@@ -71,16 +82,6 @@ describe('subtitle content helpers', () => {
     const french = [
       151_682, 153_684, 155_561, 158_314, 159_523, 160_941, 164_194, 166_071, 167_781, 169_116, 170_200, 171_535, 172_828, 174_079, 175_372, 177_917,
     ]
-    const content = (starts: number[], offset = 0) =>
-      starts
-        .map((start) =>
-          cue(
-            DateTime.formatIso(DateTime.makeUnsafe(start + offset))
-              .slice(11, 23)
-              .replace('.', ',')
-          )
-        )
-        .join('\n\n')
     expect(areSubtitlesOutOfSync(content(english), content(french))).toBe(false)
     expect(areSubtitlesOutOfSync(content(french), content(english))).toBe(false)
     expect(areSubtitlesOutOfSync(content(english), content(english, 1000))).toBe(true)
