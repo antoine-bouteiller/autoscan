@@ -2,6 +2,7 @@
   "name": "autoscan",
   "private": true,
   "type": "module",
+  "main": "src/index.ts",
   "scripts": {
     "fmt": "oxfmt",
     "lint": "oxlint --fix --fix-suggestions --max-warnings=0",
@@ -9,6 +10,7 @@
     "start": "bun src/index.ts",
     "db:generate": "drizzle-kit generate",
     "knip": "knip",
+    "knip:production": "knip --production",
     "test": "bun test ./tests && bun run test:rules",
     "test:rules": "node --test 'oxlint/rules/*.test.ts'",
     "test:coverage": "bun test ./tests --coverage --reporter=junit --reporter-outfile=./junit.xml",

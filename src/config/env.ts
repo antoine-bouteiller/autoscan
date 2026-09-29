@@ -10,6 +10,7 @@ const FILE_SECRET_KEYS = [
   'POSTGRES_PASSWORD_FILE',
 ]
 
+/** @internal */
 export const loadFileSecrets = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem
   const secrets: Record<string, string> = {}
@@ -26,6 +27,7 @@ export const loadFileSecrets = Effect.gen(function* () {
   return secrets
 })
 
+/** @internal */
 export const urlString = Schema.String.pipe(
   Schema.refine(
     (value): value is string => {
@@ -60,6 +62,7 @@ const envConfig = Config.all({
   TRANSCODE_PATH: Config.String('TRANSCODE_PATH'),
 })
 
+/** @internal */
 export const loadEnv = Effect.gen(function* () {
   const secrets = yield* loadFileSecrets
   const provider = ConfigProvider.orElse(ConfigProvider.fromEnvRecord(secrets), ConfigProvider.fromEnv())

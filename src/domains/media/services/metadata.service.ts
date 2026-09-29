@@ -5,11 +5,13 @@ import { FileNotFoundError, TmdbIdNotFoundError } from '@/domains/media/errors'
 import { createdOrUpdatedMedia, getMediaByIdAndType as getMediaFromDb } from '@/domains/media/repositories/media.repository'
 import { type MediaType } from '@/integrations/plex/plex.service'
 
+/** @internal */
 export const extractTmdbIdFromPath = (filePath: string): number | undefined => {
   const match = /{tmdb-(?<id>.*?)}/g.exec(filePath)
   return match?.groups === undefined ? undefined : Number(match.groups['id'])
 }
 
+/** @internal */
 export const buildMediaTitle = (grandparentTitle?: string, parentTitle?: string, title?: string): string =>
   [grandparentTitle, parentTitle, title].filter(Boolean).join(' - ')
 

@@ -1,6 +1,8 @@
+/** @internal */
 // oxlint-disable-next-line no-unsafe-type-assertion
 export const typedKeyOf = <Obj extends object>(obj: Obj) => Object.keys(obj) as (keyof Obj)[]
 
+/** @internal */
 export const typedEntriesOf = <Obj extends object>(obj: Obj) =>
   // oxlint-disable-next-line no-unsafe-type-assertion
   Object.entries(obj) as [keyof Obj, Obj[keyof Obj]][]

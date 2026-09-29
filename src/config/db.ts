@@ -28,6 +28,7 @@ interface DatabaseResourceOperations<Sql, Db> {
   readonly open: () => Sql
 }
 
+/** @internal */
 export const makeDatabaseResource = <Sql, Db>(operations: DatabaseResourceOperations<Sql, Db>) =>
   Effect.gen(function* () {
     const sql = yield* Effect.acquireRelease(Effect.try({ catch: (cause) => new DatabaseConnectionError(cause), try: operations.open }), (resource) =>

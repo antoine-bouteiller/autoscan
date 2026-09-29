@@ -2,5 +2,5 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "tags": ["-lintignore"],
   "entry": ["tests/**/*.spec.ts"],
-  "project": ["src/**/*.ts", "tests/**/*.ts"]
+  "project": ["src/**/*.ts!", "tests/**/*.ts"]
 }

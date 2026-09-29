@@ -28,6 +28,7 @@ export const buildMediaTypeKeyboard = (): InlineKeyboardMarkup => ({
   ],
 })
 
+/** @internal */
 export const buildMediaKeyboard = (mediaList: Media[], page: number): InlineKeyboardMarkup => {
   const items = mediaList.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   const rows = items.map((item) => [{ callback_data: `select_media:${item.tmdbId}`, text: item.title }])
@@ -44,6 +45,7 @@ export const buildMediaKeyboard = (mediaList: Media[], page: number): InlineKeyb
   return { inline_keyboard: rows }
 }
 
+/** @internal */
 export const buildLanguageKeyboard = (): InlineKeyboardMarkup => {
   const codes = Object.keys(iso1ToIso2T)
   const rows: InlineKeyboardButton[][] = []

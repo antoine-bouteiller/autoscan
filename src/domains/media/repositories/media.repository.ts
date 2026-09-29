@@ -9,6 +9,7 @@ import { type ISOCode1 } from '@/shared/types/iso_codes'
 
 const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => new DatabaseQueryError(cause), try: run })
 
+/** @internal */
 export const countMediaByType = (type: MediaType) =>
   Database.use(({ db }) => query(() => db.select({ count: count() }).from(mediaTable).where(eq(mediaTable.type, type))))
 

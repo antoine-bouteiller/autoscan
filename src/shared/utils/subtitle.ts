@@ -10,6 +10,7 @@ const parseSrtTimestamp = (timestamp: string): number => {
   return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds) + Number(ms) / 1000
 }
 
+/** @internal */
 export const parseTimestampMs = (timestamp: string): number => {
   const [hours, minutes, rest] = timestamp.split(':')
   const [seconds, milliseconds] = rest.split(',')
@@ -46,6 +47,7 @@ export const isForcedSubtitleContent = Function.dual<
   return fewLines || lowScreenTime
 })
 
+/** @internal */
 export const parseStartTimestamps = (content: string): number[] => {
   const timestamps: number[] = []
   for (const block of content.trim().split(/\r?\n(?:\r?\n)+/)) {

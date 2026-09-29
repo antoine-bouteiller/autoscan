@@ -49,6 +49,7 @@ const liveReplacementOperations: Effect.Effect<ReplacementOperations, never, Fil
 const durableOperation = (filePath: string, operation: string, run: Effect.Effect<void, PlatformError.PlatformError>) =>
   Effect.uninterruptible(Effect.mapError(run, (cause) => new FileAccessError({ cause, filePath, operation })))
 
+/** @internal */
 export const replaceOutputs = (inputFile: string, outputDirectory: string, options: { operations?: ReplacementOperations; outputFiles: string[] }) =>
   Effect.gen(function* () {
     const path = yield* Path.Path

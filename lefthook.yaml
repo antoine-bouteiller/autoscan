@@ -25,3 +25,5 @@ pre-commit:
       stage_fixed: true
     - name: Knip
       run: bun run knip
+    - name: Knip Production
+      run: bun run knip:production

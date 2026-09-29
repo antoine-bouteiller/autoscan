@@ -135,3 +135,6 @@ jobs:
 
       - name: Run knip
         run: bun run knip
+
+      - name: Run knip (production)
+        run: bun run knip:production

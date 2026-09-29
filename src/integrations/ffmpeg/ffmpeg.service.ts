@@ -18,6 +18,7 @@ export interface IFfmpegClient {
   readonly ffprobe: (input: string) => Effect.Effect<{ duration: number; streams: FFprobeStream[] }, FfmpegError>
 }
 
+/** @internal */
 export class FfmpegClient {
   executeFfmpeg(params: { folderName: string; input: string; output: string; command: string[] }) {
     return Effect.gen(function* () {

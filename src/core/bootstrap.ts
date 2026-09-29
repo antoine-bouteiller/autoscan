@@ -148,6 +148,7 @@ interface ShutdownResources {
   transcodeQueue: Pick<TranscodeQueueService, 'awaitIdle' | 'stopIntake'>
 }
 
+/** @internal */
 export const shutdownRuntime = ({ callbacks, http, producers, scheduler, stopTelegram, transcodeQueue }: ShutdownResources) =>
   Effect.gen(function* () {
     yield* Effect.logInfo('Shutting down gracefully...')

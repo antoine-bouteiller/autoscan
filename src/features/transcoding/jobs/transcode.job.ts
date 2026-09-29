@@ -107,6 +107,7 @@ export const startTranscodeProcess = Effect.gen(function* () {
   return yield* scans.start(scan)
 })
 
+/** @internal */
 export const getTranscodingStatus = Effect.gen(function* () {
   const scans = yield* TranscodeScan
   const queue = yield* TranscodeQueue
