@@ -1,5 +1,5 @@
 import { type Effect, type Schema } from 'effect'
-import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
+import { type HttpClient as EffectHttpClient } from 'effect/http'
 
 import { type HttpError, type HttpErrorFormatter, type RequestTimeoutError } from '@/shared/errors/http'
 import { type NetworkError } from '@/shared/errors/network'

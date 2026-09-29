@@ -1,5 +1,5 @@
 import { Clock, Effect, Random, Result, Schema } from 'effect'
-import { HttpClientRequest, type HttpMethod } from 'effect/unstable/http'
+import { HttpClientRequest, type HttpMethod } from 'effect/http'
 
 import { HttpError, RequestTimeoutError } from '@/shared/errors/http'
 import { NetworkError } from '@/shared/errors/network'

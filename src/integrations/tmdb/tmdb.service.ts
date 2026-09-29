@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { type HttpClient as EffectHttpClient } from 'effect/unstable/http'
+import { type HttpClient as EffectHttpClient } from 'effect/http'
 
 import { type MediaType } from '@/integrations/plex/plex.service'
 import { tmdbMovieResponse, tmdbTvResponse, type TmdbMedia, type TmdbMovie, type TmdbTV } from '@/integrations/tmdb/tmdb.validator'

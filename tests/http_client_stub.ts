@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { HttpClient, HttpClientError, HttpClientResponse, type HttpClientRequest } from 'effect/unstable/http'
+import { HttpClient, HttpClientError, HttpClientResponse, type HttpClientRequest } from 'effect/http'
 
 interface StubCall {
   readonly request: HttpClientRequest.HttpClientRequest

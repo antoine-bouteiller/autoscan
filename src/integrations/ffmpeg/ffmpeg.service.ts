@@ -1,5 +1,5 @@
 import { Effect, FileSystem, type PlatformError, Result, Schema } from 'effect'
-import { type ChildProcessSpawner } from 'effect/unstable/process'
+import { type ChildProcessSpawner } from 'effect/process'
 
 import { Env } from '@/config/env'
 import { FileNotFoundError } from '@/features/transcoding/errors'

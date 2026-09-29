@@ -2,8 +2,8 @@ import { makeTestContext, provideTest, TestLoggerLive } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { TestFailure } from '@tests/utils'
 import { Cause, Effect, Fiber, Latch, Logger, Result, Schema } from 'effect'
-import { HttpServer } from 'effect/unstable/http'
-import { NetAddress } from 'effect/unstable/net'
+import { HttpServer } from 'effect/http'
+import { NetAddress } from 'effect/net'
 
 import { HttpProvider, type InjectOptions } from '@/providers/http/http.provider'
 
