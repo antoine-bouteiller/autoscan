@@ -1201,9 +1201,9 @@
     url = "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz";
     hash = "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==";
   };
-  "knip@6.38.0" = fetchurl {
-    url = "https://registry.npmjs.org/knip/-/knip-6.38.0.tgz";
-    hash = "sha512-umytiMCaZf02MV9SOO1FEDgbDf6h20VZk3ruJE0kh52kkGjYZFRUAXHJWYoLhvhoHGINO/7GXVJmQ2vxTBvl6A==";
+  "knip@6.39.0" = fetchurl {
+    url = "https://registry.npmjs.org/knip/-/knip-6.39.0.tgz";
+    hash = "sha512-Y7g6Ve1ATMox1u1v+gx3z9LTlvzVLTJISm/LVn9TgBU4qc7OoC63AWGO8qCFPVDDdaqlYdXkDDvvO1METBfTRw==";
   };
   "lazystream@1.0.1" = fetchurl {
     url = "https://registry.npmjs.org/lazystream/-/lazystream-1.0.1.tgz";
