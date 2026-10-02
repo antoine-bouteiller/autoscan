@@ -1209,49 +1209,49 @@
     url = "https://registry.npmjs.org/lazystream/-/lazystream-1.0.1.tgz";
     hash = "sha512-b94GiNHQNy6JNTrt5w6zNyffMrNkXZb3KTkCZJb2V1xaEGCk093vkZ2jk3tpaeP33/OiXC+WvK9AxUebnf5nbw==";
   };
-  "lefthook-darwin-arm64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-darwin-arm64/-/lefthook-darwin-arm64-2.1.15.tgz";
-    hash = "sha512-6sNtlNsoeahxZySHbMMijFS8qB5nxZjMohO5t9x4UoM03sKAwXL++vR196mKOF942YdvkuDrwd+qyxfAU6QmWg==";
+  "lefthook-darwin-arm64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-darwin-arm64/-/lefthook-darwin-arm64-2.1.16.tgz";
+    hash = "sha512-oOjS1mn3UGNfo72UtR9VJMyulgbjvLkv5KEmJVgfWiO8wZ4Z469o2ZllvH5FrHluzv4Hlkc9OG+vnCP+5/ztMA==";
   };
-  "lefthook-darwin-x64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-darwin-x64/-/lefthook-darwin-x64-2.1.15.tgz";
-    hash = "sha512-B2upzVBV/9adKe0fGUO4JCrgx/iKx3qC6PQ2N3Qrok9yL5wDx+AZ6L5GNNgAKUbUWP6XZywyZZ/DFTPLOGxA/Q==";
+  "lefthook-darwin-x64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-darwin-x64/-/lefthook-darwin-x64-2.1.16.tgz";
+    hash = "sha512-/thON8TbzsqXBjF0hkVPsisBJOKGfss0+lVqcJ0jNwaRDIQSn6Frsn7c9eqs7uyMNEQKUVLTeIkpwPrNldT8JA==";
   };
-  "lefthook-freebsd-arm64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-freebsd-arm64/-/lefthook-freebsd-arm64-2.1.15.tgz";
-    hash = "sha512-7PbO32jhKKHqRdD6DIucmQrZ5nHlXwhxHdqy6CxTH2wNNPlvjXPrMqb6W0SpHuOLS0dWdz77ZVJsOvwfH139AA==";
+  "lefthook-freebsd-arm64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-freebsd-arm64/-/lefthook-freebsd-arm64-2.1.16.tgz";
+    hash = "sha512-Eg7s0gcGwZnQqYyWTfOqb+2qupXtmHt/XHftXJvLhTaTMXR6uQbAyl7ceYTl2wH43AOCLrJ5BMMdqlWJaj/EbA==";
   };
-  "lefthook-freebsd-x64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-freebsd-x64/-/lefthook-freebsd-x64-2.1.15.tgz";
-    hash = "sha512-0XEgTQomWVV/uw4v5A/OMSfRk/9MRu3OBgTX1xF2QvUrb+fCEglkrJW299vSqndKn53MkUtyoIntz0ajw4PJlA==";
+  "lefthook-freebsd-x64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-freebsd-x64/-/lefthook-freebsd-x64-2.1.16.tgz";
+    hash = "sha512-vCmyKLO8mtAf+hm8rpfAlt4wQ23S7AGnlT6JlrLPBSt5V8J2kXuI/N1W2XQbWx6OqckqchhBdLQP3Xh4IiYBXA==";
   };
-  "lefthook-linux-arm64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-linux-arm64/-/lefthook-linux-arm64-2.1.15.tgz";
-    hash = "sha512-HfgGoLtzqop68Zo9FDdP7rozFc+hv3xf2s4fWsyH50SbQLNgoKz/9vsneZG7n8bQ5YYGR/up0H9D8WQ7pou01g==";
+  "lefthook-linux-arm64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-linux-arm64/-/lefthook-linux-arm64-2.1.16.tgz";
+    hash = "sha512-zMEZ8x+PzXqjouEFsf2lWt2o0p5yvvT0YP0CpJC41y4FIRusx0sy3l+cjvKRIysLGOzKMr4V3/fE6w7f2KgwUw==";
   };
-  "lefthook-linux-x64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-linux-x64/-/lefthook-linux-x64-2.1.15.tgz";
-    hash = "sha512-oyhZn6koNmXvSlSQXeTL1Zmxmlp1ysInjZCETwfAhjGb5r42HX2coaPzO0e6dvoP6bqEO8cyWoqqj+FYVz9nig==";
+  "lefthook-linux-x64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-linux-x64/-/lefthook-linux-x64-2.1.16.tgz";
+    hash = "sha512-HdfNz3z5hzrEXyP5KC51os+2M6BThL4qMfu8rB777tbXzf7WMoxf/FV6mnzoqM1RN0K+KJAQYbnJatfPQhqusQ==";
   };
-  "lefthook-openbsd-arm64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-openbsd-arm64/-/lefthook-openbsd-arm64-2.1.15.tgz";
-    hash = "sha512-/hF3ap8CUqD2whU127pesD0x0CLOymDmtR5NR5jbNrT/BryjxlL6YL7HL3KB1Xz3MZwBqYeLIceqFE9/Gc53xQ==";
+  "lefthook-openbsd-arm64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-openbsd-arm64/-/lefthook-openbsd-arm64-2.1.16.tgz";
+    hash = "sha512-zKkyN/ocUXOzFaLPn3ciucJ6CYcnUmqFsIwp7ge96sQ8l83omxL9rK0/KvSsMcus+TfHTNN+DFWVJxeMepPVtQ==";
   };
-  "lefthook-openbsd-x64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-openbsd-x64/-/lefthook-openbsd-x64-2.1.15.tgz";
-    hash = "sha512-IljStK5gOS8oQPxCsHNDoHeD8vSCDHFuHWtJfRbYWVtNMEA9/2shtIKHswFWQBAxltgt4/i/lN86rErKdDoIug==";
+  "lefthook-openbsd-x64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-openbsd-x64/-/lefthook-openbsd-x64-2.1.16.tgz";
+    hash = "sha512-Ptu0D2JK1COlDK1lcr7F6WDGkCzQ80ozeTrqNzPEyBjUdZAFLwR5K5gWgaRtR06RSoYDC72RFxKM1QYnsfF0rQ==";
   };
-  "lefthook-windows-arm64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-windows-arm64/-/lefthook-windows-arm64-2.1.15.tgz";
-    hash = "sha512-S1HIhsM0RZua8fQlHzXFrF0CpA/eo2/UYVUAqU+pJ/3IBAq0ZpWG4ZzfrQiSSBbcG9LB4tJgqiJVtumQKO+ZgA==";
+  "lefthook-windows-arm64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-windows-arm64/-/lefthook-windows-arm64-2.1.16.tgz";
+    hash = "sha512-YTzFJwlF3qbHx+CCuiyDmDPASh6mYBp1I8zfTeGKI3L24Eoct6FUaGUlfAoz8SI3DECPmBhfNgAK4dZlX9Hd5g==";
   };
-  "lefthook-windows-x64@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook-windows-x64/-/lefthook-windows-x64-2.1.15.tgz";
-    hash = "sha512-cp4ZhMYpX9khKw+fu0JEskq0Aeo1csREkb4WTMmJaEL7KTt+Lpp5zzSPPa8NGtpcQSKUo+ZXYrtqzpxYpPdt0g==";
+  "lefthook-windows-x64@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook-windows-x64/-/lefthook-windows-x64-2.1.16.tgz";
+    hash = "sha512-mQVpfaagdIZPJCGDeedRnslyd9JTc13vjmp02uu4X7cr/VZK94obwk96dhgsRp9+LL1XMhX5zTcb0zNLo1hC+A==";
   };
-  "lefthook@2.1.15" = fetchurl {
-    url = "https://registry.npmjs.org/lefthook/-/lefthook-2.1.15.tgz";
-    hash = "sha512-l/BSlOZBou3zLDuSIV8V+kbNyC6UiFCACVHu8dVUCDxH5+8qZXmJr8iROruI/7hv6W7c3sVlVT+6+BpVhGZRmA==";
+  "lefthook@2.1.16" = fetchurl {
+    url = "https://registry.npmjs.org/lefthook/-/lefthook-2.1.16.tgz";
+    hash = "sha512-U69YGDNsZ7R+umeSzdLzORNCHQFz/w4LKyNTjJQcGrQRQCr8hlCJfJwwm9sqq9Uc5N6dImS58ywURA0FkqoHlg==";
   };
   "lines-and-columns@1.2.4" = fetchurl {
     url = "https://registry.npmjs.org/lines-and-columns/-/lines-and-columns-1.2.4.tgz";
