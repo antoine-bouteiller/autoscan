@@ -26,7 +26,7 @@
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
-    "@effect/tsgo": "0.48.0",
+    "@effect/tsgo": "0.48.1",
     "@oxlint/plugins": "1.86.0",
     "@testcontainers/postgresql": "12.2.0",
     "@types/bun": "1.4.2",
