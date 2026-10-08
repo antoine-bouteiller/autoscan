@@ -19,9 +19,9 @@
     "postinstall": "bun2nix -o bun.nix"
   },
   "dependencies": {
-    "@effect/platform-bun": "4.0.1",
+    "@effect/platform-bun": "4.0.2",
     "drizzle-orm": "1.0.0-rc.4",
-    "effect": "4.0.1"
+    "effect": "4.0.2"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
@@ -40,7 +40,7 @@
     "typescript": "7.0.2"
   },
   "overrides": {
-    "@effect/platform-node-shared": "4.0.1"
+    "@effect/platform-node-shared": "4.0.2"
   },
   "commitlint": {
     "extends": [
