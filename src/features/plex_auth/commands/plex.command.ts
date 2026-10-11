@@ -26,7 +26,7 @@ export const plexAuthCommand = (client: ITelegramClient, message: TelegramMessag
     }
 
     const crypto = yield* Crypto.Crypto
-    const clientIdentifier = yield* crypto.randomUUIDv4
+    const clientIdentifier = yield* crypto.randomUUIDv4()
     const pin = yield* Effect.result(plex.createPin(clientIdentifier))
     if (Result.isFailure(pin)) {
       yield* Effect.logError(Cause.fail(pin.failure), 'Plex Auth')

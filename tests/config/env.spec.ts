@@ -27,7 +27,7 @@ const writeTempSecret = (value: string) =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem
     const crypto = yield* Crypto.Crypto
-    const filePath = `${tmpdir()}/autoscan-test-${yield* crypto.randomUUIDv4}.txt`
+    const filePath = `${tmpdir()}/autoscan-test-${yield* crypto.randomUUIDv4()}.txt`
     yield* fileSystem.writeFileString(filePath, value)
     tempFiles.push(filePath)
     return filePath

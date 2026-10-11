@@ -37,6 +37,7 @@ export default defineConfig({
   rules: {
     // Pipeable overloads are for reusable helpers; app handlers take (client, message)/(request, reply).
     'effecttsgo/missing-pipeable-signature': 'off',
+    'effecttsgo/unstable-api-usage': 'off',
 
     // Restriction
     'no-empty': 'error',

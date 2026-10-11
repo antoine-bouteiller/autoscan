@@ -57,7 +57,7 @@ export const replaceOutputs = (inputFile: string, outputDirectory: string, optio
     const operations = options.operations ?? (yield* liveReplacementOperations)
 
     const inputDirectory = path.dirname(inputFile)
-    const transactionId = yield* crypto.randomUUIDv4
+    const transactionId = yield* crypto.randomUUIDv4()
     const outputs = options.outputFiles.map((name) => ({
       final: path.join(inputDirectory, name),
       source: path.join(outputDirectory, name),
