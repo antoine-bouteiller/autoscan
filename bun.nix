@@ -685,9 +685,9 @@
     url = "https://registry.npmjs.org/@tybys/wasm-util/-/wasm-util-0.10.3.tgz";
     hash = "sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==";
   };
-  "@types/bun@1.4.2" = fetchurl {
-    url = "https://registry.npmjs.org/@types/bun/-/bun-1.4.2.tgz";
-    hash = "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ==";
+  "@types/bun@1.4.3" = fetchurl {
+    url = "https://registry.npmjs.org/@types/bun/-/bun-1.4.3.tgz";
+    hash = "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw==";
   };
   "@types/docker-modem@3.0.6" = fetchurl {
     url = "https://registry.npmjs.org/@types/docker-modem/-/docker-modem-3.0.6.tgz";
@@ -905,9 +905,9 @@
     url = "https://registry.npmjs.org/buildcheck/-/buildcheck-0.0.7.tgz";
     hash = "sha512-lHblz4ahamxpTmnsk+MNTRWsjYKv965MwOrSJyeD588rR3Jcu7swE+0wN5F+PbL5cjgu/9ObkhfzEPuofEMwLA==";
   };
-  "bun-types@1.4.2" = fetchurl {
-    url = "https://registry.npmjs.org/bun-types/-/bun-types-1.4.2.tgz";
-    hash = "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w==";
+  "bun-types@1.4.3" = fetchurl {
+    url = "https://registry.npmjs.org/bun-types/-/bun-types-1.4.3.tgz";
+    hash = "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg==";
   };
   "bun2nix@2.1.2" = fetchurl {
     url = "https://registry.npmjs.org/bun2nix/-/bun2nix-2.1.2.tgz";
