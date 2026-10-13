@@ -217,8 +217,6 @@
             after = ["network.target"];
             wantedBy = ["multi-user.target"];
 
-            path = [pkgs.ffmpeg];
-
             serviceConfig = {
               ExecStart = "${cfg.package}/bin/autoscan";
 
