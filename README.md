@@ -24,7 +24,7 @@ Media automation for Radarr, Sonarr, Plex, TMDB, and Bazarr, built with Bun and 
 
 ## Setup
 
-Requires Bun 1.4.2, FFmpeg, PostgreSQL, and access to the services above. Create a PostgreSQL database and a `.env` file in the repository root:
+Requires Bun 1.4.3 (pinned in `nix/bun.json`), FFmpeg, PostgreSQL, and access to the services above. Create a PostgreSQL database and a `.env` file in the repository root:
 
 ```dotenv
 BAZARR_API_URL=http://localhost:6767
@@ -59,7 +59,7 @@ bun run start
 
 Bun loads `.env` automatically. Database migrations run at startup. Send `/plex` to the Telegram bot and follow the authorization link before using Plex-dependent features.
 
-For Nix, run `nix build`; the flake also exports a [NixOS module](flake.nix) under `nixosModules.default` with `services.autoscan` options.
+For Nix, run `nix build`. `nix develop` (or direnv with the bundled `.envrc`) provides the pinned Bun, Node, and FFmpeg; the flake also exports a [NixOS module](flake.nix) under `nixosModules.default` with `services.autoscan` options.
 
 ## Usage
 

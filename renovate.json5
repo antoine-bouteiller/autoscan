@@ -15,6 +15,18 @@
   minimumReleaseAge: '1 day',
   gitIgnoredAuthors: ['41898282+github-actions[bot]@users.noreply.github.com'],
   labels: ['renovate'],
+  customManagers: [
+    {
+      customType: 'regex',
+      description: 'Bun pinned by the Nix overlay; CI refreshes its hashes',
+      managerFilePatterns: ['/^nix/bun\\.json$/'],
+      matchStrings: ['"version":\\s*"(?<currentValue>[^"]+)"'],
+      depNameTemplate: 'bun',
+      packageNameTemplate: 'oven-sh/bun',
+      datasourceTemplate: 'github-releases',
+      extractVersionTemplate: '^bun-v(?<version>.+)$',
+    },
+  ],
   'pre-commit': {
     enabled: true,
   },

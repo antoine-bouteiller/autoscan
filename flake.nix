@@ -16,14 +16,51 @@
   }: let
     supportedSystems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+
+    # Pins the Bun used by the build, the dev shell, and CI.
+    # Keep `@types/bun` and `packageManager` in package.json on the same version.
+    bunOverlay = final: prev: let
+      pin = builtins.fromJSON (builtins.readFile ./nix/bun.json);
+    in {
+      bun = prev.bun.overrideAttrs (old: {
+        inherit (pin) version;
+        __intentionallyOverridingVersion = true;
+        passthru =
+          old.passthru
+          // {
+            sources = builtins.mapAttrs (_: source:
+              final.fetchurl {
+                url = "https://github.com/oven-sh/bun/releases/download/bun-v${pin.version}/${source.asset}.zip";
+                inherit (source) hash;
+              })
+            pin.sources;
+          };
+      });
+    };
+
+    # bun2nix's overlay builds its hook against the final package set, so it
+    # picks up the pinned Bun.
+    pkgsFor = system:
+      import nixpkgs {
+        inherit system;
+        overlays = [bunOverlay bun2nix.overlays.default];
+      };
   in
     {
+      devShells = forAllSystems (system: let
+        pkgs = pkgsFor system;
+      in {
+        default = pkgs.mkShell {
+          packages = [pkgs.bun pkgs.nodejs pkgs.ffmpeg pkgs.alejandra];
+        };
+      });
+
       packages = forAllSystems (system: let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = pkgsFor system;
 
         # The bun2nix binary carries its `mkDerivation` / `fetchBunDeps`
         # helpers in its passthru.
-        inherit (bun2nix.packages.${system}.default) mkDerivation fetchBunDeps;
+        inherit (pkgs.bun2nix) mkDerivation fetchBunDeps;
 
         # `bun build --compile` bundles `src/index.ts` into a standalone
         # binary; only the drizzle migrations folder is still needed at

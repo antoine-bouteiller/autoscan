@@ -9,6 +9,10 @@ on:
     branches:
       - main
 
+defaults:
+  run:
+    shell: nix develop --command bash -euo pipefail {0}
+
 jobs:
   check:
     name: Check
@@ -17,12 +21,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.4.3'
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Check Bun versions match
+        run: |
+          bun -e '
+            const pkg = await Bun.file("package.json").json();
+            const types = await Bun.file("node_modules/@types/bun/package.json").json();
+            const versions = { runtime: Bun.version, "@types/bun": types.version, packageManager: pkg.packageManager.replace("bun@", "") };
+            if (new Set(Object.values(versions)).size > 1) {
+              console.error("Bun versions differ (runtime comes from nix/bun.json):", versions);
+              process.exit(1);
+            }
+          '
 
       - name: Run non-mutating checks
         run: |
@@ -40,22 +55,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Cache APT packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        id: apt-cache
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-ffmpeg
-
-      - name: Install FFmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --download-only ffmpeg
-          sudo apt-get install -y ffmpeg
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.4.3'
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -99,9 +100,9 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.4.3'
+      - name: Refresh Bun release hashes
+        shell: bash
+        run: scripts/update_bun_hashes.sh
 
       - name: Regenerate bun.nix from the lockfile
         run: bunx bun2nix -o bun.nix
@@ -111,11 +112,11 @@ jobs:
 
       - name: Commit and push regenerated bun.nix
         run: |
-          git diff --quiet flake.lock bun.nix && exit 0
+          git diff --quiet flake.lock bun.nix nix/bun.json && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add flake.lock bun.nix
-          git commit -m "chore: regenerate bun.nix and lock flake inputs"
+          git add flake.lock bun.nix nix/bun.json
+          git commit -m "chore: regenerate bun.nix, Bun hashes, and flake lock"
           git push
           exit 1
 
@@ -126,9 +127,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.4.3'
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -138,3 +138,17 @@ jobs:
 
       - name: Run knip (production)
         run: bun run knip:production
+
+  build:
+    name: Nix Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+
+      - name: Build package
+        shell: bash
+        run: nix build .#default -L

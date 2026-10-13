@@ -17,5 +17,10 @@
       groupName: 'effect',
       matchPackageNames: ['effect', '@effect/**', '!@effect/tsgo'],
     },
+    {
+      description: 'Bun runtime, its types, and packageManager must move together',
+      groupName: 'bun',
+      matchDepNames: ['bun', '@types/bun'],
+    },
   ],
 }
