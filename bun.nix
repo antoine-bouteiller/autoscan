@@ -677,9 +677,9 @@
     url = "https://registry.npmjs.org/@simple-libs/stream-utils/-/stream-utils-2.0.0.tgz";
     hash = "sha512-fCTuZK4QBa+39Oz9l4OGfJfz+GpwCp3AqO7Zch3to99xHPgstVsRFpeQ8LNd2o1Gv8raL2mCFwiaHh7bFSp5DQ==";
   };
-  "@testcontainers/postgresql@12.2.0" = fetchurl {
-    url = "https://registry.npmjs.org/@testcontainers/postgresql/-/postgresql-12.2.0.tgz";
-    hash = "sha512-14oNBbKdqIkWTiw8XwP6YqWnuBebiij8m4fF03WTSHvNt5FfvQpGTLwIV3p07UpDnqWRFvY50YFzbiYdB+SWuA==";
+  "@testcontainers/postgresql@12.2.1" = fetchurl {
+    url = "https://registry.npmjs.org/@testcontainers/postgresql/-/postgresql-12.2.1.tgz";
+    hash = "sha512-MIbI5KjZ9M4SY4+xzxg/w4ZLBeV+Jd6ognXoWn7dh/mhIhBbn7ss0MiZHNg2XbCbu03BW9YQ9+H9xW8PFkJWaA==";
   };
   "@tybys/wasm-util@0.10.3" = fetchurl {
     url = "https://registry.npmjs.org/@tybys/wasm-util/-/wasm-util-0.10.3.tgz";
@@ -1549,9 +1549,9 @@
     url = "https://registry.npmjs.org/teex/-/teex-1.0.1.tgz";
     hash = "sha512-eYE6iEI62Ni1H8oIa7KlDU6uQBtqr4Eajni3wX7rpfXD8ysFx8z0+dri+KWEPWpBsxXfxu58x/0jvTVT1ekOSg==";
   };
-  "testcontainers@12.2.0" = fetchurl {
-    url = "https://registry.npmjs.org/testcontainers/-/testcontainers-12.2.0.tgz";
-    hash = "sha512-Pd0c2eU0DdIuK+Pb3c+vmBUdKjDLgxZmPecQGESFAKyn5LTqSaSw8l7htfMlLwabb/QsUILe6XkxMJw8Ly/ThA==";
+  "testcontainers@12.2.1" = fetchurl {
+    url = "https://registry.npmjs.org/testcontainers/-/testcontainers-12.2.1.tgz";
+    hash = "sha512-JfbCyOvLdzatwgqUI3AvYCwRW0P5mCkKQVBPO8U5qSH1efC2kHvnfWmi9VHloy1rAFG2MEqWZObRH4bq0gU1kQ==";
   };
   "text-decoder@1.2.7" = fetchurl {
     url = "https://registry.npmjs.org/text-decoder/-/text-decoder-1.2.7.tgz";
