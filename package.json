@@ -28,7 +28,7 @@
     "@commitlint/config-conventional": "21.2.3",
     "@effect/tsgo": "0.51.1",
     "@oxlint/plugins": "1.87.0",
-    "@testcontainers/postgresql": "12.2.0",
+    "@testcontainers/postgresql": "12.2.1",
     "@types/bun": "1.4.3",
     "bun2nix": "2.1.2",
     "drizzle-kit": "1.0.0-rc.4",
