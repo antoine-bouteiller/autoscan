@@ -29,7 +29,7 @@ export const PlexTokenStoreLive = Layer.effect(
         }
         const row = yield* getPlexToken
         if (row === undefined) {
-          return yield* new PlexUnauthenticatedError()
+          return yield* PlexUnauthenticatedError.make()
         }
         yield* Ref.set(cache, row.authToken)
         return row.authToken

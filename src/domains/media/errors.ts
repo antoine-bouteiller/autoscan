@@ -1,24 +1,20 @@
-import { Data } from 'effect'
+import { Schema } from 'effect'
 
-interface FileNotFoundErrorFields {
-  readonly cause?: unknown
-  readonly mediaTitle: string
-}
-
-export class FileNotFoundError extends Data.TaggedError('FileNotFoundError')<FileNotFoundErrorFields & { readonly message: string }> {
-  constructor(fields: FileNotFoundErrorFields) {
-    super({ ...fields, message: `[${fields.mediaTitle}] No file found` })
+export class FileNotFoundError extends Schema.TaggedError<FileNotFoundError, { readonly brand: unique symbol }>()('FileNotFoundError', {
+  cause: Schema.optional(Schema.Unknown),
+  mediaTitle: Schema.String,
+}) {
+  override get message() {
+    return `[${this.mediaTitle}] No file found`
   }
 }
 
-interface TmdbIdNotFoundErrorFields {
-  readonly cause?: unknown
-  readonly filePath: string
-  readonly mediaTitle: string
-}
-
-export class TmdbIdNotFoundError extends Data.TaggedError('TmdbIdNotFoundError')<TmdbIdNotFoundErrorFields & { readonly message: string }> {
-  constructor(fields: TmdbIdNotFoundErrorFields) {
-    super({ ...fields, message: `[${fields.mediaTitle}] No tmdbId found in path ${fields.filePath}` })
+export class TmdbIdNotFoundError extends Schema.TaggedError<TmdbIdNotFoundError, { readonly brand: unique symbol }>()('TmdbIdNotFoundError', {
+  cause: Schema.optional(Schema.Unknown),
+  filePath: Schema.String,
+  mediaTitle: Schema.String,
+}) {
+  override get message() {
+    return `[${this.mediaTitle}] No tmdbId found in path ${this.filePath}`
   }
 }

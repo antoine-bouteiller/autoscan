@@ -24,7 +24,7 @@ export class FfmpegClient {
     return Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       if (!(yield* fs.exists(params.input))) {
-        return yield* new FileNotFoundError({ filePath: params.input })
+        return yield* FileNotFoundError.make({ filePath: params.input })
       }
 
       const env = yield* Env
@@ -41,7 +41,7 @@ export class FfmpegClient {
     return Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       if (!(yield* fs.exists(input))) {
-        return yield* new FileNotFoundError({ filePath: input })
+        return yield* FileNotFoundError.make({ filePath: input })
       }
 
       const output = yield* spawn({
@@ -59,11 +59,11 @@ export class FfmpegClient {
       })
       const json = Schema.decodeResult(Schema.fromJsonString(Schema.Unknown))(output)
       if (Result.isFailure(json)) {
-        return yield* new ValidationError({ cause: json.failure, details: 'FFprobe returned invalid JSON' })
+        return yield* ValidationError.make({ cause: json.failure, details: 'FFprobe returned invalid JSON' })
       }
       const parsed = Schema.decodeUnknownResult(ffprobeOutputValidator, { errors: 'all' })(json.success)
       if (Result.isFailure(parsed)) {
-        return yield* new ValidationError({ details: formatSchemaIssueMessage(parsed.failure.issue) })
+        return yield* ValidationError.make({ details: formatSchemaIssueMessage(parsed.failure.issue) })
       }
       return { duration: parsed.success.format.duration, streams: parsed.success.streams }
     })

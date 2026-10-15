@@ -44,7 +44,7 @@ const runControlled = (client: PollClient, testEffect: Effect.Effect<void, never
 describe('TelegramProvider', () => {
   it.effect('uses a five-second retry delay and is interruptible', () => {
     const client = new PollClient()
-    client.updates = Effect.fail(new NetworkError({ originalMessage: 'offline', serviceName: 'Telegram' }))
+    client.updates = Effect.fail(NetworkError.make({ originalMessage: 'offline', serviceName: 'Telegram' }))
     const provider = new TelegramProvider(client, env.TELEGRAM_CHAT_ID)
 
     return runControlled(
@@ -96,7 +96,7 @@ describe('TelegramProvider', () => {
         : Effect.never
     })
     const provider = new TelegramProvider(client, env.TELEGRAM_CHAT_ID)
-    provider.registerCommand('/fail', () => Effect.fail(new NetworkError({ originalMessage: 'failed', serviceName: 'Handler' })))
+    provider.registerCommand('/fail', () => Effect.fail(NetworkError.make({ originalMessage: 'failed', serviceName: 'Handler' })))
 
     return runControlled(
       client,

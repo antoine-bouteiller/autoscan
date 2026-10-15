@@ -67,7 +67,7 @@ const processAudioStream = (
 
 export const processAudioStreams = (audioStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
   if (audioStreams.length === 0) {
-    return new AudioStreamNotFoundError({ language: originalLanguage, mediaTitle })
+    return AudioStreamNotFoundError.make({ language: originalLanguage, mediaTitle })
   }
 
   const command: string[] = []
@@ -95,7 +95,7 @@ export const processAudioStreams = (audioStreams: FFprobeStream[], originalLangu
   }
 
   if (countAudioStreamToKeep === 0) {
-    return new NoStreamsKeptError({ mediaTitle })
+    return NoStreamsKeptError.make({ mediaTitle })
   }
 
   if (countAudioStreamToKeep !== audioStreams.length) {

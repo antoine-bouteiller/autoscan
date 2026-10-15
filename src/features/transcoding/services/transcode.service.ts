@@ -22,14 +22,14 @@ const processJob = (job: TranscodeJob) =>
     const env = yield* Env
     const fileName = path.basename(job.file, job.file.slice(job.file.lastIndexOf('.')))
     if (fileName.length === 0) {
-      return yield* new FileNameInvalidError({ mediaTitle: job.mediaTitle })
+      return yield* FileNameInvalidError.make({ mediaTitle: job.mediaTitle })
     }
 
     const outputDirectory = `${env.TRANSCODE_PATH}/${fileName}`
     const recoveryMarker = path.join(outputDirectory, '.autoscan-recovery.json')
     const cleanup = Effect.ignore(fs.remove(outputDirectory, { recursive: true }))
     if (yield* fs.exists(recoveryMarker)) {
-      return yield* new ReplacementRollbackError({
+      return yield* ReplacementRollbackError.make({
         artifacts: [outputDirectory, recoveryMarker],
         cause: new Error('Unresolved replacement marker'),
       })
@@ -39,7 +39,7 @@ const processJob = (job: TranscodeJob) =>
       .filter((name) => name.includes('autoscan-') && (name.startsWith(`${fileName}.`) || name.startsWith(`.${fileName}.`)))
       .map((name) => path.join(mediaDirectory, name))
     if (recoveryArtifacts.length > 0) {
-      return yield* new ReplacementRollbackError({
+      return yield* ReplacementRollbackError.make({
         artifacts: recoveryArtifacts,
         cause: new Error('Unresolved replacement artifacts'),
       })
@@ -213,7 +213,7 @@ export const transcodeFile = (params: { file: string; mediaTitle: string; origin
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     if (!(yield* fs.exists(params.file))) {
-      const error = new FileNotFoundError({ filePath: params.file })
+      const error = FileNotFoundError.make({ filePath: params.file })
       yield* Effect.logError(Cause.fail(error), 'transcodeFile')
       const plex = yield* Plex
       yield* plex.refreshSections(params.file, params.mediaType)

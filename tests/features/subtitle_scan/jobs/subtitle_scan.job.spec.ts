@@ -77,7 +77,7 @@ const makeTraversalPlex = (file: string): TraversalPlexClient => {
       value: (id: number) => {
         sectionCalls.push(id)
         return id === 1
-          ? Effect.fail(new NetworkError({ cause: 'unavailable', originalMessage: 'unavailable', serviceName: 'PlexTest' }))
+          ? Effect.fail(NetworkError.make({ cause: 'unavailable', originalMessage: 'unavailable', serviceName: 'PlexTest' }))
           : Effect.succeed([metadata])
       },
     },
@@ -100,7 +100,7 @@ class FailingTopLevelPlexClient extends MockPlexClient {
 const makeTypedFailingTopLevelPlex = (): IPlexClient => {
   const client = new MockPlexClient()
   Object.defineProperty(client, 'getSections', {
-    value: Effect.fail(new NetworkError({ cause: 'unavailable', originalMessage: 'unavailable', serviceName: 'PlexTest' })),
+    value: Effect.fail(NetworkError.make({ cause: 'unavailable', originalMessage: 'unavailable', serviceName: 'PlexTest' })),
   })
   return client
 }
@@ -154,7 +154,7 @@ class CountingBazarr extends MockBazarrClient {
     }).pipe(
       Effect.flatMap(() => {
         if (this.frenchProfileLookup === 'failed') {
-          return Effect.fail(new NetworkError({ cause: 'unavailable', originalMessage: 'unavailable', serviceName: 'BazarrTest' }))
+          return Effect.fail(NetworkError.make({ cause: 'unavailable', originalMessage: 'unavailable', serviceName: 'BazarrTest' }))
         }
         return Effect.succeed(this.frenchProfileLookup === 'missing' ? [] : [{ name: 'French forced', profileId: 7 }])
       })

@@ -288,7 +288,7 @@ describe('scanMediaSubtitles', () => {
       yield* Effect.exit(run(details(file), undefined, empty.client))
       expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toBeUndefined()
       yield* Effect.exit(
-        provideTest(scanMediaSubtitles(details(file), Effect.fail(new NetworkError({ originalMessage: 'lookup failed', serviceName: 'test' }))), {
+        provideTest(scanMediaSubtitles(details(file), Effect.fail(NetworkError.make({ originalMessage: 'lookup failed', serviceName: 'test' }))), {
           bazarr: empty.client,
           ffmpeg,
         })
@@ -324,7 +324,7 @@ describe('scanMediaSubtitles', () => {
       const deleting = bazarr(file, [candidate])
       const failedDelete: IBazarrClient = {
         ...deleting.client,
-        deleteSubtitle: (_item, _subtitle) => Effect.fail(new NetworkError({ originalMessage: 'offline', serviceName: 'test' })),
+        deleteSubtitle: (_item, _subtitle) => Effect.fail(NetworkError.make({ originalMessage: 'offline', serviceName: 'test' })),
       }
       yield* run(details(file), deleting.item, failedDelete)
       expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toBeUndefined()
@@ -446,7 +446,7 @@ describe('scanMediaSubtitles', () => {
           verdict: 'passed',
         })
       )
-      const failing = bazarr(file, [candidate, reference], () => Effect.fail(new NetworkError({ originalMessage: 'offline', serviceName: 'test' })))
+      const failing = bazarr(file, [candidate, reference], () => Effect.fail(NetworkError.make({ originalMessage: 'offline', serviceName: 'test' })))
       yield* run(details(file), failing.item, failing.client)
       expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toBeUndefined()
       expect(sendMessageMock).not.toHaveBeenCalled()

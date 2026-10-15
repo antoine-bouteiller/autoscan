@@ -37,7 +37,7 @@ describe('SchedulerProvider', () => {
       scheduler.register({
         handler: Effect.suspend(() => {
           runs++
-          return runs === 1 ? Effect.fail(new TestFailure({ message: 'failed' })) : Effect.void
+          return runs === 1 ? Effect.fail(TestFailure.make({ message: 'failed' })) : Effect.void
         }),
         name: 'job',
         pattern: '* * * * *',

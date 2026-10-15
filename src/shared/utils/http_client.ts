@@ -117,14 +117,14 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
       const baseRequest = HttpClientRequest.make(method)(url, { headers: requestHeaders })
       const response = yield* transport
         .execute(body === undefined ? baseRequest : HttpClientRequest.bodyJsonUnsafe(baseRequest, body))
-        .pipe(Effect.mapError((cause) => new NetworkError({ cause, originalMessage: cause.message, serviceName })))
+        .pipe(Effect.mapError((cause) => NetworkError.make({ cause, originalMessage: cause.message, serviceName })))
 
       if (response.status >= 400) {
         const text = yield* response.text.pipe(Effect.orElseSucceed(() => ''))
         const now = yield* Clock.currentTimeMillis
         const parsedBody = parseBody(text)
         const formattedBody = errorFormatter === undefined ? yield* defaultFormatter(parsedBody) : errorFormatter(parsedBody)
-        return yield* new HttpError({
+        return yield* HttpError.make({
           body: formattedBody,
           retryAfterMs: parseRetryAfter(response.headers['retry-after'], now),
           route: endpoint,
@@ -137,10 +137,10 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
         return undefined
       }
 
-      const json = yield* response.json.pipe(Effect.mapError((cause) => new ValidationError({ cause, details: 'Response is not valid JSON' })))
+      const json = yield* response.json.pipe(Effect.mapError((cause) => ValidationError.make({ cause, details: 'Response is not valid JSON' })))
       const result = Schema.decodeResult(validator, { errors: 'all' })(json)
       if (Result.isFailure(result)) {
-        return yield* new ValidationError({ details: formatSchemaIssueMessage(result.failure.issue) })
+        return yield* ValidationError.make({ details: formatSchemaIssueMessage(result.failure.issue) })
       }
 
       return result.success
@@ -150,7 +150,7 @@ export const httpClient = ({ baseUrl = '', errorFormatter, headers: globalHeader
       Effect.flatMap((startedAt) => retry(() => fetchOnce, { deadline: startedAt + timeout, enabled: retryEnabled, method })),
       Effect.timeoutOrElse({
         duration: timeout,
-        orElse: () => Effect.fail(new RequestTimeoutError({ route: endpoint, serviceName })),
+        orElse: () => Effect.fail(RequestTimeoutError.make({ route: endpoint, serviceName })),
       })
     )
   }

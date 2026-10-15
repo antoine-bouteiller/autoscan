@@ -39,7 +39,7 @@ describe('transcode job', () => {
               return yield* scans.isRunning
             })
 
-          const typedFailure = yield* observeCompletion(Effect.fail(new TestFailure({ message: 'failed' })))
+          const typedFailure = yield* observeCompletion(Effect.fail(TestFailure.make({ message: 'failed' })))
           const defect = yield* observeCompletion(Effect.die('defect'))
           expect(yield* scans.start(Effect.never)).toBeTrue()
           yield* scans.clear

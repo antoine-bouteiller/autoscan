@@ -63,13 +63,13 @@ const matchesPath = (row: unknown, filePath: string) =>
 const decodeMovie = (row: unknown) => {
   const result = Schema.decodeUnknownResult(movieValidator, { errors: 'all' })(row)
   return Result.isFailure(result)
-    ? Effect.fail(new ValidationError({ details: formatSchemaIssueMessage(result.failure.issue) }))
+    ? Effect.fail(ValidationError.make({ details: formatSchemaIssueMessage(result.failure.issue) }))
     : Effect.succeed(result.success)
 }
 const decodeEpisode = (row: unknown) => {
   const result = Schema.decodeUnknownResult(episodeValidator, { errors: 'all' })(row)
   return Result.isFailure(result)
-    ? Effect.fail(new ValidationError({ details: formatSchemaIssueMessage(result.failure.issue) }))
+    ? Effect.fail(ValidationError.make({ details: formatSchemaIssueMessage(result.failure.issue) }))
     : Effect.succeed(result.success)
 }
 const movie = (row: BazarrMovieRow, missing = row.missing_subtitles): BazarrItem => ({
@@ -101,7 +101,7 @@ export class BazarrClient implements IBazarrClient {
     return this.client.get('movies', { params: { 'radarrid[]': id }, validator: moviesResponseValidator }).pipe(
       Effect.flatMap(({ data }) => {
         const row = data.find((candidate) => candidate.radarrId === id)
-        return row === undefined ? Effect.fail(new ValidationError({ details: `Movie ${id} was not returned` })) : Effect.succeed(movie(row))
+        return row === undefined ? Effect.fail(ValidationError.make({ details: `Movie ${id} was not returned` })) : Effect.succeed(movie(row))
       })
     )
   }
@@ -110,7 +110,7 @@ export class BazarrClient implements IBazarrClient {
     return this.client.get('episodes', { params: { 'episodeid[]': id }, validator: episodesResponseValidator }).pipe(
       Effect.flatMap(({ data }) => {
         const row = data.find((candidate) => candidate.sonarrEpisodeId === id)
-        return row === undefined ? Effect.fail(new ValidationError({ details: `Episode ${id} was not returned` })) : Effect.succeed(episode(row))
+        return row === undefined ? Effect.fail(ValidationError.make({ details: `Episode ${id} was not returned` })) : Effect.succeed(episode(row))
       })
     )
   }
@@ -119,7 +119,7 @@ export class BazarrClient implements IBazarrClient {
     return this.client.get('movies/wanted', { params: { length: -1 }, validator: wantedMoviesResponseValidator }).pipe(
       Effect.flatMap(({ data, total }) => {
         if (data.length !== total) {
-          return Effect.fail(new ValidationError({ details: `Wanted movies snapshot is incomplete: expected ${total}, received ${data.length}` }))
+          return Effect.fail(ValidationError.make({ details: `Wanted movies snapshot is incomplete: expected ${total}, received ${data.length}` }))
         }
         return Effect.forEach((wanted: (typeof data)[number]) =>
           this.getMovie(wanted.radarrId).pipe(Effect.map((item) => ({ ...item, missingSubtitles: missingSubtitles(wanted.missing_subtitles) })))
@@ -132,7 +132,7 @@ export class BazarrClient implements IBazarrClient {
     return this.client.get('episodes/wanted', { params: { length: -1 }, validator: wantedEpisodesResponseValidator }).pipe(
       Effect.flatMap(({ data, total }) => {
         if (data.length !== total) {
-          return Effect.fail(new ValidationError({ details: `Wanted episodes snapshot is incomplete: expected ${total}, received ${data.length}` }))
+          return Effect.fail(ValidationError.make({ details: `Wanted episodes snapshot is incomplete: expected ${total}, received ${data.length}` }))
         }
         return Effect.forEach((wanted: (typeof data)[number]) =>
           this.getEpisode(wanted.sonarrEpisodeId).pipe(

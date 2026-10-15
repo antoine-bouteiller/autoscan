@@ -67,7 +67,7 @@ export class PlexClient implements IPlexClient {
       Effect.flatMap((token) => request({ 'X-Plex-Token': token })),
       Effect.catchIf(
         (error) => error instanceof HttpError && error.status === 401,
-        () => this.invalidate.pipe(Effect.flatMap(() => new PlexUnauthenticatedError()))
+        () => this.invalidate.pipe(Effect.flatMap(() => PlexUnauthenticatedError.make()))
       )
     )
   }
@@ -80,7 +80,7 @@ export class PlexClient implements IPlexClient {
     return this.authorized((headers) => this.client.get(`library/metadata/${ratingKey}`, { headers, validator: plexResponseValidator })).pipe(
       Effect.flatMap((response) => {
         const metadata = response.MediaContainer.Metadata?.[0]
-        return metadata === undefined ? Effect.fail(new PlexError({ ratingKey })) : Effect.succeed(metadata)
+        return metadata === undefined ? Effect.fail(PlexError.make({ ratingKey })) : Effect.succeed(metadata)
       })
     )
   }

@@ -16,7 +16,7 @@ interface FrenchProfileInsert {
   bazarrKind: 'movie'
 }
 
-const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => new DatabaseQueryError(cause), try: run })
+const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
 
 export const getScan = (filePath: string, scanVersion: number) =>
   Database.use(({ sql }) =>

@@ -18,7 +18,7 @@ const translateSubtitleMock = jest
 
 const fromPromise = <Value>(run: () => Promise<Value>) =>
   Effect.tryPromise({
-    catch: (cause) => new NetworkError({ cause, originalMessage: String(cause), serviceName: 'BazarrTest' }),
+    catch: (cause) => NetworkError.make({ cause, originalMessage: String(cause), serviceName: 'BazarrTest' }),
     try: run,
   })
 

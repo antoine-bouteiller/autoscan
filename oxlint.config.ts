@@ -86,6 +86,8 @@ export default defineConfig({
     'unicorn/max-nested-calls': 'off',
     'node/no-sync': 'off',
     'one-var': 'off',
+    // Flags the `Schema.TaggedError<X>()(...)` heritage clause, which cannot use `new`.
+    'unicorn/throw-new-error': 'off',
 
     'autoscan/no-conditional-empty-object-spread': 'error',
     'autoscan/no-known-value-widening': 'error',

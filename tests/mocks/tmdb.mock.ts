@@ -4,7 +4,7 @@ import { type ITmdbClient } from '@/integrations/tmdb/tmdb.service'
 import { type TmdbMedia } from '@/integrations/tmdb/tmdb.validator'
 import { NetworkError } from '@/shared/errors/network'
 
-const missing = () => new NetworkError({ originalMessage: 'TMDB fixture missing', serviceName: 'TmdbTest' })
+const missing = () => NetworkError.make({ originalMessage: 'TMDB fixture missing', serviceName: 'TmdbTest' })
 
 export class MockTmdbClient implements ITmdbClient {
   mediaMap = new Map<string, TmdbMedia>()
