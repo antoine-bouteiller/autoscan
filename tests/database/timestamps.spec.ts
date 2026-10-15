@@ -37,7 +37,11 @@ describe('[VC-8] timestamp columns outside UTC', () => {
   })
 
   afterEach(() => {
-    process.env.TZ = originalTz
+    if (originalTz === undefined) {
+      delete process.env.TZ
+    } else {
+      process.env.TZ = originalTz
+    }
   })
 
   it.live('round-trip every timestamp column and store UTC wall-clock time', () =>
