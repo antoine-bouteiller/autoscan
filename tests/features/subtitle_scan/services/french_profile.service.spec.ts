@@ -1,7 +1,7 @@
 /* oxlint-disable unicorn/no-null -- Bazarr profile clearing and nullable database state are part of the contract. */
-import { beforeEach, spyOn } from 'bun:test'
+import { beforeEach } from 'bun:test'
 
-import { testDatabase as db } from '@tests/database'
+import { failNextStatement, testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { MockBazarrClient, setProfileMock } from '@tests/mocks/bazarr.mock'
@@ -9,7 +9,6 @@ import { DateTime, Effect, Exit, FileSystem, PlatformError } from 'effect'
 import { TestClock } from 'effect/testing'
 
 import { Bazarr } from '@/core/runtime.service'
-import { frenchProfiles } from '@/database/schema'
 import { getFrenchProfile, insertFrenchProfile } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
 import { applyFrenchProfilePolicy } from '@/features/subtitle_scan/services/french_profile.service'
 import { type SubtitleScanMedia } from '@/features/subtitle_scan/types'
@@ -35,7 +34,7 @@ describe('French movie profile policy', () => {
   beforeEach(() =>
     Effect.runPromise(
       Effect.gen(function* () {
-        yield* Effect.promise(() => db.delete(frenchProfiles))
+        yield* Effect.promise(() => testSql`DELETE FROM french_profiles`)
         setProfileMock.mockReset().mockResolvedValue(undefined)
       })
     )
@@ -241,10 +240,8 @@ describe('French movie profile policy', () => {
   it.effect('leaves assignment eligible when persistence fails after Bazarr success', () =>
     provideTest(
       Effect.gen(function* () {
-        const insert = spyOn(db, 'insert').mockImplementationOnce(() => {
-          throw new Error('database unavailable')
-        })
-        const exit = yield* Effect.exit(apply).pipe(Effect.ensuring(Effect.sync(() => insert.mockRestore())))
+        const restore = failNextStatement('INSERT', new Error('database unavailable'))
+        const exit = yield* Effect.exit(apply).pipe(Effect.ensuring(Effect.sync(restore)))
         expect(Exit.isFailure(exit)).toBeTrue()
         expect(yield* getFrenchProfile(movie)).toBeUndefined()
         yield* apply
@@ -261,10 +258,8 @@ describe('French movie profile policy', () => {
       Effect.gen(function* () {
         yield* assign
         yield* TestClock.adjust(week + 1)
-        const update = spyOn(db, 'update').mockImplementationOnce(() => {
-          throw new Error('database unavailable')
-        })
-        const exit = yield* Effect.exit(apply).pipe(Effect.ensuring(Effect.sync(() => update.mockRestore())))
+        const restore = failNextStatement('UPDATE', new Error('database unavailable'))
+        const exit = yield* Effect.exit(apply).pipe(Effect.ensuring(Effect.sync(restore)))
         expect(Exit.isFailure(exit)).toBeTrue()
         expect((yield* getFrenchProfile(movie))?.releasedAt).toBeNull()
         yield* apply

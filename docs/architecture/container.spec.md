@@ -16,7 +16,7 @@ N/A — goals are owned by `docs/architecture/architecture.spec.md`.
 | Decision                       | Choice                                                                                                                                  | Rationale                                                                                                                                             |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `[KD-1]` Service graph         | The bootstrap module builds client, database, workflow, callback-runtime, and provider layers as an explicit graph.                     | Layer dependencies encode acquisition order and make the production composition root auditable (`src/core/bootstrap.ts:45`).                          |
-| `[KD-2]` Resource acquisition  | The database resource acquires SQL with `Effect.acquireRelease` before constructing and migrating Drizzle.                              | The registered finalizer closes SQL even when construction or migration fails (`src/config/db.ts:31`).                                                |
+| `[KD-2]` Resource acquisition  | The database resource acquires SQL with `Effect.acquireRelease` before running migrations.                                              | The registered finalizer closes SQL even when migration fails (`src/config/db.ts:32`).                                                                |
 | `[KD-3]` Provider construction | HTTP, scheduler, and Telegram providers are provided as distinct services; scheduler construction receives the callback runtime runner. | Transport providers retain their specific contracts while scheduled callbacks run in the scoped application environment (`src/core/bootstrap.ts:71`). |
 
 ## 4. Principles & Intents
@@ -34,11 +34,11 @@ N/A — goals are owned by `docs/architecture/architecture.spec.md`.
 
 ## 7. High-Level Components
 
-| Component       | Module type    | Responsibility                                              | Public API surface                     |
-| --------------- | -------------- | ----------------------------------------------------------- | -------------------------------------- |
-| Bootstrap       | Effect program | Assemble layers, start providers, and attach finalization   | `program`, `shutdownRuntime`           |
-| Database layer  | Effect layer   | Acquire, migrate, expose, and release SQL/Drizzle resources | `DatabaseLive`, `makeDatabaseResource` |
-| Provider layers | Effect layers  | Expose HTTP, scheduler, and Telegram provider instances     | `Http`, `Scheduler`, `TelegramBot`     |
+| Component       | Module type    | Responsibility                                            | Public API surface                     |
+| --------------- | -------------- | --------------------------------------------------------- | -------------------------------------- |
+| Bootstrap       | Effect program | Assemble layers, start providers, and attach finalization | `program`, `shutdownRuntime`           |
+| Database layer  | Effect layer   | Acquire, migrate, expose, and release the Bun SQL client  | `DatabaseLive`, `makeDatabaseResource` |
+| Provider layers | Effect layers  | Expose HTTP, scheduler, and Telegram provider instances   | `Http`, `Scheduler`, `TelegramBot`     |
 
 ## 8. Detailed Design
 
@@ -59,7 +59,7 @@ The program retrieves provider and workflow services, installs a finalizer, regi
 
 ### Database lifetime
 
-`makeDatabaseResource` wraps SQL opening, Drizzle construction, and migration in typed database-initialization errors. Its acquire-release pairing makes SQL closure part of the resource scope rather than a caller responsibility (`src/config/db.ts:31`).
+`makeDatabaseResource` wraps SQL opening and migration in typed database-initialization errors. Migration runs `src/database/migrator.ts`, which applies each pending `migrations/<name>/migration.sql` in its own transaction under an advisory lock, records it in `public.schema_migrations`, and on first start adopts the history in `drizzle.__drizzle_migrations`. Its acquire-release pairing makes SQL closure part of the resource scope rather than a caller responsibility (`src/config/db.ts:32`).
 
 ## 9. Open Questions
 

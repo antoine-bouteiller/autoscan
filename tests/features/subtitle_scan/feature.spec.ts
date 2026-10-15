@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
-import { testDatabase as db } from '@tests/database'
+import { testSql } from '@tests/database'
 import { makeTestContext } from '@tests/effect'
 import { it } from '@tests/it'
 import { MockBazarrClient, MockPlexClient, MockTelegramClient, MockTmdbClient } from '@tests/utils'
@@ -8,7 +8,6 @@ import { Context, Effect, FileSystem, Ref } from 'effect'
 import { TestClock } from 'effect/testing'
 
 import { BackgroundTasks } from '@/core/runtime.service'
-import { frenchProfiles, media, missingSubtitles, subtitleScans } from '@/database/schema'
 import { features } from '@/features/index'
 import { subtitleScanCommand } from '@/features/subtitle_scan/commands/subtitle_scan.command'
 import { subtitleScanFeature } from '@/features/subtitle_scan/feature'
@@ -22,7 +21,13 @@ import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validat
 import { type ISOCode1 } from '@/shared/types/iso_codes'
 
 const DAY = 86_400_000
-const cleanSubtitleScanRows = () => Promise.all([db.delete(frenchProfiles), db.delete(media), db.delete(missingSubtitles), db.delete(subtitleScans)])
+const cleanSubtitleScanRows = () =>
+  Promise.all([
+    testSql`DELETE FROM french_profiles`,
+    testSql`DELETE FROM media`,
+    testSql`DELETE FROM missing_subtitles`,
+    testSql`DELETE FROM subtitle_scans`,
+  ])
 
 class AcceptanceBazarr extends MockBazarrClient {
   readonly lookups = new Map<string, number>()
@@ -268,7 +273,7 @@ describe('subtitle scan feature', () => {
       expect(bazarr.syncs).toHaveLength(1)
       expect((yield* Ref.get(alerts)).filter((message) => message.startsWith('Invalid subtitle'))).toEqual(['Invalid subtitle for Item 2 (fr)'])
       expect(bazarr.profileWrites).toEqual([[frenchMovie, 7]])
-      expect(yield* Effect.promise(() => db.select().from(subtitleScans))).toHaveLength(2)
+      expect(yield* Effect.promise(() => testSql`SELECT 1 FROM subtitle_scans`)).toHaveLength(2)
     })
   )
 })

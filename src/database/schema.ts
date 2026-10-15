@@ -1,70 +1,53 @@
-import { integer, pgEnum, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { type ISOCode1 } from '@/shared/types/iso_codes'
 
-import { ISO1 } from '@/shared/types/iso_codes'
+const MEDIA_TYPES = ['movie', 'show'] as const
+const SUBTITLE_VERDICTS = ['passed', 'forced_removed', 'sync_requested', 'invalid'] as const
+const BAZARR_KINDS = ['movie', 'episode'] as const
 
-export const mediaTypeEnum = pgEnum('media_type', ['movie', 'show'])
-export const subtitleVerdictEnum = pgEnum('subtitle_verdict', ['passed', 'forced_removed', 'sync_requested', 'invalid'])
-export const bazarrKindEnum = pgEnum('bazarr_kind', ['movie', 'episode'])
+type MediaType = (typeof MEDIA_TYPES)[number]
+type SubtitleVerdict = (typeof SUBTITLE_VERDICTS)[number]
+type BazarrKind = (typeof BAZARR_KINDS)[number]
 
-export const media = pgTable(
-  'media',
-  {
-    originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
-    preferredLanguage: text('preferred_language', { enum: ISO1 }).notNull(),
-    title: text().notNull(),
-    tmdbId: integer('tmdb_id').notNull(),
-    type: mediaTypeEnum().notNull(),
-  },
-  (table) => [
-    primaryKey({
-      columns: [table.tmdbId, table.type],
-      name: 'media_tmdb_id_type_pk',
-    }),
-  ]
-)
+export interface Media {
+  originalLanguage: ISOCode1
+  preferredLanguage: ISOCode1
+  title: string
+  tmdbId: number
+  type: MediaType
+}
 
-export const plexTokens = pgTable('plex_tokens', {
-  authToken: text('auth_token').notNull(),
-  clientIdentifier: text('client_identifier').notNull(),
-  id: serial().primaryKey(),
-  linkedAt: timestamp('linked_at').notNull(),
-})
+export interface PlexToken {
+  authToken: string
+  clientIdentifier: string
+  id: number
+  linkedAt: Date
+}
 
-export const subtitleScans = pgTable('subtitle_scans', {
-  filePath: text('file_path').primaryKey(),
-  scanVersion: integer('scan_version').notNull(),
-  scannedAt: timestamp('scanned_at').notNull(),
-  verdict: subtitleVerdictEnum().notNull(),
-})
+export interface SubtitleScan {
+  filePath: string
+  scanVersion: number
+  scannedAt: Date
+  verdict: SubtitleVerdict
+}
 
-export const transcodeScans = pgTable('transcode_scans', {
-  filePath: text('file_path').primaryKey(),
-  originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
-  scanVersion: integer('scan_version').notNull(),
-  scannedAt: timestamp('scanned_at').notNull(),
-})
+export interface TranscodeScan {
+  filePath: string
+  originalLanguage: ISOCode1
+  scanVersion: number
+  scannedAt: Date
+}
 
-export const missingSubtitles = pgTable(
-  'missing_subtitles',
-  {
-    actedAt: timestamp('acted_at'),
-    bazarrId: integer('bazarr_id').notNull(),
-    bazarrKind: bazarrKindEnum('bazarr_kind').notNull(),
-    firstSeenAt: timestamp('first_seen_at').notNull(),
-    language: text({ enum: ISO1 }).notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.bazarrKind, table.bazarrId, table.language] })]
-)
+export interface MissingSubtitle {
+  actedAt: Date | null
+  bazarrId: number
+  bazarrKind: BazarrKind
+  firstSeenAt: Date
+  language: ISOCode1
+}
 
-export const frenchProfiles = pgTable(
-  'french_profiles',
-  {
-    assignedAt: timestamp('assigned_at').notNull(),
-    bazarrId: integer('bazarr_id').notNull(),
-    bazarrKind: bazarrKindEnum('bazarr_kind').notNull(),
-    releasedAt: timestamp('released_at'),
-  },
-  (table) => [primaryKey({ columns: [table.bazarrKind, table.bazarrId] })]
-)
-
-export type Media = typeof media.$inferSelect
+export interface FrenchProfile {
+  assignedAt: Date
+  bazarrId: number
+  bazarrKind: BazarrKind
+  releasedAt: Date | null
+}

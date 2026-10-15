@@ -71,7 +71,7 @@ src/
 
 ### Source partitions
 
-`src/config` owns environment loading, logging, and database setup; `src/core` owns bootstrap, service contracts, and feature registration. `src/database` owns the Drizzle schema; `src/domains` owns cross-feature business modules; `src/features` owns business capabilities; `src/integrations` owns vendor adapters; `src/providers` owns runtime hosts; and `src/shared` owns reusable utilities, errors, and types. These are the top-level source directories.
+`src/config` owns environment loading, logging, and database setup; `src/core` owns bootstrap, service contracts, and feature registration. `src/database` owns the row types and the migrator; `src/domains` owns cross-feature business modules; `src/features` owns business capabilities; `src/integrations` owns vendor adapters; `src/providers` owns runtime hosts; and `src/shared` owns reusable utilities, errors, and types. These are the top-level source directories.
 
 ### Feature modules
 

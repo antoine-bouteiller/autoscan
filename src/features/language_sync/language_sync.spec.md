@@ -60,7 +60,7 @@ The job reads Plex sections, obtains their media, resolves complete media detail
 
 ### Language service
 
-For each part, the service finds an audio stream with `streamType === 2` whose normalized code equals `preferredLanguage`. If that stream is not selected, it updates audio; for `fr`, it then sets subtitle stream `0` (`src/features/language_sync/services/language.service.ts:55`, `src/features/language_sync/services/language.service.ts:80`). Absence of a match logs a warning, sends `No <language> audio stream found for <media title>` to `TELEGRAM_CHAT_ID`, and makes no selection. Telegram delivery is best-effort: a non-interruption failure is logged, while interruption propagates.
+For each part, the service finds an audio stream with `streamType === 2` whose normalized code equals `preferredLanguage`. If that stream is not selected, it updates audio; for `fr`, it then sets subtitle stream `0` (`src/features/language_sync/services/language.service.ts:54`, `src/features/language_sync/services/language.service.ts:79`). Absence of a match logs a warning, sends `No <language> audio stream found for <media title>` to `TELEGRAM_CHAT_ID`, and makes no selection. Telegram delivery is best-effort: a non-interruption failure is logged, while interruption propagates.
 
 The conversation transitions as follows:
 
@@ -68,7 +68,7 @@ The conversation transitions as follows:
 /setlanguage → awaiting_media_type → awaiting_media_selection → awaiting_language → idle
 ```
 
-It offers movie/show, a paginated media keyboard, then ISO-639-1 codes in six-column rows. The language choice normalizes the code, updates `media.preferredLanguage` for the selected TMDB id and type, edits the prompt, and returns `idle` (`src/features/language_sync/services/language.service.ts:116`).
+It offers movie/show, a paginated media keyboard, then ISO-639-1 codes in six-column rows. The language choice normalizes the code, updates `media.preferredLanguage` for the selected TMDB id and type, edits the prompt, and returns `idle` (`src/features/language_sync/services/language.service.ts:115`).
 
 ### Set-language conversation
 

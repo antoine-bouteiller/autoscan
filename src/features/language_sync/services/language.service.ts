@@ -1,10 +1,9 @@
-import { and, eq } from 'drizzle-orm'
 import { Cause, Effect } from 'effect'
 
 import { DatabaseQueryError } from '@/config/db'
 import { Env } from '@/config/env'
 import { Database, Plex, Telegram } from '@/core/runtime.service'
-import { media, type Media } from '@/database/schema'
+import { type Media } from '@/database/schema'
 import { getMediaByTypeWithPagination } from '@/domains/media/repositories/media.repository'
 import { type UpdateLanguageParams } from '@/features/language_sync/types'
 import { type MediaType } from '@/integrations/plex/plex.service'
@@ -128,14 +127,13 @@ export const selectMedia = (client: ITelegramClient, chatId: number, params: { s
 export const selectLanguage = (client: ITelegramClient, chatId: number, params: { state: AwaitingLanguageState; lang: string }) =>
   Effect.gen(function* () {
     const { state, lang } = params
-    yield* Database.use(({ db }) =>
+    yield* Database.use(({ sql }) =>
       Effect.tryPromise({
         catch: (cause) => new DatabaseQueryError(cause),
-        try: () =>
-          db
-            .update(media)
-            .set({ preferredLanguage: normalizeToIso1(lang) })
-            .where(and(eq(media.tmdbId, state.tmdbId), eq(media.type, state.mediaType))),
+        try: () => sql`
+          UPDATE media SET preferred_language = ${normalizeToIso1(lang)}
+          WHERE tmdb_id = ${state.tmdbId} AND type = ${state.mediaType}
+        `,
       })
     )
     yield* client.editMessageText(chatId, state.messageId, { text: `Language updated to ${lang}` })

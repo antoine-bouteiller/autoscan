@@ -1,11 +1,10 @@
 import { beforeEach } from 'bun:test'
 
-import { testDatabase as db } from '@tests/database'
+import { testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { Effect } from 'effect'
 
-import { media } from '@/database/schema'
 import {
   countMediaByType,
   createdOrUpdatedMedia,
@@ -14,7 +13,7 @@ import {
 } from '@/domains/media/repositories/media.repository'
 
 describe('media repository', () => {
-  beforeEach(() => Effect.runPromise(Effect.promise(() => db.delete(media))))
+  beforeEach(() => Effect.runPromise(Effect.promise(() => testSql`DELETE FROM media`)))
 
   it.live('creates and updates media', () =>
     Effect.gen(function* () {

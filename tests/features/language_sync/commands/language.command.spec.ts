@@ -1,12 +1,11 @@
 import { beforeEach } from 'bun:test'
 
-import { testDatabase as db } from '@tests/database'
+import { testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { answerCallbackQueryMock, editMessageTextMock, MockTelegramClient, sendMessageMock } from '@tests/utils'
 import { Effect } from 'effect'
 
-import { media } from '@/database/schema'
 import { setLanguageConversation } from '@/features/language_sync/commands/language.command'
 
 const client = new MockTelegramClient()
@@ -16,7 +15,7 @@ describe('setLanguageConversation', () => {
   beforeEach(() =>
     Effect.runPromise(
       Effect.gen(function* () {
-        yield* Effect.promise(() => db.delete(media))
+        yield* Effect.promise(() => testSql`DELETE FROM media`)
         sendMessageMock.mockClear().mockResolvedValue(100)
         editMessageTextMock.mockClear()
         answerCallbackQueryMock.mockClear()
@@ -39,8 +38,8 @@ describe('setLanguageConversation', () => {
 
   it.live('selects a media type', () =>
     Effect.gen(function* () {
-      yield* Effect.promise(() =>
-        db.insert(media).values({ originalLanguage: 'en', preferredLanguage: 'en', title: 'Movie', tmdbId: 1, type: 'movie' })
+      yield* Effect.promise(
+        () => testSql`INSERT INTO media (original_language, preferred_language, title, tmdb_id, type) VALUES ('en', 'en', 'Movie', 1, 'movie')`
       )
       const state = yield* provideTest(
         setLanguageConversation.onCallback(client, 1, {

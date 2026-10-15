@@ -1,6 +1,6 @@
 import { beforeEach } from 'bun:test'
 
-import { testDatabase as db } from '@tests/database'
+import { testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { checkPinMock, createPinMock, editMessageTextMock, MockTelegramClient, sendMessageMock, verifyTokenMock } from '@tests/utils'
@@ -8,7 +8,6 @@ import { DateTime, Effect } from 'effect'
 import { TestClock } from 'effect/testing'
 
 import { AuthenticationTasks } from '@/core/runtime.service'
-import { plexTokens } from '@/database/schema'
 import { plexAuthCommand } from '@/features/plex_auth/commands/plex.command'
 
 const client = new MockTelegramClient()
@@ -16,14 +15,14 @@ const message = { chat: { id: 1 }, message_id: 1, text: '/plex' }
 
 const storeToken = Effect.gen(function* () {
   const linkedAt = yield* DateTime.nowAsDate
-  yield* Effect.promise(() => db.insert(plexTokens).values({ authToken: 'stored', clientIdentifier: 'stored-id', linkedAt }))
+  yield* Effect.promise(() => testSql`INSERT INTO plex_tokens (auth_token, client_identifier, linked_at) VALUES ('stored', 'stored-id', ${linkedAt})`)
 })
 
 describe('Plex auth command', () => {
   beforeEach(() =>
     Effect.runPromise(
       Effect.gen(function* () {
-        yield* Effect.promise(() => db.delete(plexTokens))
+        yield* Effect.promise(() => testSql`DELETE FROM plex_tokens`)
         sendMessageMock.mockClear().mockResolvedValue(100)
         editMessageTextMock.mockClear()
         createPinMock.mockClear().mockResolvedValue({ code: 'PIN1', expiresIn: 900, id: 42 })
@@ -75,7 +74,7 @@ describe('Plex auth command', () => {
         })
       )
 
-      const rows = yield* Effect.promise(() => db.select().from(plexTokens))
+      const rows = yield* Effect.promise(() => testSql<{ authToken: string }[]>`SELECT auth_token AS "authToken" FROM plex_tokens`)
       expect(rows[0]?.authToken).toBe('granted')
       expect(editMessageTextMock).toHaveBeenLastCalledWith(1, 100, { text: 'Plex authentication successful!' })
     })
@@ -94,7 +93,7 @@ describe('Plex auth command', () => {
         })
       )
 
-      expect(yield* Effect.promise(() => db.select().from(plexTokens))).toHaveLength(0)
+      expect(yield* Effect.promise(() => testSql`SELECT 1 FROM plex_tokens`)).toHaveLength(0)
       expect(editMessageTextMock).toHaveBeenLastCalledWith(1, 100, { text: 'Plex authentication failed or timed out.' })
     })
   )

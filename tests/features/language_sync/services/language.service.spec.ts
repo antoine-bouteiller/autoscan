@@ -1,13 +1,12 @@
 import { beforeEach } from 'bun:test'
 
-import { testDatabase as db } from '@tests/database'
+import { testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { testEnv } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
 import { editMessageTextMock, MockPlexClient, MockTelegramClient, sendMessageMock, updateStreamMock } from '@tests/utils'
 import { Cause, Effect, Exit } from 'effect'
 
-import { media } from '@/database/schema'
 import {
   buildLanguageKeyboard,
   buildMediaKeyboard,
@@ -29,13 +28,15 @@ class InterruptingTelegramClient extends MockTelegramClient {
 }
 
 const insertMedia = () =>
-  Effect.promise(() => db.insert(media).values({ originalLanguage: 'en', preferredLanguage: 'en', title: 'Movie', tmdbId: 1, type: 'movie' }))
+  Effect.promise(
+    () => testSql`INSERT INTO media (original_language, preferred_language, title, tmdb_id, type) VALUES ('en', 'en', 'Movie', 1, 'movie')`
+  )
 
 describe('language service', () => {
   beforeEach(() =>
     Effect.runPromise(
       Effect.gen(function* () {
-        yield* Effect.promise(() => db.delete(media))
+        yield* Effect.promise(() => testSql`DELETE FROM media`)
         editMessageTextMock.mockClear()
         sendMessageMock.mockReset().mockResolvedValue(100)
         updateStreamMock.mockClear()
@@ -82,7 +83,7 @@ describe('language service', () => {
       yield* provideTest(
         selectLanguage(client, 1, { lang: 'fr', state: { mediaType: 'movie', messageId: 10, step: 'awaiting_language', tmdbId: 1 } })
       )
-      const rows = yield* Effect.promise(() => db.select().from(media))
+      const rows = yield* Effect.promise(() => testSql<{ preferredLanguage: string }[]>`SELECT preferred_language AS "preferredLanguage" FROM media`)
       expect(rows[0]?.preferredLanguage).toBe('fr')
     })
   )

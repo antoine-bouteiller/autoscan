@@ -1,13 +1,12 @@
-import { beforeEach, spyOn } from 'bun:test'
+import { beforeEach } from 'bun:test'
 
-import { testDatabase as db } from '@tests/database'
+import { failNextStatement, testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { MockBazarrClient, MockTelegramClient } from '@tests/utils'
 import { Cause, Effect, Exit, Ref } from 'effect'
 import { TestClock } from 'effect/testing'
 
-import { frenchProfiles, missingSubtitles, subtitleScans } from '@/database/schema'
 import { listMissing } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
 import { applyMissingPolicy } from '@/features/subtitle_scan/services/missing_subtitles.service'
 import { type BazarrItem, type BazarrItemRef, type BazarrSubtitleRef, type IBazarrClient } from '@/integrations/bazarr/bazarr.service'
@@ -96,9 +95,9 @@ const service = (movies: BazarrItem[], episodes: BazarrItem[] = []) =>
 const run = (bazarr: IBazarrClient, telegram: ITelegramClient) => provideTest(applyMissingPolicy, { bazarr, telegram })
 const clean = () =>
   Effect.gen(function* () {
-    yield* Effect.promise(() => db.delete(frenchProfiles))
-    yield* Effect.promise(() => db.delete(missingSubtitles))
-    yield* Effect.promise(() => db.delete(subtitleScans))
+    yield* Effect.promise(() => testSql`DELETE FROM french_profiles`)
+    yield* Effect.promise(() => testSql`DELETE FROM missing_subtitles`)
+    yield* Effect.promise(() => testSql`DELETE FROM subtitle_scans`)
   })
 
 beforeEach(() => Effect.runPromise(clean()))
@@ -269,10 +268,8 @@ describe('applyMissingPolicy', () => {
       const test = yield* service([item({ subtitles: [{ forced: false, hi: false, language: 'es', path: '/library/movie.es.srt' }] })])
       yield* run(test.bazarr, test.telegram)
       yield* TestClock.adjust(3 * DAY + 1)
-      const update = spyOn(db, 'update').mockImplementationOnce(() => {
-        throw new Error('database unavailable')
-      })
-      yield* run(test.bazarr, test.telegram).pipe(Effect.ensuring(Effect.sync(() => update.mockRestore())))
+      const restore = failNextStatement('UPDATE', new Error('database unavailable'))
+      yield* run(test.bazarr, test.telegram).pipe(Effect.ensuring(Effect.sync(restore)))
       expect((yield* provideTest(listMissing))[0]?.actedAt).toBeNull()
       yield* run(test.bazarr, test.telegram)
       expect(yield* Ref.get(test.translations)).toHaveLength(2)
