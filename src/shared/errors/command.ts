@@ -1,14 +1,12 @@
-import { Data } from 'effect'
+import { Schema } from 'effect'
 
-interface CommandExecutionErrorFields {
-  readonly cause?: unknown
-  readonly command: string
-  readonly exitCode: number
-  readonly stderr: string
-}
-
-export class CommandExecutionError extends Data.TaggedError('CommandExecutionError')<CommandExecutionErrorFields & { readonly message: string }> {
-  constructor(fields: CommandExecutionErrorFields) {
-    super({ ...fields, message: `Command ${fields.command} failed with exit code ${fields.exitCode}: ${fields.stderr}` })
+export class CommandExecutionError extends Schema.TaggedError<CommandExecutionError, { readonly brand: unique symbol }>()('CommandExecutionError', {
+  cause: Schema.optional(Schema.Unknown),
+  command: Schema.String,
+  exitCode: Schema.Finite,
+  stderr: Schema.String,
+}) {
+  override get message() {
+    return `Command ${this.command} failed with exit code ${this.exitCode}: ${this.stderr}`
   }
 }

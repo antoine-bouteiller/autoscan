@@ -1,13 +1,11 @@
-import { Data } from 'effect'
+import { Schema } from 'effect'
 
-interface NetworkErrorFields {
-  readonly cause?: unknown
-  readonly originalMessage: string
-  readonly serviceName: string
-}
-
-export class NetworkError extends Data.TaggedError('NetworkError')<NetworkErrorFields & { readonly message: string }> {
-  constructor(fields: NetworkErrorFields) {
-    super({ ...fields, message: `(${fields.serviceName}) Network Error: ${fields.originalMessage}` })
+export class NetworkError extends Schema.TaggedError<NetworkError, { readonly brand: unique symbol }>()('NetworkError', {
+  cause: Schema.optional(Schema.Unknown),
+  originalMessage: Schema.String,
+  serviceName: Schema.String,
+}) {
+  override get message() {
+    return `(${this.serviceName}) Network Error: ${this.originalMessage}`
   }
 }

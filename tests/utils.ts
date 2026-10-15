@@ -1,4 +1,4 @@
-import { Crypto, Data, Effect, FileSystem } from 'effect'
+import { Crypto, Effect, FileSystem, Schema } from 'effect'
 
 export { MockBazarrClient } from './mocks/bazarr.mock.ts'
 export { checkPinMock, createPinMock, MockPlexClient, refreshSectionsMock, updateStreamMock, verifyTokenMock } from './mocks/plex.mock.ts'
@@ -7,7 +7,7 @@ export { MockSonarrClient, mockSonarrQueue, mockSonarrRemoveQueueItem } from './
 export { answerCallbackQueryMock, editMessageTextMock, MockTelegramClient, sendMessageMock } from './mocks/telegram.mock.ts'
 export { MockTmdbClient } from './mocks/tmdb.mock.ts'
 
-export class TestFailure extends Data.TaggedError('TestFailure')<{ readonly message: string }> {}
+export class TestFailure extends Schema.TaggedError<TestFailure, { readonly brand: unique symbol }>()('TestFailure', { message: Schema.String }) {}
 
 export const videosPath = `${import.meta.dirname}/resources/videos`
 

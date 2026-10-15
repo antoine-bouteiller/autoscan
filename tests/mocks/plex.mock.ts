@@ -16,7 +16,7 @@ export const checkPinMock = jest.fn<(id: number, clientIdentifier: string) => Pr
 export const verifyTokenMock = jest.fn<(token: string, clientIdentifier: string) => Promise<boolean>>().mockResolvedValue(true)
 
 const fromPromise = <Value>(run: () => Promise<Value>) =>
-  Effect.tryPromise({ catch: (cause) => new NetworkError({ cause, originalMessage: String(cause), serviceName: 'PlexTest' }), try: run })
+  Effect.tryPromise({ catch: (cause) => NetworkError.make({ cause, originalMessage: String(cause), serviceName: 'PlexTest' }), try: run })
 
 const movies = [
   {
@@ -63,7 +63,7 @@ const episodes = [
 export class MockPlexClient implements IPlexClient {
   getPlexMetadata(ratingKey: number) {
     const media = plexMetadata[ratingKey]
-    return media === undefined ? Effect.fail(new PlexError({ ratingKey })) : Effect.succeed(media)
+    return media === undefined ? Effect.fail(PlexError.make({ ratingKey })) : Effect.succeed(media)
   }
 
   getBasicMediaInfo(plexMedia: PlexMedia) {

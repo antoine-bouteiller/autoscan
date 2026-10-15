@@ -174,7 +174,7 @@ describe('transcodeFile', () => {
       sendMessageMock.mockClear()
       expect(
         yield* provideTest(transcode(file), {
-          ffmpeg: ffmpeg(() => Effect.fail(new FileNotFoundError({ filePath: file }))),
+          ffmpeg: ffmpeg(() => Effect.fail(FileNotFoundError.make({ filePath: file }))),
         })
       ).toBeFalse()
       expect(sendMessageMock).not.toHaveBeenCalled()

@@ -25,16 +25,16 @@
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
-    "@effect/tsgo": "0.51.1",
-    "@oxlint/plugins": "1.87.0",
+    "@effect/tsgo": "0.53.0",
+    "@oxlint/plugins": "1.88.0",
     "@testcontainers/postgresql": "12.2.1",
     "@types/bun": "1.4.3",
     "bun2nix": "2.1.2",
     "knip": "6.39.0",
     "lefthook": "2.2.2",
-    "oxfmt": "0.72.0",
-    "oxlint": "1.87.0",
-    "oxlint-tsgolint": "7.0.2003",
+    "oxfmt": "0.73.0",
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
     "typescript": "7.0.2"
   },
   "overrides": {

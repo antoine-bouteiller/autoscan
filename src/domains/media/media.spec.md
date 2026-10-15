@@ -79,7 +79,7 @@ Repository operations acquire the `Database` Effect service and wrap rejected Bu
 
 ### Media errors
 
-`FileNotFoundError` carries the media title for absent primary files. `TmdbIdNotFoundError` carries both title and path when correlation fails; both are `Data.TaggedError` values with readable messages (`src/domains/media/errors.ts:3-23`).
+`FileNotFoundError` carries the media title for absent primary files. `TmdbIdNotFoundError` carries both title and path when correlation fails; both are `Schema.TaggedError` values with readable messages (`src/domains/media/errors.ts:3-23`).
 
 ## 9. Open Questions
 

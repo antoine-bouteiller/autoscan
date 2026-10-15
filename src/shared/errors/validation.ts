@@ -1,12 +1,10 @@
-import { Data } from 'effect'
+import { Schema } from 'effect'
 
-interface ValidationErrorFields {
-  readonly cause?: unknown
-  readonly details: string
-}
-
-export class ValidationError extends Data.TaggedError('ValidationError')<ValidationErrorFields & { readonly message: string }> {
-  constructor(fields: ValidationErrorFields) {
-    super({ ...fields, message: `Validation error: ${fields.details}` })
+export class ValidationError extends Schema.TaggedError<ValidationError, { readonly brand: unique symbol }>()('ValidationError', {
+  cause: Schema.optional(Schema.Unknown),
+  details: Schema.String,
+}) {
+  override get message() {
+    return `Validation error: ${this.details}`
   }
 }

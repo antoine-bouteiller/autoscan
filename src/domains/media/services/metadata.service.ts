@@ -46,12 +46,12 @@ export const getCompleteMediaDetails = (ratingKey: number) =>
     const part = plexMetadata.Media[0]?.Part[0]
 
     if (part?.file === undefined) {
-      return yield* new FileNotFoundError({ mediaTitle })
+      return yield* FileNotFoundError.make({ mediaTitle })
     }
 
     const tmdbId = extractTmdbIdFromPath(part.file)
     if (tmdbId === undefined || Number.isNaN(tmdbId)) {
-      return yield* new TmdbIdNotFoundError({ filePath: part.file, mediaTitle })
+      return yield* TmdbIdNotFoundError.make({ filePath: part.file, mediaTitle })
     }
 
     const mediaType: MediaType = plexMetadata.type === 'episode' ? 'show' : plexMetadata.type

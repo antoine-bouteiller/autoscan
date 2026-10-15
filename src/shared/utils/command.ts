@@ -16,7 +16,7 @@ interface SpawnParams {
 export const spawn = (params: SpawnParams) => {
   const args = params.args ?? []
   const commandText = `${params.command} ${args.join(' ')}`.trim()
-  const failure = (fields: { cause?: unknown; exitCode: number; stderr: string }) => new CommandExecutionError({ ...fields, command: commandText })
+  const failure = (fields: { cause?: unknown; exitCode: number; stderr: string }) => CommandExecutionError.make({ ...fields, command: commandText })
 
   const execute = Effect.gen(function* () {
     const handle = yield* ChildProcess.make(params.command, [...args], {

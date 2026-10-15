@@ -7,7 +7,7 @@ import { type TranscodeScan } from '@/database/schema'
 export type TranscodeScanRecord = TranscodeScan
 export type TranscodeScanKey = Pick<TranscodeScanRecord, 'filePath' | 'originalLanguage' | 'scanVersion'>
 
-const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => new DatabaseQueryError(cause), try: run })
+const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
 
 export const getScan = (key: TranscodeScanKey) =>
   Database.use(({ sql }) =>

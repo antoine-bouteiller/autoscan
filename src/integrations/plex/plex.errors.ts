@@ -1,18 +1,19 @@
-import { Data } from 'effect'
+import { Schema } from 'effect'
 
-interface PlexErrorFields {
-  readonly cause?: unknown
-  readonly ratingKey: number
-}
-
-export class PlexError extends Data.TaggedError('PlexError')<PlexErrorFields & { readonly message: string }> {
-  constructor(fields: PlexErrorFields) {
-    super({ ...fields, message: `(Plex) Not metadata found for media: ${fields.ratingKey}` })
+export class PlexError extends Schema.TaggedError<PlexError, { readonly brand: unique symbol }>()('PlexError', {
+  cause: Schema.optional(Schema.Unknown),
+  ratingKey: Schema.Finite,
+}) {
+  override get message() {
+    return `(Plex) Not metadata found for media: ${this.ratingKey}`
   }
 }
 
-export class PlexUnauthenticatedError extends Data.TaggedError('PlexUnauthenticatedError')<{ readonly message: string }> {
-  constructor() {
-    super({ message: '(Plex) Token missing or rejected, run /plex to link the account' })
+export class PlexUnauthenticatedError extends Schema.TaggedError<PlexUnauthenticatedError, { readonly brand: unique symbol }>()(
+  'PlexUnauthenticatedError',
+  {}
+) {
+  override get message() {
+    return '(Plex) Token missing or rejected, run /plex to link the account'
   }
 }

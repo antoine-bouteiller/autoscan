@@ -22,7 +22,7 @@ interface Translation {
   target: string
 }
 
-const networkError = () => new NetworkError({ cause: 'unavailable', originalMessage: 'unavailable', serviceName: 'BazarrTest' })
+const networkError = () => NetworkError.make({ cause: 'unavailable', originalMessage: 'unavailable', serviceName: 'BazarrTest' })
 const item = (overrides: Partial<Movie> = {}): Movie => ({
   id: 1,
   kind: 'movie',

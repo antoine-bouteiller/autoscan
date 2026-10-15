@@ -175,7 +175,7 @@ describe('cleanupAll', () => {
         refreshMovie: () => Effect.void,
         removeQueueItem: () => {
           attempts += 1
-          return fails ? Effect.fail(new NetworkError({ originalMessage: 'failed', serviceName: 'Radarr' })) : Effect.void
+          return fails ? Effect.fail(NetworkError.make({ originalMessage: 'failed', serviceName: 'Radarr' })) : Effect.void
         },
         renameMovie: () => Effect.void,
       }

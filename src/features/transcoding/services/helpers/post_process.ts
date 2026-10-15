@@ -47,7 +47,7 @@ const liveReplacementOperations: Effect.Effect<ReplacementOperations, never, Fil
 })
 
 const durableOperation = (filePath: string, operation: string, run: Effect.Effect<void, PlatformError.PlatformError>) =>
-  Effect.uninterruptible(Effect.mapError(run, (cause) => new FileAccessError({ cause, filePath, operation })))
+  Effect.uninterruptible(Effect.mapError(run, (cause) => FileAccessError.make({ cause, filePath, operation })))
 
 /** @internal */
 export const replaceOutputs = (inputFile: string, outputDirectory: string, options: { operations?: ReplacementOperations; outputFiles: string[] }) =>
@@ -75,9 +75,8 @@ export const replaceOutputs = (inputFile: string, outputDirectory: string, optio
 
     const stage = Effect.gen(function* () {
       for (const output of outputs) {
-        yield* Effect.mapError(
-          operations.copyFile(output.source, output.stage),
-          (cause) => new FileAccessError({ cause, filePath: output.stage, operation: 'stage replacement' })
+        yield* Effect.mapError(operations.copyFile(output.source, output.stage), (cause) =>
+          FileAccessError.make({ cause, filePath: output.stage, operation: 'stage replacement' })
         )
         yield* durableOperation(output.stage, 'fsync replacement stage', operations.fsync(output.stage))
       }
@@ -100,7 +99,7 @@ export const replaceOutputs = (inputFile: string, outputDirectory: string, optio
         }).pipe(
           Effect.catch((error) => {
             preserveArtifacts = true
-            return Effect.fail(new ReplacementRollbackError({ artifacts, cause: error }))
+            return Effect.fail(ReplacementRollbackError.make({ artifacts, cause: error }))
           })
         )
 
@@ -117,7 +116,7 @@ export const replaceOutputs = (inputFile: string, outputDirectory: string, optio
           yield* operations.fsync(inputDirectory)
         }).pipe(
           Effect.catch((error) =>
-            rollback.pipe(Effect.andThen(Effect.fail(new FileAccessError({ cause: error, filePath: inputFile, operation: 'commit replacement' }))))
+            rollback.pipe(Effect.andThen(Effect.fail(FileAccessError.make({ cause: error, filePath: inputFile, operation: 'commit replacement' }))))
           )
         )
       })
@@ -128,7 +127,7 @@ export const replaceOutputs = (inputFile: string, outputDirectory: string, optio
         yield* operations.remove(backup.backup)
       }
       yield* operations.fsync(inputDirectory)
-    }).pipe(Effect.mapError((cause) => new FileAccessError({ cause, filePath: inputFile, operation: 'delete replacement backups' })))
+    }).pipe(Effect.mapError((cause) => FileAccessError.make({ cause, filePath: inputFile, operation: 'delete replacement backups' })))
 
     const cleanStages = Effect.ignore(Effect.forEach(outputs, (output) => operations.remove(output.stage, { force: true }), { discard: true }))
 
@@ -152,21 +151,21 @@ const installTranscode = (inputFile: string, mediaTitle: string) =>
 
     const outputFiles = (yield* fs
       .readDirectory(outputDirectory)
-      .pipe(Effect.mapError((cause) => new FileAccessError({ cause, filePath: outputDirectory, operation: 'readdir' })))).filter(
+      .pipe(Effect.mapError((cause) => FileAccessError.make({ cause, filePath: outputDirectory, operation: 'readdir' })))).filter(
       (file) => !file.startsWith('.autoscan-')
     )
     const videoFile = outputFiles.find((file) => file.endsWith('.mp4'))
     if (videoFile === undefined) {
-      return yield* new FileNotFoundError({ filePath: outputDirectory })
+      return yield* FileNotFoundError.make({ filePath: outputDirectory })
     }
 
     const ffmpeg = yield* Ffmpeg
     const probe = yield* ffmpeg.ffprobe(path.join(outputDirectory, videoFile))
     if (!probe.streams.some((stream) => stream.codec_type === 'video')) {
-      return yield* new VideoStreamNotFoundError({ mediaTitle })
+      return yield* VideoStreamNotFoundError.make({ mediaTitle })
     }
     if (!probe.streams.some((stream) => stream.codec_type === 'audio')) {
-      return yield* new AudioStreamNotFoundError({ language: 'unknown', mediaTitle })
+      return yield* AudioStreamNotFoundError.make({ language: 'unknown', mediaTitle })
     }
 
     const cleanupErrors: FileAccessError[] = []
@@ -177,7 +176,7 @@ const installTranscode = (inputFile: string, mediaTitle: string) =>
     const directoryCleanup = yield* Effect.result(
       fs
         .remove(outputDirectory, { recursive: true })
-        .pipe(Effect.mapError((cause) => new FileAccessError({ cause, filePath: outputDirectory, operation: 'remove' })))
+        .pipe(Effect.mapError((cause) => FileAccessError.make({ cause, filePath: outputDirectory, operation: 'remove' })))
     )
     if (Result.isFailure(directoryCleanup)) {
       cleanupErrors.push(directoryCleanup.failure)

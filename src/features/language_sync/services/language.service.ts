@@ -129,7 +129,7 @@ export const selectLanguage = (client: ITelegramClient, chatId: number, params: 
     const { state, lang } = params
     yield* Database.use(({ sql }) =>
       Effect.tryPromise({
-        catch: (cause) => new DatabaseQueryError(cause),
+        catch: (cause) => DatabaseQueryError.make({ cause }),
         try: () => sql`
           UPDATE media SET preferred_language = ${normalizeToIso1(lang)}
           WHERE tmdb_id = ${state.tmdbId} AND type = ${state.mediaType}

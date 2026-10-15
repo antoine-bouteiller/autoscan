@@ -1,30 +1,26 @@
-import { Data } from 'effect'
+import { Schema } from 'effect'
 
 export type HttpErrorFormatter = (body: unknown) => string
 
-interface HttpErrorFields {
-  readonly body: string
-  readonly cause?: unknown
-  readonly retryAfterMs?: number
-  readonly route: string
-  readonly serviceName: string
-  readonly status: number
-}
-
-export class HttpError extends Data.TaggedError('HttpError')<HttpErrorFields & { readonly message: string }> {
-  constructor(fields: HttpErrorFields) {
-    super({ ...fields, message: `(${fields.serviceName})(${fields.route}) API error (${fields.status}): ${fields.body}` })
+export class HttpError extends Schema.TaggedError<HttpError, { readonly brand: unique symbol }>()('HttpError', {
+  body: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+  retryAfterMs: Schema.optional(Schema.Finite),
+  route: Schema.String,
+  serviceName: Schema.String,
+  status: Schema.Finite,
+}) {
+  override get message() {
+    return `(${this.serviceName})(${this.route}) API error (${this.status}): ${this.body}`
   }
 }
 
-interface RequestTimeoutErrorFields {
-  readonly cause?: unknown
-  readonly route: string
-  readonly serviceName: string
-}
-
-export class RequestTimeoutError extends Data.TaggedError('RequestTimeoutError')<RequestTimeoutErrorFields & { readonly message: string }> {
-  constructor(fields: RequestTimeoutErrorFields) {
-    super({ ...fields, message: `(${fields.serviceName})(${fields.route}) Request timed out` })
+export class RequestTimeoutError extends Schema.TaggedError<RequestTimeoutError, { readonly brand: unique symbol }>()('RequestTimeoutError', {
+  cause: Schema.optional(Schema.Unknown),
+  route: Schema.String,
+  serviceName: Schema.String,
+}) {
+  override get message() {
+    return `(${this.serviceName})(${this.route}) Request timed out`
   }
 }

@@ -17,7 +17,7 @@ const getUpdatesMock = jest.fn<(offset?: number) => Promise<TelegramUpdate[]>>()
 
 const fromPromise = <Value>(run: () => Promise<Value>) =>
   Effect.tryPromise({
-    catch: (cause) => new NetworkError({ cause, originalMessage: String(cause), serviceName: 'TelegramTest' }),
+    catch: (cause) => NetworkError.make({ cause, originalMessage: String(cause), serviceName: 'TelegramTest' }),
     try: run,
   })
 

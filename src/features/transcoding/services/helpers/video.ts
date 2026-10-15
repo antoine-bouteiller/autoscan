@@ -22,7 +22,7 @@ export const processVideoStreams = (videoStreams: FFprobeStream[], mediaTitle: s
   }
 
   if (countVideoStreamToKeep === 0) {
-    return new VideoStreamNotFoundError({ mediaTitle })
+    return VideoStreamNotFoundError.make({ mediaTitle })
   }
 
   if (countVideoStreamToKeep !== videoStreams.length) {

@@ -4,7 +4,7 @@ import { DatabaseQueryError } from '@/config/db'
 import { Database } from '@/core/runtime.service'
 import { type PlexToken } from '@/database/schema'
 
-const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => new DatabaseQueryError(cause), try: run })
+const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
 
 export const getPlexToken = Database.use(({ sql }) =>
   query(

@@ -80,7 +80,7 @@ describe('HttpProvider', () => {
         }
       })
       const provider = makeProvider()
-      provider.get('/typed', () => Effect.fail(new TestFailure({ message: 'typed failure' })))
+      provider.get('/typed', () => Effect.fail(TestFailure.make({ message: 'typed failure' })))
       provider.get('/defect', () => Effect.die('defect'))
 
       const [typed, defect] = yield* Effect.all(
