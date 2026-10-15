@@ -9,6 +9,7 @@
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "db:generate": "drizzle-kit generate",
+    "check": "oxfmt --check && oxlint --max-warnings=0",
     "knip": "knip",
     "knip:production": "knip --production",
     "test": "bun test ./tests && bun run test:rules",
