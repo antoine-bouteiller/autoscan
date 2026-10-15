@@ -77,7 +77,7 @@ Telegram /plex ──▶ plex auth command ──▶ PlexClient.createPin ──
 
 ### 8.1 Plex auth repository
 
-`plex_tokens` holds at most one row: a serial `id`, `auth_token`, `client_identifier`, and `linked_at`. `getPlexToken` returns the first row or `undefined`; `upsertPlexToken` inserts when the table is empty and otherwise overwrites the existing row. Both fail with `DatabaseQueryError`. A drizzle migration under `migrations/` creates the table; dropping it is the rollback boundary and forces a re-link.
+`plex_tokens` holds at most one row: a serial `id`, `auth_token`, `client_identifier`, and `linked_at`. `getPlexToken` returns the first row or `undefined`; `upsertPlexToken` inserts when the table is empty and otherwise overwrites the existing row. Both fail with `DatabaseQueryError`. A migration under `migrations/` creates the table; dropping it is the rollback boundary and forces a re-link.
 
 ### 8.2 Plex token store
 

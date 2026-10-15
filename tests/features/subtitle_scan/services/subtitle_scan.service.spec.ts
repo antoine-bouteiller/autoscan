@@ -1,14 +1,13 @@
-import { beforeEach, spyOn } from 'bun:test'
+import { beforeEach } from 'bun:test'
 
 import { BunServices } from '@effect/platform-bun'
-import { testDatabase as db } from '@tests/database'
+import { failNextStatement, testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { testEnv } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
 import { sendMessageMock } from '@tests/utils'
 import { DateTime, Effect, FileSystem } from 'effect'
 
-import { subtitleScans } from '@/database/schema'
 import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { getScan, recordScan } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
 import { scanMediaSubtitles } from '@/features/subtitle_scan/services/subtitle_scan.service'
@@ -18,7 +17,7 @@ import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { NetworkError } from '@/shared/errors/network'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
 
-const clean = () => Effect.promise(() => db.delete(subtitleScans))
+const clean = () => Effect.promise(() => testSql`DELETE FROM subtitle_scans`)
 const details = (file: string): SubtitleScanMedia => ({ file, mediaTitle: 'Movie', mediaType: 'movie', preferredLanguage: 'en' })
 const subtitleContent = (offset = 0) =>
   Array.from({ length: 6 }, (_entry, index) => {
@@ -140,7 +139,7 @@ describe('scanMediaSubtitles', () => {
       ])
       expect(synced).toHaveLength(2)
 
-      yield* Effect.promise(() => db.delete(subtitleScans))
+      yield* Effect.promise(() => testSql`DELETE FROM subtitle_scans`)
       synced.length = 0
       sendMessageMock.mockClear()
       yield* run(details(file), item, client)
@@ -266,15 +265,10 @@ describe('scanMediaSubtitles', () => {
           verdict: 'passed',
         })
       )
-      const originalInsert = db.insert.bind(db)
-      const insert = spyOn(db, 'insert')
-        .mockImplementationOnce(originalInsert)
-        .mockImplementationOnce(() => {
-          throw new Error('registry unavailable')
-        })
+      const restore = failNextStatement('INSERT', new Error('registry unavailable'), 1)
       const syncing = bazarr(file, [firstCandidate, secondCandidate, reference])
       const result = yield* Effect.exit(run(details(file), syncing.item, syncing.client))
-      insert.mockRestore()
+      restore()
       expect(result._tag).toBe('Failure')
       expect(yield* provideTest(getScan(firstCandidate, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
       expect(yield* provideTest(getScan(secondCandidate, SUBTITLE_SCAN_VERSION))).toBeUndefined()
@@ -325,7 +319,7 @@ describe('scanMediaSubtitles', () => {
       yield* run(details(file), empty.item, empty.client)
       expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toBeUndefined()
 
-      yield* Effect.promise(() => db.delete(subtitleScans))
+      yield* Effect.promise(() => testSql`DELETE FROM subtitle_scans`)
       yield* fs.writeFileString(candidate, '1\n00:00:00,000 --> 00:00:01,000\nforced')
       const deleting = bazarr(file, [candidate])
       const failedDelete: IBazarrClient = {
@@ -366,7 +360,7 @@ describe('scanMediaSubtitles', () => {
       yield* fs.remove(reference)
       yield* fs.remove(forced)
 
-      yield* Effect.promise(() => db.delete(subtitleScans))
+      yield* Effect.promise(() => testSql`DELETE FROM subtitle_scans`)
       const actioned = `${directory}/Movie.fr.srt`
       const newcomer = `${directory}/Movie.de.srt`
       yield* fs.symlink(`${directory}/missing-actioned.srt`, actioned)
@@ -415,7 +409,7 @@ describe('scanMediaSubtitles', () => {
       expect(yield* provideTest(getScan(first, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
       expect(yield* provideTest(getScan(duplicate, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'sync_requested' })
 
-      yield* Effect.promise(() => db.delete(subtitleScans))
+      yield* Effect.promise(() => testSql`DELETE FROM subtitle_scans`)
       const rewritten = `${directory}/Movie.it.srt`
       yield* fs.writeFileString(rewritten, subtitleContent(2))
       const rewriting = bazarr(file, [reference, rewritten], () =>
@@ -440,7 +434,7 @@ describe('scanMediaSubtitles', () => {
       yield* run(details(file), item, client)
       expect(yield* provideTest(getScan(candidate, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'passed' })
       expect(yield* provideTest(getScan(forced, SUBTITLE_SCAN_VERSION))).toBeUndefined()
-      yield* Effect.promise(() => db.delete(subtitleScans))
+      yield* Effect.promise(() => testSql`DELETE FROM subtitle_scans`)
 
       const reference = `${directory}/Movie.de.srt`
       yield* fs.writeFileString(reference, subtitleContent(2))

@@ -63,7 +63,7 @@
         inherit (pkgs.bun2nix) mkDerivation fetchBunDeps;
 
         # `bun build --compile` bundles `src/index.ts` into a standalone
-        # binary; only the drizzle migrations folder is still needed at
+        # binary; only the migrations folder is still needed at
         # runtime, and `db.ts` resolves it relative to the cwd.
         autoscan = mkDerivation {
           pname = "autoscan";

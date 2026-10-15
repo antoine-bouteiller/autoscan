@@ -8,10 +8,6 @@ const makeOperations = (events: string[], migrationFails = false) => ({
     events.push('close')
     return Promise.resolve()
   },
-  construct: () => {
-    events.push('construct')
-    return { kind: 'db' as const }
-  },
   migrate: () => {
     events.push('migrate')
     return migrationFails ? Promise.reject(new Error('migration failed')) : Promise.resolve()
@@ -29,18 +25,18 @@ describe('database resource lifecycle', () => {
 
       yield* Effect.scoped(makeDatabaseResource(makeOperations(events)))
 
-      expect(events).toEqual(['open', 'construct', 'migrate', 'close'])
+      expect(events).toEqual(['open', 'migrate', 'close'])
     })
   )
 
-  it.effect('closes once when migration fails', () =>
+  it.effect('[VC-4] closes once and fails with DatabaseConnectionError when migration fails', () =>
     Effect.gen(function* () {
       const events: string[] = []
 
-      const exit = yield* Effect.exit(Effect.scoped(makeDatabaseResource(makeOperations(events, true))))
+      const error = yield* Effect.flip(Effect.scoped(makeDatabaseResource(makeOperations(events, true))))
 
-      expect(exit._tag).toBe('Failure')
-      expect(events).toEqual(['open', 'construct', 'migrate', 'close'])
+      expect(error._tag).toBe('DatabaseConnectionError')
+      expect(events).toEqual(['open', 'migrate', 'close'])
     })
   )
 })

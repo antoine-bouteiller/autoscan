@@ -58,14 +58,14 @@ Media releases vary in container, stream codec, language metadata, and subtitle 
 
 ## 7. High-Level Components
 
-| Component                   | Module type                 | Responsibility                                                | Public API surface                             |
-| --------------------------- | --------------------------- | ------------------------------------------------------------- | ---------------------------------------------- |
-| Feature routes              | HTTP routes                 | Receive Radarr and Sonarr events                              | `POST /radarr`, `POST /sonarr`                 |
-| Scan job                    | Effect job/service          | Traverse Plex media under exclusive scan admission            | `runTranscodeProcess`, `startTranscodeProcess` |
-| Transcode service and queue | Scoped Effect service       | Probe, select streams, enqueue, execute, and deduplicate jobs | `transcodeFile`, `TranscodeQueue`              |
-| Post-process service        | Filesystem workflow         | Validate and durably install generated outputs                | `handlePostTranscode`                          |
-| Telegram command            | Telegram command            | Start a transcode scan                                        | `/transcode`                                   |
-| Passed-file registry        | Drizzle schema + repository | Persist successful transcode checks across restarts           | `transcodeScans`, repository functions         |
+| Component                   | Module type           | Responsibility                                                | Public API surface                             |
+| --------------------------- | --------------------- | ------------------------------------------------------------- | ---------------------------------------------- |
+| Feature routes              | HTTP routes           | Receive Radarr and Sonarr events                              | `POST /radarr`, `POST /sonarr`                 |
+| Scan job                    | Effect job/service    | Traverse Plex media under exclusive scan admission            | `runTranscodeProcess`, `startTranscodeProcess` |
+| Transcode service and queue | Scoped Effect service | Probe, select streams, enqueue, execute, and deduplicate jobs | `transcodeFile`, `TranscodeQueue`              |
+| Post-process service        | Filesystem workflow   | Validate and durably install generated outputs                | `handlePostTranscode`                          |
+| Telegram command            | Telegram command      | Start a transcode scan                                        | `/transcode`                                   |
+| Passed-file registry        | Row type + repository | Persist successful transcode checks across restarts           | `TranscodeScan`, repository functions          |
 
 ## 8. Detailed Design
 
@@ -106,7 +106,7 @@ export const transcodeScans = pgTable('transcode_scans', {
 })
 ```
 
-Feature-local repository functions use `Database.use`, map database failures to `DatabaseQueryError`, and use `onConflictDoUpdate({ target: transcodeScans.filePath, set: row })` to replace the entire row after a successful check, following `src/domains/media/repositories/media.repository.ts`. Rows survive process restarts and have no time-based expiry; lookups require the current path, original language, and scan version. The table is managed through migrations under `migrations/`. `migrations/20260921190858_scan_path_primary_keys` updates both scan tables, retaining the latest record per full path by `scanned_at DESC, ctid DESC` before making inline `filePath` its sole primary key and removing obsolete hash/extension columns. No version bump or library-wide re-analysis is required to adopt the new identity.
+Feature-local repository functions use `Database.use`, map database failures to `DatabaseQueryError`, and use `ON CONFLICT (file_path) DO UPDATE` with every non-key column from `EXCLUDED` to replace the entire row after a successful check, following `src/domains/media/repositories/media.repository.ts`. Rows survive process restarts and have no time-based expiry; lookups require the current path, original language, and scan version. The table is managed through migrations under `migrations/`. `migrations/20260921190858_scan_path_primary_keys` updates both scan tables, retaining the latest record per full path by `scanned_at DESC, ctid DESC` before making inline `filePath` its sole primary key and removing obsolete hash/extension columns. No version bump or library-wide re-analysis is required to adopt the new identity.
 
 ```text
 transcodeFile(file, originalLanguage):

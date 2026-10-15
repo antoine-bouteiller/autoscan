@@ -1,18 +1,16 @@
 import { beforeEach } from 'bun:test'
 
-import { testDatabase as db } from '@tests/database'
+import { testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
-import { sql } from 'drizzle-orm'
 import { DateTime, Effect } from 'effect'
 
-import { transcodeScans } from '@/database/schema'
 import { getScan, recordScan, type TranscodeScanKey } from '@/features/transcoding/repositories/transcode_scan.repository'
 
 const scannedAt = DateTime.toDateUtc(DateTime.makeUnsafe('2026-09-01T00:00:00.000Z'))
 const later = DateTime.toDateUtc(DateTime.makeUnsafe('2026-09-02T00:00:00.000Z'))
 
-const clean = () => Effect.promise(() => db.delete(transcodeScans))
+const clean = () => Effect.promise(() => testSql`DELETE FROM transcode_scans`)
 
 describe('transcode scan repository', () => {
   beforeEach(() => Effect.runPromise(clean()))
@@ -50,17 +48,14 @@ describe('transcode scan repository', () => {
       const context = yield* Effect.context()
 
       yield* Effect.promise(() =>
-        db.transaction((tx) =>
+        testSql.begin((tx) =>
           Effect.runPromiseWith(context)(
             Effect.gen(function* () {
-              yield* Effect.promise(() =>
-                tx.execute(sql.raw(previous.replace('CREATE TABLE', 'CREATE TEMP TABLE').replace(');', ') ON COMMIT DROP;')))
-              )
-              yield* Effect.promise(() =>
-                tx.execute(sql.raw(subtitleTable.replace('CREATE TABLE', 'CREATE TEMP TABLE').replace(');', ') ON COMMIT DROP;')))
-              )
-              yield* Effect.promise(() =>
-                tx.execute(sql`
+              yield* Effect.promise(() => tx.unsafe(previous.replace('CREATE TABLE', 'CREATE TEMP TABLE').replace(');', ') ON COMMIT DROP;')))
+              yield* Effect.promise(() => tx.unsafe(subtitleTable.replace('CREATE TABLE', 'CREATE TEMP TABLE').replace(');', ') ON COMMIT DROP;')))
+              yield* Effect.promise(
+                () =>
+                  tx`
                   INSERT INTO subtitle_scans (hash, file_path, scan_version, scanned_at, verdict) VALUES
                     ('old', '/movie.en.srt', 1, '2026-09-01', 'sync_requested'),
                     ('same-date', '/movie.en.srt', 1, '2026-09-01', 'forced_removed'),
@@ -69,10 +64,11 @@ describe('transcode scan repository', () => {
                     ('other', '/other/movie.en.srt', 1, '2026-09-01', 'forced_removed'),
                     ('tied-old', '/tied.en.srt', 1, '2026-09-02', 'passed'),
                     ('tied-new', '/tied.en.srt', 2, '2026-09-02', 'sync_requested')
-                `)
+                `
               )
-              yield* Effect.promise(() =>
-                tx.execute(sql`
+              yield* Effect.promise(
+                () =>
+                  tx`
                   INSERT INTO transcode_scans (hash, extension, file_path, original_language, scan_version, scanned_at) VALUES
                     ('old', 'mp4', '/movie.mp4', 'en', 1, '2026-09-01'),
                     ('same-date', 'mp4', '/movie.mp4', 'en', 1, '2026-09-01'),
@@ -82,38 +78,40 @@ describe('transcode scan repository', () => {
                     ('other', 'mp4', '/other/movie.mp4', 'en', 1, '2026-09-01'),
                     ('tied-old', 'mp4', '/tied.mp4', 'en', 1, '2026-09-02'),
                     ('tied-new', 'mp4', '/tied.mp4', 'fr', 2, '2026-09-02')
-                `)
+                `
               )
-              for (const statement of migration.split('--> statement-breakpoint')) {
-                yield* Effect.promise(() => tx.execute(sql.raw(statement)))
-              }
-              yield* Effect.promise(() =>
-                tx.execute(sql`
+              yield* Effect.promise(() => tx.unsafe(migration))
+              yield* Effect.promise(
+                () =>
+                  tx`
                   INSERT INTO transcode_scans (file_path, original_language, scan_version, scanned_at)
                   VALUES ('/movie.mp4', 'de', 99, '2026-09-04') ON CONFLICT DO NOTHING
-                `)
+                `
               )
-              yield* Effect.promise(() =>
-                tx.execute(sql`
+              yield* Effect.promise(
+                () =>
+                  tx`
                   INSERT INTO subtitle_scans (file_path, scan_version, scanned_at, verdict)
                   VALUES ('/movie.en.srt', 99, '2026-09-04', 'sync_requested') ON CONFLICT DO NOTHING
-                `)
+                `
               )
-              const subtitles = yield* Effect.promise(() =>
-                tx.execute(sql`
+              const subtitles = yield* Effect.promise(
+                () =>
+                  tx`
                   SELECT file_path, scan_version, scanned_at::text, verdict FROM subtitle_scans ORDER BY file_path
-                `)
+                `
               )
               expect([...subtitles]).toEqual([
                 { file_path: '/movie.en.srt', scan_version: 2, scanned_at: '2026-09-03 00:00:00', verdict: 'passed' },
                 { file_path: '/other/movie.en.srt', scan_version: 1, scanned_at: '2026-09-01 00:00:00', verdict: 'forced_removed' },
                 { file_path: '/tied.en.srt', scan_version: 2, scanned_at: '2026-09-02 00:00:00', verdict: 'sync_requested' },
               ])
-              const rows = yield* Effect.promise(() =>
-                tx.execute(sql`
+              const rows = yield* Effect.promise(
+                () =>
+                  tx`
                   SELECT file_path, original_language, scan_version, scanned_at::text
                   FROM transcode_scans ORDER BY file_path, original_language, scan_version
-                `)
+                `
               )
               expect([...rows]).toEqual([
                 { file_path: '/movie.mp4', original_language: 'fr', scan_version: 2, scanned_at: '2026-09-03 00:00:00' },
@@ -139,7 +137,7 @@ describe('transcode scan repository', () => {
       yield* provideTest(recordScan({ ...versioned, scannedAt: later }))
       expect(yield* provideTest(getScan(french))).toBeUndefined()
       expect(yield* provideTest(getScan(versioned))).toMatchObject({ scannedAt: later })
-      expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(1)
+      expect(yield* Effect.promise(() => testSql`SELECT 1 FROM transcode_scans`)).toHaveLength(1)
     })
   )
 })

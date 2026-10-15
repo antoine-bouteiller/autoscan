@@ -1,5 +1,4 @@
 import { type SQL } from 'bun'
-import { type BunSQLDatabase } from 'drizzle-orm/bun-sql/postgres'
 import { Context, type Crypto, Effect, FiberMap, FiberSet, type FileSystem, Layer, type Option, type Path, Ref, Semaphore } from 'effect'
 import { type ChildProcessSpawner } from 'effect/process'
 
@@ -17,9 +16,7 @@ import { type HttpProvider } from '@/providers/http/http.provider'
 import { type SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
 import { type TelegramProvider } from '@/providers/telegram/telegram.provider'
 
-export class Database extends Context.Service<Database, { readonly db: BunSQLDatabase; readonly sql: SQL }>()(
-  'autoscan/core/runtime.service/Database'
-) {}
+export class Database extends Context.Service<Database, { readonly sql: SQL }>()('autoscan/core/runtime.service/Database') {}
 export class Bazarr extends Context.Service<Bazarr, IBazarrClient>()('autoscan/core/runtime.service/Bazarr') {}
 export class Telegram extends Context.Service<Telegram, ITelegramClient>()('autoscan/core/runtime.service/Telegram') {}
 export class Plex extends Context.Service<Plex, IPlexClient>()('autoscan/core/runtime.service/Plex') {}

@@ -1,11 +1,10 @@
 import { beforeEach } from 'bun:test'
 
-import { testDatabase as db, DatabaseTestLayer } from '@tests/database'
+import { DatabaseTestLayer, testSql } from '@tests/database'
 import { describe, expect, it } from '@tests/it'
 import { Effect, Layer } from 'effect'
 
 import { type Database } from '@/core/runtime.service'
-import { plexTokens } from '@/database/schema'
 import { PlexTokenStore, PlexTokenStoreLive } from '@/features/plex_auth/services/plex_token.service'
 import { PlexUnauthenticatedError } from '@/integrations/plex/plex.errors'
 
@@ -13,7 +12,9 @@ const run = <Success, Failure>(effect: Effect.Effect<Success, Failure, Database 
   effect.pipe(Effect.provide(Layer.mergeAll(PlexTokenStoreLive, DatabaseTestLayer)))
 
 describe('PlexTokenStore', () => {
-  beforeEach(() => db.delete(plexTokens))
+  beforeEach(async () => {
+    await testSql`DELETE FROM plex_tokens`
+  })
 
   it.live('fails as unauthenticated while no token is stored', () =>
     Effect.gen(function* () {
@@ -34,7 +35,7 @@ describe('PlexTokenStore', () => {
           const store = yield* PlexTokenStore
           yield* store.set('first', 'client-id')
           const cached = yield* store.get
-          yield* Effect.promise(() => db.update(plexTokens).set({ authToken: 'rotated' }))
+          yield* Effect.promise(() => testSql`UPDATE plex_tokens SET auth_token = 'rotated'`)
           const stillCached = yield* store.get
           yield* store.invalidate
           return { cached, reloaded: yield* store.get, stillCached }
@@ -55,7 +56,11 @@ describe('PlexTokenStore', () => {
         })
       )
 
-      const rows = yield* Effect.promise(() => db.select().from(plexTokens))
+      const rows = yield* Effect.promise(
+        () => testSql<{ authToken: string; clientIdentifier: string }[]>`
+        SELECT auth_token AS "authToken", client_identifier AS "clientIdentifier" FROM plex_tokens
+      `
+      )
       expect(rows).toHaveLength(1)
       expect(rows[0]?.authToken).toBe('second')
       expect(rows[0]?.clientIdentifier).toBe('second-id')

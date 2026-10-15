@@ -44,8 +44,8 @@ Features that process Plex media need a shared identity, language preference, an
 
 ## 6. Caveats
 
-- `[C-1]` The schema restricts media types to `movie` and `show` and marks both language columns non-null (`src/database/schema.ts:5-15`).
-- `[C-2]` Upsert conflict handling resets `preferredLanguage` to the supplied original language as well as updating title and original language (`src/domains/media/repositories/media.repository.ts:27-30`).
+- `[C-1]` The schema restricts media types to `movie` and `show` and marks both language columns non-null (`migrations/20260321191235_shallow_layla_miller/migration.sql`, `src/database/schema.ts:3-17`).
+- `[C-2]` Upsert conflict handling resets `preferredLanguage` to the supplied original language as well as updating title and original language (`src/domains/media/repositories/media.repository.ts:21-24`).
 - `[C-3]` Metadata resolution reads only `Media[0].Part[0]`; an item whose usable file is elsewhere returns `FileNotFoundError` (`src/domains/media/services/metadata.service.ts:43-48`).
 - `[C-4]` The path parser accepts a numeric conversion of the token; `getCompleteMediaDetails` rejects `NaN` ahead of lookup (`src/domains/media/services/metadata.service.ts:8-10`, `src/domains/media/services/metadata.service.ts:50-53`).
 - `[C-5]` TMDB client failures are treated as absent metadata for language resolution, while Plex metadata failures remain in the Effect error channel (`src/domains/media/services/metadata.service.ts:23-30`, `src/domains/media/services/metadata.service.ts:39-42`).
@@ -54,7 +54,7 @@ Features that process Plex media need a shared identity, language preference, an
 
 | Component        | Module type        | Responsibility                                                 | Public API surface                                                                                 |
 | ---------------- | ------------------ | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Media schema     | Drizzle schema     | Define persisted identity and language fields                  | `mediaTypeEnum`, `media`, `Media`                                                                  |
+| Media schema     | Row type           | Define persisted identity and language fields                  | `Media`                                                                                            |
 | Media repository | Effect repository  | Query, count, upsert, and page media rows                      | `countMediaByType`, `createdOrUpdatedMedia`, `getMediaByIdAndType`, `getMediaByTypeWithPagination` |
 | Metadata service | Effect service     | Parse identifiers, resolve language, and assemble Plex details | `extractTmdbIdFromPath`, `buildMediaTitle`, `getMediaLanguage`, `getCompleteMediaDetails`          |
 | Media errors     | Tagged error types | Describe missing files and missing TMDB identifiers            | `FileNotFoundError`, `TmdbIdNotFoundError`                                                         |
@@ -63,13 +63,13 @@ Features that process Plex media need a shared identity, language preference, an
 
 ### Media schema
 
-The `media` table holds non-null title, TMDB ID, type, original language, and preferred language. Its language fields use the `ISO1` enum, and the named primary key spans `tmdbId` and `type` (`src/database/schema.ts:7-21`). The inferred `Media` type supplies the selected-row shape (`src/database/schema.ts:36`).
+The `media` table holds non-null title, TMDB ID, type, original language, and preferred language. Its language fields are typed as `ISOCode1` in the app, and the named primary key spans `tmdb_id` and `type` (`migrations/20260315090840_rich_morbius/migration.sql`). The hand-written `Media` interface supplies the selected-row shape (`src/database/schema.ts:11-17`).
 
 ### Media repository
 
-Repository operations acquire the `Database` Effect service and wrap rejected Drizzle promises as `DatabaseQueryError` (`src/domains/media/repositories/media.repository.ts:4-13`). `countMediaByType` returns a count query for one type. `createdOrUpdatedMedia` inserts the supplied TMDB ID, type, title, and original language, sets the initial preference, and resolves a composite-key conflict by updating those values (`src/domains/media/repositories/media.repository.ts:15-32`).
+Repository operations acquire the `Database` Effect service and wrap rejected Bun SQL queries as `DatabaseQueryError` (`src/domains/media/repositories/media.repository.ts:3-13`). `countMediaByType` returns a count query for one type. `createdOrUpdatedMedia` inserts the supplied TMDB ID, type, title, and original language, sets the initial preference, and resolves a composite-key conflict by updating those values (`src/domains/media/repositories/media.repository.ts:15-27`).
 
-`getMediaByIdAndType` returns the first matching row or `undefined`. `getMediaByTypeWithPagination` filters by type, orders title ascending, then applies offset `pageSize * page` and limit `pageSize` (`src/domains/media/repositories/media.repository.ts:34-55`).
+`getMediaByIdAndType` returns the first matching row or `undefined`. `getMediaByTypeWithPagination` filters by type, orders title ascending, then applies offset `pageSize * page` and limit `pageSize` (`src/domains/media/repositories/media.repository.ts:29-51`).
 
 ### Metadata service
 

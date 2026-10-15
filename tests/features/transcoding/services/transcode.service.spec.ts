@@ -1,7 +1,7 @@
 import { beforeEach, spyOn } from 'bun:test'
 
 import { BunServices } from '@effect/platform-bun'
-import { testDatabase as db } from '@tests/database'
+import { failNextStatement, testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { testEnv as env } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
@@ -10,14 +10,13 @@ import { CryptoHasher } from 'bun'
 import { Cause, Effect, FileSystem, Path } from 'effect'
 
 import { TranscodeQueue } from '@/core/runtime.service'
-import { transcodeScans } from '@/database/schema'
 import { TRANSCODE_SCAN_VERSION } from '@/features/transcoding/constants'
 import { FileNotFoundError } from '@/features/transcoding/errors'
 import { transcodeFile } from '@/features/transcoding/services/transcode.service'
 import { type IFfmpegClient, FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
 
-const cleanScans = () => Effect.promise(() => db.delete(transcodeScans))
+const cleanScans = () => Effect.promise(() => testSql`DELETE FROM transcode_scans`)
 const passedProbe = {
   duration: 100,
   streams: [
@@ -90,7 +89,7 @@ describe('transcodeFile', () => {
       yield* provideTest(transcode(mkv), { ffmpeg: client })
       yield* provideTest(transcode(mp4, 'fr'), { ffmpeg: client })
 
-      yield* Effect.promise(() => db.update(transcodeScans).set({ scanVersion: TRANSCODE_SCAN_VERSION - 1 }))
+      yield* Effect.promise(() => testSql`UPDATE transcode_scans SET scan_version = ${TRANSCODE_SCAN_VERSION - 1}`)
       yield* provideTest(transcode(mp4), { ffmpeg: client })
       expect(probes).toBe(4)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
@@ -104,18 +103,14 @@ describe('transcodeFile', () => {
       yield* fs.writeFileString(file, 'content')
       let probes = 0
       const client = ffmpeg(() => Effect.sync(() => ++probes).pipe(Effect.as(passedProbe)))
-      spyOn(db, 'select').mockImplementationOnce(() => {
-        throw new Error('registry read failed')
-      })
-      spyOn(db, 'insert').mockImplementationOnce(() => {
-        throw new Error('registry write failed')
-      })
+      failNextStatement('SELECT', new Error('registry read failed'))
+      failNextStatement('INSERT', new Error('registry write failed'))
       expect(yield* provideTest(transcode(file), { ffmpeg: client })).toBeFalse()
       expect(probes).toBe(1)
-      expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(0)
+      expect(yield* Effect.promise(() => testSql`SELECT 1 FROM transcode_scans`)).toHaveLength(0)
       expect(yield* provideTest(transcode(file), { ffmpeg: client })).toBeFalse()
       expect(probes).toBe(2)
-      expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(1)
+      expect(yield* Effect.promise(() => testSql`SELECT 1 FROM transcode_scans`)).toHaveLength(1)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
@@ -137,7 +132,7 @@ describe('transcodeFile', () => {
           { ffmpeg: ffmpeg() }
         )
       ).toBeFalse()
-      expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(0)
+      expect(yield* Effect.promise(() => testSql`SELECT 1 FROM transcode_scans`)).toHaveLength(0)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
@@ -151,7 +146,7 @@ describe('transcodeFile', () => {
         ffmpeg: ffmpeg(() => fs.writeFileString(probing, 'changed', { flag: 'a' }).pipe(Effect.as(passedProbe))),
       })
       expect(probeResult).toBeFalse()
-      expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(0)
+      expect(yield* Effect.promise(() => testSql`SELECT 1 FROM transcode_scans`)).toHaveLength(0)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
@@ -193,7 +188,7 @@ describe('transcodeFile', () => {
       if (interrupted._tag === 'Failure') {
         expect(Cause.hasInterrupts(interrupted.cause)).toBeTrue()
       }
-      expect(yield* Effect.promise(() => db.select().from(transcodeScans))).toHaveLength(0)
+      expect(yield* Effect.promise(() => testSql`SELECT 1 FROM transcode_scans`)).toHaveLength(0)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
