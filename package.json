@@ -27,7 +27,7 @@
     "@testcontainers/postgresql": "12.2.1",
     "@types/bun": "1.4.3",
     "bun2nix": "2.1.2",
-    "knip": "6.39.0",
+    "knip": "6.41.0",
     "lefthook": "2.2.2",
     "oxfmt": "0.73.0",
     "oxlint": "1.88.0",
