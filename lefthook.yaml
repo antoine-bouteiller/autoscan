@@ -1,7 +1,10 @@
 commit-msg:
   commands:
     lint-commit-msg:
-      run: bunx commitlint --edit
+      run: >-
+        head -n1 {1} | grep -qE '^((build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([^)]+\))?!?: .+|(Merge|Revert|fixup!|squash!|amend!) )'
+        || { echo 'Commit message must follow Conventional Commits: type(scope)?: subject'; exit 1; }
+
 pre-commit:
   parallel: true
   jobs:

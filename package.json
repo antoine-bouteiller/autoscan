@@ -23,8 +23,6 @@
     "effect": "4.0.5"
   },
   "devDependencies": {
-    "@commitlint/cli": "21.2.3",
-    "@commitlint/config-conventional": "21.2.3",
     "@effect/tsgo": "0.53.0",
     "@oxlint/plugins": "1.88.0",
     "@testcontainers/postgresql": "12.2.1",
@@ -39,11 +37,6 @@
   },
   "overrides": {
     "@effect/platform-node-shared": "4.0.5"
-  },
-  "commitlint": {
-    "extends": [
-      "@commitlint/config-conventional"
-    ]
   },
   "packageManager": "bun@1.4.3",
   "trustedDependencies": [
