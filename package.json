@@ -7,7 +7,6 @@
     "fmt": "oxfmt",
     "lint": "oxlint --fix --fix-suggestions --max-warnings=0",
     "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts",
     "check": "oxfmt --check && oxlint --max-warnings=0",
     "knip": "knip",
     "knip:production": "knip --production",

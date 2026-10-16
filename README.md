@@ -54,7 +54,7 @@ TRANSCODE_PATH=/path/to/transcode
 
 ```bash
 bun install
-bun run start
+bun src/index.ts
 ```
 
 Bun loads `.env` automatically. Database migrations run at startup. Send `/plex` to the Telegram bot and follow the authorization link before using Plex-dependent features.
