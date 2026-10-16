@@ -19,8 +19,8 @@
     "postinstall": "bun2nix -o bun.nix"
   },
   "dependencies": {
-    "@effect/platform-bun": "4.0.4",
-    "effect": "4.0.4"
+    "@effect/platform-bun": "4.0.5",
+    "effect": "4.0.5"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
@@ -38,7 +38,7 @@
     "typescript": "7.0.2"
   },
   "overrides": {
-    "@effect/platform-node-shared": "4.0.4"
+    "@effect/platform-node-shared": "4.0.5"
   },
   "commitlint": {
     "extends": [
