@@ -25,37 +25,37 @@
     url = "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.0.5.tgz";
     hash = "sha512-a8rCdEkfZBGe9C6bsIjxVZuRp73svIyK5IHwHdDAVsvZXjrbkxusfI+rZ8WlX31RP1mKizwI/E72GQTNfdMWHw==";
   };
-  "@effect/tsgo-darwin-arm64@0.53.1" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/tsgo-darwin-arm64/-/tsgo-darwin-arm64-0.53.1.tgz";
-    hash = "sha512-wje3jvSaN3ttD7sBm9Bw/E8xHq2ZQWMJNg1YAGCj3/tiwUxHDUjKrt1LC/HLju+OnTBSsSvkUE8jXUT3OdQY4A==";
+  "@effect/tsgo-darwin-arm64@0.53.2" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/tsgo-darwin-arm64/-/tsgo-darwin-arm64-0.53.2.tgz";
+    hash = "sha512-2Vr9znhVd3NAixBFuliiaslLRkBHuZ8jHbBisvPhF+zcIN1OrpM2w/CTYYDObumH0qnfbTT85hmvPzxuM1zYrA==";
   };
-  "@effect/tsgo-darwin-x64@0.53.1" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/tsgo-darwin-x64/-/tsgo-darwin-x64-0.53.1.tgz";
-    hash = "sha512-x4mNzV8WLPZ71Vu7vyOJiJGTNOrfYR0g5+Zg9Q9ZieKCVSJkWJvOIOND+EvT9gUP4qdTYQh4kzGbe/T+kSrilg==";
+  "@effect/tsgo-darwin-x64@0.53.2" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/tsgo-darwin-x64/-/tsgo-darwin-x64-0.53.2.tgz";
+    hash = "sha512-OGz77iayhGP275oJK9ypXdkNdkvH6+hF+Sa/HrwOinmPHm1rpJXRfG5jQV9v8kDsXOjLzeYl4XkTx7DuSKzyfA==";
   };
-  "@effect/tsgo-linux-arm64@0.53.1" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/tsgo-linux-arm64/-/tsgo-linux-arm64-0.53.1.tgz";
-    hash = "sha512-p2HrEKCh0EAY2G9MYS5vjJy2ZX27UyjZRgy2SUQu8PUVHLq3TAGTsX0d6I7LlNbRsUFxmI4HgypP6IPAUnjUwQ==";
+  "@effect/tsgo-linux-arm64@0.53.2" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/tsgo-linux-arm64/-/tsgo-linux-arm64-0.53.2.tgz";
+    hash = "sha512-pC1k5iFgNF49+4cgiPSJq/Oyw1IWOmmXt9TOWc3SgDpP9SCmHhUyaGUCTVDT4zc7WAXNxYQeNIN1FHQ+ZX+9XQ==";
   };
-  "@effect/tsgo-linux-arm@0.53.1" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/tsgo-linux-arm/-/tsgo-linux-arm-0.53.1.tgz";
-    hash = "sha512-y29MekM4Riv1MjnRS0ST49ttmvHoVdPNmpR3aivmNlOWIKXXm4XSGx0F+PEnblq8dESWeSXmAcC0mcETUq880A==";
+  "@effect/tsgo-linux-arm@0.53.2" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/tsgo-linux-arm/-/tsgo-linux-arm-0.53.2.tgz";
+    hash = "sha512-hsfGmSBnURiTkSXFnGRg/6JCMQx1g5mYBsbf/ZfV/zlKbEVYZnG2kCEiQNi14XRHeqTDkhbTD6KiHCcUIfrirw==";
   };
-  "@effect/tsgo-linux-x64@0.53.1" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/tsgo-linux-x64/-/tsgo-linux-x64-0.53.1.tgz";
-    hash = "sha512-dvvZGUW2DhQGjP+28v7Q977it6CLw44rh+OhP/+3snk0IeoMiRtnmtd6k42ny3/uvexJFAgLc2ch0ttwwGc/LQ==";
+  "@effect/tsgo-linux-x64@0.53.2" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/tsgo-linux-x64/-/tsgo-linux-x64-0.53.2.tgz";
+    hash = "sha512-suU2YvrPTWM/J61qIahIxvUwsqainUd7VReMdp4pkjRkXOFHhR+1qvHYItfZKxI2fo0Xpue0TGA9vGPcFfsPdw==";
   };
-  "@effect/tsgo-win32-arm64@0.53.1" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/tsgo-win32-arm64/-/tsgo-win32-arm64-0.53.1.tgz";
-    hash = "sha512-9AvAoqT6QDhVKSaVx2PpgBxFJNbOP8gjBz+Q9cCJTaiOFFMxpuSvsrU1+ttDh4XuaWn3mJXtdQDSrEHlepuhoQ==";
+  "@effect/tsgo-win32-arm64@0.53.2" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/tsgo-win32-arm64/-/tsgo-win32-arm64-0.53.2.tgz";
+    hash = "sha512-zAWZcwgVOmGRIRQLS+EKs6AxVXn7VV623YPZs7EHIixll3pUcEvDG6MOAptywydDEn5WeyuFTOSbDaaoyf/zMA==";
   };
-  "@effect/tsgo-win32-x64@0.53.1" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/tsgo-win32-x64/-/tsgo-win32-x64-0.53.1.tgz";
-    hash = "sha512-XTKMzsK3I78oApuTTcOx6orxGOqkGeDZBDHYiJQ6vIlwiKaeyZqCWm2fUtAgkvyxDyY5g4JXm8Qd23RVRSoxmg==";
+  "@effect/tsgo-win32-x64@0.53.2" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/tsgo-win32-x64/-/tsgo-win32-x64-0.53.2.tgz";
+    hash = "sha512-aLSDn6VNbUXJXz6IpsJLbtO1iHcvUxOLjT8YHFXrSsYBTKA+11dEUSgu54jwpScaTvBd5ErU0wyWvpalABJdnA==";
   };
-  "@effect/tsgo@0.53.1" = fetchurl {
-    url = "https://registry.npmjs.org/@effect/tsgo/-/tsgo-0.53.1.tgz";
-    hash = "sha512-0LW8VI1+HvC+S5KOpReuAneN4T93ipcd8aKNXpy2DubBfm6ShWhBtWxtxPSaQ9M25gAtQs6w/D9NEmXqgd8uGg==";
+  "@effect/tsgo@0.53.2" = fetchurl {
+    url = "https://registry.npmjs.org/@effect/tsgo/-/tsgo-0.53.2.tgz";
+    hash = "sha512-GfMMVfmCW5DYTMCqa7PHs41lD43bgs5qwgz391jDm5xb0q5+stZgY9qLSa9OQl+5fhDyjEOprj0E9aUSKj+E4A==";
   };
   "@emnapi/core@1.11.2" = fetchurl {
     url = "https://registry.npmjs.org/@emnapi/core/-/core-1.11.2.tgz";
