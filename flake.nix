@@ -7,12 +7,17 @@
       url = "github:nix-community/bun2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
     bun2nix,
+    git-hooks,
   }: let
     supportedSystems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
@@ -45,13 +50,71 @@
         inherit system;
         overlays = [bunOverlay bun2nix.overlays.default];
       };
+
+    # JS tooling runs from node_modules so hooks use the versions pinned in
+    # package.json and the repo's custom oxlint plugins.
+    gitHooksFor = system:
+      git-hooks.lib.${system}.run {
+        src = ./.;
+        hooks = {
+          convco.enable = true;
+          alejandra = {
+            enable = true;
+            settings.verbosity = "quiet";
+            excludes = ["^bun\\.nix$"];
+          };
+          lockfile = {
+            enable = true;
+            name = "Check lockfile";
+            entry = "bun install --frozen-lockfile --silent";
+            pass_filenames = false;
+            always_run = true;
+          };
+          lint = {
+            enable = true;
+            name = "oxlint";
+            entry = "bunx oxlint --fix --fix-suggestions";
+            files = "\\.(ts|js|mjs|cjs)$";
+            excludes = ["^oxlint\\.config\\.ts$" "^oxfmt\\.config\\.ts$"];
+          };
+          format = {
+            enable = true;
+            name = "oxfmt";
+            entry = "bunx oxfmt";
+            excludes = ["\\.nix$"];
+          };
+          bun2nix = {
+            enable = true;
+            name = "Update bun.nix";
+            entry = "bunx bun2nix -o bun.nix";
+            files = "^bun\\.lock$";
+            pass_filenames = false;
+          };
+          knip = {
+            enable = true;
+            name = "knip";
+            entry = "bun run knip";
+            pass_filenames = false;
+            always_run = true;
+          };
+          knip-production = {
+            enable = true;
+            name = "knip (production)";
+            entry = "bun run knip:production";
+            pass_filenames = false;
+            always_run = true;
+          };
+        };
+      };
   in
     {
       devShells = forAllSystems (system: let
         pkgs = pkgsFor system;
+        gitHooks = gitHooksFor system;
       in {
         default = pkgs.mkShell {
-          packages = [pkgs.bun pkgs.nodejs pkgs.ffmpeg pkgs.alejandra];
+          packages = [pkgs.bun pkgs.nodejs pkgs.ffmpeg pkgs.alejandra] ++ gitHooks.enabledPackages;
+          inherit (gitHooks) shellHook;
         };
       });
 
@@ -76,7 +139,7 @@
           bunCompileToBytecode = false;
           removeBunBuildFlags = ["--sourcemap"];
           dontUseBunCheck = true;
-          # Lifecycle scripts (lefthook git hooks, our bun2nix postinstall) are
+          # Lifecycle scripts (effect-tsgo patch, our bun2nix postinstall) are
           # irrelevant inside the sandbox and would fail without a git repo.
           dontRunLifecycleScripts = true;
 
