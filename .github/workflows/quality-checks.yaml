@@ -116,7 +116,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add flake.lock bun.nix nix/bun.json
-          git commit -m "chore: regenerate bun.nix, Bun hashes, and flake lock"
+          git commit --no-verify -m "chore: regenerate bun.nix, Bun hashes, and flake lock"
           git push
           exit 1
 
