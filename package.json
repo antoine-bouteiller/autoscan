@@ -15,7 +15,7 @@
     "test:coverage": "bun test ./tests --coverage --reporter=junit --reporter-outfile=./junit.xml",
     "test:watch": "bun test ./tests --watch",
     "prepare": "effect-tsgo patch --no-typescript --oxlint",
-    "postinstall": "bun2nix -o bun.nix"
+    "postinstall": "bun scripts/nix_deps.ts"
   },
   "dependencies": {
     "@effect/platform-bun": "4.0.5",
@@ -26,7 +26,6 @@
     "@oxlint/plugins": "1.89.0",
     "@testcontainers/postgresql": "12.2.1",
     "@types/bun": "1.4.3",
-    "bun2nix": "2.1.2",
     "knip": "6.42.1",
     "oxfmt": "0.74.0",
     "oxlint": "1.89.0",

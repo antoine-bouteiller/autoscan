@@ -25,9 +25,11 @@ under `src/features/<feature>/<feature>.spec.md`.
   `tests/preload.ts` (starts the shared Postgres testcontainer, sets env) and
   `tests/setup.ts` (registers mock clients). Coverage thresholds are enforced by
   `scripts/coverage_gate.ts` since Bun's own threshold is per-file, not global.
-- **Nix packaging uses [bun2nix](https://github.com/nix-community/bun2nix).** The
-  `bun.nix` dependency manifest is regenerated from `bun.lock` by the `postinstall`
-  script (`bunx bun2nix -o bun.nix`); commit it alongside `bun.lock`.
+- **Nix packaging fetches production dependencies only.** `scripts/nix_deps.ts`
+  writes `nix/deps.json` (tarball URL, hash, and install path of each package in the
+  production closure of `bun.lock`); the flake unpacks them into `node_modules` and
+  runs `bun build --compile`. The `postinstall` script regenerates it; commit it
+  alongside `bun.lock`.
 
 ## Review Checklist for Agents
 

@@ -1,0 +1,37 @@
+[
+  {
+    "hash": "sha512-tB/GapZ/bVoCbwRgnojGP4TwopvkMoFoSCipXT1sf0guvG/2oRVhWzJW/1vkrYFEdLM7XyRnVVLrSJyqdok7DA==",
+    "path": "node_modules/@effect/platform-bun",
+    "url": "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.0.5.tgz"
+  },
+  {
+    "hash": "sha512-a8rCdEkfZBGe9C6bsIjxVZuRp73svIyK5IHwHdDAVsvZXjrbkxusfI+rZ8WlX31RP1mKizwI/E72GQTNfdMWHw==",
+    "path": "node_modules/@effect/platform-node-shared",
+    "url": "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.0.5.tgz"
+  },
+  {
+    "hash": "sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==",
+    "path": "node_modules/@types/node",
+    "url": "https://registry.npmjs.org/@types/node/-/node-26.1.2.tgz"
+  },
+  {
+    "hash": "sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==",
+    "path": "node_modules/@types/ws",
+    "url": "https://registry.npmjs.org/@types/ws/-/ws-8.18.2.tgz"
+  },
+  {
+    "hash": "sha512-BY4/28NlpOd99yzmV741xbVGmp+1U7tks4oB7F/Png64bTa5tm5eCA6W0RiXsnuLDDoJpjfVSo4Dnq4BZb/89Q==",
+    "path": "node_modules/effect",
+    "url": "https://registry.npmjs.org/effect/-/effect-4.0.5.tgz"
+  },
+  {
+    "hash": "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==",
+    "path": "node_modules/undici-types",
+    "url": "https://registry.npmjs.org/undici-types/-/undici-types-8.3.0.tgz"
+  },
+  {
+    "hash": "sha512-Ydggc987+RO0AnWtZ/7Wq9FtNvcrL1b/RO0ud9mWjUPgDrsAAwQSF51sm2hm1XofbU/4jkpGEsLFsZZxU+1DOg==",
+    "path": "node_modules/ws",
+    "url": "https://registry.npmjs.org/ws/-/ws-8.22.0.tgz"
+  }
+]

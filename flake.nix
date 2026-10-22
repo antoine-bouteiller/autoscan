@@ -3,10 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    bun2nix = {
-      url = "github:nix-community/bun2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     git-hooks = {
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -16,7 +12,6 @@
   outputs = {
     self,
     nixpkgs,
-    bun2nix,
     git-hooks,
   }: let
     supportedSystems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
@@ -43,12 +38,10 @@
       });
     };
 
-    # bun2nix's overlay builds its hook against the final package set, so it
-    # picks up the pinned Bun.
     pkgsFor = system:
       import nixpkgs {
         inherit system;
-        overlays = [bunOverlay bun2nix.overlays.default];
+        overlays = [bunOverlay];
       };
 
     # JS tooling runs from node_modules so hooks use the versions pinned in
@@ -61,7 +54,6 @@
           alejandra = {
             enable = true;
             settings.verbosity = "quiet";
-            excludes = ["^bun\\.nix$"];
           };
           lockfile = {
             enable = true;
@@ -83,10 +75,10 @@
             entry = "bunx oxfmt";
             excludes = ["\\.nix$"];
           };
-          bun2nix = {
+          nix-deps = {
             enable = true;
-            name = "Update bun.nix";
-            entry = "bunx bun2nix -o bun.nix";
+            name = "Update nix/deps.json";
+            entry = "bun scripts/nix_deps.ts";
             files = "^bun\\.lock$";
             pass_filenames = false;
           };
@@ -121,44 +113,50 @@
       packages = forAllSystems (system: let
         pkgs = pkgsFor system;
 
-        # The bun2nix binary carries its `mkDerivation` / `fetchBunDeps`
-        # helpers in its passthru.
-        inherit (pkgs.bun2nix) mkDerivation fetchBunDeps;
+        # Production dependencies only, unpacked at their install paths from
+        # the tarballs listed by `scripts/nix_deps.ts`.
+        nodeModules = pkgs.runCommand "autoscan-node-modules" {} (
+          pkgs.lib.concatMapStrings (dep: ''
+            mkdir -p "$out/${dep.path}"
+            tar -xzf ${pkgs.fetchurl {inherit (dep) url hash;}} -C "$out/${dep.path}" --strip-components=1
+          '') (builtins.fromJSON (builtins.readFile ./nix/deps.json))
+        );
 
         # `bun build --compile` bundles `src/index.ts` into a standalone
         # binary; only the migrations folder is still needed at
         # runtime, and `db.ts` resolves it relative to the cwd.
-        autoscan = mkDerivation {
+        autoscan = pkgs.stdenv.mkDerivation {
           pname = "autoscan";
           version = "unstable";
 
           src = pkgs.lib.cleanSource ./.;
 
-          module = "src/index.ts";
-          # `bun build --bytecode` fails on this bundle (CommonJS-only feature).
-          bunCompileToBytecode = false;
-          removeBunBuildFlags = ["--sourcemap"];
-          dontUseBunCheck = true;
-          # Lifecycle scripts (effect-tsgo patch, our bun2nix postinstall) are
-          # irrelevant inside the sandbox and would fail without a git repo.
-          dontRunLifecycleScripts = true;
+          nativeBuildInputs = [pkgs.bun pkgs.makeWrapper];
 
-          nativeBuildInputs = [pkgs.makeWrapper];
+          buildPhase = ''
+            runHook preBuild
+            ln -s ${nodeModules}/node_modules node_modules
+            bun build --compile --minify src/index.ts --outfile autoscan
+            runHook postBuild
+          '';
 
-          postInstall = ''
+          installPhase = ''
+            runHook preInstall
+            install -Dm755 autoscan "$out/bin/autoscan"
             mkdir -p "$out/share/autoscan"
             cp -r ./migrations "$out/share/autoscan/migrations"
 
             wrapProgram "$out/bin/autoscan" \
               --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.ffmpeg]} \
               --chdir "$out/share/autoscan"
+            runHook postInstall
           '';
 
-          bunDeps = fetchBunDeps {
-            bunNix = ./bun.nix;
-          };
-          # `bun2nix.mkDerivation` already sets `meta.mainProgram = pname`
-          # ("autoscan"), which is what the NixOS module's ExecStart relies on.
+          # Stripping drops the bundle Bun appends to the compiled executable.
+          dontStrip = true;
+
+          # The NixOS module's ExecStart relies on this.
+          meta.mainProgram = "autoscan";
         };
       in {
         default = autoscan;

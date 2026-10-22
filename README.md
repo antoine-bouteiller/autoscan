@@ -97,4 +97,4 @@ bun run fmt                  # Format
 bun run lint                 # Auto-fix lint findings and check types
 ```
 
-`bun install` regenerates `bun.nix` via bun2nix; commit it with `bun.lock` when dependencies change. See [project structure](docs/project_structure.spec.md) and feature-local specs under `src/features/` for implementation details.
+`bun install` regenerates `nix/deps.json` (production dependencies for the Nix build); commit it with `bun.lock` when dependencies change. See [project structure](docs/project_structure.spec.md) and feature-local specs under `src/features/` for implementation details.
