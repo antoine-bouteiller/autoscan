@@ -104,19 +104,19 @@ jobs:
         shell: bash
         run: scripts/update_bun_hashes.sh
 
-      - name: Regenerate bun.nix from the lockfile
-        run: bunx bun2nix -o bun.nix
+      - name: Regenerate nix/deps.json from the lockfile
+        run: bun install --frozen-lockfile && bun scripts/nix_deps.ts
 
       - name: Lock flake inputs
         run: nix flake lock
 
-      - name: Commit and push regenerated bun.nix
+      - name: Commit and push regenerated Nix files
         run: |
-          git diff --quiet flake.lock bun.nix nix/bun.json && exit 0
+          git diff --quiet flake.lock nix/deps.json nix/bun.json && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add flake.lock bun.nix nix/bun.json
-          git commit --no-verify -m "chore: regenerate bun.nix, Bun hashes, and flake lock"
+          git add flake.lock nix/deps.json nix/bun.json
+          git commit --no-verify -m "chore: regenerate Nix deps, Bun hashes, and flake lock"
           git push
           exit 1
 
