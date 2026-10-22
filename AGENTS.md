@@ -22,7 +22,7 @@ under `src/features/<feature>/<feature>.spec.md`.
 - **Tests run on Bun's native runner (`bun test`), not vitest.** Use `bun run test`
   (and `bun run test:coverage`). Import test APIs from `bun:test` (`describe`, `test`,
   `expect`, `spyOn`, `jest`, `mock`). Config lives in `bunfig.toml`: it preloads
-  `tests/preload.ts` (starts the shared Postgres testcontainer, sets env) and
+  `tests/preload.ts` (starts a throwaway Postgres cluster on a unix socket via `initdb`/`pg_ctl`, sets env) and
   `tests/setup.ts` (registers mock clients). Coverage thresholds are enforced by
   `scripts/coverage_gate.ts` since Bun's own threshold is per-file, not global.
 - **Nix packaging fetches production dependencies only.** `scripts/nix_deps.ts`

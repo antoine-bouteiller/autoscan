@@ -1,9 +1,33 @@
 import { afterAll } from 'bun:test'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-import { PostgreSqlContainer } from '@testcontainers/postgresql'
 import { Effect } from 'effect'
 
-const container = await new PostgreSqlContainer('postgres:18-alpine').start()
+// Throwaway cluster on a unix socket; `initdb`/`pg_ctl` come from the Nix devShell.
+const dataDir = await mkdtemp(join(tmpdir(), 'autoscan-pg-'))
+const username = 'autoscan'
+
+const run = async (cmd: string[]) => {
+  const proc = Bun.spawn(cmd, { stderr: 'pipe', stdout: 'pipe' })
+  if ((await proc.exited) !== 0) {
+    throw new Error(`${cmd.join(' ')} failed:\n${await new Response(proc.stderr).text()}`)
+  }
+}
+
+await run(['initdb', '--pgdata', dataDir, '--auth', 'trust', '--username', username, '--no-sync'])
+await run([
+  'pg_ctl',
+  'start',
+  '--wait',
+  '--pgdata',
+  dataDir,
+  '--log',
+  join(dataDir, 'postgres.log'),
+  '--options',
+  `-k ${dataDir} -c listen_addresses='' -c fsync=off -c synchronous_commit=off -c full_page_writes=off`,
+])
 
 Object.assign(process.env, {
   BAZARR_API_KEY: 'test-bazarr-key',
@@ -11,11 +35,10 @@ Object.assign(process.env, {
   BAZARR_FRENCH_PROFILE: 'French forced',
   NODE_ENV: 'test',
   PLEX_URL: 'http://plex.test',
-  POSTGRES_DATABASE: container.getDatabase(),
-  POSTGRES_HOST: container.getHost(),
-  POSTGRES_PASSWORD: container.getPassword(),
-  POSTGRES_PORT: String(container.getPort()),
-  POSTGRES_USERNAME: container.getUsername(),
+  POSTGRES_DATABASE: 'postgres',
+  POSTGRES_HOST: dataDir,
+  POSTGRES_PORT: '5432',
+  POSTGRES_USERNAME: username,
   RADARR_API_KEY: 'test-radarr-key',
   RADARR_API_URL: 'http://radarr.test',
   SONARR_API_KEY: 'test-sonarr-key',
@@ -32,7 +55,8 @@ afterAll(() =>
     Effect.gen(function* () {
       const { closeTestDatabase } = yield* Effect.promise(() => import('./database.js'))
       yield* Effect.promise(() => closeTestDatabase())
-      yield* Effect.promise(() => container.stop())
+      yield* Effect.promise(() => run(['pg_ctl', 'stop', '--pgdata', dataDir, '--mode', 'fast']))
+      yield* Effect.promise(() => rm(dataDir, { force: true, recursive: true }))
     })
   )
 )
