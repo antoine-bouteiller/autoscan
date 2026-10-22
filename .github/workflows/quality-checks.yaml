@@ -105,7 +105,7 @@ jobs:
         run: scripts/update_bun_hashes.sh
 
       - name: Regenerate nix/deps.json from the lockfile
-        run: bun install --frozen-lockfile && bun scripts/nix_deps.ts
+        run: bun install --frozen-lockfile
 
       - name: Lock flake inputs
         run: nix flake lock
