@@ -105,7 +105,7 @@
         gitHooks = gitHooksFor system;
       in {
         default = pkgs.mkShell {
-          packages = [pkgs.bun pkgs.nodejs pkgs.ffmpeg pkgs.alejandra] ++ gitHooks.enabledPackages;
+          packages = [pkgs.bun pkgs.nodejs pkgs.ffmpeg pkgs.postgresql_18 pkgs.alejandra] ++ gitHooks.enabledPackages;
           inherit (gitHooks) shellHook;
         };
       });

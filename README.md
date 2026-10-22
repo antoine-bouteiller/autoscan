@@ -88,7 +88,7 @@ Subtitle traversal currently checks only the first 10 media entries per pass, wi
 
 ## Development
 
-Tests require Docker for the PostgreSQL testcontainer and FFmpeg.
+Tests require PostgreSQL (`initdb`/`pg_ctl` on `PATH`) and FFmpeg, both provided by the Nix devShell.
 
 ```bash
 bun run dev                  # Watch mode
