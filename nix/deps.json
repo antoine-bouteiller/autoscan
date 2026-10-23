@@ -1,8 +1,8 @@
 [
   {
-    "hash": "sha512-tB/GapZ/bVoCbwRgnojGP4TwopvkMoFoSCipXT1sf0guvG/2oRVhWzJW/1vkrYFEdLM7XyRnVVLrSJyqdok7DA==",
+    "hash": "sha512-RAsGcIVcqhV4aBiM07VnMeNWDyewp8WDwTdIUtiklUDBRtddDllYzPsTlsn+0gLdpdz2lGnMEOFzoNaNrcMfSA==",
     "path": "node_modules/@effect/platform-bun",
-    "url": "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.0.5.tgz"
+    "url": "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.0.6.tgz"
   },
   {
     "hash": "sha512-0PhyC4uG30xGtsajnxjkcBWfTjNRzUh4ZKl1Kvo/MNyCTb+W2O+fBzf7wCRCoqt+nLudiq4V7vX40Q8XIBuMaQ==",
@@ -20,9 +20,9 @@
     "url": "https://registry.npmjs.org/@types/ws/-/ws-8.18.2.tgz"
   },
   {
-    "hash": "sha512-BY4/28NlpOd99yzmV741xbVGmp+1U7tks4oB7F/Png64bTa5tm5eCA6W0RiXsnuLDDoJpjfVSo4Dnq4BZb/89Q==",
+    "hash": "sha512-Tc3mkzuLR6t6P9dhLt0D2GrxYtmU5td4XEJEiXCmILz53IRIfJyHsKZWjTA3xEjiwpNTtXBgI4iqYPxMztBDrw==",
     "path": "node_modules/effect",
-    "url": "https://registry.npmjs.org/effect/-/effect-4.0.5.tgz"
+    "url": "https://registry.npmjs.org/effect/-/effect-4.0.6.tgz"
   },
   {
     "hash": "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==",

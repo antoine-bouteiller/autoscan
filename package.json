@@ -18,8 +18,8 @@
     "postinstall": "bun scripts/nix_deps.ts"
   },
   "dependencies": {
-    "@effect/platform-bun": "4.0.5",
-    "effect": "4.0.5"
+    "@effect/platform-bun": "4.0.6",
+    "effect": "4.0.6"
   },
   "devDependencies": {
     "@effect/tsgo": "0.56.0",
