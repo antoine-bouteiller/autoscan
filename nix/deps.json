@@ -5,9 +5,9 @@
     "url": "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.0.5.tgz"
   },
   {
-    "hash": "sha512-a8rCdEkfZBGe9C6bsIjxVZuRp73svIyK5IHwHdDAVsvZXjrbkxusfI+rZ8WlX31RP1mKizwI/E72GQTNfdMWHw==",
+    "hash": "sha512-0PhyC4uG30xGtsajnxjkcBWfTjNRzUh4ZKl1Kvo/MNyCTb+W2O+fBzf7wCRCoqt+nLudiq4V7vX40Q8XIBuMaQ==",
     "path": "node_modules/@effect/platform-node-shared",
-    "url": "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.0.5.tgz"
+    "url": "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.0.6.tgz"
   },
   {
     "hash": "sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==",
