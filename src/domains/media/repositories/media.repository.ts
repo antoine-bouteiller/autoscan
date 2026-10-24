@@ -1,3 +1,4 @@
+import { type SQL } from 'bun'
 import { Effect } from 'effect'
 
 import { DatabaseQueryError } from '@/config/db'
@@ -6,7 +7,8 @@ import { type Media } from '@/database/schema'
 import { type MediaType } from '@/integrations/plex/plex.service'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
 
-const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
+const query = <Result>(run: () => SQL.Query<Result>): Effect.Effect<Result, DatabaseQueryError> =>
+  Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
 
 /** @internal */
 export const countMediaByType = (type: MediaType) =>
