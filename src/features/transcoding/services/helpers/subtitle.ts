@@ -5,7 +5,7 @@ import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
 import { isForcedSubtitleContent } from '@/shared/utils/subtitle'
 
-import { isStreamWanted, type Criteria } from './utils.js'
+import { type Criteria, isStreamWanted } from './utils.js'
 
 export const isForcedSubtitle = (srtFilePath: string, mediaDuration: number) =>
   Effect.gen(function* () {

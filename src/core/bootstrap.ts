@@ -8,12 +8,14 @@ import { Env, EnvLive } from '@/config/env'
 import { LoggerLive } from '@/config/logger'
 import { registerFeatures } from '@/core/feature'
 import {
+  type AppRequirements,
   AuthenticationTasks,
-  Bazarr,
   AuthenticationTasksLive,
   BackgroundTasks,
   BackgroundTasksLive,
+  Bazarr,
   CallbackRuntime,
+  type CallbackRuntimeService,
   Ffmpeg,
   Http,
   Plex,
@@ -24,10 +26,8 @@ import {
   TelegramBot,
   Tmdb,
   TranscodeQueue,
-  TranscodeScan,
-  type AppRequirements,
-  type CallbackRuntimeService,
   type TranscodeQueueService,
+  TranscodeScan,
   type WorkflowOwner,
 } from '@/core/runtime.service'
 import { features } from '@/features/index'

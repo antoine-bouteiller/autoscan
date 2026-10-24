@@ -3,3 +3,10 @@
 preload = ["./tests/preload.ts", "./tests/setup.ts"]
 coverageReporter = ["text", "lcov"]
 coveragePathIgnorePatterns = ["**/tests/**", "src/database/schema.ts", "src/index.ts"]
+
+[fmt]
+printWidth = 150
+semi = false
+singleQuote = true
+sortImports = true
+trailingComma = "es5"

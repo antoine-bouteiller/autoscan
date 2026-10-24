@@ -11,9 +11,9 @@ import {
 } from '@tests/resources/fixtures/queue.fixtures'
 import {
   MockRadarrClient,
-  MockSonarrClient,
   mockRadarrQueue,
   mockRadarrRemoveQueueItem,
+  MockSonarrClient,
   mockSonarrQueue,
   mockSonarrRemoveQueueItem,
 } from '@tests/utils'

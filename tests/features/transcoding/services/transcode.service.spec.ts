@@ -13,7 +13,7 @@ import { TranscodeQueue } from '@/core/runtime.service'
 import { TRANSCODE_SCAN_VERSION } from '@/features/transcoding/constants'
 import { FileNotFoundError } from '@/features/transcoding/errors'
 import { transcodeFile } from '@/features/transcoding/services/transcode.service'
-import { type IFfmpegClient, FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
+import { FfmpegClient, type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
 
 const cleanScans = () => Effect.promise(() => testSql`DELETE FROM transcode_scans`)

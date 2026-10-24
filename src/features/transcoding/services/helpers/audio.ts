@@ -4,7 +4,7 @@ import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
 import { iso1ToIso2B } from '@/shared/utils/iso_codes'
 
-import { isStreamWanted, type Criteria } from './utils.js'
+import { type Criteria, isStreamWanted } from './utils.js'
 
 const wantedAudioEncodings = ['aac', 'ac3', 'eac3']
 

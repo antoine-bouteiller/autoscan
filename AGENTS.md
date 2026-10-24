@@ -14,9 +14,10 @@ under `src/features/<feature>/<feature>.spec.md`.
   (`bun run dev` for watch mode) and manage dependencies with `bun install` /
   `bun add` / `bun remove`. The HTTP server uses `Bun.serve` and subprocesses use
   Effect's `ChildProcess` on the Bun spawner layer (`BunServices.layer`).
-- **Lint and format use oxlint and oxfmt directly** — run `bun run check`
-  (format check + lint + type-check), `bun run lint` (oxlint with `--fix`), and
-  `bun run fmt` (oxfmt). Config lives in `oxlint.config.ts` and `oxfmt.config.ts`.
+- **Lint, format, and type-check are separate commands** — `bun run lint` (oxlint with
+  `--fix`), `bun fmt` (Bun's built-in formatter), and `bun check` (Bun's built-in type
+  checker). Config lives in `oxlint.config.ts`, the `[fmt]` section of `bunfig.toml`, and
+  `tsconfig.json`. Do not add `fmt` or `check` scripts: they would shadow the built-ins.
   The `--type-aware`/`--type-check` flags require the `oxlint-tsgolint` dependency
   (invoked by oxlint, not directly).
 - **Tests run on Bun's native runner (`bun test`), not vitest.** Use `bun run test`
@@ -34,4 +35,4 @@ under `src/features/<feature>/<feature>.spec.md`.
 ## Review Checklist for Agents
 
 - [ ] Run `bun install` after pulling remote changes and before getting started.
-- [ ] Run `bun run check` and `bun run test` to validate changes.
+- [ ] Run `bun fmt --check`, `bun run lint`, `bun check`, and `bun run test` to validate changes.

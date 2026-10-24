@@ -6,8 +6,8 @@ import { NetworkError } from '@/shared/errors/network'
 import { ValidationError } from '@/shared/errors/validation'
 import {
   type AnySchema,
-  type GetOptionWithoutResponse,
   type GetOptions,
+  type GetOptionWithoutResponse,
   type HttpClient,
   type HttpClientError,
   type HttpClientOptions,

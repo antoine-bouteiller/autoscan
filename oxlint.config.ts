@@ -18,7 +18,7 @@ export default defineConfig({
     typeAware: true,
     typeCheck: true,
   },
-  ignorePatterns: ['oxlint.config.ts', 'oxfmt.config.ts'],
+  ignorePatterns: ['oxlint.config.ts'],
   jsPlugins: [{ name: 'autoscan', specifier: './oxlint/index.ts' }],
   overrides: [
     {

@@ -41,9 +41,9 @@ jobs:
 
       - name: Run non-mutating checks
         run: |
-          bunx oxfmt --check .
+          bun fmt --check
           bunx oxlint
-          bunx tsc --noEmit
+          bun check
           git diff --exit-code
 
   test:

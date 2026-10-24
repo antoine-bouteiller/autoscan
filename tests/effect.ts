@@ -5,16 +5,16 @@ import { MockBazarrClient, MockPlexClient, MockRadarrClient, MockSonarrClient, M
 import { Context, Effect, Layer, Logger } from 'effect'
 
 import {
+  type AppRequirements,
   AuthenticationTasksLive,
-  Bazarr,
   BackgroundTasksLive,
+  Bazarr,
   Ffmpeg,
   Plex,
   Radarr,
   Sonarr,
   Telegram,
   Tmdb,
-  type AppRequirements,
 } from '@/core/runtime.service'
 import { PlexTokenStoreLive } from '@/features/plex_auth/services/plex_token.service'
 import { SubtitleScanLive } from '@/features/subtitle_scan/jobs/subtitle_scan.job'
@@ -23,7 +23,7 @@ import { TranscodeQueueLive } from '@/features/transcoding/services/transcode.se
 import { type IRadarrClient } from '@/integrations/arr/radarr.service'
 import { type ISonarrClient } from '@/integrations/arr/sonarr.service'
 import { type IBazarrClient } from '@/integrations/bazarr/bazarr.service'
-import { makeFfmpegClient, type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
+import { type IFfmpegClient, makeFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type IPlexClient } from '@/integrations/plex/plex.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type ITmdbClient } from '@/integrations/tmdb/tmdb.service'

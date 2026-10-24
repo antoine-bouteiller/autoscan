@@ -2,7 +2,7 @@ import { Effect } from 'effect'
 import { type HttpClient as EffectHttpClient } from 'effect/http'
 
 import { type MediaType } from '@/integrations/plex/plex.service'
-import { tmdbMovieResponse, tmdbTvResponse, type TmdbMedia, type TmdbMovie, type TmdbTV } from '@/integrations/tmdb/tmdb.validator'
+import { type TmdbMedia, type TmdbMovie, tmdbMovieResponse, type TmdbTV, tmdbTvResponse } from '@/integrations/tmdb/tmdb.validator'
 import { type HttpClientError } from '@/shared/types/http_client'
 import { httpClient } from '@/shared/utils/http_client'
 

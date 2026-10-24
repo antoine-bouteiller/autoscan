@@ -67,13 +67,13 @@
             name = "oxlint";
             entry = "bunx oxlint --fix --fix-suggestions";
             files = "\\.(ts|js|mjs|cjs)$";
-            excludes = ["^oxlint\\.config\\.ts$" "^oxfmt\\.config\\.ts$"];
+            excludes = ["^oxlint\\.config\\.ts$"];
           };
           format = {
             enable = true;
-            name = "oxfmt";
-            entry = "bunx oxfmt";
-            excludes = ["\\.nix$"];
+            name = "bun fmt";
+            entry = "bun fmt";
+            excludes = ["\\.(nix|lock|sql|sh|py|txt|svg)$" "(^|/)\\.(envrc|gitignore|dockerignore)$"];
           };
           nix-deps = {
             enable = true;
