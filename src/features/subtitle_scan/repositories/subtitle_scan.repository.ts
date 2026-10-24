@@ -1,3 +1,4 @@
+import { type SQL } from 'bun'
 import { Effect } from 'effect'
 
 import { DatabaseQueryError } from '@/config/db'
@@ -16,7 +17,8 @@ interface FrenchProfileInsert {
   bazarrKind: 'movie'
 }
 
-const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
+const query = <Result>(run: () => SQL.Query<Result>): Effect.Effect<Result, DatabaseQueryError> =>
+  Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
 
 export const getScan = (filePath: string, scanVersion: number) =>
   Database.use(({ sql }) =>

@@ -1,10 +1,12 @@
+import { type SQL } from 'bun'
 import { DateTime, Effect } from 'effect'
 
 import { DatabaseQueryError } from '@/config/db'
 import { Database } from '@/core/runtime.service'
 import { type PlexToken } from '@/database/schema'
 
-const query = <Result>(run: () => Promise<Result>) => Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
+const query = <Result>(run: () => SQL.Query<Result>): Effect.Effect<Result, DatabaseQueryError> =>
+  Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
 
 export const getPlexToken = Database.use(({ sql }) =>
   query(
