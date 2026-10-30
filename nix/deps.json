@@ -1,13 +1,13 @@
 [
   {
-    "hash": "sha512-73cS+KQQ2rZEjuXgDLiDHe6uuF7Zu3VnHXW2QmFaVqY3CIfAt5t53KOkppXHE2F2oY+i6/P9cCb5357Mec7TAw==",
+    "hash": "sha512-ZgIV+tV2utcbiopbWSoJuGn3FZuyqhLWIYITFCR8vlwnKicO1q0WgP4BBjDUYUTMRPEU/N1+BcZourAgpiDI/w==",
     "path": "node_modules/@effect/platform-bun",
-    "url": "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.0.7.tgz"
+    "url": "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.1.0.tgz"
   },
   {
-    "hash": "sha512-uCeBJ00hliKQsb7gMfvyEXUL1XmUKQcRzKi1X8ISG0UxTDMAdPRigOyKDnKxUTxE5PoT4kxLHQvOxo6U405FGg==",
+    "hash": "sha512-uYQfFRoxWLo8fIhiSeBcmz/R1ooOfE3HF3cWHFgxz82tZMk2Wn02BGABcdLmaAch9VpDLbtWnuhSxNyBsGMUFg==",
     "path": "node_modules/@effect/platform-node-shared",
-    "url": "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.0.7.tgz"
+    "url": "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.1.0.tgz"
   },
   {
     "hash": "sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==",
@@ -20,9 +20,9 @@
     "url": "https://registry.npmjs.org/@types/ws/-/ws-8.18.2.tgz"
   },
   {
-    "hash": "sha512-47CiUzNAmeLr40pDT9vKMxxtB8o3bdpZEKU4IUM3fVxsK2GYzPsV7fQoZP0I41A308BZd71nMxqJ0KRh3s9u2g==",
+    "hash": "sha512-lGx2MJJyrXA8RZb2UpQ/0Nkb5Utaimby7oD92+18noBxLPE85IFOvptdzau8dvcxAOwfwHo9iqapbKeFzqQM/Q==",
     "path": "node_modules/effect",
-    "url": "https://registry.npmjs.org/effect/-/effect-4.0.7.tgz"
+    "url": "https://registry.npmjs.org/effect/-/effect-4.1.0.tgz"
   },
   {
     "hash": "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==",
