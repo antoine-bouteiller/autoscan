@@ -16,8 +16,8 @@
     "postinstall": "bun scripts/nix_deps.ts"
   },
   "dependencies": {
-    "@effect/platform-bun": "4.0.7",
-    "effect": "4.0.7"
+    "@effect/platform-bun": "4.1.0",
+    "effect": "4.1.0"
   },
   "devDependencies": {
     "@effect/tsgo": "0.63.0",
@@ -28,7 +28,7 @@
     "oxlint-tsgolint": "7.0.2005"
   },
   "overrides": {
-    "@effect/platform-node-shared": "4.0.7"
+    "@effect/platform-node-shared": "4.1.0"
   },
   "packageManager": "bun@1.4.4"
 }
