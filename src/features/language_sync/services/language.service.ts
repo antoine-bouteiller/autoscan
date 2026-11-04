@@ -73,13 +73,16 @@ export const handleUpdateLanguage = (params: UpdateLanguageParams) =>
       return
     }
 
-    if (audioStream.selected !== true) {
-      const plexClient = yield* Plex
+    const audioChanged = audioStream.selected !== true
+    const subtitleSelected = streams.some((stream) => stream.streamType === 3 && stream.selected === true)
+    const plexClient = yield* Plex
+    if (audioChanged) {
       yield* Effect.logInfo(`Setting audio in ${preferredLanguage}`).pipe(Effect.annotateLogs('context', ['Language', mediaTitle]))
       yield* plexClient.updateStream(partsId, audioStream.id, 'audio')
-      if (preferredLanguage === 'fr') {
-        yield* plexClient.updateStream(partsId, 0, 'subtitle')
-      }
+    }
+    if (preferredLanguage === 'fr' && (audioChanged || subtitleSelected)) {
+      yield* Effect.logInfo('Clearing subtitles').pipe(Effect.annotateLogs('context', ['Language', mediaTitle]))
+      yield* plexClient.updateStream(partsId, 0, 'subtitle')
     }
   })
 

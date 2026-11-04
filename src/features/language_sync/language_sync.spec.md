@@ -20,17 +20,17 @@ Plex playback needs to use each media record's preferred audio language without 
 
 ## 3. Key Design Decisions
 
-| Decision                        | Choice                                                                                                | Rationale                                                                                                                                                                            |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `[KD-1]` Scheduling             | Register `Language Sync` on `0 */12 * * *`.                                                           | A periodic pass applies preferences to imports while limiting Plex mutations; the registered feature contract establishes this cadence (`src/features/language_sync/feature.ts:10`). |
-| `[KD-2]` Stream identity        | Compare normalized Plex audio language codes to `preferredLanguage`.                                  | Plex supplies stream codes in a different representation, so normalization prevents equivalent language codes from failing to match.                                                 |
-| `[KD-3]` French subtitles       | Clear the selected subtitle only after changing audio to French.                                      | This preserves the operator's French playback convention while avoiding a subtitle mutation when audio already matches.                                                              |
-| `[KD-4]` Preference interaction | Use a callback-driven three-state Telegram conversation and update the media row by `(tmdbId, type)`. | The selection requires dependent choices while TMDB identity and media type uniquely identify the persisted preference.                                                              |
+| Decision                        | Choice                                                                                                    | Rationale                                                                                                                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `[KD-1]` Scheduling             | Register `Language Sync` on `0 */12 * * *`.                                                               | A periodic pass applies preferences to imports while limiting Plex mutations; the registered feature contract establishes this cadence (`src/features/language_sync/feature.ts:10`). |
+| `[KD-2]` Stream identity        | Compare normalized Plex audio language codes to `preferredLanguage`.                                      | Plex supplies stream codes in a different representation, so normalization prevents equivalent language codes from failing to match.                                                 |
+| `[KD-3]` French subtitles       | Clear subtitles after changing audio to French, or when French audio is already selected with a subtitle. | French audio that is the file's default is never changed, so Plex's own subtitle choice would otherwise persist; no mutation happens when audio matches and no subtitle is selected. |
+| `[KD-4]` Preference interaction | Use a callback-driven three-state Telegram conversation and update the media row by `(tmdbId, type)`.     | The selection requires dependent choices while TMDB identity and media type uniquely identify the persisted preference.                                                              |
 
 ## 4. Principles & Intents
 
 - `[PI-1]` Domain ownership — resolve media details and lists through the media domain rather than duplicating its metadata or repository access.
-- `[PI-2]` Idempotent alignment — a selected matching audio stream produces no Plex update.
+- `[PI-2]` Idempotent alignment — a selected matching audio stream produces no Plex update, unless the preference is `fr` and a subtitle is selected.
 - `[PI-3]` Per-item resilience — a media-detail failure is logged and does not stop the section traversal (`src/features/language_sync/jobs/language.job.ts:20`).
 
 ## 5. Non-Goals
@@ -60,7 +60,7 @@ The job reads Plex sections, obtains their media, resolves complete media detail
 
 ### Language service
 
-For each part, the service finds an audio stream with `streamType === 2` whose normalized code equals `preferredLanguage`. If that stream is not selected, it updates audio; for `fr`, it then sets subtitle stream `0` (`src/features/language_sync/services/language.service.ts:54`, `src/features/language_sync/services/language.service.ts:79`). Absence of a match logs a warning, sends `No <language> audio stream found for <media title>` to `TELEGRAM_CHAT_ID`, and makes no selection. Telegram delivery is best-effort: a non-interruption failure is logged, while interruption propagates.
+For each part, the service finds an audio stream with `streamType === 2` whose normalized code equals `preferredLanguage`. If that stream is not selected, it updates audio. For `fr`, it sets subtitle stream `0` when it changed audio or when any subtitle stream (`streamType === 3`) is selected (`src/features/language_sync/services/language.service.ts:57`, `src/features/language_sync/services/language.service.ts:85`). Absence of a match logs a warning, sends `No <language> audio stream found for <media title>` to `TELEGRAM_CHAT_ID`, and makes no selection. Telegram delivery is best-effort: a non-interruption failure is logged, while interruption propagates.
 
 The conversation transitions as follows:
 
@@ -68,7 +68,7 @@ The conversation transitions as follows:
 /setlanguage → awaiting_media_type → awaiting_media_selection → awaiting_language → idle
 ```
 
-It offers movie/show, a paginated media keyboard, then ISO-639-1 codes in six-column rows. The language choice normalizes the code, updates `media.preferredLanguage` for the selected TMDB id and type, edits the prompt, and returns `idle` (`src/features/language_sync/services/language.service.ts:115`).
+It offers movie/show, a paginated media keyboard, then ISO-639-1 codes in six-column rows. The language choice normalizes the code, updates `media.preferredLanguage` for the selected TMDB id and type, edits the prompt, and returns `idle` (`src/features/language_sync/services/language.service.ts:130`).
 
 ### Set-language conversation
 
@@ -78,6 +78,8 @@ The command sends the media-type keyboard. Each callback is acknowledged and dis
 
 - `[SO-1]` Operators receive a Telegram alert identifying the media and missing preferred audio language — demonstrated by `[VC-1]`.
 - `[VC-1]` When no preferred audio stream exists, alignment sends the documented message to the configured chat without mutating Plex. A matching stream does not notify. Failed delivery does not fail alignment, while interruption propagates; covered by language-service regressions.
+- `[SO-2]` French-preference media play without subtitles even when French is already the selected audio — demonstrated by `[VC-2]`.
+- `[VC-2]` With French audio selected, a selected subtitle is cleared, while no selected subtitle produces no Plex update; covered by language-service regressions.
 
 ## 9. Open Questions
 

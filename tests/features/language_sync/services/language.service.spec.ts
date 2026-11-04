@@ -105,6 +105,42 @@ describe('language service', () => {
     })
   )
 
+  it.live('clears a selected subtitle when French audio is already selected', () =>
+    Effect.gen(function* () {
+      yield* provideTest(
+        handleUpdateLanguage({
+          mediaTitle: 'Show',
+          partsId: 2,
+          preferredLanguage: 'fr',
+          streams: [
+            { id: 3, languageCode: 'fra', selected: true, streamType: 2 },
+            { id: 4, languageCode: 'eng', selected: true, streamType: 3 },
+          ],
+        }),
+        { plex: new MockPlexClient() }
+      )
+      expect(updateStreamMock.mock.calls).toEqual([[2, 0, 'subtitle']])
+    })
+  )
+
+  it.live('does not update when French audio is selected without subtitles', () =>
+    Effect.gen(function* () {
+      yield* provideTest(
+        handleUpdateLanguage({
+          mediaTitle: 'Show',
+          partsId: 2,
+          preferredLanguage: 'fr',
+          streams: [
+            { id: 3, languageCode: 'fra', selected: true, streamType: 2 },
+            { id: 4, languageCode: 'eng', selected: false, streamType: 3 },
+          ],
+        }),
+        { plex: new MockPlexClient() }
+      )
+      expect(updateStreamMock).not.toHaveBeenCalled()
+    })
+  )
+
   it.live('notifies Telegram when the preferred audio stream is missing', () =>
     Effect.gen(function* () {
       yield* provideTest(
