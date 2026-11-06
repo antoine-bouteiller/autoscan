@@ -5,7 +5,7 @@ import { type AppRequirements } from '@/core/runtime.service'
 import { type HttpProvider } from '@/providers/http/http.provider'
 import { type RouteHandler } from '@/providers/http/types'
 import { type SchedulerProvider } from '@/providers/scheduler/scheduler.provider'
-import { type CommandHandler, type Conversation, type TelegramProvider } from '@/providers/telegram/telegram.provider'
+import { type ActionHandler, type CommandHandler, type Conversation, type TelegramProvider } from '@/providers/telegram/telegram.provider'
 
 type FeatureRoute = (http: HttpProvider) => void
 
@@ -16,6 +16,7 @@ interface FeatureJob {
 }
 
 interface Feature {
+  readonly actions?: Readonly<Record<string, ActionHandler>>
   readonly commands?: Readonly<Record<string, CommandHandler>>
   readonly conversations?: Readonly<Record<string, Conversation>>
   readonly jobs?: readonly FeatureJob[]
@@ -53,6 +54,9 @@ export const registerFeatures = (features: readonly Feature[], providers: Featur
     }
     for (const [command, conversation] of Object.entries(feature.conversations ?? {})) {
       providers.telegram.registerConversation(command, conversation)
+    }
+    for (const [prefix, action] of Object.entries(feature.actions ?? {})) {
+      providers.telegram.registerAction(prefix, action)
     }
   }
 }

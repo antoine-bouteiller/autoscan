@@ -10,10 +10,12 @@ import { DateTime, Effect, FileSystem } from 'effect'
 
 import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { getScan, recordScan } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
+import { deleteSubtitleButton } from '@/features/subtitle_scan/services/invalid_subtitles.service'
 import { scanMediaSubtitles } from '@/features/subtitle_scan/services/subtitle_scan.service'
 import { type SubtitleScanMedia } from '@/features/subtitle_scan/types'
 import { type BazarrItem, type BazarrItemRef, type BazarrSubtitleRef, type IBazarrClient } from '@/integrations/bazarr/bazarr.service'
 import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
+import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { NetworkError } from '@/shared/errors/network'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
 
@@ -25,6 +27,12 @@ const subtitleContent = (offset = 0) =>
     const end = String(index * 10 + offset + 4).padStart(2, '0')
     return `${index + 1}\n00:00:${second},000 --> 00:00:${end},000\ntext`
   }).join('\n\n')
+
+const invalidAlert = (language: string, path: string | undefined): Parameters<ITelegramClient['sendMessage']> => [
+  testEnv.TELEGRAM_CHAT_ID,
+  `Invalid subtitle for Movie (${language})`,
+  { replyMarkup: { inline_keyboard: [[deleteSubtitleButton(path ?? '', '🗑️ Delete')]] } },
+]
 
 const ffmpeg: IFfmpegClient = {
   execute: (..._command) => Effect.succeed(''),
@@ -133,10 +141,7 @@ describe('scanMediaSubtitles', () => {
       expect(synced).toHaveLength(2)
       expect(sendMessageMock).not.toHaveBeenCalled()
       yield* run(details(file), item, client)
-      expect(sendMessageMock.mock.calls).toEqual([
-        [testEnv.TELEGRAM_CHAT_ID, 'Invalid subtitle for Movie (de)', undefined],
-        [testEnv.TELEGRAM_CHAT_ID, 'Invalid subtitle for Movie (fr)', undefined],
-      ])
+      expect(sendMessageMock.mock.calls).toEqual([invalidAlert('de', paths[2]), invalidAlert('fr', french)])
       expect(synced).toHaveLength(2)
 
       yield* Effect.promise(() => testSql`DELETE FROM subtitle_scans`)
@@ -224,7 +229,7 @@ describe('scanMediaSubtitles', () => {
         syncSubtitle: () => Effect.die('must not resync a sync recheck'),
       }
       yield* run(details(file), { ...item, subtitles: [] }, noActions)
-      expect(sendMessageMock.mock.calls).toEqual([[testEnv.TELEGRAM_CHAT_ID, 'Invalid subtitle for Movie (fr)', undefined]])
+      expect(sendMessageMock.mock.calls).toEqual([invalidAlert('fr', french)])
       expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
 
       yield* fs.writeFileString(french, subtitleContent(2))

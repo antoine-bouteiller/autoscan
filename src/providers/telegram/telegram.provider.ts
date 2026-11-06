@@ -13,6 +13,8 @@ type CallbackHandler = (
   params: { state: ConversationState; callback: TelegramCallbackQuery }
 ) => Effect.Effect<ConversationState, Error, AppRequirements>
 
+export type ActionHandler = (client: ITelegramClient, callback: TelegramCallbackQuery, payload: string) => Effect.Effect<void, Error, AppRequirements>
+
 export interface Conversation {
   onCommand: CommandHandler
   onCallback: CallbackHandler
@@ -22,6 +24,7 @@ export class TelegramProvider {
   private conversationState: ConversationState = { step: 'idle' }
   private readonly commands = new Map<string, CommandHandler>()
   private readonly conversations = new Map<string, Conversation>()
+  private readonly actions = new Map<string, ActionHandler>()
   private activeConversationKey?: string
   private readonly client: ITelegramClient
   private readonly chatId: number
@@ -41,6 +44,25 @@ export class TelegramProvider {
     return this
   }
 
+  /** Handles callbacks whose data is `<prefix>:<payload>`, independently of the active conversation. */
+  registerAction(prefix: string, handler: ActionHandler): this {
+    this.actions.set(prefix, handler)
+    return this
+  }
+
+  private notifyFailure(cause: Cause.Cause<Error>) {
+    const provider = this
+    return Effect.gen(function* () {
+      yield* Effect.logError(cause, 'Telegram')
+      yield* provider.client.sendMessage(provider.chatId, 'An unexpected error occurred').pipe(
+        Effect.catchCauseIf(
+          (sendCause) => !Cause.hasInterruptsOnly(sendCause),
+          (sendCause) => Effect.logError(sendCause, 'Telegram')
+        )
+      )
+    })
+  }
+
   private recoverHandler(effect: Effect.Effect<ConversationState, Error, AppRequirements>) {
     const provider = this
     return effect.pipe(
@@ -50,13 +72,7 @@ export class TelegramProvider {
           Effect.gen(function* () {
             provider.conversationState = { step: 'idle' }
             provider.activeConversationKey = undefined
-            yield* Effect.logError(cause, 'Telegram')
-            yield* provider.client.sendMessage(provider.chatId, 'An unexpected error occurred').pipe(
-              Effect.catchCauseIf(
-                (sendCause) => !Cause.hasInterruptsOnly(sendCause),
-                (sendCause) => Effect.logError(sendCause, 'Telegram')
-              )
-            )
+            yield* provider.notifyFailure(cause)
             return provider.conversationState
           })
       )
@@ -97,6 +113,14 @@ export class TelegramProvider {
   private handleCallback(chatId: number, callback: TelegramCallbackQuery) {
     const provider = this
     return Effect.gen(function* () {
+      const [prefix = '', ...payload] = callback.data?.split(':') ?? []
+      const action = provider.actions.get(prefix)
+      if (action !== undefined && payload.length > 0) {
+        yield* action(provider.client, callback, payload.join(':')).pipe(
+          Effect.catchCauseIf((cause) => !Cause.hasInterruptsOnly(cause), provider.notifyFailure.bind(provider))
+        )
+        return
+      }
       if (provider.activeConversationKey === undefined) {
         return
       }

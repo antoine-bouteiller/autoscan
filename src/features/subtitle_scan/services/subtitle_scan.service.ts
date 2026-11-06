@@ -4,6 +4,7 @@ import { Env } from '@/config/env'
 import { Bazarr, Ffmpeg, Telegram } from '@/core/runtime.service'
 import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { getScan, recordScan, type SubtitleScanRecord, type SubtitleVerdict } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
+import { deleteSubtitleButton } from '@/features/subtitle_scan/services/invalid_subtitles.service'
 import { discoverSubtitleFiles, readSubtitleFile, type SubtitleFileSnapshot } from '@/features/subtitle_scan/services/subtitle_files.service'
 import { type SubtitleScanMedia } from '@/features/subtitle_scan/types'
 import { type BazarrItem } from '@/integrations/bazarr/bazarr.service'
@@ -78,7 +79,9 @@ export const scanMediaSubtitles = <Requirements>(
         const env = yield* Env
         yield* logFailure(
           telegram
-            .sendMessage(env.TELEGRAM_CHAT_ID, `Invalid subtitle for ${details.mediaTitle} (${file.language})`)
+            .sendMessage(env.TELEGRAM_CHAT_ID, `Invalid subtitle for ${details.mediaTitle} (${file.language})`, {
+              replyMarkup: { inline_keyboard: [[deleteSubtitleButton(file.path, '🗑️ Delete')]] },
+            })
             .pipe(Effect.tap(() => Effect.logInfo(`Sent invalid subtitle alert for ${file.path}`))),
           `Notifying invalid subtitle for ${file.path}`
         )

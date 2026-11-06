@@ -110,4 +110,47 @@ describe('TelegramProvider', () => {
       })
     )
   })
+  it.effect('dispatches prefixed callbacks to actions during a conversation and contains their failures', () => {
+    const client = new PollClient()
+    const message = { chat: { id: env.TELEGRAM_CHAT_ID }, message_id: 1 }
+    const callback = (update_id: number, data: string) => ({ callback_query: { data, id: String(update_id), message }, update_id })
+    let call = 0
+    client.updates = Effect.suspend(() => {
+      call++
+      return call === 1
+        ? Effect.succeed([
+            { message: { ...message, text: '/talk' }, update_id: 1 },
+            callback(2, 'act:a:b'),
+            callback(3, 'act:fail'),
+            callback(4, 'reply'),
+          ])
+        : Effect.never
+    })
+    const payloads: string[] = []
+    const conversationCallbacks: (string | undefined)[] = []
+    const provider = new TelegramProvider(client, env.TELEGRAM_CHAT_ID)
+    provider.registerConversation('/talk', {
+      onCallback: (_client, _chatId, { callback: query }) =>
+        Effect.sync(() => void conversationCallbacks.push(query.data)).pipe(Effect.as({ step: 'idle' } as const)),
+      onCommand: () => Effect.succeed({ messageId: 1, step: 'awaiting_media_type' }),
+    })
+    provider.registerAction('act', (_client, _callback, payload) =>
+      payload === 'fail'
+        ? Effect.fail(NetworkError.make({ originalMessage: 'failed', serviceName: 'Action' }))
+        : Effect.sync(() => void payloads.push(payload))
+    )
+
+    return runControlled(
+      client,
+      Effect.gen(function* () {
+        const fiber = yield* Effect.forkChild(provider.poll)
+        yield* Effect.yieldNow
+        yield* Effect.yieldNow
+        expect(payloads).toEqual(['a:b'])
+        expect(client.messages).toEqual(['An unexpected error occurred'])
+        expect(conversationCallbacks).toEqual(['reply'])
+        yield* Fiber.interrupt(fiber)
+      })
+    )
+  })
 })

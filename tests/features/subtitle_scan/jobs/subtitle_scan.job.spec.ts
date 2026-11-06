@@ -1,3 +1,4 @@
+import { BunServices } from '@effect/platform-bun'
 import { makeTestContext, provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { MockPlexClient } from '@tests/mocks/plex.mock'
@@ -611,6 +612,17 @@ describe('subtitle scan job', () => {
       yield* provideTest(runSubtitleScan, { bazarr, plex: new FailingTopLevelPlexClient() })
       expect(bazarr).toMatchObject({ wantedEpisodes: 1, wantedMovies: 1 })
     })
+  )
+
+  it.live('prunes registry rows of deleted subtitles even when traversal fails', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const directory = yield* fs.makeTempDirectoryScoped()
+      const filePath = `${directory}/Movie.en.srt`
+      yield* provideTest(recordScan({ filePath, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: yield* DateTime.nowAsDate, verdict: 'invalid' }))
+      yield* provideTest(runSubtitleScan, { plex: new FailingTopLevelPlexClient() })
+      expect(yield* provideTest(getScan(filePath, SUBTITLE_SCAN_VERSION))).toBeUndefined()
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
   it.live('releases manual admission after typed failures and defects, allowing a follow-up scan', () =>

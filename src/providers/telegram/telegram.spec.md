@@ -22,19 +22,20 @@ Autoscan accepts commands and interactive callbacks from one authorized Telegram
 
 ## 3. Key Design Decisions
 
-| Decision                    | Choice                                                                                                            | Rationale                                                                                                        |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `[KD-1]` Client ownership   | Accept an `ITelegramClient` in the provider constructor.                                                          | Explicit injection keeps vendor I/O replaceable and lets handler execution share the same client instance.       |
-| `[KD-2]` Authorization      | Filter each message or callback chat ID against `TELEGRAM_CHAT_ID`.                                               | The bot processes private control actions, so untrusted chats cannot enter feature workflows.                    |
-| `[KD-3]` Conversation model | Maintain one active command key and one `ConversationState`; handlers return the successor state.                 | State transitions remain feature-defined while dispatch retains enough context to route callbacks.               |
-| `[KD-4]` Handler recovery   | Log non-interruption causes, reset state to idle, and send a fixed error message.                                 | A faulty feature interaction cannot leave the provider trapped in an unusable conversation or terminate polling. |
-| `[KD-5]` Poll retry         | Retry failed `getUpdates` calls with exponential Effect sleeps from 5 seconds to 5 minutes, resetting on success. | Backoff reduces pressure on an unavailable external API while Effect sleep remains interruptible.                |
+| Decision                    | Choice                                                                                                                                                                                                                               | Rationale                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `[KD-1]` Client ownership   | Accept an `ITelegramClient` in the provider constructor.                                                                                                                                                                             | Explicit injection keeps vendor I/O replaceable and lets handler execution share the same client instance.       |
+| `[KD-2]` Authorization      | Filter each message or callback chat ID against `TELEGRAM_CHAT_ID`.                                                                                                                                                                  | The bot processes private control actions, so untrusted chats cannot enter feature workflows.                    |
+| `[KD-3]` Conversation model | Maintain one active command key and one `ConversationState`; handlers return the successor state.                                                                                                                                    | State transitions remain feature-defined while dispatch retains enough context to route callbacks.               |
+| `[KD-4]` Handler recovery   | Log non-interruption causes, reset state to idle, and send a fixed error message.                                                                                                                                                    | A faulty feature interaction cannot leave the provider trapped in an unusable conversation or terminate polling. |
+| `[KD-5]` Poll retry         | Retry failed `getUpdates` calls with exponential Effect sleeps from 5 seconds to 5 minutes, resetting on success.                                                                                                                    | Backoff reduces pressure on an unavailable external API while Effect sleep remains interruptible.                |
+| `[KD-6]` Callback actions   | Route a callback whose data is `<prefix>:<payload>` to the action registered for that prefix, before conversation routing. Action failures are logged and answered with the fixed error message without changing conversation state. | Buttons on unsolicited notifications must work whether or not a conversation is active.                          |
 
 ## 4. Principles & Intents
 
 - `[PI-1]` Authorized dispatch — filtering precedes all command, cancellation, and callback behavior.
 - `[PI-2]` Effect-native lifecycle — polling and handlers stay in the Effect runtime, including interruption and logging.
-- `[PI-3]` Conversation containment — an active conversation owns callbacks until it returns `idle`.
+- `[PI-3]` Conversation containment — an active conversation owns callbacks that match no registered action until it returns `idle`.
 
 ## 5. Non-Goals
 
@@ -47,24 +48,24 @@ Autoscan accepts commands and interactive callbacks from one authorized Telegram
 - `[C-1]` Command and conversation registrations use `Map.set`, so registering the same command again replaces its handler (`src/providers/telegram/telegram.provider.ts:33-41`).
 - `[C-2]` Updates with a missing or unauthorized chat ID only produce a warning and do not advance feature state (`src/providers/telegram/telegram.provider.ts:120-124`).
 - `[C-3]` `/cancel` replies `No operation in progress` while idle; otherwise it clears state and replies `Cancelled.` (`src/providers/telegram/telegram.provider.ts:67-74`).
-- `[C-4]` A callback with no active key, or with a key absent from the conversation map, has no effect (`src/providers/telegram/telegram.provider.ts:98-106`).
+- `[C-4]` A callback that matches no action and has no active key, or with a key absent from the conversation map, has no effect (`src/providers/telegram/telegram.provider.ts:98-106`).
 - `[C-5]` A non-text message reaches authorization but does not invoke a command handler (`src/providers/telegram/telegram.provider.ts:76-81`).
 - `[C-6]` A recognized command during an active conversation is not dispatched as an ordinary command (`src/providers/telegram/telegram.provider.ts:125-130`).
 - `[C-7]` Notification delivery failure is logged and does not reintroduce the failed handler cause (`src/providers/telegram/telegram.provider.ts:54-60`).
 
 ## 7. High-Level Components
 
-| Component              | Module type          | Responsibility                                                         | Public API surface                                                    |
-| ---------------------- | -------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Telegram provider      | Effect runtime host  | Register handlers, dispatch authorized updates, and poll with recovery | `TelegramProvider`, `registerCommand`, `registerConversation`, `poll` |
-| Conversation contracts | TypeScript contracts | Describe command/callback handlers and transition state                | `CommandHandler`, `Conversation`, `ConversationState`                 |
-| Keyboard contracts     | TypeScript contracts | Represent inline Telegram keyboard markup used by feature handlers     | `InlineKeyboardButton`, `InlineKeyboardMarkup`                        |
+| Component              | Module type          | Responsibility                                                         | Public API surface                                                                      |
+| ---------------------- | -------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Telegram provider      | Effect runtime host  | Register handlers, dispatch authorized updates, and poll with recovery | `TelegramProvider`, `registerCommand`, `registerConversation`, `registerAction`, `poll` |
+| Conversation contracts | TypeScript contracts | Describe command/callback handlers and transition state                | `CommandHandler`, `Conversation`, `ConversationState`                                   |
+| Keyboard contracts     | TypeScript contracts | Represent inline Telegram keyboard markup used by feature handlers     | `InlineKeyboardButton`, `InlineKeyboardMarkup`                                          |
 
 ## 8. Detailed Design
 
 ### Telegram provider
 
-The provider starts with `idle` state, maps commands and conversations by command text, and retains the injected Telegram client (`src/providers/telegram/telegram.provider.ts:22-41`). A message that names a conversation activates that key and runs its `onCommand`; an ordinary registered command runs only while no conversation is active. Either handler returns the next state, and returning `idle` clears the active key (`src/providers/telegram/telegram.provider.ts:76-95`). Callbacks route only to the active conversation and receive both callback data and current state (`src/providers/telegram/telegram.provider.ts:98-114`).
+The provider starts with `idle` state, maps commands and conversations by command text, and retains the injected Telegram client (`src/providers/telegram/telegram.provider.ts:22-41`). A message that names a conversation activates that key and runs its `onCommand`; an ordinary registered command runs only while no conversation is active. Either handler returns the next state, and returning `idle` clears the active key (`src/providers/telegram/telegram.provider.ts:76-95`). A callback whose data prefix before the first `:` names a registered action runs that action with the remaining payload (`[KD-6]`); other callbacks route only to the active conversation and receive both callback data and current state (`src/providers/telegram/telegram.provider.ts:98-114`).
 
 Handler recovery re-fails interruption only. Every other cause resets the conversation to idle, logs it, attempts to notify the authorized chat with `An unexpected error occurred`, and logs a notification failure unless it is an interruption (`src/providers/telegram/telegram.provider.ts:43-65`). Update dispatch obtains the chat ID from a message or callback, rejects unauthorized senders, treats `/cancel` specially, then chooses message or callback dispatch (`src/providers/telegram/telegram.provider.ts:117-133`).
 

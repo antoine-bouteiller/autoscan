@@ -6,6 +6,7 @@ import { BackgroundTasks, Bazarr, Plex, SubtitleScan } from '@/core/runtime.serv
 import { getCompleteMediaDetails } from '@/domains/media/services/metadata.service'
 import { applyFrenchProfilePolicy } from '@/features/subtitle_scan/services/french_profile.service'
 import { applyMissingPolicy } from '@/features/subtitle_scan/services/missing_subtitles.service'
+import { pruneMissingScans } from '@/features/subtitle_scan/services/scan_registry.service'
 import { scanMediaSubtitles } from '@/features/subtitle_scan/services/subtitle_scan.service'
 import { type SubtitleScanMedia } from '@/features/subtitle_scan/types'
 
@@ -66,6 +67,7 @@ const subtitleScan = Effect.gen(function* () {
   yield* Effect.logInfo('Starting subtitle scan...')
   const presetId = yield* resolveFrenchPreset
   yield* catchAndLog(traverse(presetId), 'Traversing Plex library for subtitle scan')
+  yield* catchAndLog(pruneMissingScans, 'Pruning subtitle scan registry')
   yield* catchAndLog(applyMissingPolicy, 'Applying missing subtitle policy')
   yield* Effect.logInfo('Subtitle scan finished')
 })

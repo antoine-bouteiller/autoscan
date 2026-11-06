@@ -45,6 +45,33 @@ export const recordScan = (row: SubtitleScanRecord) =>
     )
   ).pipe(Effect.asVoid)
 
+export const listScans = (verdict: SubtitleVerdict, scanVersion: number) =>
+  Database.use(({ sql }) =>
+    query(
+      () => sql<SubtitleScanRecord[]>`
+        SELECT file_path AS "filePath", scan_version AS "scanVersion", scanned_at AS "scannedAt", verdict
+        FROM subtitle_scans
+        WHERE verdict = ${verdict} AND scan_version = ${scanVersion}
+        ORDER BY file_path
+      `
+    )
+  )
+
+export const listScanPaths = Database.use(({ sql }) =>
+  query(() => sql<{ filePath: string }[]>`SELECT file_path AS "filePath" FROM subtitle_scans`).pipe(
+    Effect.map((rows) => rows.map((row) => row.filePath))
+  )
+)
+
+export const deleteScans = (filePaths: readonly string[]) => {
+  if (filePaths.length === 0) {
+    return Effect.void
+  }
+  return Database.use(({ sql }) =>
+    query(() => sql`DELETE FROM subtitle_scans WHERE file_path = ANY(${sql.array([...filePaths], 'text')}::text[])`)
+  ).pipe(Effect.asVoid)
+}
+
 export const listMissing = Database.use(({ sql }) =>
   query(
     () => sql<MissingSubtitle[]>`
