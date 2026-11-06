@@ -181,7 +181,7 @@ class CountingBazarr extends MockBazarrClient {
 }
 
 describe('subtitle scan job', () => {
-  it.live('does not cap metadata failures without eligible subtitle candidates', () =>
+  it.live('continues traversal past metadata failures', () =>
     Effect.gen(function* () {
       const plex = new MockPlexClient()
       const [template] = [plexMetadata[123]]
@@ -224,7 +224,7 @@ describe('subtitle scan job', () => {
     })
   )
 
-  it.scoped('caps only unregistered non-forced sidecars, advances past cached media, and counts analysis failures', () =>
+  it.scoped('analyzes every unregistered non-forced sidecar in one pass and retries analysis failures', () =>
     Effect.gen(function* () {
       const context = yield* makeTestContext()
       const fs = Context.get(context, FileSystem.FileSystem)
@@ -315,7 +315,7 @@ describe('subtitle scan job', () => {
       const overridden = Context.add(Context.add(Context.add(context, Bazarr, bazarr), Ffmpeg, countedFfmpeg), Plex, plex)
 
       yield* runSubtitleScan.pipe(Effect.provide(overridden))
-      const firstPass = Array.from({ length: 10 }, (_entry, index) => fileFor(index + 5))
+      const firstPass = Array.from({ length: 20 }, (_entry, index) => fileFor(index + 5))
       expect(probed).toEqual(firstPass)
       expect(bazarr.lookups).toEqual(firstPass)
       const [passed] = yield* discoverSubtitleFiles(fileFor(13)).pipe(Effect.provide(overridden))
@@ -333,9 +333,8 @@ describe('subtitle scan job', () => {
       expect(accepted).toBeTrue()
       const tasks = Context.get(overridden, BackgroundTasks)
       yield* tasks.awaitEmpty
-      const secondPass = Array.from({ length: 10 }, (_entry, index) => fileFor(index + 14))
-      expect(probed).toEqual(secondPass)
-      expect(bazarr.lookups).toEqual(secondPass)
+      expect(probed).toEqual([failedFile])
+      expect(bazarr.lookups).toEqual([failedFile])
     })
   )
 
@@ -507,7 +506,7 @@ describe('subtitle scan job', () => {
     })
   )
 
-  it.scoped('does not spend scan slots on French movies, including cached and pending sidecars, in scheduled or manual passes', () =>
+  it.scoped('skips analysis of French movies, including cached and pending sidecars', () =>
     Effect.gen(function* () {
       const context = yield* makeTestContext()
       const fs = Context.get(context, FileSystem.FileSystem)
@@ -599,17 +598,10 @@ describe('subtitle scan job', () => {
       const bazarr = new TrackingBazarr()
       const provided = Context.add(Context.add(Context.add(Context.add(context, Plex, plex), Tmdb, tmdb), Bazarr, bazarr), Ffmpeg, countedFfmpeg)
       yield* runSubtitleScan.pipe(Effect.provide(provided))
-      expect(probed).toHaveLength(10)
-      expect(probed).toEqual(media.slice(11, 21).map((entry) => entry.Media[0]?.Part[0]?.file))
-      expect(bazarr.lookups).toHaveLength(21)
+      expect(probed).toEqual(media.slice(11).map((entry) => entry.Media[0]?.Part[0]?.file))
+      expect(bazarr.lookups).toHaveLength(22)
       expect(bazarr.deleted).toHaveLength(11)
       expect(bazarr.wanted).toBe(1)
-      probed.length = 0
-      expect(yield* startSubtitleScan.pipe(Effect.provide(provided))).toBeTrue()
-      yield* Context.get(context, BackgroundTasks).awaitEmpty
-      expect(probed).toEqual([media[21]?.Media[0]?.Part[0]?.file])
-      expect(bazarr.deleted).toHaveLength(22)
-      expect(bazarr.wanted).toBe(2)
     })
   )
 

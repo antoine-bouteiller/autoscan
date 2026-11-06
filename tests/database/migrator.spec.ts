@@ -166,7 +166,7 @@ const CURRENT_SCHEMA = {
   enums: [
     { labels: '{movie,episode}', typname: 'bazarr_kind' },
     { labels: '{movie,show}', typname: 'media_type' },
-    { labels: '{passed,forced_removed,sync_requested,invalid}', typname: 'subtitle_verdict' },
+    { labels: '{passed,sync_requested,invalid}', typname: 'subtitle_verdict' },
   ],
 }
 
@@ -177,7 +177,7 @@ describe('migrate', () => {
     await migrate(sql, MIGRATIONS)
 
     expect(await recordedNames(sql)).toEqual(await migrationNames())
-    expect(await recordedNames(sql)).toHaveLength(8)
+    expect(await recordedNames(sql)).toHaveLength(9)
     expect(await describeSchema(sql)).toEqual(CURRENT_SCHEMA)
   })
 
@@ -190,7 +190,7 @@ describe('migrate', () => {
 
     expect(await recordedNames(sql)).toEqual(names)
     expect(await describeSchema(sql)).toEqual(CURRENT_SCHEMA)
-    expect(await sql`SELECT name FROM drizzle.__drizzle_migrations`).toHaveLength(8)
+    expect(await sql`SELECT name FROM drizzle.__drizzle_migrations`).toHaveLength(9)
   })
 
   it('[VC-3] runs only migrations newer than the Drizzle history, then nothing on a second run', async () => {

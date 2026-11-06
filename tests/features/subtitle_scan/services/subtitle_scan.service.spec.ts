@@ -173,10 +173,10 @@ describe('scanMediaSubtitles', () => {
         yield* fs.symlink(`${directory}/missing.srt`, path)
       }
 
-      yield* provideTest(
-        scanMediaSubtitles(details(file), Effect.die('invalid paths must not look up Bazarr'), Effect.die('invalid paths must not count as scans')),
-        { bazarr: client, ffmpeg: { ...ffmpeg, ffprobe: () => Effect.die('invalid paths must not probe media') } }
-      )
+      yield* provideTest(scanMediaSubtitles(details(file), Effect.die('invalid paths must not look up Bazarr')), {
+        bazarr: client,
+        ffmpeg: { ...ffmpeg, ffprobe: () => Effect.die('invalid paths must not probe media') },
+      })
       expect(synced).toHaveLength(2)
       expect(sendMessageMock).toHaveBeenCalledTimes(2)
 
@@ -206,18 +206,7 @@ describe('scanMediaSubtitles', () => {
       expect(sendMessageMock).not.toHaveBeenCalled()
 
       yield* fs.writeFileString(french, subtitleContent().replaceAll(',000', ',500'))
-      let scans = 0
-      yield* provideTest(
-        scanMediaSubtitles(
-          details(file),
-          Effect.succeed(item),
-          Effect.sync(() => {
-            scans++
-          })
-        ),
-        { bazarr: client, ffmpeg }
-      )
-      expect(scans).toBe(1)
+      yield* provideTest(scanMediaSubtitles(details(file), Effect.succeed(item)), { bazarr: client, ffmpeg })
       for (const path of [english, french]) {
         expect(yield* provideTest(getScan(path, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'passed' })
       }
@@ -331,7 +320,7 @@ describe('scanMediaSubtitles', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('removes heuristic forced candidates and never reuses removed paths as references', () =>
+  it.live('removes heuristic forced candidates without registering them, so a replacement at the same path is analyzed', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
@@ -352,32 +341,12 @@ describe('scanMediaSubtitles', () => {
       )
       yield* run(details(file), forcedBazarr.item, client)
       expect(deleted).toEqual([forced])
-      expect(yield* provideTest(getScan(forced, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'forced_removed' })
+      expect(yield* provideTest(getScan(forced, SUBTITLE_SCAN_VERSION))).toBeUndefined()
+      yield* fs.remove(reference)
       yield* fs.writeFileString(forced, subtitleContent())
       yield* run(details(file), forcedBazarr.item, client)
       expect(deleted).toEqual([forced])
-      expect(yield* provideTest(getScan(forced, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'forced_removed' })
-      yield* fs.remove(reference)
-      yield* fs.remove(forced)
-
-      yield* Effect.promise(() => testSql`DELETE FROM subtitle_scans`)
-      const actioned = `${directory}/Movie.fr.srt`
-      const newcomer = `${directory}/Movie.de.srt`
-      yield* fs.symlink(`${directory}/missing-actioned.srt`, actioned)
-      yield* fs.writeFileString(newcomer, subtitleContent(2))
-      yield* provideTest(
-        recordScan({
-          filePath: actioned,
-          scanVersion: SUBTITLE_SCAN_VERSION,
-          scannedAt: yield* DateTime.nowAsDate,
-          verdict: 'forced_removed',
-        })
-      )
-      const synced: string[] = []
-      const actionedBazarr = bazarr(file, [actioned, newcomer], (subtitle) => Effect.sync(() => void synced.push(subtitle.path)))
-      yield* run(details(file), actionedBazarr.item, actionedBazarr.client)
-      expect(synced).toEqual([])
-      expect(yield* provideTest(getScan(newcomer, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'passed' })
+      expect(yield* provideTest(getScan(forced, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'passed' })
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 

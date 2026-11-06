@@ -33,7 +33,7 @@ const resolveFrenchPreset = Effect.gen(function* () {
   return preset?.profileId
 })
 
-const scanMedia = (details: SubtitleScanMedia, presetId: number | undefined, onScan: Effect.Effect<void>) =>
+const scanMedia = (details: SubtitleScanMedia, presetId: number | undefined) =>
   Effect.gen(function* () {
     const bazarr = yield* Bazarr
     const getItem = yield* Effect.cached(details.mediaType === 'movie' ? bazarr.getMovieByPath(details.file) : bazarr.getEpisodeByPath(details.file))
@@ -41,17 +41,13 @@ const scanMedia = (details: SubtitleScanMedia, presetId: number | undefined, onS
       yield* catchAndLog(applyFrenchProfilePolicy(details, getItem, presetId), `Applying French profile policy for ${details.mediaTitle}`)
       return
     }
-    yield* catchAndLog(scanMediaSubtitles(details, getItem, onScan), `Scanning subtitles for ${details.mediaTitle}`)
+    yield* catchAndLog(scanMediaSubtitles(details, getItem), `Scanning subtitles for ${details.mediaTitle}`)
   })
 
 const traverse = (presetId: number | undefined) =>
   Effect.gen(function* () {
     const plex = yield* Plex
     const sections = yield* plex.getSections
-    let scanned = 0
-    const onScan = Effect.sync(() => {
-      scanned++
-    })
     for (const section of sections) {
       const media = yield* catchAndLog(plex.getSectionMedia(section.key, section.type), `Listing Plex section ${section.title}`)
       if (media === undefined) {
@@ -59,12 +55,9 @@ const traverse = (presetId: number | undefined) =>
       }
       for (const entry of media) {
         yield* getCompleteMediaDetails(Number(entry.ratingKey)).pipe(
-          Effect.flatMap((details) => scanMedia(details, presetId, onScan)),
+          Effect.flatMap((details) => scanMedia(details, presetId)),
           (effect) => catchAndLog(effect, `Resolving Plex media ${entry.title}`)
         )
-        if (scanned >= 10) {
-          return
-        }
       }
     }
   })
