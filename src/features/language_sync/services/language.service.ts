@@ -9,10 +9,11 @@ import { type UpdateLanguageParams } from '@/features/language_sync/types'
 import { type MediaType } from '@/integrations/plex/plex.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type ConversationState, type InlineKeyboardButton, type InlineKeyboardMarkup } from '@/providers/telegram/types'
-import { iso1ToIso2T } from '@/shared/types/iso_codes'
+import { type ISOCode1 } from '@/shared/types/iso_codes'
 import { normalizeToIso1 } from '@/shared/utils/iso_codes'
 
 const PAGE_SIZE = 10
+const languageNames = new Intl.DisplayNames(['en'], { type: 'language' })
 
 type AwaitingMediaTypeState = Extract<ConversationState, { step: 'awaiting_media_type' }>
 type AwaitingMediaSelectionState = Extract<ConversationState, { step: 'awaiting_media_selection' }>
@@ -45,13 +46,9 @@ export const buildMediaKeyboard = (mediaList: Media[], page: number): InlineKeyb
 }
 
 /** @internal */
-export const buildLanguageKeyboard = (): InlineKeyboardMarkup => {
-  const codes = Object.keys(iso1ToIso2T)
-  const rows: InlineKeyboardButton[][] = []
-  for (let index = 0; index < codes.length; index += 6) {
-    rows.push(codes.slice(index, index + 6).map((code) => ({ callback_data: `lang:${code}`, text: code })))
-  }
-  return { inline_keyboard: rows }
+export const buildLanguageKeyboard = (originalLanguage: ISOCode1): InlineKeyboardMarkup => {
+  const codes = [...new Set<ISOCode1>(['fr', 'en', originalLanguage])]
+  return { inline_keyboard: [codes.map((code) => ({ callback_data: `lang:${code}`, text: languageNames.of(code) ?? code }))] }
 }
 
 export const handleUpdateLanguage = (params: UpdateLanguageParams) =>
@@ -121,7 +118,7 @@ export const selectMedia = (client: ITelegramClient, chatId: number, params: { s
       return state
     }
     yield* client.editMessageText(chatId, state.messageId, {
-      replyMarkup: buildLanguageKeyboard(),
+      replyMarkup: buildLanguageKeyboard(selectedMedia.originalLanguage),
       text: `Which language do you want to set for ${selectedMedia.title}?`,
     })
     return { mediaType: state.mediaType, messageId: state.messageId, step: 'awaiting_language', tmdbId } as const

@@ -46,8 +46,23 @@ describe('language service', () => {
 
   it('builds keyboards', () => {
     expect(buildMediaTypeKeyboard().inline_keyboard[0]).toHaveLength(2)
-    expect(buildLanguageKeyboard().inline_keyboard.every((row) => row.length <= 6)).toBeTrue()
     expect(buildMediaKeyboard([], 0).inline_keyboard).toEqual([])
+  })
+
+  it('offers French, English, and a distinct original language by full name', () => {
+    expect(buildLanguageKeyboard('ja').inline_keyboard).toEqual([
+      [
+        { callback_data: 'lang:fr', text: 'French' },
+        { callback_data: 'lang:en', text: 'English' },
+        { callback_data: 'lang:ja', text: 'Japanese' },
+      ],
+    ])
+    expect(buildLanguageKeyboard('en').inline_keyboard).toEqual([
+      [
+        { callback_data: 'lang:fr', text: 'French' },
+        { callback_data: 'lang:en', text: 'English' },
+      ],
+    ])
   })
 
   it.live('selectMediaType handles an empty library', () =>

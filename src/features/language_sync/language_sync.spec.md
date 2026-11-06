@@ -68,7 +68,7 @@ The conversation transitions as follows:
 /setlanguage → awaiting_media_type → awaiting_media_selection → awaiting_language → idle
 ```
 
-It offers movie/show, a paginated media keyboard, then ISO-639-1 codes in six-column rows. The language choice normalizes the code, updates `media.preferredLanguage` for the selected TMDB id and type, edits the prompt, and returns `idle` (`src/features/language_sync/services/language.service.ts:130`).
+It offers movie/show, a paginated media keyboard, then one row offering French, English, and the media's original language when it differs, each labelled by its English full name. The language choice normalizes the code, updates `media.preferredLanguage` for the selected TMDB id and type, edits the prompt, and returns `idle` (`src/features/language_sync/services/language.service.ts:130`).
 
 ### Set-language conversation
 
