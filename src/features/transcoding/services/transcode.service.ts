@@ -47,7 +47,8 @@ const processJob = (job: TranscodeJob) =>
     const work = Effect.gen(function* () {
       yield* cleanup
       yield* fs.makeDirectory(outputDirectory, { recursive: true })
-      yield* fs.writeFileString(recoveryMarker, yield* encodeRecoveryMarker({ file: job.file, mediaTitle: job.mediaTitle }))
+      const marker = yield* encodeRecoveryMarker({ file: job.file, mediaTitle: job.mediaTitle })
+      yield* fs.writeFileString(recoveryMarker, marker)
       const ffmpeg = yield* Ffmpeg
       for (const subtitle of job.subtitlesToExtract) {
         const subtitleOutput = `${fileName}.${subtitle.language}.srt`
@@ -202,7 +203,8 @@ const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage:
     if (shouldExecute) {
       return { command: ['-c', 'copy', ...video.command, ...audio.command], duration: probe.duration, subtitlesToExtract }
     }
-    if (sameFile(before, yield* fs.stat(file))) {
+    const after = yield* fs.stat(file)
+    if (sameFile(before, after)) {
       const scannedAt = yield* DateTime.nowAsDate
       yield* logFailure(recordScan({ ...key, scannedAt }), `Recording transcode scan for ${file}`)
     }
