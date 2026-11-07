@@ -49,7 +49,8 @@ export const scanMediaSubtitles = <Requirements>(
     const nonForced = files.filter((file) => !file.forced)
     const scans = new Map<string, SubtitleScanRecord | undefined>()
     for (const file of nonForced) {
-      scans.set(file.path, yield* getScan(file.path, SUBTITLE_SCAN_VERSION))
+      const scan = yield* getScan(file.path, SUBTITLE_SCAN_VERSION)
+      scans.set(file.path, scan)
     }
 
     const candidates = nonForced.filter((file) => scans.get(file.path) === undefined || scans.get(file.path)?.verdict === 'sync_requested')

@@ -89,18 +89,23 @@ export class HttpProvider {
           (options.payload === undefined
             ? undefined
             : yield* encodeJson(options.payload).pipe(Effect.mapError((cause) => new Cause.UnknownError(cause))))
-        const response = yield* Effect.tryPromise(() =>
-          webHandler.handler(
-            new Request(`http://localhost${options.url}`, {
-              body: requestBody,
-              headers: { 'content-type': 'application/json' },
-              method: options.method,
-              signal,
-            }),
-            context
-          )
-        )
-        const text = yield* Effect.tryPromise(() => response.text())
+        const response = yield* Effect.tryPromise({
+          catch: (cause) => new Cause.UnknownError(cause, 'Injected HTTP request failed'),
+          try: () =>
+            webHandler.handler(
+              new Request(`http://localhost${options.url}`, {
+                body: requestBody,
+                headers: { 'content-type': 'application/json' },
+                method: options.method,
+                signal,
+              }),
+              context
+            ),
+        })
+        const text = yield* Effect.tryPromise({
+          catch: (cause) => new Cause.UnknownError(cause, 'Failed to read injected HTTP response'),
+          try: () => response.text(),
+        })
         const decoded = decodeInjectResponse(text)
         if (Result.isFailure(decoded)) {
           return yield* new Cause.UnknownError(decoded.failure, 'Invalid injected HTTP response')

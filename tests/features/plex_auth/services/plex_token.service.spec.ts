@@ -2,14 +2,14 @@ import { beforeEach } from 'bun:test'
 
 import { DatabaseTestLayer, testSql } from '@tests/database'
 import { describe, expect, it } from '@tests/it'
-import { Effect, Layer } from 'effect'
+import { Effect } from 'effect'
 
 import { type Database } from '@/core/runtime.service'
 import { PlexTokenStore, PlexTokenStoreLive } from '@/features/plex_auth/services/plex_token.service'
 import { PlexUnauthenticatedError } from '@/integrations/plex/plex.errors'
 
 const run = <Success, Failure>(effect: Effect.Effect<Success, Failure, Database | PlexTokenStore>) =>
-  effect.pipe(Effect.provide(Layer.mergeAll(PlexTokenStoreLive, DatabaseTestLayer)))
+  effect.pipe(Effect.provide([PlexTokenStoreLive, DatabaseTestLayer]))
 
 describe('PlexTokenStore', () => {
   beforeEach(async () => {

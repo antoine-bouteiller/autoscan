@@ -20,12 +20,12 @@
     "effect": "4.0.7"
   },
   "devDependencies": {
-    "@effect/tsgo": "0.63.0",
-    "@oxlint/plugins": "1.90.0",
+    "@effect/tsgo": "0.67.4",
+    "@oxlint/plugins": "1.91.0",
     "@types/bun": "1.4.4",
     "knip": "6.44.1",
-    "oxlint": "1.90.0",
-    "oxlint-tsgolint": "7.0.2005"
+    "oxlint": "1.91.0",
+    "oxlint-tsgolint": "7.0.2006"
   },
   "overrides": {
     "@effect/platform-node-shared": "4.0.7"
