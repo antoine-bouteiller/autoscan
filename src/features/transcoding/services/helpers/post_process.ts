@@ -1,4 +1,5 @@
-import { Cause, Crypto, Effect, FileSystem, Option, Path, type PlatformError, Result } from 'effect'
+import { Cause, Effect, FileSystem, Option, Path, type PlatformError, Result } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 
 import { Env } from '@/config/env'
 import { Ffmpeg, Plex, Radarr, Sonarr } from '@/core/runtime.service'
@@ -53,11 +54,11 @@ const durableOperation = (filePath: string, operation: string, run: Effect.Effec
 export const replaceOutputs = (inputFile: string, outputDirectory: string, options: { operations?: ReplacementOperations; outputFiles: string[] }) =>
   Effect.gen(function* () {
     const path = yield* Path.Path
-    const crypto = yield* Crypto.Crypto
+    const secureRandom = yield* SecureRandom.SecureRandom
     const operations = options.operations ?? (yield* liveReplacementOperations)
 
     const inputDirectory = path.dirname(inputFile)
-    const transactionId = yield* crypto.randomUUIDv4()
+    const transactionId = yield* secureRandom.uuidV4()
     const outputs = options.outputFiles.map((name) => ({
       final: path.join(inputDirectory, name),
       source: path.join(outputDirectory, name),

@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os'
 import { BunServices } from '@effect/platform-bun'
 import { testEnv as env } from '@tests/env'
 import { describe, expect, it } from '@tests/it'
-import { Config, ConfigProvider, Crypto, Effect, FileSystem, Result, Schema } from 'effect'
+import { Config, ConfigProvider, Effect, FileSystem, Result, Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 
 import { loadFileSecrets, urlString } from '@/config/env'
 
@@ -26,12 +27,12 @@ const tempFiles: string[] = []
 const writeTempSecret = (value: string) =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem
-    const crypto = yield* Crypto.Crypto
-    const filePath = `${tmpdir()}/autoscan-test-${yield* crypto.randomUUIDv4()}.txt`
+    const secureRandom = yield* SecureRandom.SecureRandom
+    const filePath = `${tmpdir()}/autoscan-test-${yield* secureRandom.uuidV4()}.txt`
     yield* fileSystem.writeFileString(filePath, value)
     tempFiles.push(filePath)
     return filePath
-  })
+  }).pipe(Effect.provide(SecureRandom.layerWebCrypto))
 
 const removeTempFiles = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem

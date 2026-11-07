@@ -3,6 +3,7 @@ import { DatabaseTestLayer } from '@tests/database'
 import { EnvTestLayer } from '@tests/env'
 import { MockBazarrClient, MockPlexClient, MockRadarrClient, MockSonarrClient, MockTelegramClient, MockTmdbClient } from '@tests/utils'
 import { Context, Effect, Layer, Logger } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 
 import {
   type AppRequirements,
@@ -53,7 +54,15 @@ const makeTestLayer = (services: TestServices = {}) => {
     Layer.succeed(Telegram, services.telegram ?? new MockTelegramClient()),
     Layer.succeed(Tmdb, services.tmdb ?? new MockTmdbClient())
   )
-  const base = Layer.mergeAll(clients, DatabaseTestLayer, EnvTestLayer, AuthenticationTasksLive, PlexTokenStoreLive, BunServices.layer)
+  const base = Layer.mergeAll(
+    clients,
+    DatabaseTestLayer,
+    EnvTestLayer,
+    AuthenticationTasksLive,
+    PlexTokenStoreLive,
+    BunServices.layer,
+    SecureRandom.layerWebCrypto
+  )
   const queue = TranscodeQueueLive.pipe(Layer.provideMerge(base))
   const background = BackgroundTasksLive.pipe(Layer.provideMerge(queue))
   const workflows = TranscodeScanLive.pipe(Layer.provideMerge(background))
