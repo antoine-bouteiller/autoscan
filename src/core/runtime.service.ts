@@ -1,5 +1,6 @@
 import { type SQL } from 'bun'
-import { Context, type Crypto, Effect, FiberMap, FiberSet, type FileSystem, Layer, type Option, type Path, Ref, Semaphore } from 'effect'
+import { Context, Effect, FiberMap, FiberSet, type FileSystem, Layer, type Option, type Path, Ref, Semaphore } from 'effect'
+import { type SecureRandom } from 'effect/crypto'
 import { type ChildProcessSpawner } from 'effect/process'
 
 import { type Env } from '@/config/env'
@@ -39,7 +40,7 @@ export class TranscodeQueue extends Context.Service<TranscodeQueue, TranscodeQue
 
 type WorkflowRequirements =
   | ChildProcessSpawner.ChildProcessSpawner
-  | Crypto.Crypto
+  | SecureRandom.SecureRandom
   | Database
   | Env
   | Ffmpeg

@@ -1,4 +1,5 @@
-import { Cause, Crypto, Effect, Result } from 'effect'
+import { Cause, Effect, Result } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 
 import { AuthenticationTasks, Database, Plex } from '@/core/runtime.service'
 import { getPlexToken } from '@/features/plex_auth/repositories/plex_auth.repository'
@@ -25,8 +26,8 @@ export const plexAuthCommand = (client: ITelegramClient, message: TelegramMessag
       return { step: 'idle' } as const
     }
 
-    const crypto = yield* Crypto.Crypto
-    const clientIdentifier = yield* crypto.randomUUIDv4()
+    const secureRandom = yield* SecureRandom.SecureRandom
+    const clientIdentifier = yield* secureRandom.uuidV4()
     const pin = yield* Effect.result(plex.createPin(clientIdentifier))
     if (Result.isFailure(pin)) {
       yield* Effect.logError(Cause.fail(pin.failure), 'Plex Auth')

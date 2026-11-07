@@ -1,4 +1,5 @@
-import { Crypto, Effect, FileSystem, Schema } from 'effect'
+import { Effect, FileSystem, Schema } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 
 export { MockBazarrClient } from './mocks/bazarr.mock.ts'
 export { checkPinMock, createPinMock, MockPlexClient, refreshSectionsMock, updateStreamMock, verifyTokenMock } from './mocks/plex.mock.ts'
@@ -13,8 +14,8 @@ export const videosPath = `${import.meta.dirname}/resources/videos`
 
 export const makeTestDir = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
-  const crypto = yield* Crypto.Crypto
-  const directory = `${import.meta.dirname}/${yield* crypto.randomUUIDv4()}`
+  const secureRandom = yield* SecureRandom.SecureRandom
+  const directory = `${import.meta.dirname}/${yield* secureRandom.uuidV4()}`
   yield* fs.makeDirectory(directory, { recursive: true })
   return directory
-})
+}).pipe(Effect.provide(SecureRandom.layerWebCrypto))

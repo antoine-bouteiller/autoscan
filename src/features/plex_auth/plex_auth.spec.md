@@ -152,7 +152,7 @@ The link message is a single Markdown link, `[Authorize Autoscan on Plex](url)`,
 const url = `https://app.plex.tv/auth#?clientID=${clientIdentifier}&code=${pin.code}&context%5Bdevice%5D%5Bproduct%5D=Autoscan`
 ```
 
-The client identifier is a UUID drawn once per attempt from `Crypto` and used for `createPin`, every `checkPin`, and the stored row. The poll effect is submitted to the shared authentication tasks keyed by feature and chat, and it captures `Database` from the command's context, so the detached fiber keeps a working database handle. Interruption at shutdown is silent; any other cause is logged and reported to the chat once. The command always returns `{ step: 'idle' }`.
+The client identifier is a UUID drawn once per attempt from `SecureRandom` and used for `createPin`, every `checkPin`, and the stored row. The poll effect is submitted to the shared authentication tasks keyed by feature and chat, and it captures `Database` from the command's context, so the detached fiber keeps a working database handle. Interruption at shutdown is silent; any other cause is logged and reported to the chat once. The command always returns `{ step: 'idle' }`.
 
 ### 8.5 Authentication tasks
 

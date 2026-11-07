@@ -1,5 +1,6 @@
 import { BunServices } from '@effect/platform-bun'
 import { Effect, Fiber, FiberSet, Layer, Option } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 import { isFailure as isExitFailure } from 'effect/Exit'
 import { FetchHttpClient, HttpClient } from 'effect/http'
 
@@ -99,7 +100,7 @@ const ClientsLive = Layer.mergeAll(
   )
 )
 
-const EnvGraph = EnvLive.pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, FetchHttpClient.layer)))
+const EnvGraph = EnvLive.pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, FetchHttpClient.layer, SecureRandom.layerWebCrypto)))
 const CredentialsLive = Layer.mergeAll(AuthenticationTasksLive, PlexTokenStoreLive)
 const BaseLive = Layer.mergeAll(ClientsLive, DatabaseLive).pipe(Layer.provideMerge(CredentialsLive), Layer.provideMerge(EnvGraph))
 const QueueGraph = TranscodeQueueLive.pipe(Layer.provideMerge(BaseLive))
