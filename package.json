@@ -23,7 +23,7 @@
     "@effect/tsgo": "0.67.7",
     "@oxlint/plugins": "1.93.0",
     "@types/bun": "1.4.4",
-    "knip": "6.45.0",
+    "knip": "6.45.1",
     "oxlint": "1.93.0",
     "oxlint-tsgolint": "7.0.2006"
   },
