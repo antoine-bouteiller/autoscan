@@ -14,3 +14,24 @@ bun test tests/features/subtitle_scan/services/subtitle_coverage_calibration.spe
 ```
 
 The test is a **non-production policy experiment**. Passing its finite controls does not approve its thresholds or prove which subtitle matches the movie's audio. A data-derived endpoint lag check now rejects exact-copy global shifts, including −84 minutes. It still falsely invalidates a real English Interstellar track shifted −100 minutes against its French sibling; T-001 remains open until that translated-track counterexample abstains.
+
+# Audit corpus
+
+`audit_corpus.txt` replays the 2026-11-15 invalid-subtitle audit (`invalid_subtitles_report.md`) without dialogue or audio. It covers the 44 audited media plus Desperate Housewives S01E04. Each line is tab-separated and starts with a record type:
+
+- `M id duration name`: a media file and its probed duration in seconds.
+- `W id start seconds speech`: one of the 8 sampled 40 s windows at 6 %, 18 %, …, 90 % of the runtime. `speech` lists `start-end` intervals in media seconds. They are Whisper large-v3-turbo word timestamps, with words merged across gaps of 0.3 s or less. Words with probability under 0.2 and segments that look like hallucinations are dropped.
+- `T id lang status label sha256 measured`: a sidecar on disk. `status` is `audited` when the report labels this exact file, `checked` when it was labelled after the report, `replaced` when the file changed after the audit (its label no longer applies), and `unaudited` otherwise.
+- `C id lang cues`: the sidecar's cues as `start-end[:anchor|anchor…]` in seconds. An anchor is the first 8 hex characters of the SHA-1 of a lowercased number or mid-sentence capitalised word.
+- `L id lang label measured`: a report label whose file was deleted or replaced after the audit. No cues are kept for it.
+
+Labels come from `audit_labels.tsv`. Rows with source `report` copy the report. Rows with source `check` were measured on 2026-11-17 from this corpus's speech intervals.
+
+The 47 broken tracks the report lists were deleted through Bazarr on 2026-11-15, and the 4 constant-offset tracks were rewritten. Only the 33 false positives keep their audited files. A builder for `[VC-9]` must derive the broken side from these real cues.
+
+To regenerate, fetch from the host into an empty data directory, for every media base path: `media.tsv` (`id`, duration, audio stream dispositions, base path), `subs.tsv` (`id`, language, `size mtime`, SHA-256), `subs/<id>.<lang>.srt`, and `clips/<id>-<fraction>.flac`, decoded with `ffmpeg -ss <duration × fraction> -t 40 -i <media> -map 0:a:0 -ac 1 -ar 16000`. Then run:
+
+```sh
+python3 -I tests/fixtures/subtitle_scan/transcribe_audit_clips.py "$DATA/clips" "$DATA/whisper"   # needs mlx-whisper
+python3 -I tests/fixtures/subtitle_scan/extract_audit_corpus.py "$DATA" "$DATA/whisper" tests/fixtures/subtitle_scan/audit_labels.tsv > tests/fixtures/subtitle_scan/audit_corpus.txt
+```
