@@ -125,8 +125,8 @@ describe('invalid subtitles command', () => {
   it.live('deletes the tapped subtitle through Bazarr and forgets only its verdict', () =>
     Effect.gen(function* () {
       const { bazarr, english, french } = yield* library
-      yield* record(english)
-      yield* record(french)
+      yield* recordStatted(english)
+      yield* recordStatted(french)
 
       yield* provideTest(tap(french), { bazarr })
 
@@ -152,7 +152,7 @@ describe('invalid subtitles command', () => {
       const untracked = `${directory}/Other.en.srt`
       yield* fs.writeFileString(untracked, '')
       yield* record(gone)
-      yield* record(untracked)
+      yield* recordStatted(untracked)
 
       yield* provideTest(tap(gone), { bazarr })
       expect(sendMessageMock).toHaveBeenLastCalledWith(1, 'Movie (2015).de.srt was already deleted.', undefined)
@@ -241,4 +241,24 @@ describe('invalid subtitles command', () => {
       expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
+
+  for (const history of ['provider', 'no provider'] as const) {
+    it.live(`[VC-16.1] leaves a replacement alone when it lands during the ${history} history lookup`, () =>
+      Effect.gen(function* () {
+        const { bazarr, french } = yield* library
+        yield* recordStatted(french)
+        getSubtitleSourcesMock.mockImplementation(async () => {
+          await Bun.write(french, 'replaced')
+          return new Map(history === 'provider' ? [[french, { kind: 'provider', provider: 'opensubtitlescom', subsId: 'abc' }]] : [])
+        })
+
+        yield* provideTest(tap(french), { bazarr })
+
+        expect(sendMessageMock).toHaveBeenLastCalledWith(1, 'This subtitle is no longer marked invalid.', undefined)
+        expect(blacklistSubtitleMock).not.toHaveBeenCalled()
+        expect(bazarr.deleted).toEqual([])
+        expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+    )
+  }
 })

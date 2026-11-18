@@ -133,7 +133,7 @@ describe('assessTrack boundaries', () => {
     expect(silent.shape).toBe('inconclusive')
     expect(silent.windows).toEqual(Array.from({ length: 8 }, () => null))
   })
-  test('the 8% informative threshold is inclusive; constant cue masks have zero correlation and choose zero on ties', () => {
+  test('the 8% informative threshold is inclusive; a track covering whole windows with one cue abstains', () => {
     const windows = Array.from({ length: 4 }, (_value, index) => {
       const start = 200 + index * 400
       return { duration: 40, speech: [[start, start + 3.2] as const], start }
@@ -145,7 +145,7 @@ describe('assessTrack boundaries', () => {
     for (const track of [[{ anchors: [], end: 10_000, start: 0 }], [{ anchors: [], end: 10_000, start: 9999 }]]) {
       const result = assessTrack(track, windows)
       expect(result.shape).toBe('inconclusive')
-      expect(result.windows).toEqual(Array.from({ length: 4 }, () => ({ atZero: 0, margin: 0, offset: 0, peak: 0 })))
+      expect(result.fit).toBeNull()
     }
   })
   test('[VC-8.1] exactly two speech windows at or after the last cue end take precedence over alignment', () => {

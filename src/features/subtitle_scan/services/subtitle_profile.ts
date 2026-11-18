@@ -16,6 +16,7 @@ import {
   REPAIR_RATIO,
   SEGMENT_PEAK_RATIO,
   SEGMENT_SUPPORT_MIN,
+  UNRELATED_MAX_SUPPORT,
 } from '@/features/subtitle_scan/constants'
 
 export interface Cue {
@@ -143,13 +144,26 @@ const segmentOffsets =
       return { end, start, ...peak }
     })
 const determined = (segments: readonly Segment[]) => segments.filter((segment): segment is Segment & { offset: number } => segment.offset !== null)
+// Residuals sit on a half-bin grid; rounding keeps float noise off the tolerance boundaries.
+const residualOf = (value: number) => (Math.round(Math.abs(value) / (PROFILE_BIN / 2)) * PROFILE_BIN) / 2
+/** One noisy segment may stray up to twice the agreement tolerance; a jump shared by several segments may not. */
+const withinTolerance = (residuals: readonly number[], tolerance: number) =>
+  residuals.length >= 3 &&
+  residuals.every((residual) => residual <= 2 * AGREE_TOLERANCE) &&
+  residuals.filter((residual) => residual > tolerance).length <= 1
+const agrees = (segments: readonly Segment[]) =>
+  withinTolerance(
+    determined(segments).map((segment) => residualOf(segment.offset)),
+    AGREE_TOLERANCE
+  )
 const stableFit = (segments: readonly Segment[], ratio: number): Fit | null => {
   const offsets = determined(segments).map((segment) => segment.offset)
   if (offsets.length < 3) {
     return null
   }
-  const spread = Math.round((Math.max(...offsets) - Math.min(...offsets)) / PROFILE_BIN) * PROFILE_BIN
-  return spread <= 2 * AGREE_TOLERANCE ? { offset: ratio * median(offsets), ratio, residual: spread / 2 } : null
+  const centre = median(offsets)
+  const residuals = offsets.map((offset) => residualOf(offset - centre))
+  return withinTolerance(residuals, REPAIR_MAX_RESIDUAL) ? { offset: ratio * centre, ratio, residual: Math.max(...residuals) } : null
 }
 const linearFit = (segments: readonly Segment[]): Fit | null => {
   const points = determined(segments).map((segment) => ({ offset: segment.offset, time: (segment.start + segment.end) / 2 }))
@@ -162,19 +176,25 @@ const linearFit = (segments: readonly Segment[]): Fit | null => {
     points.reduce((sum, point) => sum + (point.time - meanTime) * (point.offset - meanOffset), 0) /
     points.reduce((sum, point) => sum + (point.time - meanTime) ** 2, 0)
   const offset = meanOffset - slope * meanTime
-  const residual = Math.max(...points.map((point) => Math.abs(point.offset - offset - slope * point.time)))
+  const residuals = points.map((point) => residualOf(point.offset - offset - slope * point.time))
   const ratio = 1 + slope
-  return ratio >= REPAIR_RATIO[0] && ratio <= REPAIR_RATIO[1] && Math.abs(offset) <= REPAIR_MAX_OFFSET && residual <= REPAIR_MAX_RESIDUAL
-    ? { offset, ratio, residual }
+  return ratio >= REPAIR_RATIO[0] &&
+    ratio <= REPAIR_RATIO[1] &&
+    Math.abs(offset) <= REPAIR_MAX_OFFSET &&
+    withinTolerance(residuals, REPAIR_MAX_RESIDUAL)
+    ? { offset, ratio, residual: Math.max(...residuals) }
     : null
 }
 export const profilePair = (reference: readonly Cue[], track: readonly Cue[], durationSeconds: number): PairProfile => {
   const sortedReference = reference.toSorted((left, right) => left.start - right.start)
   const sortedTrack = track.toSorted((left, right) => left.start - right.start)
   const segments = segmentOffsets(sortedReference, sortedTrack, durationSeconds)(1)
+  if (agrees(segments)) {
+    return { fit: null, segments, shape: 'agree' }
+  }
   const stable = stableFit(segments, 1)
   if (stable !== null) {
-    return Math.abs(stable.offset) <= AGREE_TOLERANCE ? { fit: null, segments, shape: 'agree' } : { fit: stable, segments, shape: 'constant' }
+    return { fit: stable, segments, shape: 'constant' }
   }
   let any = determined(segments).length > 0
   for (const ratio of FRAMERATE_RATIOS) {
@@ -198,7 +218,8 @@ export const profilePair = (reference: readonly Cue[], track: readonly Cue[], du
   const eligible = segments.filter(
     (segment) => sortedReference.filter((cue) => cue.start >= segment.start && cue.start < segment.end).length >= PROFILE_MIN_CUES
   ).length
-  return { fit: null, segments, shape: any || eligible < 3 ? 'undetermined' : 'unrelated' }
+  const ambiguous = segments.some((segment) => segment.support >= UNRELATED_MAX_SUPPORT)
+  return { fit: null, segments, shape: any || ambiguous || eligible < 3 ? 'undetermined' : 'unrelated' }
 }
 const hasCoverage = (cues: readonly Cue[], duration: number) => {
   const end = cues.reduce((last, cue) => Math.max(last, cue.end), 0)

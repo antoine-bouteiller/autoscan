@@ -16,9 +16,9 @@ export const statFile = (filePath: string) =>
 
 export const sameStat = (left: FileStat, right: FileStat) => left.size === right.size && left.mtime.getTime() === right.mtime.getTime()
 
-/** A row applies to the file on disk only while its stored stat matches; rows written before stats were stored still count. */
+/** A row applies to the file on disk only while its stored stat matches. */
 export const isCounting = (row: SubtitleScanRecord | undefined, stat: FileStat): row is SubtitleScanRecord =>
-  row !== undefined && (row.fileSize === null || row.fileMtime === null || sameStat({ mtime: row.fileMtime, size: row.fileSize }, stat))
+  row !== undefined && row.fileSize !== null && row.fileMtime !== null && sameStat({ mtime: row.fileMtime, size: row.fileSize }, stat)
 
 /** Drops registry rows whose subtitle file was deleted, so a later download at that path is scanned again. */
 export const pruneMissingScans = Effect.gen(function* () {

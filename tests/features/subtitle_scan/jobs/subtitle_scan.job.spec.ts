@@ -12,6 +12,7 @@ import { BackgroundTasks, Bazarr, Ffmpeg, Plex, SubtitleScan, Tmdb } from '@/cor
 import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { runSubtitleScan, startSubtitleScan } from '@/features/subtitle_scan/jobs/subtitle_scan.job'
 import { getScan, recordScan } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
+import { statFile } from '@/features/subtitle_scan/services/scan_registry.service'
 import { discoverSubtitleFiles } from '@/features/subtitle_scan/services/subtitle_files.service'
 import { type BazarrItem, type BazarrItemRef } from '@/integrations/bazarr/bazarr.service'
 import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
@@ -348,11 +349,12 @@ describe('subtitle scan job', () => {
                 throw new Error(`Missing cached subtitle ${ratingKey}`)
               }
               const scannedAt = yield* DateTime.nowAsDate.pipe(Effect.provide(context))
+              const stat = yield* statFile(snapshot.path).pipe(Effect.provide(context))
               yield* recordScan({
                 evidence: null,
-                fileMtime: null,
+                fileMtime: stat.mtime,
                 filePath: snapshot.path,
-                fileSize: null,
+                fileSize: stat.size,
                 scanVersion: SUBTITLE_SCAN_VERSION,
                 scannedAt,
                 verdict: 'passed',
@@ -404,12 +406,12 @@ describe('subtitle scan job', () => {
       const firstPass = Array.from({ length: 20 }, (_entry, index) => fileFor(index + 5))
       expect(probed).toEqual(firstPass)
       expect(bazarr.lookups).toEqual(firstPass)
-      const [passed] = yield* discoverSubtitleFiles(fileFor(13)).pipe(Effect.provide(overridden))
+      const [analyzed] = yield* discoverSubtitleFiles(fileFor(13)).pipe(Effect.provide(overridden))
       const [failed] = yield* discoverSubtitleFiles(failedFile).pipe(Effect.provide(overridden))
-      if (passed === undefined || failed === undefined) {
+      if (analyzed === undefined || failed === undefined) {
         throw new Error('Missing candidate sidecar')
       }
-      expect(yield* getScan(passed.path, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toMatchObject({ verdict: 'inconclusive' })
+      expect(yield* getScan(analyzed.path, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toMatchObject({ verdict: 'inconclusive' })
       expect(yield* getScan(failed.path, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toBeUndefined()
 
       probed.length = 0

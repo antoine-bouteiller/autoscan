@@ -416,19 +416,26 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-6.1] changed file before POST gets no blacklist, row or alert', () =>
-    Effect.gen(function* () {
-      const media = synthetic()
-      const { cues } = trackOf(media, 'en')
-      const fixture = yield* setup(media, { en: cut(cues, media.duration) })
-      fixture.bazarr.sources.set(fixture.paths['en'], provider)
-      fixture.bazarr.onSources = () => fixture.fs.writeFileString(fixture.paths['en'], srt(cues)).pipe(Effect.orDie)
-      yield* fixture.run()
-      expect(fixture.bazarr.blacklists).toHaveLength(0)
-      expect(yield* fixture.row('en')).toBeUndefined()
-      expect(sendMessageMock).not.toHaveBeenCalled()
-    })
-  )
+  for (const source of ['provider', 'translation', 'missing source', 'lookup failure'] as const) {
+    testCase(`[VC-6.1] file changed during the ${source} history lookup gets no blacklist, row or alert`, () =>
+      Effect.gen(function* () {
+        const media = synthetic()
+        const { cues } = trackOf(media, 'en')
+        const fixture = yield* setup(media, { en: cut(cues, media.duration) })
+        if (source === 'provider' || source === 'translation') {
+          fixture.bazarr.sources.set(fixture.paths['en'], source === 'provider' ? provider : { kind: 'translation' })
+        }
+        fixture.bazarr.onSources = () =>
+          fixture.fs
+            .writeFileString(fixture.paths['en'], srt(cues))
+            .pipe(Effect.orDie, Effect.andThen(source === 'lookup failure' ? Effect.die('history unavailable') : Effect.void))
+        yield* fixture.run()
+        expect(fixture.bazarr.blacklists).toHaveLength(0)
+        expect(yield* fixture.row('en')).toBeUndefined()
+        expect(sendMessageMock).not.toHaveBeenCalled()
+      })
+    )
+  }
 
   testCase('[VC-6.1] blacklist stores assessed stat before a replacement arrives, which is eligible next pass', () =>
     Effect.gen(function* () {
