@@ -3,7 +3,7 @@ import { Effect, FileSystem, Path } from 'effect'
 import { Bazarr } from '@/core/runtime.service'
 import { DELETE_SUBTITLE_ACTION, SUBTITLE_SCAN_VERSION, VIDEO_EXTENSIONS } from '@/features/subtitle_scan/constants'
 import { deleteScans, getScan, listScans } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
-import { isCounting, statFile } from '@/features/subtitle_scan/services/scan_registry.service'
+import { isCounting, sameStat, statFile } from '@/features/subtitle_scan/services/scan_registry.service'
 import { type InlineKeyboardButton } from '@/providers/telegram/types'
 
 // Telegram caps callback data at 64 bytes, so buttons carry a path digest instead of the path.
@@ -63,6 +63,11 @@ export const deleteInvalidSubtitle = (key: string) =>
     }
     const bazarr = yield* Bazarr
     const source = (yield* bazarr.getSubtitleSources(item)).get(filePath)
+    // A replacement can land during the Bazarr lookups; never blacklist or delete that new file.
+    const latest = yield* statFile(filePath)
+    if (!sameStat(stat, latest)) {
+      return 'This subtitle is no longer marked invalid.'
+    }
     yield* source?.kind === 'provider' ? bazarr.blacklistSubtitle(item, subtitle, source) : bazarr.deleteSubtitle(item, subtitle)
     yield* deleteScans([filePath])
     yield* Effect.logInfo(`Deleted invalid subtitle ${filePath}`)

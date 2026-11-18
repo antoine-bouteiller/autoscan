@@ -66,6 +66,7 @@ interface BazarrClientConfig {
 }
 
 const HISTORY_DOWNLOADED = new Set([1, 2, 3])
+const HISTORY_SYNCED = 5
 const HISTORY_TRANSLATED = 6
 const fitAction = ({ offset, ratio }: SubtitleFit) =>
   ratio === 1
@@ -238,16 +239,19 @@ export class BazarrClient implements IBazarrClient {
       Effect.map(({ data }) => {
         const sources = new Map<string, SubtitleSource | undefined>()
         // Bazarr orders history by timestamp descending, and its timestamp field is a relative string, so the first entry per path is the latest.
+        // A sync rewrites the file in place, so the entry before it still names its origin; any other action replaces that origin.
         for (const { action, provider, subs_id: subsId, subtitles_path: path } of data) {
-          if (path === null || path === '' || sources.has(path)) {
+          if (path === null || path === '' || sources.has(path) || action === HISTORY_SYNCED) {
             continue
           }
           if (action === HISTORY_TRANSLATED) {
             sources.set(path, { kind: 'translation' })
-          } else if (HISTORY_DOWNLOADED.has(action)) {
+          } else {
             sources.set(
               path,
-              provider !== null && provider !== '' && subsId !== null && subsId !== '' ? { kind: 'provider', provider, subsId } : undefined
+              HISTORY_DOWNLOADED.has(action) && provider !== null && provider !== '' && subsId !== null && subsId !== ''
+                ? { kind: 'provider', provider, subsId }
+                : undefined
             )
           }
         }

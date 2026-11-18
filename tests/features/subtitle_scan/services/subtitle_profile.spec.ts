@@ -43,8 +43,12 @@ describe('profilePair', () => {
   test('abstains with fewer than three determined segments or insufficient cues', () => {
     expect(profilePair(reference.slice(0, 40), reference.slice(0, 40), 600).shape).toBe('undetermined')
     expect(profilePair([], [], 600).shape).toBe('undetermined')
-    const ambiguous = reference.map((cue) => ({ ...cue, anchors: [] }))
-    expect(profilePair(ambiguous, ambiguous, 600).shape).toBe('unrelated')
+  })
+  test('abstains rather than calling unrelated a pair whose shared timing has several equal offsets', () => {
+    const periodic = reference.map((cue) => ({ ...cue, anchors: [] }))
+    const result = profilePair(periodic, periodic, 600)
+    expect(result.segments.every((segment) => segment.offset === null)).toBe(true)
+    expect(result.shape).toBe('undetermined')
   })
 })
 
@@ -165,6 +169,31 @@ describe('profilePair boundaries', () => {
     expect(result.segments.filter((segment) => segment.offset !== null)).toHaveLength(3)
     const sparse = cues.filter((_cue, index) => index % 10 !== 0)
     expect(profilePair(sparse, sparse, 2400).shape).toBe('undetermined')
+  })
+  describe('a jump halfway through the track', () => {
+    const reference = Array.from({ length: 300 }, (_value, index) => ({
+      anchors: [`opaque-${index}`],
+      end: index * 2 + 2,
+      start: index * 2 + 1 + (index % 7) * 0.13,
+    }))
+    const jumped = (jump: number) => reference.map((cue) => (cue.start >= 300 ? { ...cue, end: cue.end + jump, start: cue.start + jump } : cue))
+    test('[VC-9.1] beyond twice the agreement tolerance is piecewise, neither agreed nor fitted', () => {
+      for (const jump of [3, 3.2, 5]) {
+        const result = profilePair(reference, jumped(jump), 600)
+        expect({ jump, shape: result.shape }).toEqual({ jump, shape: 'piecewise' })
+        expect(result.fit).toBeNull()
+      }
+    })
+    test('[VC-9.1] past the agreement tolerance is not agreed, and its repair brings both halves within it', () => {
+      for (const jump of [1.6, 2, 2.6]) {
+        const result = profilePair(reference, jumped(jump), 600)
+        expect({ jump, shape: result.shape }).not.toEqual({ jump, shape: 'agree' })
+        if (result.fit === null) {
+          throw new Error(`Missing fit for a ${jump}s jump`)
+        }
+        expect({ jump, shape: profilePair(reference, correct(jumped(jump), result.fit), 600).shape }).toEqual({ jump, shape: 'agree' })
+      }
+    })
   })
   test('an other-episode pair with enough cues in every segment is unrelated', () => {
     expect(profilePair(grid(5, 'a'), grid(5.37, 'b'), 600).shape).toBe('unrelated')

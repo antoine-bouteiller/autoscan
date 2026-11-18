@@ -93,8 +93,8 @@ const invalid = (scan: MediaScan, file: SubtitleFileSnapshot, repaired: boolean)
     const source = repaired ? undefined : (yield* scan.sources)?.get(file.path)
     const subtitle = scan.item.subtitles.find((entry) => entry.path === file.path)
     const canBlacklist = source?.kind === 'provider' && subtitle !== undefined
-    // A replacement can land during history lookup; never condemn or mutate that new file.
-    if (canBlacklist && !(yield* unchanged(file))) {
+    // A replacement can land during sampling or history lookup; never condemn or mutate that new file.
+    if (!(yield* unchanged(file))) {
       return
     }
     yield* record(file, 'invalid')

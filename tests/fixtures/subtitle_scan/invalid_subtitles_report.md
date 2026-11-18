@@ -10,12 +10,6 @@ Scope: the 81 `subtitle_scans` rows with `verdict = 'invalid'` at scan version 2
 
 Five Desperate Housewives English tracks marked `passed` also drift, so they join the delete list (49 deletions in total).
 
-## Status
-
-- **Done:** the 33 false positives are set to `verdict = 'passed'` in `subtitle_scans`.
-- **Pending:** the 49 deletions go through Bazarr's delete API, which needs the root-only API key. The script `~/delete_invalid_subtitles.sh` on the host performs them. Run it with `sudo bash ~/delete_invalid_subtitles.sh`. Their `subtitle_scans` rows are dropped after the files are gone.
-- **Left `invalid`:** the 4 constant-offset tracks.
-
 ## Method
 
 - For each media file I extracted eight 40 s audio windows, at 6 %, 18 %, …, 90 % of runtime. On the host this ran under `nice -n19 ionice -c3`. All 352 clips took 2 min 38 s, and the host also served one 2.4 MB tar of the sidecars and two `ffprobe` passes. Everything else ran locally.

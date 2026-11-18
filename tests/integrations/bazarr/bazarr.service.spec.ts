@@ -322,16 +322,31 @@ describe('BazarrClient', () => {
       })
     )
 
-    it.effect('keeps the latest entry per path (history is newest first) and ignores other actions', () =>
+    it.effect('keeps the latest entry per path (history is newest first), skipping only syncs', () =>
       Effect.gen(function* () {
         const { map } = yield* sources([
-          entry({ action: 4, subs_id: 'ignored' }),
+          entry({ action: 5, subs_id: 'synced' }),
           entry({ action: 6 }),
           entry({ action: 1, subs_id: 'older' }),
-          entry({ action: 5, subs_id: 'removed', subtitles_path: '/only-ignored.srt' }),
+          entry({ action: 5, subs_id: 'synced', subtitles_path: '/synced-download.srt' }),
+          entry({ action: 2, subs_id: 'manual', subtitles_path: '/synced-download.srt' }),
         ])
         expect(map.get('/a.en.srt')).toEqual({ kind: 'translation' })
-        expect(map.has('/only-ignored.srt')).toBe(false)
+        expect(map.get('/synced-download.srt')).toEqual({ kind: 'provider', provider: 'opensubtitles', subsId: 'manual' })
+      })
+    )
+
+    it.effect('drops an older provider download once a deletion, upload, or extraction replaced it', () =>
+      Effect.gen(function* () {
+        const { map } = yield* sources([
+          entry({ action: 0, provider: '', subs_id: '', subtitles_path: '/deleted.srt' }),
+          entry({ action: 1, subs_id: 'stale', subtitles_path: '/deleted.srt' }),
+          entry({ action: 4, provider: 'manual', subs_id: '', subtitles_path: '/uploaded.srt' }),
+          entry({ action: 1, subs_id: 'stale', subtitles_path: '/uploaded.srt' }),
+          entry({ action: 7, provider: 'embedded', subs_id: '', subtitles_path: '/extracted.srt' }),
+          entry({ action: 3, subs_id: 'stale', subtitles_path: '/extracted.srt' }),
+        ])
+        expect([...map.keys()]).toEqual([])
       })
     )
 
