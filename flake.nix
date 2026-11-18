@@ -59,7 +59,7 @@
             enable = true;
             name = "bun fmt";
             entry = "bun fmt";
-            excludes = ["\\.(nix|lock|sql|sh|py|txt|svg)$" "(^|/)\\.(envrc|gitignore|dockerignore)$"];
+            excludes = ["\\.(nix|lock|sql|sh|py|tsv|txt|svg)$" "(^|/)\\.(envrc|gitignore|dockerignore)$"];
           };
           nix-deps = {
             enable = true;

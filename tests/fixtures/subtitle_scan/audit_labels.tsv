@@ -1,0 +1,89 @@
+# match	lang	label	source	measured
+A Star Is Born (2018)	en	unmatched	report	Text matches speech in 1 of 8 windows; Bazarr sync applied scale 0.96
+Life of Pi (2012)	fr	drift	report	+4.8 → −30 s
+Man on Fire (2004)	en	unmatched	report	Text matches speech in 0 of 8 windows; Bazarr sync applied scale 1.04
+Mr. Nobody (2009)	fr	other_cut	report	Cues end at 9176 s of 8343 s; anchor offsets +30 to +1300 s
+Project X (2012)	en	piecewise	report	In sync for the first 20 %, then +31, +48, +66 s
+Scary Movie 3 (2003)	fr	piecewise	report	−35 → −6 → 0 → +3 s
+Scary Movie 5 (2013)	en	piecewise	report	−35, −31, +3, +60 s
+Scary Movie 5 (2013)	fr	piecewise	report	Same timing as the English track (±2 s)
+Star Wars (1977)	fr	piecewise	report	−12 → +108 s; Bazarr sync applied scale 1.04
+The Godfather Part III (1990)	fr	other_cut	report	In sync for ~30 min, then −220 → −630 s
+The Hateful Eight (2015)	en	truncated	report	Cues stop at 46 of 168 min
+Black Sails (2014) - S01E08	fr	piecewise	report	+36, +30, −58 s
+Desperate Housewives (2004) - S01E02	fr	drift	report	−28 → +36 s (≈ 4 %)
+Desperate Housewives (2004) - S01E06	fr	drift	report	≈ 4 %
+Desperate Housewives (2004) - S01E07	fr	drift	report	≈ 4 %
+Desperate Housewives (2004) - S01E06	en	drift	report	−41 → +67 s (was passed)
+Desperate Housewives (2004) - S01E07	en	drift	report	−49 → +44 s (was passed)
+Desperate Housewives (2004) - S01E11	en	drift	report	−23 → +87 s (was passed)
+Desperate Housewives (2004) - S01E17	en	drift	report	−28 → +74 s (was passed)
+Desperate Housewives (2004) - S01E22	en	drift	report	−38 → +76 s (was passed)
+Desperate Housewives (2004) - S01E17	fr	drift	report	≈ 4 %
+Desperate Housewives (2004) - S01E22	fr	drift	report	≈ 4 %
+House of the Dragon (2022) - S02E03	en	drift	report	−41 → +94 s (≈ 4 %); fit ratio 1.0425, residual 0.3 s
+House of the Dragon (2022) - S02E03	fr	drift	report	English timing +2.7 s, same drift
+Suits (2011) - S01E01	fr	other_cut	report	Shorter broadcast cut −170 → −560 s; cues end at 4246 s of 4875 s
+Suits (2011) - S01E04	fr	other_episode	report	3 of 26 names in the English track; cues end at 1197 s of 2582 s
+Suits (2011) - S01E06	fr	other_episode	report	14 of 87 names in the English track
+Suits (2011) - S01E08	fr	other_episode	report	12 of 54 names in the English track
+Suits (2011) - S01E10	fr	drift	report	+3.4 → −1.4 s (borderline)
+Suits (2011) - S01E11	fr	drift	report	+6.8 → 0 s
+Suits (2011) - S02E01	en	other_cut	report	Cues end at 2844 s of 2587 s; ~14 s late mid-episode
+Suits (2011) - S02E01	fr	other_cut	report	Same longer cut; cues end at 2825 s
+Suits (2011) - S02E04	en	drift	report	+2.0 → −3.6 s (borderline)
+Suits (2011) - S02E04	fr	drift	report	+2.7 → −5.7 s
+Suits (2011) - S02E11	en	drift	report	+2.8 → −2.7 s
+Suits (2011) - S02E11	fr	drift	report	+5.5 → −3.4 s
+Suits (2011) - S02E13	en	drift	report	+3.1 → −6.7 s
+Suits (2011) - S02E13	fr	drift	report	+9.6 → −1.9 s
+Suits (2011) - S02E16	en	drift	report	+3.5 → −5.0 s
+Suits (2011) - S02E16	fr	other_cut	report	−34 → +338 s
+Suits (2011) - S03E01	en	drift	report	+1.8 → −3.4 s (borderline)
+Suits (2011) - S03E01	fr	drift	report	+4.4 → −2.0 s
+Suits (2011) - S03E11	fr	drift	report	+3.8 → −6.8 s
+Suits (2011) - S05E01	fr	drift	report	+8.6 → −18 s
+Suits (2011) - S05E03	fr	other_episode	report	12 of 37 names in the English track; text does not match the dialogue
+Suits (2011) - S05E04	fr	drift	report	+26 → −26 s
+Suits (2011) - S05E10	fr	drift	report	−1.4 → −59 s
+Suits (2011) - S06E16	en	drift	report	+6.8 → −5.9 s
+The White Lotus (2021) - S01E05	fr	piecewise	report	−1 to −3 s at 30 %, then +30 → +80 s
+The Good the Bad and the Ugly (1966)	fr	constant	report	+5.0 s (4.6–5.3)
+Fleabag (2016) - S01E05	en	constant	report	+43.9 s
+Medici (2016) - S02E02	fr	constant	report	−34.5 s
+MobLand (2025) - S01E01	en	constant	report	+2.6 s
+A Star Is Born (2018)	fr	in_sync	report	0.2–0.8 s
+Life of Pi (2012)	en	in_sync	report	0.1 s
+Man on Fire (2004)	fr	in_sync	report	0.2–0.4 s
+Mr. Nobody (2009)	en	in_sync	report	−0.1–0.2 s
+Project X (2012)	fr	in_sync	report	0.0–0.4 s
+Scary Movie 3 (2003)	en	in_sync	report	0.1–0.3 s
+Star Wars (1977)	en	in_sync	report	−0.2–0.3 s
+The Good the Bad and the Ugly (1966)	en	in_sync	report	−0.1–0.5 s
+The Hateful Eight (2015)	fr	in_sync	report	−0.1–0.4 s
+The Pianist (2002)	en	in_sync	report	−0.1–0.6 s
+The Pianist (2002)	fr	in_sync	report	≈ en ± 1 s
+The Room Next Door (2024)	en	in_sync	report	−0.4–0.0 s
+The Room Next Door (2024)	fr	in_sync	report	0.2–0.7 s
+Black Sails (2014) - S01E08	en	in_sync	report	0.0–0.6 s
+Desperate Housewives (2004) - S01E11	fr	in_sync	report	0.0–0.3 s
+Fleabag (2016) - S01E05	fr	in_sync	report	0.2–0.5 s
+Medici (2016) - S02E02	en	in_sync	report	0.1–0.8 s
+MobLand (2025) - S01E01	fr	in_sync	report	0.2–0.5 s
+Suits (2011) - S01E01	en	in_sync	report	0.0–0.2 s
+Suits (2011) - S01E04	en	in_sync	report	0.0–0.6 s
+Suits (2011) - S01E06	en	in_sync	report	0.1–0.4 s
+Suits (2011) - S01E08	en	in_sync	report	0.0–0.4 s
+Suits (2011) - S01E10	en	in_sync	report	0.1–0.3 s
+Suits (2011) - S01E11	en	in_sync	report	−0.1–0.4 s
+Suits (2011) - S03E11	en	in_sync	report	−0.5–1.0 s
+Suits (2011) - S05E01	en	in_sync	report	0.0–0.9 s
+Suits (2011) - S05E03	en	in_sync	report	0.1–0.2 s
+Suits (2011) - S05E04	en	in_sync	report	0.0–0.3 s
+Suits (2011) - S05E10	en	in_sync	report	−0.6–0.1 s
+Suits (2011) - S05E16	en	in_sync	report	−0.9–0.4 s
+Suits (2011) - S05E16	fr	in_sync	report	−1.3 to −0.4 s
+Suits (2011) - S06E16	fr	in_sync	report	0.0–0.4 s
+The White Lotus (2021) - S01E05	en	in_sync	report	−0.1–0.3 s
+Desperate Housewives (2004) - S01E04	en	drift	check	Speech-mask peaks −40 → +75 s across the runtime; offset 0 correlation ≤ 0.05 in every window
+Desperate Housewives (2004) - S01E04	fr	in_sync	check	Speech-mask peak +0.4 s in 7 of 8 windows, offset 0 correlation 0.44–0.66
