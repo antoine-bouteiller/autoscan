@@ -2,7 +2,14 @@ import { jest } from 'bun:test'
 
 import { Effect } from 'effect'
 
-import { type BazarrItem, type BazarrItemRef, type BazarrSubtitleRef, type IBazarrClient } from '@/integrations/bazarr/bazarr.service'
+import {
+  type BazarrItem,
+  type BazarrItemRef,
+  type BazarrSubtitleRef,
+  type IBazarrClient,
+  type SubtitleFit,
+  type SubtitleSource,
+} from '@/integrations/bazarr/bazarr.service'
 import { NetworkError } from '@/shared/errors/network'
 import { type HttpClientError } from '@/shared/types/http_client'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
@@ -11,7 +18,13 @@ export const setProfileMock = jest
   .fn<(item: Extract<BazarrItemRef, { kind: 'movie' }>, profileId: number | null) => Promise<void>>()
   .mockResolvedValue(undefined)
 const deleteSubtitleMock = jest.fn<(item: BazarrItemRef, subtitle: BazarrSubtitleRef) => Promise<void>>().mockResolvedValue(undefined)
-const syncSubtitleMock = jest.fn<(item: BazarrItemRef, subtitle: BazarrSubtitleRef) => Promise<void>>().mockResolvedValue(undefined)
+export const modifySubtitleMock = jest
+  .fn<(item: BazarrItemRef, subtitle: BazarrSubtitleRef, fit: SubtitleFit) => Promise<void>>()
+  .mockResolvedValue(undefined)
+export const getSubtitleSourcesMock = jest.fn<(item: BazarrItemRef) => Promise<ReadonlyMap<string, SubtitleSource>>>().mockResolvedValue(new Map())
+export const blacklistSubtitleMock = jest
+  .fn<(item: BazarrItemRef, subtitle: BazarrSubtitleRef, source: Extract<SubtitleSource, { kind: 'provider' }>) => Promise<void>>()
+  .mockResolvedValue(undefined)
 const translateSubtitleMock = jest
   .fn<(item: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1) => Promise<void>>()
   .mockResolvedValue(undefined)
@@ -51,8 +64,16 @@ export class MockBazarrClient implements IBazarrClient {
     return fromPromise(() => deleteSubtitleMock(item, subtitle))
   }
 
-  syncSubtitle(item: BazarrItemRef, subtitle: BazarrSubtitleRef) {
-    return fromPromise(() => syncSubtitleMock(item, subtitle))
+  modifySubtitle(item: BazarrItemRef, subtitle: BazarrSubtitleRef, fit: SubtitleFit) {
+    return fromPromise(() => modifySubtitleMock(item, subtitle, fit))
+  }
+
+  getSubtitleSources(item: BazarrItemRef) {
+    return fromPromise(() => getSubtitleSourcesMock(item))
+  }
+
+  blacklistSubtitle(item: BazarrItemRef, subtitle: BazarrSubtitleRef, source: Extract<SubtitleSource, { kind: 'provider' }>) {
+    return fromPromise(() => blacklistSubtitleMock(item, subtitle, source))
   }
 
   translateSubtitle(item: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1) {

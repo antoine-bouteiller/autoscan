@@ -10,6 +10,51 @@
     "url": "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.1.4.tgz"
   },
   {
+    "hash": "sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==",
+    "path": "node_modules/@protobufjs/aspromise",
+    "url": "https://registry.npmjs.org/@protobufjs/aspromise/-/aspromise-1.1.2.tgz"
+  },
+  {
+    "hash": "sha512-AZkcAA5vnN/v4PDqKyMR5lx7hZttPDgClv83E//FMNhR2TMcLUhfRUBHCmSl0oi9zMgDDqRUJkSxO3wm85+XLg==",
+    "path": "node_modules/@protobufjs/base64",
+    "url": "https://registry.npmjs.org/@protobufjs/base64/-/base64-1.1.2.tgz"
+  },
+  {
+    "hash": "sha512-zgXFLzW3Ap33e6d0Wlj4MGIm6Ce8O89n/apUaGNB/jx+hw+ruWEp7EwGUshdLKVRCxZW12fp9r40E1mQrf/34g==",
+    "path": "node_modules/@protobufjs/codegen",
+    "url": "https://registry.npmjs.org/@protobufjs/codegen/-/codegen-2.0.5.tgz"
+  },
+  {
+    "hash": "sha512-vW1GmwMZNnL+gMRaovlh9yZX74kc+TTU3FObkkurpMaRtBfLP3ldjS9KQWlwZgraRE0+dheEEoAxdzcJQ8eXZg==",
+    "path": "node_modules/@protobufjs/eventemitter",
+    "url": "https://registry.npmjs.org/@protobufjs/eventemitter/-/eventemitter-1.1.1.tgz"
+  },
+  {
+    "hash": "sha512-GpptLrs57adMSuHi3VNj0mAF8dwh36LMaYF6XyJ6JMWlVsc+t42tm1HSEDmOs3A8fC9yyeisgLhsTVQokOZ0zw==",
+    "path": "node_modules/@protobufjs/fetch",
+    "url": "https://registry.npmjs.org/@protobufjs/fetch/-/fetch-1.1.1.tgz"
+  },
+  {
+    "hash": "sha512-Ddb+kVXlXst9d+R9PfTIxh1EdNkgoRe5tOX6t01f1lYWOvJnSPDBlG241QLzcyPdoNTsblLUdujGSE4RzrTZGQ==",
+    "path": "node_modules/@protobufjs/float",
+    "url": "https://registry.npmjs.org/@protobufjs/float/-/float-1.0.2.tgz"
+  },
+  {
+    "hash": "sha512-6JOcJ5Tm08dOHAbdR3GrvP+yUUfkjG5ePsHYczMFLq3ZmMkAD98cDgcT2iA1lJ9NVwFd4tH/iSSoe44YWkltEA==",
+    "path": "node_modules/@protobufjs/path",
+    "url": "https://registry.npmjs.org/@protobufjs/path/-/path-1.1.2.tgz"
+  },
+  {
+    "hash": "sha512-0kELaGSIDBKvcgS4zkjz1PeddatrjYcmMWOlAuAPwAeccUrPHdUqo/J6LiymHHEiJT5NrF1UVwxY14f+fy4WQw==",
+    "path": "node_modules/@protobufjs/pool",
+    "url": "https://registry.npmjs.org/@protobufjs/pool/-/pool-1.1.0.tgz"
+  },
+  {
+    "hash": "sha512-b1UQwcEZ4yCnMCD8DAL1VlbvBJE9/IX4FTIp7BG1xYpf29SLazLSrqUkj4w7Y5y7cCVP6E5tcqqcI0xemPkHug==",
+    "path": "node_modules/@protobufjs/utf8",
+    "url": "https://registry.npmjs.org/@protobufjs/utf8/-/utf8-1.1.2.tgz"
+  },
+  {
     "hash": "sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==",
     "path": "node_modules/@types/node",
     "url": "https://registry.npmjs.org/@types/node/-/node-26.1.2.tgz"
@@ -23,6 +68,41 @@
     "hash": "sha512-Tgrv/9FN+TZYyOn8XSli+fVqAfwDrDAkiX5Uu9vztINb675VTQdhD0gWI5Kzvhlh9QqzjZvw72iugqw5pwoghQ==",
     "path": "node_modules/effect",
     "url": "https://registry.npmjs.org/effect/-/effect-4.1.4.tgz"
+  },
+  {
+    "hash": "sha512-MI1qs7Lo4Syw0EOzUl0xjs2lsoeqFku44KpngfIduHBYvzm8h2+7K8YMQh1JtVVVrUvhLpNwqVi4DERegUJhPQ==",
+    "path": "node_modules/flatbuffers",
+    "url": "https://registry.npmjs.org/flatbuffers/-/flatbuffers-25.9.23.tgz"
+  },
+  {
+    "hash": "sha512-Y8T4vYhEfwJOTbouREvG+3XDsjr8E3kIr7uf+JZ0BYloFsttiHU0WfvANVsR7TxNUJa/WpCnw/Ino/p+DeBhBQ==",
+    "path": "node_modules/guid-typescript",
+    "url": "https://registry.npmjs.org/guid-typescript/-/guid-typescript-1.0.9.tgz"
+  },
+  {
+    "hash": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==",
+    "path": "node_modules/long",
+    "url": "https://registry.npmjs.org/long/-/long-5.3.2.tgz"
+  },
+  {
+    "hash": "sha512-vcuaNWgtF2dGQu/EP5P8UI5rEPEYqXG2sPPe5j9lg2TY/biJF8eWklTMwlDO08iuXq48xJo0awqIpK5mPG+IxA==",
+    "path": "node_modules/onnxruntime-common",
+    "url": "https://registry.npmjs.org/onnxruntime-common/-/onnxruntime-common-1.22.0.tgz"
+  },
+  {
+    "hash": "sha512-Ud/+EBo6mhuaQWt/OjaOk0iNWjXqJoeeMFr6xQEERZdIZH2OWpGzuujz7lfuOBjUa6TEE/sc4nb7Da5dNL34fg==",
+    "path": "node_modules/onnxruntime-web",
+    "url": "https://registry.npmjs.org/onnxruntime-web/-/onnxruntime-web-1.22.0.tgz"
+  },
+  {
+    "hash": "sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==",
+    "path": "node_modules/platform",
+    "url": "https://registry.npmjs.org/platform/-/platform-1.3.6.tgz"
+  },
+  {
+    "hash": "sha512-dYDWdjSl5RNb7SgPxGQcRU+GtvP7s2fpkrY0r432PcOIaZ0/rBcxEZnQN67iJhFuQiVw754JDoPruPCNdGsbjg==",
+    "path": "node_modules/protobufjs",
+    "url": "https://registry.npmjs.org/protobufjs/-/protobufjs-7.6.6.tgz"
   },
   {
     "hash": "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==",

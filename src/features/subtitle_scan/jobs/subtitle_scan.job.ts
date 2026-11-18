@@ -7,7 +7,7 @@ import { getCompleteMediaDetails } from '@/domains/media/services/metadata.servi
 import { applyFrenchProfilePolicy } from '@/features/subtitle_scan/services/french_profile.service'
 import { applyMissingPolicy } from '@/features/subtitle_scan/services/missing_subtitles.service'
 import { pruneMissingScans } from '@/features/subtitle_scan/services/scan_registry.service'
-import { scanMediaSubtitles } from '@/features/subtitle_scan/services/subtitle_scan.service'
+import { scanMediaSubtitles, type SubtitleScanPass } from '@/features/subtitle_scan/services/subtitle_scan.service'
 import { type SubtitleScanMedia } from '@/features/subtitle_scan/types'
 
 const catchAndLog = <Success, Error, Requirements>(effect: Effect.Effect<Success, Error, Requirements>, operation: string) =>
@@ -34,7 +34,7 @@ const resolveFrenchPreset = Effect.gen(function* () {
   return preset?.profileId
 })
 
-const scanMedia = (details: SubtitleScanMedia, presetId: number | undefined) =>
+const scanMedia = (details: SubtitleScanMedia, presetId: number | undefined, pass: SubtitleScanPass) =>
   Effect.gen(function* () {
     const bazarr = yield* Bazarr
     const getItem = yield* Effect.cached(details.mediaType === 'movie' ? bazarr.getMovieByPath(details.file) : bazarr.getEpisodeByPath(details.file))
@@ -42,10 +42,10 @@ const scanMedia = (details: SubtitleScanMedia, presetId: number | undefined) =>
       yield* catchAndLog(applyFrenchProfilePolicy(details, getItem, presetId), `Applying French profile policy for ${details.mediaTitle}`)
       return
     }
-    yield* catchAndLog(scanMediaSubtitles(details, getItem), `Scanning subtitles for ${details.mediaTitle}`)
+    yield* catchAndLog(scanMediaSubtitles(details, getItem, pass), `Scanning subtitles for ${details.mediaTitle}`)
   })
 
-const traverse = (presetId: number | undefined) =>
+const traverse = (presetId: number | undefined, pass: SubtitleScanPass) =>
   Effect.gen(function* () {
     const plex = yield* Plex
     const sections = yield* plex.getSections
@@ -56,7 +56,7 @@ const traverse = (presetId: number | undefined) =>
       }
       for (const entry of media) {
         yield* getCompleteMediaDetails(Number(entry.ratingKey)).pipe(
-          Effect.flatMap((details) => scanMedia(details, presetId)),
+          Effect.flatMap((details) => scanMedia(details, presetId, pass)),
           (effect) => catchAndLog(effect, `Resolving Plex media ${entry.title}`)
         )
       }
@@ -66,7 +66,8 @@ const traverse = (presetId: number | undefined) =>
 const subtitleScan = Effect.gen(function* () {
   yield* Effect.logInfo('Starting subtitle scan...')
   const presetId = yield* resolveFrenchPreset
-  yield* catchAndLog(traverse(presetId), 'Traversing Plex library for subtitle scan')
+  const pass: SubtitleScanPass = { sampled: new Set() }
+  yield* catchAndLog(traverse(presetId, pass), 'Traversing Plex library for subtitle scan')
   yield* catchAndLog(pruneMissingScans, 'Pruning subtitle scan registry')
   yield* catchAndLog(applyMissingPolicy, 'Applying missing subtitle policy')
   yield* Effect.logInfo('Subtitle scan finished')

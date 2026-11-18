@@ -7,6 +7,7 @@ import {
   type BazarrMovieRow,
   episodesResponseValidator,
   episodeValidator,
+  historyResponseValidator,
   lookupEpisodesResponseValidator,
   lookupMoviesResponseValidator,
   moviesResponseValidator,
@@ -29,6 +30,11 @@ export interface BazarrSubtitleRef {
   hi: boolean
   path: string
 }
+export type SubtitleSource = { kind: 'provider'; provider: string; subsId: string } | { kind: 'translation' }
+export interface SubtitleFit {
+  readonly offset: number
+  readonly ratio: number
+}
 export type BazarrItem = BazarrItemRef & {
   title: string
   path: string
@@ -43,7 +49,13 @@ export interface IBazarrClient {
   readonly getProfiles: Effect.Effect<{ profileId: number; name: string }[], HttpClientError>
   readonly setProfile: (item: Extract<BazarrItemRef, { kind: 'movie' }>, profileId: number | null) => Effect.Effect<void, HttpClientError>
   readonly deleteSubtitle: (item: BazarrItemRef, subtitle: BazarrSubtitleRef) => Effect.Effect<void, HttpClientError>
-  readonly syncSubtitle: (item: BazarrItemRef, subtitle: BazarrSubtitleRef) => Effect.Effect<void, HttpClientError>
+  readonly modifySubtitle: (item: BazarrItemRef, subtitle: BazarrSubtitleRef, fit: SubtitleFit) => Effect.Effect<void, HttpClientError>
+  readonly getSubtitleSources: (item: BazarrItemRef) => Effect.Effect<ReadonlyMap<string, SubtitleSource>, HttpClientError>
+  readonly blacklistSubtitle: (
+    item: BazarrItemRef,
+    subtitle: BazarrSubtitleRef,
+    source: Extract<SubtitleSource, { kind: 'provider' }>
+  ) => Effect.Effect<void, HttpClientError>
   readonly translateSubtitle: (item: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1) => Effect.Effect<void, HttpClientError>
 }
 
@@ -52,6 +64,13 @@ interface BazarrClientConfig {
   apiUrl: string
   transport: EffectHttpClient.HttpClient
 }
+
+const HISTORY_DOWNLOADED = new Set([1, 2, 3])
+const HISTORY_TRANSLATED = 6
+const fitAction = ({ offset, ratio }: SubtitleFit) =>
+  ratio === 1
+    ? `shift_offset(h=0,m=0,s=0,ms=${Math.round(-1000 * offset)})`
+    : `two_point_fit(rh=0,rm=0,rs=0,rms=0,from=1,to=${Number(ratio.toFixed(6))},oh=0,om=0,os=0,oms=${Math.round((-1000 * offset) / ratio)})`
 
 const missingSubtitles = (subtitles: readonly BazarrMissingSubtitle[]) => subtitles.map(({ code2, forced }) => ({ forced, language: code2 }))
 const subtitles = (rows: BazarrMovieRow['subtitles']) =>
@@ -196,18 +215,52 @@ export class BazarrClient implements IBazarrClient {
         })
   }
 
-  syncSubtitle(item: BazarrItemRef, subtitle: BazarrSubtitleRef) {
+  modifySubtitle(item: BazarrItemRef, subtitle: BazarrSubtitleRef, fit: SubtitleFit) {
     return this.client.patch('subtitles', {
       params: {
-        action: 'sync',
-        forced: String(subtitle.forced),
-        hi: String(subtitle.hi),
+        action: fitAction(fit),
+        forced: subtitle.forced ? 'True' : 'False',
+        hi: subtitle.hi ? 'True' : 'False',
         id: item.id,
         language: subtitle.language,
         path: subtitle.path,
         type: item.kind,
       },
     })
+  }
+
+  getSubtitleSources(item: BazarrItemRef) {
+    const request =
+      item.kind === 'movie'
+        ? this.client.get('movies/history', { params: { radarrid: item.id }, validator: historyResponseValidator })
+        : this.client.get('episodes/history', { params: { episodeid: item.id }, validator: historyResponseValidator })
+    return request.pipe(
+      Effect.map(({ data }) => {
+        const sources = new Map<string, SubtitleSource | undefined>()
+        // Bazarr orders history by timestamp descending, and its timestamp field is a relative string, so the first entry per path is the latest.
+        for (const { action, provider, subs_id: subsId, subtitles_path: path } of data) {
+          if (path === null || path === '' || sources.has(path)) {
+            continue
+          }
+          if (action === HISTORY_TRANSLATED) {
+            sources.set(path, { kind: 'translation' })
+          } else if (HISTORY_DOWNLOADED.has(action)) {
+            sources.set(
+              path,
+              provider !== null && provider !== '' && subsId !== null && subsId !== '' ? { kind: 'provider', provider, subsId } : undefined
+            )
+          }
+        }
+        return new Map([...sources].filter((entry): entry is [string, SubtitleSource] => entry[1] !== undefined))
+      })
+    )
+  }
+
+  blacklistSubtitle(item: BazarrItemRef, subtitle: BazarrSubtitleRef, source: Extract<SubtitleSource, { kind: 'provider' }>) {
+    const fields = { language: subtitle.language, provider: source.provider, subs_id: source.subsId, subtitles_path: subtitle.path }
+    return item.kind === 'movie'
+      ? this.client.post('movies/blacklist', { params: { ...fields, radarrid: item.id } })
+      : this.client.post('episodes/blacklist', { params: { ...fields, episodeid: item.id, seriesid: item.seriesId } })
   }
 
   translateSubtitle(item: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1) {

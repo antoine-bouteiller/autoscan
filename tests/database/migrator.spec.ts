@@ -1,3 +1,4 @@
+/* oxlint-disable unicorn/no-null -- nullable subtitle identity columns are part of the registry contract. */
 import { afterEach } from 'bun:test'
 import { mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -146,7 +147,10 @@ const CURRENT_SCHEMA = {
     column('plex_tokens.client_identifier', 'text'),
     column('plex_tokens.id', 'int4', { defaultValue: "nextval('plex_tokens_id_seq'::regclass)" }),
     column('plex_tokens.linked_at', 'timestamp'),
+    column('subtitle_scans.evidence', 'subtitle_evidence', { nullable: true }),
+    column('subtitle_scans.file_mtime', 'timestamp', { nullable: true }),
     column('subtitle_scans.file_path', 'text'),
+    column('subtitle_scans.file_size', 'int8', { nullable: true }),
     column('subtitle_scans.scan_version', 'int4'),
     column('subtitle_scans.scanned_at', 'timestamp'),
     column('subtitle_scans.verdict', 'subtitle_verdict'),
@@ -166,7 +170,8 @@ const CURRENT_SCHEMA = {
   enums: [
     { labels: '{movie,episode}', typname: 'bazarr_kind' },
     { labels: '{movie,show}', typname: 'media_type' },
-    { labels: '{passed,sync_requested,invalid}', typname: 'subtitle_verdict' },
+    { labels: '{audio,reference}', typname: 'subtitle_evidence' },
+    { labels: '{passed,sync_requested,invalid,inconclusive}', typname: 'subtitle_verdict' },
   ],
 }
 
@@ -177,7 +182,7 @@ describe('migrate', () => {
     await migrate(sql, MIGRATIONS)
 
     expect(await recordedNames(sql)).toEqual(await migrationNames())
-    expect(await recordedNames(sql)).toHaveLength(9)
+    expect(await recordedNames(sql)).toHaveLength(10)
     expect(await describeSchema(sql)).toEqual(CURRENT_SCHEMA)
   })
 
@@ -190,7 +195,7 @@ describe('migrate', () => {
 
     expect(await recordedNames(sql)).toEqual(names)
     expect(await describeSchema(sql)).toEqual(CURRENT_SCHEMA)
-    expect(await sql`SELECT name FROM drizzle.__drizzle_migrations`).toHaveLength(9)
+    expect(await sql`SELECT name FROM drizzle.__drizzle_migrations`).toHaveLength(10)
   })
 
   it('[VC-3] runs only migrations newer than the Drizzle history, then nothing on a second run', async () => {
@@ -230,6 +235,19 @@ describe('migrate', () => {
     const sql = open()
     expect(await recordedNames(sql)).toEqual(await migrationNames())
     expect(await describeSchema(sql)).toEqual(CURRENT_SCHEMA)
+  })
+
+  it('[VC-13.1] keeps existing subtitle rows with null identity columns', async () => {
+    const sql = (await freshDatabase())()
+    const names = await migrationNames()
+    await applyLikeDrizzle(sql, names.slice(0, -1))
+    await sql`INSERT INTO subtitle_scans (file_path, scan_version, scanned_at, verdict) VALUES ('/movie.en.srt', 2, '2026-09-01T00:00:00Z', 'sync_requested')`
+
+    await migrate(sql, MIGRATIONS)
+
+    expect([...(await sql`SELECT verdict, evidence, file_size, file_mtime FROM subtitle_scans`)]).toEqual([
+      { evidence: null, file_mtime: null, file_size: null, verdict: 'sync_requested' },
+    ])
   })
 
   it('refuses to adopt a Drizzle history naming an unknown or null migration', async () => {

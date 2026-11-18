@@ -22,7 +22,7 @@ const movie = {
   subtitles: [],
   title: 'Movie',
 } satisfies BazarrItem
-const details: SubtitleScanMedia = { file: movie.path, mediaTitle: movie.title, mediaType: 'movie', preferredLanguage: 'fr' }
+const details: SubtitleScanMedia = { file: movie.path, mediaTitle: movie.title, mediaType: 'movie', originalLanguage: 'fr', preferredLanguage: 'fr' }
 const apply = applyFrenchProfilePolicy(details, Effect.succeed(movie), 7)
 const week = 7 * 86_400_000
 
