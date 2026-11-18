@@ -1,9 +1,11 @@
+/* oxlint-disable unicorn/no-null -- nullable subtitle identity columns are part of the registry contract. */
 import { beforeEach } from 'bun:test'
 
 import { BunServices } from '@effect/platform-bun'
 import { testSql } from '@tests/database'
 import { provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
+import { blacklistSubtitleMock, getSubtitleSourcesMock } from '@tests/mocks/bazarr.mock'
 import { answerCallbackQueryMock, MockBazarrClient, MockTelegramClient, sendMessageMock } from '@tests/utils'
 import { DateTime, Effect, FileSystem } from 'effect'
 
@@ -11,6 +13,7 @@ import { deleteSubtitleAction, invalidSubtitlesCommand } from '@/features/subtit
 import { SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import { getScan, recordScan, type SubtitleVerdict } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
 import { deleteSubtitleButton } from '@/features/subtitle_scan/services/invalid_subtitles.service'
+import { statFile } from '@/features/subtitle_scan/services/scan_registry.service'
 import { type BazarrItem, type BazarrItemRef, type BazarrSubtitleRef } from '@/integrations/bazarr/bazarr.service'
 
 class LibraryBazarr extends MockBazarrClient {
@@ -40,8 +43,26 @@ const tap = (filePath: string) => {
 const subtitle = (path: string, language: 'en' | 'fr'): BazarrSubtitleRef => ({ forced: false, hi: false, language, path })
 const record = (filePath: string, verdict: SubtitleVerdict = 'invalid') =>
   DateTime.nowAsDate.pipe(
-    Effect.flatMap((scannedAt) => provideTest(recordScan({ filePath, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt, verdict })))
+    Effect.flatMap((scannedAt) =>
+      provideTest(recordScan({ evidence: null, fileMtime: null, filePath, fileSize: null, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt, verdict }))
+    )
   )
+
+const recordStatted = (filePath: string) =>
+  Effect.gen(function* () {
+    const { mtime, size } = yield* statFile(filePath)
+    yield* provideTest(
+      recordScan({
+        evidence: null,
+        fileMtime: mtime,
+        filePath,
+        fileSize: size,
+        scanVersion: SUBTITLE_SCAN_VERSION,
+        scannedAt: new Date(),
+        verdict: 'invalid',
+      })
+    )
+  })
 
 const library = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
@@ -67,6 +88,8 @@ describe('invalid subtitles command', () => {
   beforeEach(async () => {
     sendMessageMock.mockClear().mockResolvedValue(100)
     answerCallbackQueryMock.mockClear()
+    getSubtitleSourcesMock.mockReset().mockResolvedValue(new Map())
+    blacklistSubtitleMock.mockReset().mockResolvedValue(undefined)
     await testSql`DELETE FROM subtitle_scans`
   })
 
@@ -78,7 +101,17 @@ describe('invalid subtitles command', () => {
       yield* record('/library/B.fr.srt')
       yield* record('/library/A.en.srt')
       yield* record('/library/A.de.srt', 'passed')
-      yield* provideTest(recordScan({ filePath: '/library/Old.en.srt', scanVersion: 0, scannedAt: new Date(), verdict: 'invalid' }))
+      yield* provideTest(
+        recordScan({
+          evidence: null,
+          fileMtime: null,
+          filePath: '/library/Old.en.srt',
+          fileSize: null,
+          scanVersion: 0,
+          scannedAt: new Date(),
+          verdict: 'invalid',
+        })
+      )
       yield* provideTest(invalidSubtitlesCommand(client, chat))
 
       expect(sendMessageMock).toHaveBeenLastCalledWith(1, 'Invalid subtitles (tap to delete through Bazarr):', {
@@ -130,6 +163,82 @@ describe('invalid subtitles command', () => {
       expect(yield* provideTest(getScan(untracked, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
       expect(bazarr.deleted).toEqual([])
       expect(yield* fs.exists(english)).toBe(true)
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
+  it.live('[VC-16.1] blacklists a provider subtitle instead of deleting it and forgets its verdict', () =>
+    Effect.gen(function* () {
+      const { bazarr, french } = yield* library
+      yield* recordStatted(french)
+      getSubtitleSourcesMock.mockResolvedValue(new Map([[french, { kind: 'provider', provider: 'opensubtitlescom', subsId: 'abc' }]]))
+
+      yield* provideTest(tap(french), { bazarr })
+
+      expect(blacklistSubtitleMock).toHaveBeenCalledTimes(1)
+      expect(blacklistSubtitleMock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 7, kind: 'movie' }),
+        expect.objectContaining({ path: french }),
+        { kind: 'provider', provider: 'opensubtitlescom', subsId: 'abc' }
+      )
+      expect(bazarr.deleted).toEqual([])
+      expect(sendMessageMock).toHaveBeenLastCalledWith(1, 'Deleted Movie (2015).fr.srt.', undefined)
+      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toBeUndefined()
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
+  it.live('[VC-16.1] deletes a translated subtitle or one without history through Bazarr', () =>
+    Effect.gen(function* () {
+      const { bazarr, english, french } = yield* library
+      yield* recordStatted(english)
+      yield* recordStatted(french)
+      getSubtitleSourcesMock.mockResolvedValue(new Map([[french, { kind: 'translation' }]]))
+
+      yield* provideTest(tap(french), { bazarr })
+      yield* provideTest(tap(english), { bazarr })
+
+      expect(bazarr.deleted.map((entry) => entry.subtitle.path)).toEqual([french, english])
+      expect(blacklistSubtitleMock).not.toHaveBeenCalled()
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
+  it.live('[VC-16.1] keeps the row and fails when the blacklist call fails', () =>
+    Effect.gen(function* () {
+      const { bazarr, french } = yield* library
+      yield* recordStatted(french)
+      getSubtitleSourcesMock.mockResolvedValue(new Map([[french, { kind: 'provider', provider: 'opensubtitlescom', subsId: 'abc' }]]))
+      blacklistSubtitleMock.mockRejectedValue(new Error('boom'))
+
+      expect(yield* Effect.flip(provideTest(tap(french), { bazarr }))).toBeDefined()
+      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
+  it.live('[VC-16.1] keeps the row and fails when the history lookup fails', () =>
+    Effect.gen(function* () {
+      const { bazarr, french } = yield* library
+      yield* recordStatted(french)
+      getSubtitleSourcesMock.mockRejectedValue(new Error('boom'))
+
+      expect(yield* Effect.flip(provideTest(tap(french), { bazarr }))).toBeDefined()
+      expect(bazarr.deleted).toEqual([])
+      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
+  )
+
+  it.live('[VC-16.1] leaves a row alone when the file changed since it was assessed', () =>
+    Effect.gen(function* () {
+      const { bazarr, french } = yield* library
+      const fs = yield* FileSystem.FileSystem
+      yield* recordStatted(french)
+      yield* fs.writeFileString(french, 'replaced')
+
+      yield* provideTest(tap(french), { bazarr })
+
+      expect(sendMessageMock).toHaveBeenLastCalledWith(1, 'This subtitle is no longer marked invalid.', undefined)
+      expect(getSubtitleSourcesMock).not.toHaveBeenCalled()
+      expect(blacklistSubtitleMock).not.toHaveBeenCalled()
+      expect(bazarr.deleted).toEqual([])
+      expect(yield* provideTest(getScan(french, SUBTITLE_SCAN_VERSION))).toMatchObject({ verdict: 'invalid' })
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 })

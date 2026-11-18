@@ -60,6 +60,16 @@ export const wantedEpisodesResponseValidator = Schema.Struct({
   total: Schema.Int,
 })
 export const seriesResponseValidator = Schema.Struct({ data: Schema.Array(Schema.Struct({ path: Schema.String, sonarrSeriesId: Schema.Int })) })
+export const historyResponseValidator = Schema.Struct({
+  data: Schema.Array(
+    Schema.Struct({
+      action: Schema.Int,
+      provider: Schema.NullOr(Schema.String),
+      subs_id: Schema.NullOr(Schema.String),
+      subtitles_path: Schema.NullOr(Schema.String),
+    })
+  ),
+})
 export const profilesValidator = Schema.Array(Schema.Struct({ name: Schema.String, profileId: Schema.Int }))
 
 export type BazarrMovieRow = typeof movieValidator.Type

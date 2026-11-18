@@ -1,6 +1,24 @@
-import { Effect, FileSystem, Path } from 'effect'
+import { Effect, FileSystem, Option, Path } from 'effect'
 
-import { deleteScans, listScanPaths } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
+import { deleteScans, listScanPaths, type SubtitleScanRecord } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
+
+export interface FileStat {
+  readonly size: number
+  readonly mtime: Date
+}
+
+export const statFile = (filePath: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const info = yield* fs.stat(filePath)
+    return { mtime: Option.getOrElse(info.mtime, () => new Date(0)), size: Number(info.size) } satisfies FileStat
+  })
+
+export const sameStat = (left: FileStat, right: FileStat) => left.size === right.size && left.mtime.getTime() === right.mtime.getTime()
+
+/** A row applies to the file on disk only while its stored stat matches; rows written before stats were stored still count. */
+export const isCounting = (row: SubtitleScanRecord | undefined, stat: FileStat): row is SubtitleScanRecord =>
+  row !== undefined && (row.fileSize === null || row.fileMtime === null || sameStat({ mtime: row.fileMtime, size: row.fileSize }, stat))
 
 /** Drops registry rows whose subtitle file was deleted, so a later download at that path is scanned again. */
 export const pruneMissingScans = Effect.gen(function* () {

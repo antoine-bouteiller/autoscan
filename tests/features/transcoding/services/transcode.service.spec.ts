@@ -28,6 +28,7 @@ const ffmpeg = (ffprobe: IFfmpegClient['ffprobe'] = () => Effect.succeed(passedP
   execute: (..._command) => Effect.succeed(''),
   executeFfmpeg: (_params) => Effect.succeed(''),
   ffprobe,
+  sampleSpeech: (_input, _audioStream, _windows) => Effect.succeed([]),
 })
 
 const transcode = (file: string, originalLanguage: 'en' | 'fr' = 'en') =>

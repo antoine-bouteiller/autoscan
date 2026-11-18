@@ -1,3 +1,4 @@
+/* oxlint-disable unicorn/no-null -- nullable subtitle identity columns are part of the registry contract. */
 import { beforeEach } from 'bun:test'
 
 import { testSql } from '@tests/database'
@@ -12,6 +13,7 @@ import {
   insertFrenchProfile,
   insertMissing,
   listMissing,
+  listScans,
   markFrenchProfileReleased,
   markMissingActed,
   recordScan,
@@ -35,10 +37,24 @@ describe('subtitle scan repository', () => {
   it.live('updates one verdict per full path across scan versions and rebuilt layers', () =>
     Effect.gen(function* () {
       const filePath = '/library/movie.en.srt'
-      yield* provideTest(recordScan({ filePath, scanVersion: 1, scannedAt: firstSeen, verdict: 'passed' }))
+      yield* provideTest(
+        recordScan({ evidence: null, fileMtime: null, filePath, fileSize: null, scanVersion: 1, scannedAt: firstSeen, verdict: 'passed' })
+      )
       expect(yield* provideTest(getScan(filePath, 1))).toMatchObject({ filePath, scannedAt: firstSeen, verdict: 'passed' })
-      yield* provideTest(recordScan({ filePath, scanVersion: 2, scannedAt: later, verdict: 'sync_requested' }))
-      yield* provideTest(recordScan({ filePath: '/other/movie.en.srt', scanVersion: 1, scannedAt: later, verdict: 'invalid' }))
+      yield* provideTest(
+        recordScan({ evidence: null, fileMtime: null, filePath, fileSize: null, scanVersion: 2, scannedAt: later, verdict: 'sync_requested' })
+      )
+      yield* provideTest(
+        recordScan({
+          evidence: null,
+          fileMtime: null,
+          filePath: '/other/movie.en.srt',
+          fileSize: null,
+          scanVersion: 1,
+          scannedAt: later,
+          verdict: 'invalid',
+        })
+      )
 
       expect(yield* provideTest(getScan(filePath, 1))).toBeUndefined()
       expect(yield* provideTest(getScan(filePath, 2))).toMatchObject({ scannedAt: later, verdict: 'sync_requested' })
@@ -46,6 +62,32 @@ describe('subtitle scan repository', () => {
       expect(yield* provideTest(getScan('/other/movie.en.srt', 1))).toMatchObject({ verdict: 'invalid' })
       expect(yield* provideTest(getScan('/library/renamed.en.srt', 1))).toBeUndefined()
       expect(yield* provideTest(getScan(filePath, 3))).toBeUndefined()
+    })
+  )
+
+  it.live('round-trips evidence, size above 2^31 and millisecond mtime, then replaces them on upsert', () =>
+    Effect.gen(function* () {
+      const filePath = '/library/movie.en.srt'
+      const fileMtime = new Date('2026-09-01T10:20:30.123Z')
+      const fileSize = 5 * 2 ** 31 + 7
+      yield* provideTest(recordScan({ evidence: 'audio', fileMtime, filePath, fileSize, scanVersion: 3, scannedAt: firstSeen, verdict: 'passed' }))
+      expect(yield* provideTest(getScan(filePath, 3))).toEqual({
+        evidence: 'audio',
+        fileMtime,
+        filePath,
+        fileSize,
+        scanVersion: 3,
+        scannedAt: firstSeen,
+        verdict: 'passed',
+      })
+
+      yield* provideTest(
+        recordScan({ evidence: null, fileMtime: null, filePath, fileSize: null, scanVersion: 3, scannedAt: later, verdict: 'inconclusive' })
+      )
+      expect(yield* provideTest(listScans('inconclusive', 3))).toEqual([
+        { evidence: null, fileMtime: null, filePath, fileSize: null, scanVersion: 3, scannedAt: later, verdict: 'inconclusive' },
+      ])
+      expect(yield* provideTest(listScans('passed', 3))).toEqual([])
     })
   )
 

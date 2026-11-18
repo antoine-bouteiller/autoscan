@@ -1,14 +1,18 @@
-import { Cause, DateTime, Effect } from 'effect'
+import { Cause, DateTime, Effect, Order } from 'effect'
 
 import { Env } from '@/config/env'
 import { Bazarr, Telegram } from '@/core/runtime.service'
+import { type MissingSubtitle } from '@/database/schema'
+import { REFERENCE_LANGUAGE, SUBTITLE_SCAN_VERSION } from '@/features/subtitle_scan/constants'
 import {
   deleteMissing,
+  getScan,
   insertMissing,
   listMissing,
   markMissingActed,
   type MissingSubtitleKey,
 } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
+import { sameStat, statFile } from '@/features/subtitle_scan/services/scan_registry.service'
 import { type BazarrItem } from '@/integrations/bazarr/bazarr.service'
 
 const THREE_DAYS = 3 * 86_400_000
@@ -23,6 +27,71 @@ const logFailure = <Success, Error, Requirements>(effect: Effect.Effect<Success,
       (cause) => Effect.logError(cause, operation)
     )
   )
+
+const hasAudioPass = (filePath: string) =>
+  Effect.gen(function* () {
+    const row = yield* getScan(filePath, SUBTITLE_SCAN_VERSION)
+    if (row?.verdict !== 'passed' || row.evidence !== 'audio' || row.fileSize === null || row.fileMtime === null) {
+      return false
+    }
+    const stat = yield* statFile(filePath)
+    return sameStat({ mtime: row.fileMtime, size: row.fileSize }, stat)
+  }).pipe(
+    Effect.catchCauseIf(
+      (cause) => !Cause.hasInterrupts(cause),
+      (cause) => Effect.logWarning(cause, `Reference subtitle check for ${filePath}`).pipe(Effect.as(false))
+    )
+  )
+
+const verifiedReference = (item: BazarrItem) =>
+  Effect.gen(function* () {
+    const candidates = item.subtitles
+      .filter((subtitle) => !subtitle.forced && subtitle.language === REFERENCE_LANGUAGE)
+      .toSorted(Order.mapInput(Order.String, (subtitle) => subtitle.path))
+    for (const candidate of candidates) {
+      if (yield* hasAudioPass(candidate.path)) {
+        return candidate
+      }
+    }
+    return undefined
+  })
+
+interface DueTranslations {
+  item: BazarrItem
+  source: BazarrItem['subtitles'][number]
+  due: readonly MissingSubtitle[]
+  actedAt: Date
+  budget: number
+}
+
+const translateDue = ({ item, source, due, actedAt, budget }: DueTranslations) =>
+  Effect.gen(function* () {
+    const bazarr = yield* Bazarr
+    const reference = yield* Effect.cached(verifiedReference(item))
+    let requests = 0
+    for (const row of due) {
+      if (requests >= budget) {
+        break
+      }
+      let rowSource = source
+      if (row.language !== REFERENCE_LANGUAGE) {
+        const verified = yield* reference
+        if (verified === undefined) {
+          yield* Effect.logInfo(`No speech-verified ${REFERENCE_LANGUAGE} subtitle yet for ${item.title}; ${row.language} waits`)
+          continue
+        }
+        rowSource = verified
+      }
+      requests++
+      yield* logFailure(
+        bazarr
+          .translateSubtitle(item, rowSource, row.language)
+          .pipe(Effect.flatMap(() => markMissingActed([{ bazarrId: row.bazarrId, bazarrKind: row.bazarrKind, language: row.language }], actedAt))),
+        `Missing subtitle translation for ${item.title} (${row.language})`
+      )
+    }
+    return requests
+  })
 
 export const applyMissingPolicy = Effect.gen(function* () {
   const bazarr = yield* Bazarr
@@ -95,14 +164,6 @@ export const applyMissingPolicy = Effect.gen(function* () {
       continue
     }
 
-    for (const row of due.slice(0, Math.max(0, 3 - translationRequests))) {
-      translationRequests++
-      yield* logFailure(
-        bazarr
-          .translateSubtitle(item, source, row.language)
-          .pipe(Effect.flatMap(() => markMissingActed([{ bazarrId: row.bazarrId, bazarrKind: row.bazarrKind, language: row.language }], actedAt))),
-        `Missing subtitle translation for ${item.title} (${row.language})`
-      )
-    }
+    translationRequests += yield* translateDue({ actedAt, budget: 3 - translationRequests, due, item, source })
   }
 })

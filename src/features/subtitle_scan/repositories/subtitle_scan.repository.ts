@@ -24,7 +24,8 @@ export const getScan = (filePath: string, scanVersion: number) =>
   Database.use(({ sql }) =>
     query(
       () => sql<SubtitleScanRecord[]>`
-        SELECT file_path AS "filePath", scan_version AS "scanVersion", scanned_at AS "scannedAt", verdict
+        SELECT file_path AS "filePath", scan_version AS "scanVersion", scanned_at AS "scannedAt", verdict, evidence,
+          file_size::float8 AS "fileSize", file_mtime AS "fileMtime"
         FROM subtitle_scans
         WHERE file_path = ${filePath} AND scan_version = ${scanVersion}
       `
@@ -35,12 +36,15 @@ export const recordScan = (row: SubtitleScanRecord) =>
   Database.use(({ sql }) =>
     query(
       () => sql`
-        INSERT INTO subtitle_scans (file_path, scan_version, scanned_at, verdict)
-        VALUES (${row.filePath}, ${row.scanVersion}, ${row.scannedAt}, ${row.verdict})
+        INSERT INTO subtitle_scans (file_path, scan_version, scanned_at, verdict, evidence, file_size, file_mtime)
+        VALUES (${row.filePath}, ${row.scanVersion}, ${row.scannedAt}, ${row.verdict}, ${row.evidence}, ${row.fileSize}, ${row.fileMtime})
         ON CONFLICT (file_path) DO UPDATE SET
           scan_version = EXCLUDED.scan_version,
           scanned_at = EXCLUDED.scanned_at,
-          verdict = EXCLUDED.verdict
+          verdict = EXCLUDED.verdict,
+          evidence = EXCLUDED.evidence,
+          file_size = EXCLUDED.file_size,
+          file_mtime = EXCLUDED.file_mtime
       `
     )
   ).pipe(Effect.asVoid)
@@ -49,7 +53,8 @@ export const listScans = (verdict: SubtitleVerdict, scanVersion: number) =>
   Database.use(({ sql }) =>
     query(
       () => sql<SubtitleScanRecord[]>`
-        SELECT file_path AS "filePath", scan_version AS "scanVersion", scanned_at AS "scannedAt", verdict
+        SELECT file_path AS "filePath", scan_version AS "scanVersion", scanned_at AS "scannedAt", verdict, evidence,
+          file_size::float8 AS "fileSize", file_mtime AS "fileMtime"
         FROM subtitle_scans
         WHERE verdict = ${verdict} AND scan_version = ${scanVersion}
         ORDER BY file_path

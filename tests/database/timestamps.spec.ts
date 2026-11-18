@@ -1,3 +1,4 @@
+/* oxlint-disable unicorn/no-null -- nullable subtitle identity columns are part of the registry contract. */
 import { afterEach, beforeEach } from 'bun:test'
 
 import { testSql } from '@tests/database'
@@ -51,7 +52,17 @@ describe('[VC-8] timestamp columns outside UTC', () => {
       const missing = { bazarrId: 1, bazarrKind: 'movie' as const, language: 'en' as const }
       const transcode = { filePath: '/movie.mkv', originalLanguage: 'en' as const, scanVersion: 1 }
 
-      yield* provideTest(recordSubtitleScan({ filePath: '/movie.en.srt', scanVersion: 1, scannedAt: written, verdict: 'passed' }))
+      yield* provideTest(
+        recordSubtitleScan({
+          evidence: null,
+          fileMtime: written,
+          filePath: '/movie.en.srt',
+          fileSize: null,
+          scanVersion: 1,
+          scannedAt: written,
+          verdict: 'passed',
+        })
+      )
       yield* provideTest(recordTranscodeScan({ ...transcode, scannedAt: written }))
       yield* provideTest(insertMissing({ ...missing, firstSeenAt: written }))
       yield* provideTest(markMissingActed([missing], written))
@@ -64,17 +75,19 @@ describe('[VC-8] timestamp columns outside UTC', () => {
       const profile = yield* provideTest(getFrenchProfile(movie))
       const read = [
         subtitle?.scannedAt,
+        subtitle?.fileMtime,
         transcoded?.scannedAt,
         missingRow?.firstSeenAt,
         missingRow?.actedAt,
         profile?.assignedAt,
         profile?.releasedAt,
       ]
-      expect(read.map((date) => date?.toISOString())).toEqual(Array.from({ length: 6 }, () => written.toISOString()))
+      expect(read.map((date) => date?.toISOString())).toEqual(Array.from({ length: 7 }, () => written.toISOString()))
 
       const stored = yield* Effect.promise(
         () => testSql<{ value: string }[]>`
           SELECT scanned_at::text AS value FROM subtitle_scans
+          UNION ALL SELECT file_mtime::text FROM subtitle_scans
           UNION ALL SELECT scanned_at::text FROM transcode_scans
           UNION ALL SELECT first_seen_at::text FROM missing_subtitles
           UNION ALL SELECT acted_at::text FROM missing_subtitles
@@ -82,7 +95,7 @@ describe('[VC-8] timestamp columns outside UTC', () => {
           UNION ALL SELECT released_at::text FROM french_profiles
         `
       )
-      expect(stored.map(({ value }) => value)).toEqual(Array.from({ length: 6 }, () => utcWallClock))
+      expect(stored.map(({ value }) => value)).toEqual(Array.from({ length: 7 }, () => utcWallClock))
     })
   )
 

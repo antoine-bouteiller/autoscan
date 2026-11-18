@@ -2,7 +2,8 @@ import { Effect, FileSystem, Path } from 'effect'
 
 import { Bazarr } from '@/core/runtime.service'
 import { DELETE_SUBTITLE_ACTION, SUBTITLE_SCAN_VERSION, VIDEO_EXTENSIONS } from '@/features/subtitle_scan/constants'
-import { deleteScans, listScans } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
+import { deleteScans, getScan, listScans } from '@/features/subtitle_scan/repositories/subtitle_scan.repository'
+import { isCounting, statFile } from '@/features/subtitle_scan/services/scan_registry.service'
 import { type InlineKeyboardButton } from '@/providers/telegram/types'
 
 // Telegram caps callback data at 64 bytes, so buttons carry a path digest instead of the path.
@@ -49,13 +50,20 @@ export const deleteInvalidSubtitle = (key: string) =>
       yield* deleteScans([filePath])
       return `${name} was already deleted.`
     }
+    const row = yield* getScan(filePath, SUBTITLE_SCAN_VERSION)
+    const stat = yield* statFile(filePath)
+    if (!isCounting(row, stat)) {
+      return 'This subtitle is no longer marked invalid.'
+    }
     const item = yield* findBazarrItem(filePath)
     const subtitle = item?.subtitles.find((candidate) => candidate.path === filePath)
     if (item === undefined || subtitle === undefined) {
       yield* Effect.logWarning(`Bazarr subtitle not found for invalid sidecar ${filePath}`)
       return `Bazarr does not track ${name}; it was not deleted.`
     }
-    yield* (yield* Bazarr).deleteSubtitle(item, subtitle)
+    const bazarr = yield* Bazarr
+    const source = (yield* bazarr.getSubtitleSources(item)).get(filePath)
+    yield* source?.kind === 'provider' ? bazarr.blacklistSubtitle(item, subtitle, source) : bazarr.deleteSubtitle(item, subtitle)
     yield* deleteScans([filePath])
     yield* Effect.logInfo(`Deleted invalid subtitle ${filePath}`)
     return `Deleted ${name}.`

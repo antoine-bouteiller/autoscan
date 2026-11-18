@@ -1,4 +1,6 @@
+/* oxlint-disable unicorn/no-null -- nullable subtitle identity columns are part of the registry contract. */
 import { BunServices } from '@effect/platform-bun'
+import { testSql } from '@tests/database'
 import { makeTestContext, provideTest } from '@tests/effect'
 import { describe, expect, it } from '@tests/it'
 import { MockPlexClient } from '@tests/mocks/plex.mock'
@@ -21,6 +23,7 @@ const ffmpeg: IFfmpegClient = {
   execute: () => Effect.succeed(''),
   executeFfmpeg: () => Effect.succeed(''),
   ffprobe: () => Effect.succeed({ duration: 100, streams: [] }),
+  sampleSpeech: () => Effect.succeed([]),
 }
 
 const makeCountingFfmpeg = () => {
@@ -182,6 +185,80 @@ class CountingBazarr extends MockBazarrClient {
 }
 
 describe('subtitle scan job', () => {
+  it.scoped('[VC-11.1] scheduled and manual passes share the default 60-media cap, failed samples count and later passes resume', () =>
+    Effect.gen(function* () {
+      const context = yield* makeTestContext()
+      const fs = Context.get(context, FileSystem.FileSystem)
+      const directory = yield* fs.makeTempDirectoryScoped()
+      const entries: PlexMedia[] = []
+      const files: string[] = []
+      const [template] = [plexMetadata[123]]
+      if (template === undefined) {
+        throw new Error('Missing Plex fixture')
+      }
+      const content = Array.from({ length: 20 }, (_entry, index) => {
+        const start = new Date(index * 5000).toISOString().slice(11, 23).replace('.', ',')
+        const end = new Date(index * 5000 + 2000).toISOString().slice(11, 23).replace('.', ',')
+        return `${index + 1}\n${start} --> ${end}\ntext`
+      }).join('\n\n')
+      for (let index = 0; index < 61; index++) {
+        const id = 82_000 + index
+        const file = `${directory}/Movie {tmdb-${id}}.mkv`
+        files.push(file)
+        yield* fs.writeFileString(file, '')
+        yield* fs.writeFileString(file.replace('.mkv', '.en.srt'), content)
+        yield* Effect.promise(
+          () => testSql`INSERT INTO transcode_scans (file_path, original_language, scan_version, scanned_at) VALUES (${file}, 'en', 0, NOW())`
+        )
+        entries.push({
+          ...template,
+          Media: template.Media.map((media) => ({
+            ...media,
+            Part: media.Part.map((part) => ({ ...part, file })),
+          })),
+          ratingKey: String(id),
+          title: `Movie ${id}`,
+        })
+      }
+      const plex = new MockPlexClient()
+      Object.defineProperties(plex, {
+        getPlexMetadata: { value: (id: number) => Effect.succeed(entries[id - 82_000]) },
+        getSectionMedia: { value: () => Effect.succeed([entries[0], ...entries]) },
+        getSections: { value: Effect.succeed([{ key: 1, title: 'Cap', type: 'movie' as const }]) },
+      })
+      const samples: string[] = []
+      let failFirst = true
+      const counted: IFfmpegClient = {
+        ...ffmpeg,
+        ffprobe: () => Effect.succeed({ duration: 100, streams: [{ codec_type: 'audio', index: 0, tags: { language: 'en' } }] }),
+        sampleSpeech: (file, stream, windows) =>
+          Effect.gen(function* () {
+            samples.push(file)
+            expect(stream).toBe(0)
+            expect(windows).toHaveLength(8)
+            expect(windows.every((window) => window.duration === 40)).toBeTrue()
+            if (file === files[0] && failFirst) {
+              return yield* Effect.die('failed sample')
+            }
+            return []
+          }),
+      }
+      const provided = Context.add(Context.add(Context.add(context, Plex, plex), Bazarr, new CandidateBazarr()), Ffmpeg, counted)
+      yield* runSubtitleScan.pipe(Effect.provide(provided))
+      expect(samples).toEqual(files.slice(0, 60))
+      expect(yield* getScan(files[0].replace('.mkv', '.en.srt'), SUBTITLE_SCAN_VERSION).pipe(Effect.provide(provided))).toBeUndefined()
+      expect(yield* getScan(files[60].replace('.mkv', '.en.srt'), SUBTITLE_SCAN_VERSION).pipe(Effect.provide(provided))).toBeUndefined()
+      failFirst = false
+      samples.length = 0
+      expect(yield* startSubtitleScan.pipe(Effect.provide(provided))).toBeTrue()
+      yield* Context.get(provided, BackgroundTasks).awaitEmpty
+      expect(samples).toEqual([files[0], files[60]])
+      expect(yield* getScan(files[60].replace('.mkv', '.en.srt'), SUBTITLE_SCAN_VERSION).pipe(Effect.provide(provided))).toMatchObject({
+        verdict: 'inconclusive',
+      })
+    })
+  )
+
   it.live('continues traversal past metadata failures', () =>
     Effect.gen(function* () {
       const plex = new MockPlexClient()
@@ -262,6 +339,9 @@ describe('subtitle scan job', () => {
           } else {
             const subtitle = file.replace(/\.mkv$/, '.en.srt')
             yield* fs.writeFileString(subtitle, `1\n00:00:00,000 --> 00:00:02,000\nsubtitle ${ratingKey}`)
+            yield* Effect.promise(
+              () => testSql`INSERT INTO transcode_scans (file_path, original_language, scan_version, scanned_at) VALUES (${file}, 'en', 0, NOW())`
+            )
             if (sidecar === 'cached') {
               const [snapshot] = yield* discoverSubtitleFiles(file).pipe(Effect.provide(context))
               if (snapshot === undefined) {
@@ -269,7 +349,10 @@ describe('subtitle scan job', () => {
               }
               const scannedAt = yield* DateTime.nowAsDate.pipe(Effect.provide(context))
               yield* recordScan({
+                evidence: null,
+                fileMtime: null,
                 filePath: snapshot.path,
+                fileSize: null,
                 scanVersion: SUBTITLE_SCAN_VERSION,
                 scannedAt,
                 verdict: 'passed',
@@ -308,7 +391,9 @@ describe('subtitle scan job', () => {
             probed.push(file)
           }).pipe(
             Effect.flatMap(() =>
-              file === failedFile && failAnalysis ? Effect.die('ffprobe unavailable') : Effect.succeed({ duration: 10, streams: [] })
+              file === failedFile && failAnalysis
+                ? Effect.die('ffprobe unavailable')
+                : Effect.succeed({ duration: 10, streams: [{ codec_type: 'audio', index: 0, tags: { language: 'en' as const } }] })
             )
           ),
       }
@@ -324,7 +409,7 @@ describe('subtitle scan job', () => {
       if (passed === undefined || failed === undefined) {
         throw new Error('Missing candidate sidecar')
       }
-      expect(yield* getScan(passed.path, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toMatchObject({ verdict: 'passed' })
+      expect(yield* getScan(passed.path, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toMatchObject({ verdict: 'inconclusive' })
       expect(yield* getScan(failed.path, SUBTITLE_SCAN_VERSION).pipe(Effect.provide(overridden))).toBeUndefined()
 
       probed.length = 0
@@ -543,12 +628,21 @@ describe('subtitle scan job', () => {
           title: entry.title,
         })
         if (index < 11 && index % 2 === 0) {
-          yield* recordScan({ filePath: subtitle, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: yield* DateTime.nowAsDate, verdict: 'passed' }).pipe(
-            Effect.provide(context)
-          )
+          yield* recordScan({
+            evidence: null,
+            fileMtime: null,
+            filePath: subtitle,
+            fileSize: null,
+            scanVersion: SUBTITLE_SCAN_VERSION,
+            scannedAt: yield* DateTime.nowAsDate,
+            verdict: 'passed',
+          }).pipe(Effect.provide(context))
         } else if (index < 11) {
           yield* recordScan({
+            evidence: null,
+            fileMtime: null,
             filePath: subtitle,
+            fileSize: null,
             scanVersion: SUBTITLE_SCAN_VERSION,
             scannedAt: yield* DateTime.nowAsDate,
             verdict: 'sync_requested',
@@ -619,7 +713,17 @@ describe('subtitle scan job', () => {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
       const filePath = `${directory}/Movie.en.srt`
-      yield* provideTest(recordScan({ filePath, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt: yield* DateTime.nowAsDate, verdict: 'invalid' }))
+      yield* provideTest(
+        recordScan({
+          evidence: null,
+          fileMtime: null,
+          filePath,
+          fileSize: null,
+          scanVersion: SUBTITLE_SCAN_VERSION,
+          scannedAt: yield* DateTime.nowAsDate,
+          verdict: 'invalid',
+        })
+      )
       yield* provideTest(runSubtitleScan, { plex: new FailingTopLevelPlexClient() })
       expect(yield* provideTest(getScan(filePath, SUBTITLE_SCAN_VERSION))).toBeUndefined()
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))

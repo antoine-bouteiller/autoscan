@@ -1,3 +1,4 @@
+/* oxlint-disable unicorn/no-null -- nullable subtitle identity columns are part of the registry contract. */
 import { beforeEach } from 'bun:test'
 
 import { BunServices } from '@effect/platform-bun'
@@ -25,7 +26,9 @@ describe('pruneMissingScans', () => {
       yield* fs.writeFileString(kept, '')
       const scannedAt = yield* DateTime.nowAsDate
       for (const filePath of [kept, deleted, unmounted]) {
-        yield* provideTest(recordScan({ filePath, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt, verdict: 'invalid' }))
+        yield* provideTest(
+          recordScan({ evidence: null, fileMtime: null, filePath, fileSize: null, scanVersion: SUBTITLE_SCAN_VERSION, scannedAt, verdict: 'invalid' })
+        )
       }
 
       yield* provideTest(pruneMissingScans)

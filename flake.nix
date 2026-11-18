@@ -30,6 +30,16 @@
         overlays = [bun-flake.overlays.default];
       };
 
+    # Production dependencies only, unpacked at their install paths from
+    # the tarballs listed by `scripts/nix_deps.ts`.
+    nodeModulesFor = pkgs:
+      pkgs.runCommand "autoscan-node-modules" {} (
+        pkgs.lib.concatMapStrings (dep: ''
+          mkdir -p "$out/${dep.path}"
+          tar -xzf ${pkgs.fetchurl {inherit (dep) url hash;}} -C "$out/${dep.path}" --strip-components=1
+        '') (builtins.fromJSON (builtins.readFile ./nix/deps.json))
+      );
+
     # JS tooling runs from node_modules so hooks use the versions pinned in
     # package.json and the repo's custom oxlint plugins.
     gitHooksFor = system:
@@ -59,7 +69,7 @@
             enable = true;
             name = "bun fmt";
             entry = "bun fmt";
-            excludes = ["\\.(nix|lock|sql|sh|py|tsv|txt|svg)$" "(^|/)\\.(envrc|gitignore|dockerignore)$"];
+            excludes = ["\\.(nix|lock|sql|sh|py|tsv|txt|svg|onnx|mka)$" "(^|/)(LICENSE|\\.(envrc|gitignore|dockerignore))$"];
           };
           nix-deps = {
             enable = true;
@@ -98,15 +108,7 @@
 
       packages = forAllSystems (system: let
         pkgs = pkgsFor system;
-
-        # Production dependencies only, unpacked at their install paths from
-        # the tarballs listed by `scripts/nix_deps.ts`.
-        nodeModules = pkgs.runCommand "autoscan-node-modules" {} (
-          pkgs.lib.concatMapStrings (dep: ''
-            mkdir -p "$out/${dep.path}"
-            tar -xzf ${pkgs.fetchurl {inherit (dep) url hash;}} -C "$out/${dep.path}" --strip-components=1
-          '') (builtins.fromJSON (builtins.readFile ./nix/deps.json))
-        );
+        nodeModules = nodeModulesFor pkgs;
 
         # `bun build --compile` bundles `src/index.ts` into a standalone
         # binary; only the migrations folder is still needed at
@@ -147,6 +149,31 @@
       in {
         default = autoscan;
         autoscan = autoscan;
+      });
+
+      # Runs speech sampling from a compiled binary inside the build sandbox,
+      # which has no network and no node_modules at run time.
+      checks = forAllSystems (system: let
+        pkgs = pkgsFor system;
+      in {
+        speech-offline = pkgs.stdenv.mkDerivation {
+          name = "autoscan-speech-offline";
+          src = pkgs.lib.cleanSource ./.;
+          nativeBuildInputs = [pkgs.bun pkgs.ffmpeg];
+          buildPhase = ''
+            ln -s ${nodeModulesFor pkgs}/node_modules node_modules
+            bun build --compile --minify tests/integrations/ffmpeg/compiled_smoke.ts --outfile "$TMPDIR/speech-smoke"
+            rm node_modules
+            mkdir "$TMPDIR/work"
+            cp tests/fixtures/speech/speech.mka "$TMPDIR/work/"
+            cd "$TMPDIR/work"
+            "$TMPDIR/speech-smoke" speech.mka > "$TMPDIR/result.json"
+          '';
+          installPhase = ''
+            cp "$TMPDIR/result.json" "$out"
+          '';
+          dontStrip = true;
+        };
       });
     }
     // {

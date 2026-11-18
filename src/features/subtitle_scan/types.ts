@@ -4,5 +4,5 @@ import { type getCompleteMediaDetails } from '@/domains/media/services/metadata.
 
 export type SubtitleScanMedia = Pick<
   Effect.Success<ReturnType<typeof getCompleteMediaDetails>>,
-  'file' | 'mediaTitle' | 'mediaType' | 'preferredLanguage'
+  'file' | 'mediaTitle' | 'mediaType' | 'originalLanguage' | 'preferredLanguage'
 >

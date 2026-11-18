@@ -1,0 +1,25 @@
+{
+  "generator": "macOS say, Samantha, 190 words/min; utterances trimmed at 1% of their peak amplitude",
+  "sampleRate": 16000,
+  "duration": 16,
+  "speech": [
+    [1, 2.9613125],
+    [7, 9.0245625]
+  ],
+  "windows": [
+    {
+      "start": 0,
+      "duration": 6
+    },
+    {
+      "start": 6,
+      "duration": 6
+    },
+    {
+      "start": 12,
+      "duration": 4
+    }
+  ],
+  "speechStream": 0,
+  "silentStream": 1
+}

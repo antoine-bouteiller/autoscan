@@ -1,5 +1,6 @@
 import { Effect, FileSystem, Path } from 'effect'
 
+import { type FileStat, sameStat, statFile } from '@/features/subtitle_scan/services/scan_registry.service'
 import { type ISOCode1 } from '@/shared/types/iso_codes'
 import { normalizeToIso1 } from '@/shared/utils/iso_codes'
 
@@ -11,6 +12,7 @@ export interface SubtitleFile {
 
 export interface SubtitleFileSnapshot extends SubtitleFile {
   readonly content: string
+  readonly stat: FileStat
 }
 
 export const discoverSubtitleFiles = (mediaFile: string) =>
@@ -46,6 +48,11 @@ export const discoverSubtitleFiles = (mediaFile: string) =>
 export const readSubtitleFile = (file: SubtitleFile) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
+    const before = yield* statFile(file.path)
     const bytes = yield* fs.readFile(file.path)
-    return { ...file, content: new TextDecoder().decode(bytes) }
+    const after = yield* statFile(file.path)
+    if (!sameStat(before, after)) {
+      return yield* Effect.die(`Subtitle changed during read: ${file.path}`)
+    }
+    return { ...file, content: new TextDecoder().decode(bytes), stat: after }
   })

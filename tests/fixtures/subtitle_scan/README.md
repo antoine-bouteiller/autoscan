@@ -10,10 +10,7 @@ To regenerate from copies of those six SRTs (in the indicated language order), r
 
 ```sh
 python3 tests/fixtures/subtitle_scan/extract_intervals.py hateful_eight 10084.928 "$HATEFUL_EN" "$HATEFUL_FR" western 10723.066 "$WESTERN_EN" "$WESTERN_FR" interstellar 10143.968 "$INTERSTELLAR_EN" "$INTERSTELLAR_FR" > tests/fixtures/subtitle_scan/real_intervals.txt
-bun test tests/features/subtitle_scan/services/subtitle_coverage_calibration.spec.ts
 ```
-
-The test is a **non-production policy experiment**. Passing its finite controls does not approve its thresholds or prove which subtitle matches the movie's audio. A data-derived endpoint lag check now rejects exact-copy global shifts, including −84 minutes. It still falsely invalidates a real English Interstellar track shifted −100 minutes against its French sibling; T-001 remains open until that translated-track counterexample abstains.
 
 # Audit corpus
 
