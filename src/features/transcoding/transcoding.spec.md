@@ -122,7 +122,7 @@ transcodeFile(file, originalLanguage):
 
 A file changing during analysis is not recorded and remains eligible on the next submission. Missing files, probe/selection errors, rejected or pending queue work, failed jobs, and interrupted checks never create passing records. Registry failures are logged and do not create a hit; a failed write leaves the file eligible for another check. Queue acceptance is not completion, and the source path is never marked passed merely because transcoding it succeeded. Installed outputs follow `[C-6]`.
 
-The registry is independent of `subtitleScans`: media passing transcode criteria neither marks sidecar subtitles passed nor suppresses their scan. Conversely, a passing subtitle never suppresses transcode analysis.
+The registry is independent of `subtitleScans`: media passing transcode criteria neither marks sidecar subtitles passed nor suppresses their scan. Conversely, a passing subtitle never suppresses transcode analysis. The subtitle scan reads `transcode_scans` as a precondition for sampling speech: it samples a media only when a row exists for its path and original language, at any transcode version (`src/features/subtitle_scan/subtitle_scan.spec.md` `[KD-12.1]`).
 
 ### Outcomes and acceptance
 
