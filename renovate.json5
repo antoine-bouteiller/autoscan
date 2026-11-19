@@ -2,16 +2,4 @@
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: ['github>antoine-bouteiller/renovate'],
   automergeStrategy: 'squash',
-  customManagers: [
-    {
-      customType: 'regex',
-      description: 'Bun pinned by the Nix overlay; CI refreshes its hashes',
-      managerFilePatterns: ['/^nix/bun\\.json$/'],
-      matchStrings: ['"version":\\s*"(?<currentValue>[^"]+)"'],
-      depNameTemplate: 'bun',
-      packageNameTemplate: 'oven-sh/bun',
-      datasourceTemplate: 'github-releases',
-      extractVersionTemplate: '^bun-v(?<version>.+)$',
-    },
-  ],
 }

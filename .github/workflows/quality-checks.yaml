@@ -34,7 +34,7 @@ jobs:
             const types = await Bun.file("node_modules/@types/bun/package.json").json();
             const versions = { runtime: Bun.version, "@types/bun": types.version, packageManager: pkg.packageManager.replace("bun@", "") };
             if (new Set(Object.values(versions)).size > 1) {
-              console.error("Bun versions differ (runtime comes from nix/bun.json):", versions);
+              console.error("Bun versions differ (runtime comes from the bun-flake input):", versions);
               process.exit(1);
             }
           '
@@ -100,10 +100,6 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
 
-      - name: Refresh Bun release hashes
-        shell: bash
-        run: scripts/update_bun_hashes.sh
-
       - name: Regenerate nix/deps.json from the lockfile
         run: bun install --frozen-lockfile
 
@@ -112,11 +108,11 @@ jobs:
 
       - name: Commit and push regenerated Nix files
         run: |
-          git diff --quiet flake.lock nix/deps.json nix/bun.json && exit 0
+          git diff --quiet flake.lock nix/deps.json && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add flake.lock nix/deps.json nix/bun.json
-          git commit --no-verify -m "chore: regenerate Nix deps, Bun hashes, and flake lock"
+          git add flake.lock nix/deps.json
+          git commit --no-verify -m "chore: regenerate Nix deps and flake lock"
           git push
           exit 1
 

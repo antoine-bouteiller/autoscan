@@ -7,41 +7,27 @@
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Pins the Bun used by the build, the dev shell, and CI.
+    # Keep `@types/bun` and `packageManager` in package.json on the same version.
+    bun-flake = {
+      url = "github:antoine-bouteiller/bun-flake/v1.4.4";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
     git-hooks,
+    bun-flake,
   }: let
     supportedSystems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
-    # Pins the Bun used by the build, the dev shell, and CI.
-    # Keep `@types/bun` and `packageManager` in package.json on the same version.
-    bunOverlay = final: prev: let
-      pin = builtins.fromJSON (builtins.readFile ./nix/bun.json);
-    in {
-      bun = prev.bun.overrideAttrs (old: {
-        inherit (pin) version;
-        __intentionallyOverridingVersion = true;
-        passthru =
-          old.passthru
-          // {
-            sources = builtins.mapAttrs (_: source:
-              final.fetchurl {
-                url = "https://github.com/oven-sh/bun/releases/download/bun-v${pin.version}/${source.asset}.zip";
-                inherit (source) hash;
-              })
-            pin.sources;
-          };
-      });
-    };
-
     pkgsFor = system:
       import nixpkgs {
         inherit system;
-        overlays = [bunOverlay];
+        overlays = [bun-flake.overlays.default];
       };
 
     # JS tooling runs from node_modules so hooks use the versions pinned in

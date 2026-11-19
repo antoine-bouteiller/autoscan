@@ -24,7 +24,7 @@ Media automation for Radarr, Sonarr, Plex, TMDB, and Bazarr, built with Bun and 
 
 ## Setup
 
-Requires Bun 1.4.3 (pinned in `nix/bun.json`), FFmpeg, PostgreSQL, and access to the services above. Create a PostgreSQL database and a `.env` file in the repository root:
+Requires Bun 1.4.4 (pinned by the `bun-flake` input in `flake.nix`), FFmpeg, PostgreSQL, and access to the services above. Create a PostgreSQL database and a `.env` file in the repository root:
 
 ```dotenv
 BAZARR_API_URL=http://localhost:6767

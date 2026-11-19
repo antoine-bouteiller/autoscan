@@ -1,5 +1,26 @@
 {
   "nodes": {
+    "bun-flake": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1795077139,
+        "narHash": "sha256-abI8GKyFxYJuwVs7kJfcX/W6cpX0Nbyq+l8K8jSi3pU=",
+        "owner": "antoine-bouteiller",
+        "repo": "bun-flake",
+        "rev": "063d05b3f8b54d88c9ff08e554543a6d426b654d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "antoine-bouteiller",
+        "ref": "v1.4.4",
+        "repo": "bun-flake",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -55,6 +76,7 @@
     },
     "root": {
       "inputs": {
+        "bun-flake": "bun-flake",
         "git-hooks": "git-hooks",
         "nixpkgs": "nixpkgs"
       }
