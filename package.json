@@ -21,12 +21,12 @@
     "onnxruntime-web": "1.31.1"
   },
   "devDependencies": {
-    "@effect/tsgo": "0.68.1",
-    "@oxlint/plugins": "1.93.0",
+    "@effect/tsgo": "0.73.2",
+    "@oxlint/plugins": "1.94.0",
     "@types/bun": "1.4.4",
     "knip": "6.46.1",
-    "oxlint": "1.93.0",
-    "oxlint-tsgolint": "7.0.2006"
+    "oxlint": "1.94.0",
+    "oxlint-tsgolint": "7.0.2007"
   },
   "overrides": {
     "@effect/platform-node-shared": "4.1.4"
