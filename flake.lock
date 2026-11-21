@@ -7,16 +7,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1795077139,
-        "narHash": "sha256-abI8GKyFxYJuwVs7kJfcX/W6cpX0Nbyq+l8K8jSi3pU=",
+        "lastModified": 1795186373,
+        "narHash": "sha256-+Vy6bjt5eL7jT/tFLSnAIMW10EDUxDk863u96Wuv/bw=",
         "owner": "antoine-bouteiller",
         "repo": "bun-flake",
-        "rev": "063d05b3f8b54d88c9ff08e554543a6d426b654d",
+        "rev": "a8d04160474b19b55344d1b2237a46c1cfcd6f45",
         "type": "github"
       },
       "original": {
         "owner": "antoine-bouteiller",
-        "ref": "v1.4.4",
+        "ref": "v1.4.5",
         "repo": "bun-flake",
         "type": "github"
       }
