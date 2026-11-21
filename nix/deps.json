@@ -1,13 +1,13 @@
 [
   {
-    "hash": "sha512-Vdq82GOrD5HVF43aXVwHeX+4uIOrgAnjju9MEyizzFZ3yt3A6x9prtmHej1q/zAOaeNddtkpPr2ExHEvZ13S6Q==",
+    "hash": "sha512-VzUugWhIKQSWp/xtFrYIrCISDcUXWrCFfxSkqg8ul0DZgo23WRqfz+38Y3mJ2NenUv5kUj14FnjLohm2t8ZGCw==",
     "path": "node_modules/@effect/platform-bun",
-    "url": "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.1.4.tgz"
+    "url": "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.1.5.tgz"
   },
   {
-    "hash": "sha512-DWdfphHGOFJNj/mYadgpT3jIm8aRXDcPrQiGXFBH4p2H4XmA7iYMrPsI8NxVgZ7kNX0q1+FGJZJama0tINHRAg==",
+    "hash": "sha512-JzlrYe4uKaBFTWihBRXo2pDjkUVB39kQpKdGfXdbp7Co5sKT8hbcjOmdB5pg/WOYESdGTddd3fxD4lwlZELbZQ==",
     "path": "node_modules/@effect/platform-node-shared",
-    "url": "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.1.4.tgz"
+    "url": "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.1.5.tgz"
   },
   {
     "hash": "sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==",
@@ -65,9 +65,9 @@
     "url": "https://registry.npmjs.org/@types/ws/-/ws-8.18.2.tgz"
   },
   {
-    "hash": "sha512-Tgrv/9FN+TZYyOn8XSli+fVqAfwDrDAkiX5Uu9vztINb675VTQdhD0gWI5Kzvhlh9QqzjZvw72iugqw5pwoghQ==",
+    "hash": "sha512-xyR20KhQI0vg2gD8ILUSQRTTESEYJ0JKdP+QD8J37xbwPTqXRxFM/l0+vUVD9fuSvoYruoTqyt33C4FZv1s4TQ==",
     "path": "node_modules/effect",
-    "url": "https://registry.npmjs.org/effect/-/effect-4.1.4.tgz"
+    "url": "https://registry.npmjs.org/effect/-/effect-4.1.5.tgz"
   },
   {
     "hash": "sha512-MI1qs7Lo4Syw0EOzUl0xjs2lsoeqFku44KpngfIduHBYvzm8h2+7K8YMQh1JtVVVrUvhLpNwqVi4DERegUJhPQ==",
@@ -110,8 +110,8 @@
     "url": "https://registry.npmjs.org/undici-types/-/undici-types-8.3.0.tgz"
   },
   {
-    "hash": "sha512-oyL6OPYme/CmiFvNuGzeoxCJ4nOrZE2O1FwM9MWM1AsGri6nLXB2pg+lNA8aLeXMSav0J6eIVS1j6vUPzUtK9g==",
+    "hash": "sha512-wCkmX8QMOrKjgO8HW2WyDbTSGeqkocxgDzS9iR79rEAexty6/2qzilx3Ag8Tqf9ykop3irLKle0MtVn5qjVnoQ==",
     "path": "node_modules/ws",
-    "url": "https://registry.npmjs.org/ws/-/ws-8.22.1.tgz"
+    "url": "https://registry.npmjs.org/ws/-/ws-8.23.0.tgz"
   }
 ]
