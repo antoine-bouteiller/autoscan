@@ -10,11 +10,9 @@
         "onnxruntime-web": "1.31.1",
       },
       "devDependencies": {
-        "@antoine-bouteiller/devkit": "0.4.0",
+        "@antoine-bouteiller/devkit": "0.5.0",
         "@effect/tsgo": "0.68.1",
         "@types/bun": "1.4.5",
-        "oxlint": "1.93.0",
-        "oxlint-tsgolint": "7.0.2006",
       },
     },
   },
@@ -22,7 +20,7 @@
     "@effect/platform-node-shared": "4.1.5",
   },
   "packages": {
-    "@antoine-bouteiller/devkit": ["@antoine-bouteiller/devkit@0.4.0", "", { "dependencies": { "knip": "6.48.0" }, "peerDependencies": { "oxlint": ">=1.89.0" }, "optionalPeers": ["oxlint"], "bin": { "devkit": "./dist/cli.js" } }, "sha512-fEMwsPGn2GSFwPkL3JVP6uxAi0LnA8h6q7k2/poHsN8I64ruIZEM35zhkLagbBlNg51uCYiRcURl8MKXRu0xoA=="],
+    "@antoine-bouteiller/devkit": ["@antoine-bouteiller/devkit@0.5.0", "", { "dependencies": { "knip": "6.48.0", "oxlint": "1.93.0", "oxlint-tsgolint": "7.0.2006" }, "bin": { "devkit": "./dist/cli.js" } }, "sha512-GmAQg02IbhvjiNlk5Hj81jMZRXiX0fxXpF2H4KMu+ORwo/CKevQkO/xysxdE7sLSzzOfY7o/eId9WH+HlHGMsQ=="],
 
     "@effect/platform-bun": ["@effect/platform-bun@4.1.5", "", { "dependencies": { "@effect/platform-node-shared": "4.1.5" }, "peerDependencies": { "effect": "^4.1.5" } }, "sha512-VzUugWhIKQSWp/xtFrYIrCISDcUXWrCFfxSkqg8ul0DZgo23WRqfz+38Y3mJ2NenUv5kUj14FnjLohm2t8ZGCw=="],
 

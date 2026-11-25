@@ -1,7 +1,0 @@
-{
-  "$schema": "https://unpkg.com/knip@5/schema.json",
-  "tags": ["-lintignore"],
-  "ignoreBinaries": ["fmt"],
-  "entry": ["tests/**/*.spec.ts", "tests/fixtures/speech/generate.ts"],
-  "project": ["src/**/*.ts!", "tests/**/*.ts"]
-}

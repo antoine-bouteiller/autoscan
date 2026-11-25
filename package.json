@@ -20,11 +20,9 @@
     "onnxruntime-web": "1.31.1"
   },
   "devDependencies": {
-    "@antoine-bouteiller/devkit": "0.4.0",
+    "@antoine-bouteiller/devkit": "0.5.0",
     "@effect/tsgo": "0.68.1",
-    "@types/bun": "1.4.5",
-    "oxlint": "1.93.0",
-    "oxlint-tsgolint": "7.0.2006"
+    "@types/bun": "1.4.5"
   },
   "overrides": {
     "@effect/platform-node-shared": "4.1.5"
