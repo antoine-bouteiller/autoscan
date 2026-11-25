@@ -5,7 +5,7 @@ import { DatabaseQueryError } from '@/config/db'
 import { Database } from '@/core/runtime.service'
 import { type Media } from '@/database/schema'
 import { type MediaType } from '@/integrations/plex/plex.service'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 const query = <Result>(run: () => SQL.Query<Result>): Effect.Effect<Result, DatabaseQueryError> =>
   Effect.tryPromise({ catch: (cause) => DatabaseQueryError.make({ cause }), try: run })
@@ -14,7 +14,7 @@ const query = <Result>(run: () => SQL.Query<Result>): Effect.Effect<Result, Data
 export const countMediaByType = (type: MediaType) =>
   Database.use(({ sql }) => query(() => sql<{ count: number }[]>`SELECT count(*)::int AS count FROM media WHERE type = ${type}`))
 
-export const createdOrUpdatedMedia = (params: { tmdbId: number; type: MediaType; title: string; originalLanguage: ISOCode1 }) =>
+export const createdOrUpdatedMedia = (params: { tmdbId: number; type: MediaType; title: string; originalLanguage: TwoLetterLanguageCode }) =>
   Database.use(({ sql }) =>
     query(
       () => sql`

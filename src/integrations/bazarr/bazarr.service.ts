@@ -19,13 +19,13 @@ import {
 } from '@/integrations/bazarr/bazarr.validator'
 import { ValidationError } from '@/shared/errors/validation'
 import { type HttpClientError } from '@/shared/types/http_client'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 import { httpClient } from '@/shared/utils/http_client'
 import { formatSchemaIssueMessage } from '@/shared/utils/schema'
 
 export type BazarrItemRef = { kind: 'movie'; id: number } | { kind: 'episode'; id: number; seriesId: number }
 export interface BazarrSubtitleRef {
-  language: ISOCode1
+  language: TwoLetterLanguageCode
   forced: boolean
   hi: boolean
   path: string
@@ -39,7 +39,7 @@ export type BazarrItem = BazarrItemRef & {
   title: string
   path: string
   subtitles: BazarrSubtitleRef[]
-  missingSubtitles: { language: ISOCode1; forced: boolean }[]
+  missingSubtitles: { language: TwoLetterLanguageCode; forced: boolean }[]
 }
 export interface IBazarrClient {
   readonly getWantedMovies: Effect.Effect<BazarrItem[], HttpClientError>
@@ -56,7 +56,7 @@ export interface IBazarrClient {
     subtitle: BazarrSubtitleRef,
     source: Extract<SubtitleSource, { kind: 'provider' }>
   ) => Effect.Effect<void, HttpClientError>
-  readonly translateSubtitle: (item: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1) => Effect.Effect<void, HttpClientError>
+  readonly translateSubtitle: (item: BazarrItemRef, source: BazarrSubtitleRef, target: TwoLetterLanguageCode) => Effect.Effect<void, HttpClientError>
 }
 
 interface BazarrClientConfig {
@@ -267,7 +267,7 @@ export class BazarrClient implements IBazarrClient {
       : this.client.post('episodes/blacklist', { params: { ...fields, episodeid: item.id, seriesid: item.seriesId } })
   }
 
-  translateSubtitle(item: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1) {
+  translateSubtitle(item: BazarrItemRef, source: BazarrSubtitleRef, target: TwoLetterLanguageCode) {
     return this.client.patch('subtitles', {
       params: { action: 'translate', forced: 'false', hi: String(source.hi), id: item.id, language: target, path: source.path, type: item.kind },
     })

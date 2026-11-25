@@ -186,7 +186,7 @@ class CountingBazarr extends MockBazarrClient {
 }
 
 describe('subtitle scan job', () => {
-  it.scoped('[VC-11.1] scheduled and manual passes share the default 60-media cap, failed samples count and later passes resume', () =>
+  it.scoped('scheduled and manual passes share the default 60-media cap, failed samples count and later passes resume', () =>
     Effect.gen(function* () {
       const context = yield* makeTestContext()
       const fs = Context.get(context, FileSystem.FileSystem)

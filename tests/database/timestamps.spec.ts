@@ -31,7 +31,7 @@ const clean = async () => {
   await testSql`DELETE FROM transcode_scans`
 }
 
-describe('[VC-8] timestamp columns outside UTC', () => {
+describe('timestamp columns outside UTC', () => {
   beforeEach(async () => {
     process.env.TZ = 'America/New_York'
     await clean()

@@ -100,7 +100,7 @@ Only an exact version and original-language match can skip analysis. A successfu
 ```ts
 export const transcodeScans = pgTable('transcode_scans', {
   filePath: text('file_path').primaryKey(),
-  originalLanguage: text('original_language', { enum: ISO1 }).notNull(),
+  originalLanguage: text('original_language', { enum: TWO_LETTER_LANGUAGE_CODES }).notNull(),
   scanVersion: integer('scan_version').notNull(),
   scannedAt: timestamp('scanned_at').notNull(),
 })

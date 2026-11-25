@@ -16,7 +16,7 @@ import { type BazarrItem, type BazarrItemRef, type BazarrSubtitleRef, type IBaza
 import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { NetworkError } from '@/shared/errors/network'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 const DAY = 86_400_000
 type Movie = Extract<BazarrItem, { kind: 'movie' }>
@@ -61,7 +61,11 @@ class WantedBazarr extends MockBazarrClient {
     return Effect.succeed(this.episodes)
   }
 
-  override translateSubtitle(itemRef: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1): ReturnType<MockBazarrClient['translateSubtitle']> {
+  override translateSubtitle(
+    itemRef: BazarrItemRef,
+    source: BazarrSubtitleRef,
+    target: TwoLetterLanguageCode
+  ): ReturnType<MockBazarrClient['translateSubtitle']> {
     return this.translate(itemRef, source, target)
   }
 }
@@ -361,7 +365,7 @@ describe('applyMissingPolicy', () => {
 
   describe('translation source', () => {
     for (const [reason, make] of unqualified) {
-      it.effect(`[VC-21] leaves a due French row unacted without translating or sampling speech when the English sidecar has ${reason}`, () =>
+      it.effect(`leaves a due French row unacted without translating or sampling speech when the English sidecar has ${reason}`, () =>
         Effect.gen(function* () {
           const english = yield* make('movie')
           const test = yield* service([frenchRow([english])])
@@ -376,7 +380,7 @@ describe('applyMissingPolicy', () => {
       )
     }
 
-    it.effect('[VC-21] translates a waiting French row on a later pass, from the smallest qualifying English path', () =>
+    it.effect('translates a waiting French row on a later pass, from the smallest qualifying English path', () =>
       Effect.gen(function* () {
         const waiting = yield* englishSidecar('movie', { evidence: 'reference' })
         const test = yield* service([frenchRow([waiting])])
@@ -395,7 +399,7 @@ describe('applyMissingPolicy', () => {
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
     )
 
-    it.effect('[VC-21] translates a due English row from the French sidecar without a registry requirement', () =>
+    it.effect('translates a due English row from the French sidecar without a registry requirement', () =>
       Effect.gen(function* () {
         const test = yield* service([item({ subtitles: [french] })])
         yield* run(test.bazarr, test.telegram)
@@ -405,7 +409,7 @@ describe('applyMissingPolicy', () => {
       })
     )
 
-    it.effect('[VC-21] keeps the cap of three translations per pass when waiting rows are skipped', () =>
+    it.effect('keeps the cap of three translations per pass when waiting rows are skipped', () =>
       Effect.gen(function* () {
         const english = yield* englishSidecar('movie')
         const waiting = yield* englishSidecar('waiting', { evidence: 'reference' })

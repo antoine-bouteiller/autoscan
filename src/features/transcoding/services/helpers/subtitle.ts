@@ -2,7 +2,7 @@ import { Effect, FileSystem, Result } from 'effect'
 
 import { nativeLogger } from '@/config/logger'
 import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 import { isForcedSubtitleContent } from '@/shared/utils/subtitle'
 
 import { type Criteria, isStreamWanted } from './utils.js'
@@ -61,9 +61,9 @@ const forcedFrenchCriterias: Criteria[][] = [
 const findMatchingStreams = (
   subtitleStreams: FFprobeStream[],
   criteriaGroups: Criteria[][],
-  fallbackLanguage: ISOCode1
-): { index: number; language: ISOCode1 }[] => {
-  const results: { index: number; language: ISOCode1 }[] = []
+  fallbackLanguage: TwoLetterLanguageCode
+): { index: number; language: TwoLetterLanguageCode }[] => {
+  const results: { index: number; language: TwoLetterLanguageCode }[] = []
 
   for (const criteria of criteriaGroups) {
     for (const condition of criteria) {
@@ -79,7 +79,7 @@ const findMatchingStreams = (
   return results
 }
 
-export const processSubtitleStreams = (subtitleStreams: FFprobeStream[], originalLanguage: ISOCode1, mediaTitle: string) => {
+export const processSubtitleStreams = (subtitleStreams: FFprobeStream[], originalLanguage: TwoLetterLanguageCode, mediaTitle: string) => {
   if (subtitleStreams.length === 0) {
     return []
   }

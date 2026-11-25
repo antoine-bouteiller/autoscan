@@ -19,7 +19,7 @@ import { type BazarrItem, type BazarrItemRef, type BazarrSubtitleRef } from '@/i
 import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
 import { type PlexMedia } from '@/integrations/plex/plex.validator'
 import { type TelegramMessageIn } from '@/integrations/telegram/telegram.validator'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 const DAY = 86_400_000
 const cleanSubtitleScanRows = () =>
@@ -86,7 +86,7 @@ class AcceptanceBazarr extends MockBazarrClient {
     })
   }
 
-  override translateSubtitle(_item: BazarrItemRef, _source: BazarrSubtitleRef, target: ISOCode1) {
+  override translateSubtitle(_item: BazarrItemRef, _source: BazarrSubtitleRef, target: TwoLetterLanguageCode) {
     return Effect.sync(() => {
       this.translations.push(target)
     })

@@ -1,7 +1,7 @@
 import { inversedEntriesOf } from '@/shared/utils/object'
 
 // ISO 639-1 (2-character codes)
-export const ISO1 = [
+export const TWO_LETTER_LANGUAGE_CODES = [
   'aa',
   'ab',
   'ae',
@@ -427,11 +427,11 @@ const iso2BToIso2T = {
 
 export const iso2TToIso2B = inversedEntriesOf(iso2BToIso2T)
 
-export type ISOCode1 = (typeof ISO1)[number]
+export type TwoLetterLanguageCode = (typeof TWO_LETTER_LANGUAGE_CODES)[number]
 export type ISOCode2T = (typeof ISO2T)[number]
 export type ISOCode2B = (typeof ISO2B)[number] | Exclude<ISOCode2T, (typeof iso2BToIso2T)[keyof typeof iso2BToIso2T]>
 
-type ISOCode2 = ISOCode2B | ISOCode2T
+type ThreeLetterLanguageCode = ISOCode2B | ISOCode2T
 
 // ISO 639-1 to ISO 639-2/T mapping
 export const iso1ToIso2T = {
@@ -619,10 +619,10 @@ export const iso1ToIso2T = {
   za: 'zha',
   zh: 'zho',
   zu: 'zul',
-} satisfies Record<ISOCode1, ISOCode2T>
+} satisfies Record<TwoLetterLanguageCode, ISOCode2T>
 
 // ISO 639-2 to ISO 639-1 reverse mapping (includes both T and B codes)
-export const iso2ToIso1 = {
+export const threeLetterToTwoLetterCode = {
   aar: 'aa',
   abk: 'ab',
   afr: 'af',
@@ -827,4 +827,4 @@ export const iso2ToIso1 = {
   zha: 'za',
   zho: 'zh',
   zul: 'zu',
-} satisfies Record<ISOCode2, ISOCode1>
+} satisfies Record<ThreeLetterLanguageCode, TwoLetterLanguageCode>

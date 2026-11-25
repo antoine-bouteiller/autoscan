@@ -1,15 +1,15 @@
 import { Schema } from 'effect'
 
-import { ISO1 } from '@/shared/types/iso_codes'
+import { TWO_LETTER_LANGUAGE_CODES } from '@/shared/types/iso_codes'
 
 export const tmdbMovieResponse = Schema.Struct({
-  original_language: Schema.Literals(ISO1),
+  original_language: Schema.Literals(TWO_LETTER_LANGUAGE_CODES),
   title: Schema.String,
 })
 
 export const tmdbTvResponse = Schema.Struct({
   name: Schema.String,
-  original_language: Schema.Literals(ISO1),
+  original_language: Schema.Literals(TWO_LETTER_LANGUAGE_CODES),
 })
 
 export type TmdbMovie = typeof tmdbMovieResponse.Type

@@ -1,4 +1,4 @@
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 export interface TranscodeJob {
   command: string[]
@@ -6,6 +6,6 @@ export interface TranscodeJob {
   file: string
   mediaTitle: string
   mediaType: 'movie' | 'show'
-  originalLanguage: ISOCode1
-  subtitlesToExtract: { index: number; language: ISOCode1 }[]
+  originalLanguage: TwoLetterLanguageCode
+  subtitlesToExtract: { index: number; language: TwoLetterLanguageCode }[]
 }

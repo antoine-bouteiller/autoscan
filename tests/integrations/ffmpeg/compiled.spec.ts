@@ -13,7 +13,7 @@ const sandbox = `(version 1)(allow default)(deny network*)(deny file-read* (subp
 // Linux CI cannot create a network namespace unprivileged; `nix build .#checks.<system>.speech-offline` covers Linux.
 describe.skipIf(process.platform !== 'darwin')('compiled speech sampling', () => {
   it.live(
-    '[VC-17] samples offline without node_modules, with deterministic intervals and isolated window state',
+    'samples offline without node_modules, with deterministic intervals and isolated window state',
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem

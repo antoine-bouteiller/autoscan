@@ -1,27 +1,27 @@
 import { describe, expect, test } from 'bun:test'
 
-import { iso1ToIso2B, normalizeToIso1 } from '@/shared/utils/iso_codes'
+import { iso1ToIso2B, normalizeToTwoLetterCode } from '@/shared/utils/iso_codes'
 
 describe('ISO codes', () => {
-  describe('normalizeToIso1', () => {
+  describe('normalizeToTwoLetterCode', () => {
     test('should convert fre (bibliographic) to fr (ISO 639-1)', () => {
-      expect(normalizeToIso1('fre')).toBe('fr')
+      expect(normalizeToTwoLetterCode('fre')).toBe('fr')
     })
 
     test('should convert fra (terminologic) to fr (ISO 639-1)', () => {
-      expect(normalizeToIso1('fra')).toBe('fr')
+      expect(normalizeToTwoLetterCode('fra')).toBe('fr')
     })
 
     test('should convert 3-character codes to 2-character codes', () => {
-      expect(normalizeToIso1('eng')).toBe('en')
-      expect(normalizeToIso1('spa')).toBe('es')
-      expect(normalizeToIso1('deu')).toBe('de')
+      expect(normalizeToTwoLetterCode('eng')).toBe('en')
+      expect(normalizeToTwoLetterCode('spa')).toBe('es')
+      expect(normalizeToTwoLetterCode('deu')).toBe('de')
     })
 
     test('should handle 2-character codes directly', () => {
-      expect(normalizeToIso1('en')).toBe('en')
-      expect(normalizeToIso1('fr')).toBe('fr')
-      expect(normalizeToIso1('es')).toBe('es')
+      expect(normalizeToTwoLetterCode('en')).toBe('en')
+      expect(normalizeToTwoLetterCode('fr')).toBe('fr')
+      expect(normalizeToTwoLetterCode('es')).toBe('es')
     })
   })
 

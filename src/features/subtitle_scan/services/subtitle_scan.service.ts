@@ -1,4 +1,4 @@
-/* oxlint-disable unicorn/no-null, autoscan/no-shape-in-symbol-names -- registry evidence and assessment field names follow their contracts. */
+/* oxlint-disable unicorn/no-null -- registry evidence and assessment field names follow their contracts. */
 import { Cause, DateTime, Effect } from 'effect'
 
 import { Env } from '@/config/env'

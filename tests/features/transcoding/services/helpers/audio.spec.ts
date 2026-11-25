@@ -5,12 +5,12 @@ import { Effect, FileSystem, Path } from 'effect'
 
 import { processAudioStreams } from '@/features/transcoding/services/helpers/audio'
 import { FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 interface TestCase {
   expectedCommand: string[]
   file: string
-  language: ISOCode1
+  language: TwoLetterLanguageCode
   title: string
 }
 

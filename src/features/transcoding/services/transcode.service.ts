@@ -6,7 +6,7 @@ import { TRANSCODE_SCAN_VERSION } from '@/features/transcoding/constants'
 import { FileNameInvalidError, FileNotFoundError, NoStreamsKeptError, ReplacementRollbackError } from '@/features/transcoding/errors'
 import { getScan, recordScan } from '@/features/transcoding/repositories/transcode_scan.repository'
 import { type TranscodeJob } from '@/features/transcoding/types'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 import { processAudioStreams } from './helpers/audio.js'
 import { handlePostTranscode } from './helpers/post_process.js'
@@ -159,7 +159,7 @@ const logFailure = <Success, Error, Requirements>(effect: Effect.Effect<Success,
 const sameFile = (before: FileSystem.File.Info, after: FileSystem.File.Info) =>
   before.size === after.size && before.dev === after.dev && Equal.equals(before.ino, after.ino) && Equal.equals(before.mtime, after.mtime)
 
-const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage: ISOCode1) =>
+const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage: TwoLetterLanguageCode) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const key = { filePath: file, originalLanguage, scanVersion: TRANSCODE_SCAN_VERSION }
@@ -211,7 +211,7 @@ const getTranscodeCommand = (file: string, mediaTitle: string, originalLanguage:
     return undefined
   })
 
-export const transcodeFile = (params: { file: string; mediaTitle: string; originalLanguage: ISOCode1; mediaType: 'movie' | 'show' }) =>
+export const transcodeFile = (params: { file: string; mediaTitle: string; originalLanguage: TwoLetterLanguageCode; mediaType: 'movie' | 'show' }) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     if (!(yield* fs.exists(params.file))) {

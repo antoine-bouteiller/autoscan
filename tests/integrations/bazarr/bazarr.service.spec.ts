@@ -258,7 +258,7 @@ describe('BazarrClient', () => {
         return stub.calls[0]
       })
 
-    it.effect('[VC-18] sends shift_offset for a constant offset', () =>
+    it.effect('sends shift_offset for a constant offset', () =>
       Effect.gen(function* () {
         const call = yield* modify({ id: 5, kind: 'movie' }, { offset: 5, ratio: 1 })
         expect(call?.request.method).toBe('PATCH')
@@ -275,7 +275,7 @@ describe('BazarrClient', () => {
       })
     )
 
-    it.effect('[VC-18] sends two_point_fit for a ratio and uses the episode type', () =>
+    it.effect('sends two_point_fit for a ratio and uses the episode type', () =>
       Effect.gen(function* () {
         const call = yield* modify({ id: 9, kind: 'episode', seriesId: 3 }, { offset: -52, ratio: 1.0425 })
         expect(call?.url.searchParams.get('action')).toBe('two_point_fit(rh=0,rm=0,rs=0,rms=0,from=1,to=1.0425,oh=0,om=0,os=0,oms=49880)')

@@ -166,7 +166,7 @@ describe('invalid subtitles command', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('[VC-16.1] blacklists a provider subtitle instead of deleting it and forgets its verdict', () =>
+  it.live('blacklists a provider subtitle instead of deleting it and forgets its verdict', () =>
     Effect.gen(function* () {
       const { bazarr, french } = yield* library
       yield* recordStatted(french)
@@ -186,7 +186,7 @@ describe('invalid subtitles command', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('[VC-16.1] deletes a translated subtitle or one without history through Bazarr', () =>
+  it.live('deletes a translated subtitle or one without history through Bazarr', () =>
     Effect.gen(function* () {
       const { bazarr, english, french } = yield* library
       yield* recordStatted(english)
@@ -201,7 +201,7 @@ describe('invalid subtitles command', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('[VC-16.1] keeps the row and fails when the blacklist call fails', () =>
+  it.live('keeps the row and fails when the blacklist call fails', () =>
     Effect.gen(function* () {
       const { bazarr, french } = yield* library
       yield* recordStatted(french)
@@ -213,7 +213,7 @@ describe('invalid subtitles command', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('[VC-16.1] keeps the row and fails when the history lookup fails', () =>
+  it.live('keeps the row and fails when the history lookup fails', () =>
     Effect.gen(function* () {
       const { bazarr, french } = yield* library
       yield* recordStatted(french)
@@ -225,7 +225,7 @@ describe('invalid subtitles command', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )
 
-  it.live('[VC-16.1] leaves a row alone when the file changed since it was assessed', () =>
+  it.live('leaves a row alone when the file changed since it was assessed', () =>
     Effect.gen(function* () {
       const { bazarr, french } = yield* library
       const fs = yield* FileSystem.FileSystem
@@ -243,7 +243,7 @@ describe('invalid subtitles command', () => {
   )
 
   for (const history of ['provider', 'no provider'] as const) {
-    it.live(`[VC-16.1] leaves a replacement alone when it lands during the ${history} history lookup`, () =>
+    it.live(`leaves a replacement alone when it lands during the ${history} history lookup`, () =>
       Effect.gen(function* () {
         const { bazarr, french } = yield* library
         yield* recordStatted(french)

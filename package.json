@@ -6,10 +6,9 @@
   "scripts": {
     "lint": "oxlint --fix --fix-suggestions --max-warnings=0",
     "dev": "bun --watch src/index.ts",
-    "knip": "knip",
-    "knip:production": "knip --production",
-    "test": "bun test ./tests && bun run test:rules",
-    "test:rules": "node --test 'oxlint/rules/*.test.ts'",
+    "knip": "devkit knip",
+    "knip:production": "devkit knip --production",
+    "test": "bun test ./tests",
     "test:coverage": "bun test ./tests --coverage --reporter=junit --reporter-outfile=./junit.xml",
     "test:watch": "bun test ./tests --watch",
     "prepare": "effect-tsgo patch --no-typescript --oxlint",
@@ -21,10 +20,9 @@
     "onnxruntime-web": "1.31.1"
   },
   "devDependencies": {
+    "@antoine-bouteiller/devkit": "0.4.0",
     "@effect/tsgo": "0.68.1",
-    "@oxlint/plugins": "1.93.0",
     "@types/bun": "1.4.5",
-    "knip": "6.47.0",
     "oxlint": "1.93.0",
     "oxlint-tsgolint": "7.0.2006"
   },

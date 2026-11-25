@@ -1,4 +1,4 @@
-/* oxlint-disable unicorn/no-null, autoscan/no-shape-in-symbol-names -- registry columns are nullable and profile results expose a shape. */
+/* oxlint-disable unicorn/no-null -- registry columns are nullable and profile results expose a shape. */
 import { beforeEach } from 'bun:test'
 
 import { BunServices } from '@effect/platform-bun'
@@ -23,7 +23,7 @@ import {
   type SubtitleSource,
 } from '@/integrations/bazarr/bazarr.service'
 import { type IFfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
-import { normalizeToIso1 } from '@/shared/utils/iso_codes'
+import { normalizeToTwoLetterCode } from '@/shared/utils/iso_codes'
 
 const timestamp = (seconds: number) => new Date(Math.max(0, Math.round(seconds * 1000))).toISOString().slice(11, 23).replace('.', ',')
 const srt = (cues: readonly Cue[]) =>
@@ -87,7 +87,7 @@ const setup = (media: CorpusMedia, tracks: Record<string, readonly Cue[]>) =>
       const path = `${directory}/Movie.${language}.srt`
       paths[language] = path
       yield* fs.writeFileString(path, srt(cues))
-      const normalized = normalizeToIso1(language)
+      const normalized = normalizeToTwoLetterCode(language)
       if (normalized === undefined) {
         throw new Error(`Unrecognised test language ${language}`)
       }
@@ -169,7 +169,7 @@ describe('scanMediaSubtitles', () => {
     await testSql`DELETE FROM transcode_scans`
   })
 
-  testCase('[VC-10.1] speech-aligned English passes independently of a piecewise French sibling', () =>
+  testCase('speech-aligned English passes independently of a piecewise French sibling', () =>
     Effect.gen(function* () {
       const media = mediaOf('m10')
       const fixture = yield* setup(media, { en: trackOf(media, 'en').cues, fr: quarters(trackOf(media, 'fr').cues, media.duration) })
@@ -181,8 +181,8 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const [id, other] of [
-    ['[VC-10.1] other-cut', 'other-cut'],
-    ['[VC-10.1] other-episode', 'm43'],
+    ['other-cut', 'other-cut'],
+    ['other-episode', 'm43'],
   ]) {
     testCase(`${id} French cannot condemn aligned English`, () =>
       Effect.gen(function* () {
@@ -200,7 +200,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-10.1] Room Next Door resegmented French passes against verified English', () =>
+  testCase('Room Next Door resegmented French passes against verified English', () =>
     Effect.gen(function* () {
       const media = mediaOf('m13')
       const fixture = yield* setup(media, { en: trackOf(media, 'en').cues, fr: trackOf(media, 'fr').cues })
@@ -217,7 +217,7 @@ describe('scanMediaSubtitles', () => {
     ['fr', 1, 5],
     ['fr', 25 / 23.976, 0],
   ] as const) {
-    testCase(`[VC-18] repairs ${language} ratio ${ratio} offset ${offset} once and verifies the rewritten identity`, () =>
+    testCase(`repairs ${language} ratio ${ratio} offset ${offset} once and verifies the rewritten identity`, () =>
       Effect.gen(function* () {
         const effectContext = yield* Effect.context()
 
@@ -258,7 +258,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-18] still misaligned after repair is invalid with delete button, never a second repair or blacklist', () =>
+  testCase('still misaligned after repair is invalid with delete button, never a second repair or blacklist', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const fixture = yield* setup(media, { en: transform(trackOf(media, 'en').cues, 1, 5) })
@@ -278,7 +278,7 @@ describe('scanMediaSubtitles', () => {
     ['fr', 'coverage'],
     ['fr', 'unrelated'],
   ] as const) {
-    testCase(`[VC-8.1][VC-20] ${language} ${classification} is invalid without repair and provider-blacklisted`, () =>
+    testCase(`${language} ${classification} is invalid without repair and provider-blacklisted`, () =>
       Effect.gen(function* () {
         const media = classification === 'unrelated' ? mediaOf('m24') : synthetic()
         const { cues } = trackOf(media, 'en')
@@ -303,7 +303,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-8.1] coverage runs after repairing a complete French track 100 seconds late', () =>
+  testCase('coverage runs after repairing a complete French track 100 seconds late', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const cues = trackOf(media, 'en').cues.filter((cue) => cue.end < 980)
@@ -316,7 +316,7 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-12.1] fewer than four informative windows is terminal inconclusive without alerts or repair', () =>
+  testCase('fewer than four informative windows is terminal inconclusive without alerts or repair', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const fixture = yield* setup({ ...media, windows: media.windows.slice(0, 3) }, { en: trackOf(media, 'en').cues })
@@ -329,7 +329,7 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-19] lone and version-2 passed English candidates are speech assessed; DH S01E04 m16 is not passed', () =>
+  testCase('lone and version-2 passed English candidates are speech assessed; DH S01E04 m16 is not passed', () =>
     Effect.gen(function* () {
       const media = mediaOf('m16')
       const fixture = yield* setup(media, { en: trackOf(media, 'en').cues })
@@ -352,7 +352,7 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const identity of ['size', 'mtime'] as const) {
-    testCase(`[VC-6.1] stale ${identity} rechecks but a matching row skips without read, probe or Bazarr`, () =>
+    testCase(`stale ${identity} rechecks but a matching row skips without read, probe or Bazarr`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const fixture = yield* setup(media, { en: trackOf(media, 'en').cues })
@@ -377,7 +377,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-6.1] changed stat around read drops only that track with no row', () =>
+  testCase('changed stat around read drops only that track with no row', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -395,7 +395,7 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-6.1] changed file before PATCH gets no repair, row or alert', () =>
+  testCase('changed file before PATCH gets no repair, row or alert', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const fixture = yield* setup(media, { en: transform(trackOf(media, 'en').cues, 1, 5) })
@@ -417,7 +417,7 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const source of ['provider', 'translation', 'missing source', 'lookup failure'] as const) {
-    testCase(`[VC-6.1] file changed during the ${source} history lookup gets no blacklist, row or alert`, () =>
+    testCase(`file changed during the ${source} history lookup gets no blacklist, row or alert`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const { cues } = trackOf(media, 'en')
@@ -437,7 +437,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-6.1] blacklist stores assessed stat before a replacement arrives, which is eligible next pass', () =>
+  testCase('blacklist stores assessed stat before a replacement arrives, which is eligible next pass', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -453,7 +453,7 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-11.1] two English sidecars share one 8x40s sample and French-only later candidate does not sample', () =>
+  testCase('two English sidecars share one 8x40s sample and French-only later candidate does not sample', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -473,7 +473,7 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-11.1] failed sample counts and cannot retry in the same pass; media failure leaves all candidates without rows', () =>
+  testCase('failed sample counts and cannot retry in the same pass; media failure leaves all candidates without rows', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -497,7 +497,7 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const fallback of ['translation', 'missing source', 'missing subtitle', 'lookup failure', 'blacklist failure'] as const) {
-    testCase(`[VC-20] ${fallback} keeps invalid row and delete-button alert, never DELETE`, () =>
+    testCase(`${fallback} keeps invalid row and delete-button alert, never DELETE`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const fixture = yield* setup(media, { en: cut(trackOf(media, 'en').cues, media.duration) })
@@ -530,7 +530,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-20] source history is lazy and fetched at most once for several invalid tracks', () =>
+  testCase('source history is lazy and fetched at most once for several invalid tracks', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -543,7 +543,7 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-8.1][VC-20] uncorrectable English and real Hateful Eight m11 truncation are invalid without repair', () =>
+  testCase('uncorrectable English and real Hateful Eight m11 truncation are invalid without repair', () =>
     Effect.gen(function* () {
       for (const media of [synthetic(), mediaOf('m11')]) {
         const { cues } = trackOf(media, 'en')
@@ -558,7 +558,7 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const classification of ['agree', 'piecewise'] as const) {
-    testCase(`[VC-19][VC-8.1] French translation is judged by its ${classification} profile, never history score`, () =>
+    testCase(`French translation is judged by its ${classification} profile, never history score`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const { cues } = trackOf(media, 'en')
@@ -580,7 +580,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-19] translated English is speech-repaired; French inheriting its old drift is repaired against the new reference', () =>
+  testCase('translated English is speech-repaired; French inheriting its old drift is repaired against the new reference', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -602,7 +602,7 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const unavailable of ['absent', 'invalid', 'inconclusive', 'cap', 'transcode'] as const) {
-    testCase(`[VC-19] French waits with ${unavailable} English reference; forced-looking sibling is still deleted`, () =>
+    testCase(`French waits with ${unavailable} English reference; forced-looking sibling is still deleted`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const { cues } = trackOf(media, 'en')
@@ -638,7 +638,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-19] smallest passing English path is the reference and all English candidates use the same sample', () =>
+  testCase('smallest passing English path is the reference and all English candidates use the same sample', () =>
     Effect.gen(function* () {
       const original = synthetic()
       const media = { ...original, windows: original.windows.map((window) => (window.start >= 780 ? { ...window, speech: [] } : window)) }
@@ -662,7 +662,7 @@ describe('scanMediaSubtitles', () => {
       { codec_type: 'audio', index: 1, tags: { language: 'en' as const } },
     ],
   ]) {
-    testCase(`[VC-11.1] ${streams.length} streams without a unique original-language match warn and wait`, () =>
+    testCase(`${streams.length} streams without a unique original-language match warn and wait`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const fixture = yield* setup(media, { en: trackOf(media, 'en').cues })
@@ -685,7 +685,7 @@ describe('scanMediaSubtitles', () => {
   }
 
   for (const originalLanguage of ['ja', 'fr'] as const) {
-    testCase(`[VC-11.1] transcode row for another language does not authorise sampling ${originalLanguage}`, () =>
+    testCase(`transcode row for another language does not authorise sampling ${originalLanguage}`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const fixture = yield* setup(media, { en: trackOf(media, 'en').cues })
@@ -699,7 +699,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-11.1] Japanese original selects audio index zero, not global stream index or the English dub', () =>
+  testCase('Japanese original selects audio index zero, not global stream index or the English dub', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const fixture = yield* setup(media, { en: trackOf(media, 'en').cues })
@@ -722,7 +722,7 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-6.1] a reference changing around its read leaves French unjudged', () =>
+  testCase('a reference changing around its read leaves French unjudged', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -742,7 +742,7 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const failure of ['read', 'stat', 'missing repair entry', 'repair', 'repair read'] as const) {
-    testCase(`[VC-12.1] per-track ${failure} failure leaves no row and continues`, () =>
+    testCase(`per-track ${failure} failure leaves no row and continues`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const { cues } = trackOf(media, 'en')
@@ -770,7 +770,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-12.1] probe failure leaves all candidates without rows and interruption is never swallowed', () =>
+  testCase('probe failure leaves all candidates without rows and interruption is never swallowed', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -785,7 +785,7 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-12.1] transcode lookup failure leaves the entire media unjudged', () =>
+  testCase('transcode lookup failure leaves the entire media unjudged', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -799,7 +799,7 @@ describe('scanMediaSubtitles', () => {
     })
   )
 
-  testCase('[VC-12.1] registry write failure cannot emit an alert or pass the failed track and later tracks continue', () =>
+  testCase('registry write failure cannot emit an alert or pass the failed track and later tracks continue', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -813,7 +813,7 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const language of ['en', 'fr'] as const) {
-    testCase(`[VC-18] ${language} repair recheck can become inconclusive without alert or another repair`, () =>
+    testCase(`${language} repair recheck can become inconclusive without alert or another repair`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const { cues } = trackOf(media, 'en')
@@ -829,7 +829,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-18] French still drifting after repair is invalid with delete button and no blacklist or second repair', () =>
+  testCase('French still drifting after repair is invalid with delete button and no blacklist or second repair', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -869,7 +869,7 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const verdict of ['invalid', 'inconclusive'] as const) {
-    testCase(`[VC-19] English judged ${verdict} this pass cannot become the French reference`, () =>
+    testCase(`English judged ${verdict} this pass cannot become the French reference`, () =>
       Effect.gen(function* () {
         const original = synthetic()
         const { cues } = trackOf(original, 'en')
@@ -885,7 +885,7 @@ describe('scanMediaSubtitles', () => {
     )
   }
 
-  testCase('[VC-6.1] changing stats around the repaired re-read drops its verdict without another PATCH', () =>
+  testCase('changing stats around the repaired re-read drops its verdict without another PATCH', () =>
     Effect.gen(function* () {
       const media = synthetic()
       const { cues } = trackOf(media, 'en')
@@ -921,7 +921,7 @@ describe('scanMediaSubtitles', () => {
   )
 
   for (const operation of ['sample', 'repair', 'history', 'blacklist', 'Telegram'] as const) {
-    testCase(`[VC-12.1] ${operation} interruption propagates instead of becoming a fallback`, () =>
+    testCase(`${operation} interruption propagates instead of becoming a fallback`, () =>
       Effect.gen(function* () {
         const media = synthetic()
         const { cues } = trackOf(media, 'en')

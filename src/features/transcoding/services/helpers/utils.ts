@@ -1,11 +1,11 @@
 import { type FFprobeStream } from '@/integrations/ffmpeg/ffmpeg.validator'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 export type Criteria =
   | {
       exclude?: string[]
       include?: string[]
-      language: ISOCode1
+      language: TwoLetterLanguageCode
       wantedEncodings?: string[]
     }
   | {

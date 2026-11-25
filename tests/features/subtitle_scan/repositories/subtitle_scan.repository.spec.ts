@@ -116,7 +116,7 @@ describe('subtitle scan repository', () => {
     })
   )
 
-  it.live('[VC-8] marks exactly the matching unacted keys across both Bazarr kinds', () =>
+  it.live('marks exactly the matching unacted keys across both Bazarr kinds', () =>
     Effect.gen(function* () {
       const movieEn = { bazarrId: 1, bazarrKind: 'movie' as const, language: 'en' as const }
       const episodeEn = { bazarrId: 1, bazarrKind: 'episode' as const, language: 'en' as const }

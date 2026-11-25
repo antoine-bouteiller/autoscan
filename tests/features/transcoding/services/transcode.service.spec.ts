@@ -80,18 +80,18 @@ describe('transcodeFile', () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem
       const directory = yield* fs.makeTempDirectoryScoped()
-      const mp4 = `${directory}/Movie.mp4`
+      const originalFile = `${directory}/Movie.mp4`
       const mkv = `${directory}/Movie.mkv`
-      yield* fs.writeFileString(mp4, 'same-content')
+      yield* fs.writeFileString(originalFile, 'same-content')
       let probes = 0
       const client = ffmpeg(() => Effect.sync(() => ++probes).pipe(Effect.as(passedProbe)))
-      yield* provideTest(transcode(mp4), { ffmpeg: client })
+      yield* provideTest(transcode(originalFile), { ffmpeg: client })
       yield* fs.writeFileString(mkv, 'same-content')
       yield* provideTest(transcode(mkv), { ffmpeg: client })
-      yield* provideTest(transcode(mp4, 'fr'), { ffmpeg: client })
+      yield* provideTest(transcode(originalFile, 'fr'), { ffmpeg: client })
 
       yield* Effect.promise(() => testSql`UPDATE transcode_scans SET scan_version = ${TRANSCODE_SCAN_VERSION - 1}`)
-      yield* provideTest(transcode(mp4), { ffmpeg: client })
+      yield* provideTest(transcode(originalFile), { ffmpeg: client })
       expect(probes).toBe(4)
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer))
   )

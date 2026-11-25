@@ -176,7 +176,7 @@ const CURRENT_SCHEMA = {
 }
 
 describe('migrate', () => {
-  it('[VC-1] creates the current schema on an empty database', async () => {
+  it('creates the current schema on an empty database', async () => {
     const sql = (await freshDatabase())()
 
     await migrate(sql, MIGRATIONS)
@@ -186,7 +186,7 @@ describe('migrate', () => {
     expect(await describeSchema(sql)).toEqual(CURRENT_SCHEMA)
   })
 
-  it('[VC-2] adopts a fully Drizzle-migrated database without executing any migration', async () => {
+  it('adopts a fully Drizzle-migrated database without executing any migration', async () => {
     const sql = (await freshDatabase())()
     const names = await migrationNames()
     await applyLikeDrizzle(sql, names)
@@ -198,7 +198,7 @@ describe('migrate', () => {
     expect(await sql`SELECT name FROM drizzle.__drizzle_migrations`).toHaveLength(10)
   })
 
-  it('[VC-3] runs only migrations newer than the Drizzle history, then nothing on a second run', async () => {
+  it('runs only migrations newer than the Drizzle history, then nothing on a second run', async () => {
     const sql = (await freshDatabase())()
     const names = await migrationNames()
     await applyLikeDrizzle(sql, names.slice(0, 7))
@@ -212,7 +212,7 @@ describe('migrate', () => {
     expect([...(await sql`SELECT name, applied_at FROM public.schema_migrations ORDER BY name`)]).toEqual(before)
   })
 
-  it('[VC-4] keeps earlier migrations recorded and rolls back the failing one', async () => {
+  it('keeps earlier migrations recorded and rolls back the failing one', async () => {
     const sql = (await freshDatabase())()
     const folder = await tempFolder({
       '20260101000000_first': 'CREATE TABLE first_table (id int);',
@@ -227,7 +227,7 @@ describe('migrate', () => {
     ])
   })
 
-  it('[VC-5] applies each migration exactly once under concurrent startups', async () => {
+  it('applies each migration exactly once under concurrent startups', async () => {
     const open = await freshDatabase()
 
     await Promise.all([migrate(open(), MIGRATIONS), migrate(open(), MIGRATIONS)])
@@ -237,7 +237,7 @@ describe('migrate', () => {
     expect(await describeSchema(sql)).toEqual(CURRENT_SCHEMA)
   })
 
-  it('[VC-13.1] keeps existing subtitle rows with null identity columns', async () => {
+  it('keeps existing subtitle rows with null identity columns', async () => {
     const sql = (await freshDatabase())()
     const names = await migrationNames()
     await applyLikeDrizzle(sql, names.slice(0, -1))

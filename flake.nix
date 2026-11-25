@@ -41,12 +41,17 @@
       );
 
     # JS tooling runs from node_modules so hooks use the versions pinned in
-    # package.json and the repo's custom oxlint plugins.
+    # package.json.
     gitHooksFor = system:
       git-hooks.lib.${system}.run {
         src = ./.;
         hooks = {
-          convco.enable = true;
+          commit-msg = {
+            enable = true;
+            name = "commit-msg";
+            entry = "bunx devkit commit-msg";
+            stages = ["commit-msg"];
+          };
           alejandra = {
             enable = true;
             settings.verbosity = "quiet";
@@ -69,7 +74,7 @@
             enable = true;
             name = "bun fmt";
             entry = "bun fmt";
-            excludes = ["\\.(nix|lock|sql|sh|py|tsv|txt|svg|onnx|mka)$" "(^|/)(LICENSE|\\.(envrc|gitignore|dockerignore))$"];
+            excludes = ["\\.(nix|lock|sql|sh|py|tsv|toml|txt|svg|onnx|mka)$" "(^|/)(LICENSE|\\.(envrc|gitignore|dockerignore))$"];
           };
           nix-deps = {
             enable = true;

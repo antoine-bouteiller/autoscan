@@ -5,12 +5,12 @@ import { Effect, FileSystem, Path } from 'effect'
 
 import { isForcedSubtitle, processSubtitleStreams } from '@/features/transcoding/services/helpers/subtitle'
 import { FfmpegClient } from '@/integrations/ffmpeg/ffmpeg.service'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 interface TestCase {
   file: string
-  originalLanguage: ISOCode1
-  streamToKeep: ISOCode1[]
+  originalLanguage: TwoLetterLanguageCode
+  streamToKeep: TwoLetterLanguageCode[]
   title: string
 }
 

@@ -1,4 +1,4 @@
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 const MEDIA_TYPES = ['movie', 'show'] as const
 const SUBTITLE_VERDICTS = ['passed', 'sync_requested', 'invalid', 'inconclusive'] as const
@@ -11,8 +11,8 @@ type SubtitleEvidence = (typeof SUBTITLE_EVIDENCES)[number]
 type BazarrKind = (typeof BAZARR_KINDS)[number]
 
 export interface Media {
-  originalLanguage: ISOCode1
-  preferredLanguage: ISOCode1
+  originalLanguage: TwoLetterLanguageCode
+  preferredLanguage: TwoLetterLanguageCode
   title: string
   tmdbId: number
   type: MediaType
@@ -37,7 +37,7 @@ export interface SubtitleScan {
 
 export interface TranscodeScan {
   filePath: string
-  originalLanguage: ISOCode1
+  originalLanguage: TwoLetterLanguageCode
   scanVersion: number
   scannedAt: Date
 }
@@ -47,7 +47,7 @@ export interface MissingSubtitle {
   bazarrId: number
   bazarrKind: BazarrKind
   firstSeenAt: Date
-  language: ISOCode1
+  language: TwoLetterLanguageCode
 }
 
 export interface FrenchProfile {

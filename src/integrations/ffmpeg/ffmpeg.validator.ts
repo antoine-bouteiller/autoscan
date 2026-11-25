@@ -1,12 +1,12 @@
 import { Schema, SchemaGetter } from 'effect'
 
-import { ISO1 } from '@/shared/types/iso_codes'
-import { normalizeToIso1 } from '@/shared/utils/iso_codes'
+import { TWO_LETTER_LANGUAGE_CODES } from '@/shared/types/iso_codes'
+import { normalizeToTwoLetterCode } from '@/shared/utils/iso_codes'
 import { NumberFromUnknown } from '@/shared/utils/schema'
 
 const languageValidator = Schema.String.pipe(
-  Schema.decodeTo(Schema.UndefinedOr(Schema.Literals(ISO1)), {
-    decode: SchemaGetter.transform(normalizeToIso1),
+  Schema.decodeTo(Schema.UndefinedOr(Schema.Literals(TWO_LETTER_LANGUAGE_CODES)), {
+    decode: SchemaGetter.transform(normalizeToTwoLetterCode),
     encode: SchemaGetter.transform((value) => value ?? ''),
   })
 )

@@ -1,4 +1,4 @@
-/* oxlint-disable autoscan/no-shape-in-symbol-names, unicorn/no-null */
+/* oxlint-disable devkit/no-low-signal-symbol-names, unicorn/no-null */
 import {
   AGREE_TOLERANCE,
   ALIGNED_MIN_R,

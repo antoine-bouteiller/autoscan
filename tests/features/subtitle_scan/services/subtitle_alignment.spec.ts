@@ -1,4 +1,4 @@
-/* oxlint-disable autoscan/no-shape-in-symbol-names, unicorn/no-null */
+/* oxlint-disable unicorn/no-null */
 import { describe, expect, test } from 'bun:test'
 
 import { correct, loadCorpus, shifts, trackOf, transform } from '@tests/fixtures/subtitle_scan/corpus'
@@ -28,8 +28,8 @@ describe('assessTrack', () => {
 const corpus = await loadCorpus()
 const real = await replay()
 const synthetic = await syntheticReplay()
-describe('[VC-9.1] English corpus replay', () => {
-  test('[VC-9.1] none of the 22 audited in-sync English tracks is invalid or repairable; at least 18 align', () => {
+describe('English corpus replay', () => {
+  test('none of the 22 audited in-sync English tracks is invalid or repairable; at least 18 align', () => {
     expect(real.realEnglish).toHaveLength(22)
     let aligned = 0
     for (const result of real.realEnglish) {
@@ -41,7 +41,7 @@ describe('[VC-9.1] English corpus replay', () => {
     }
     expect(aligned).toBeGreaterThanOrEqual(18)
   })
-  test('[VC-9.1] House of the Dragon English has ratio 1.0426 ± 0.002 and offset -52.2 ± 1s', () => {
+  test('House of the Dragon English has ratio 1.0426 ± 0.002 and offset -52.2 ± 1s', () => {
     const media = corpus.find((item) => item.id === 'm23')
     if (media === undefined) {
       throw new Error('Missing m23')
@@ -51,7 +51,7 @@ describe('[VC-9.1] English corpus replay', () => {
     expect(Math.abs((result.fit?.ratio ?? 0) - 1.0426)).toBeLessThanOrEqual(0.002)
     expect(Math.abs((result.fit?.offset ?? 0) + 52.2)).toBeLessThanOrEqual(1)
   })
-  test('[VC-9.1] Fleabag English has a constant +87.8 ± 0.5s offset', () => {
+  test('Fleabag English has a constant +87.8 ± 0.5s offset', () => {
     const media = corpus.find((item) => item.id === 'm22')
     if (media === undefined) {
       throw new Error('Missing m22')
@@ -60,7 +60,7 @@ describe('[VC-9.1] English corpus replay', () => {
     expect(result.shape).toBe('constant')
     expect(Math.abs((result.fit?.offset ?? 0) - 87.8)).toBeLessThanOrEqual(0.5)
   })
-  test('[VC-9.1][VC-8.1] Hateful Eight is truncated and Desperate Housewives S01E04 is not aligned', () => {
+  test('Hateful Eight is truncated and Desperate Housewives S01E04 is not aligned', () => {
     for (const [id, expected] of [
       ['m11', 'truncated'],
       ['m16', 'inconclusive'],
@@ -75,7 +75,7 @@ describe('[VC-9.1] English corpus replay', () => {
     }
   })
   for (const offset of shifts) {
-    test(`[VC-9.1] English shifted ${offset}s never aligns and at least half have accurate constant fits`, () => {
+    test(`English shifted ${offset}s never aligns and at least half have accurate constant fits`, () => {
       const tracks = synthetic.shifted.filter((item) => item.applied === offset)
       expect(tracks).toHaveLength(22)
       let accurate = 0
@@ -88,13 +88,13 @@ describe('[VC-9.1] English corpus replay', () => {
       expect(accurate).toBeGreaterThanOrEqual(11)
     })
   }
-  test('[VC-9.1] short-media English drift is neither aligned nor constant', () => {
+  test('short-media English drift is neither aligned nor constant', () => {
     expect(synthetic.drifted.length).toBeGreaterThan(0)
     for (const { result } of synthetic.drifted) {
       expect(['aligned', 'constant']).not.toContain(result.shape)
     }
   })
-  test('[VC-9.1] English quarter shifts, 46% cuts and every other Suits episode never align', () => {
+  test('English quarter shifts, 46% cuts and every other Suits episode never align', () => {
     expect(synthetic.quarters).toHaveLength(22)
     expect(synthetic.cut).toHaveLength(22)
     expect(synthetic.cross).toHaveLength(216)
@@ -103,7 +103,7 @@ describe('[VC-9.1] English corpus replay', () => {
       expect(result.fit).toBeNull()
     }
   })
-  test('[VC-9.1] no synthetic fit is more than 1s from its applied shape throughout any sampled window', () => {
+  test('no synthetic fit is more than 1s from its applied shape throughout any sampled window', () => {
     expect(synthetic.fitted.length).toBeGreaterThanOrEqual(44)
     for (const item of synthetic.fitted) {
       const media = corpus.find((candidate) => candidate.id === item.id)
@@ -121,7 +121,7 @@ describe('[VC-9.1] English corpus replay', () => {
 })
 
 describe('assessTrack boundaries', () => {
-  test('[VC-12.1] fewer than four informative windows abstain, including silence', () => {
+  test('fewer than four informative windows abstain, including silence', () => {
     const { cues, windows } = speechFixture()
     expect(assessTrack(cues, []).shape).toBe('inconclusive')
     expect(assessTrack(cues, windows.slice(0, 3)).shape).toBe('inconclusive')
@@ -148,7 +148,7 @@ describe('assessTrack boundaries', () => {
       expect(result.fit).toBeNull()
     }
   })
-  test('[VC-8.1] exactly two speech windows at or after the last cue end take precedence over alignment', () => {
+  test('exactly two speech windows at or after the last cue end take precedence over alignment', () => {
     const { cues, windows } = speechFixture()
     const lastEnd = windows[6].start
     const truncated = [...cues.slice(0, 48), { anchors: [], end: lastEnd, start: lastEnd - 1 }]

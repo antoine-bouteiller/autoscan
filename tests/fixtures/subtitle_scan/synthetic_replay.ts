@@ -1,4 +1,4 @@
-/* oxlint-disable autoscan/no-shape-in-symbol-names, unicorn/no-null */
+/* oxlint-disable unicorn/no-null */
 import { assessTrack } from '@/features/subtitle_scan/services/subtitle_alignment'
 import { passesCoverage, profilePair } from '@/features/subtitle_scan/services/subtitle_profile'
 

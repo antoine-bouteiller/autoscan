@@ -187,7 +187,7 @@ export interface SubtitleScan {
 export interface MissingSubtitle {
   bazarrKind: 'movie' | 'episode' // primary key with bazarrId and language
   bazarrId: number // radarrId or sonarrEpisodeId
-  language: ISOCode1
+  language: TwoLetterLanguageCode
   firstSeenAt: Date
   actedAt: Date | null
 }
@@ -333,12 +333,12 @@ export interface IBazarrClient {
     subtitle: BazarrSubtitleRef,
     source: Extract<SubtitleSource, { kind: 'provider' }>
   ) => Effect.Effect<void, HttpClientError>
-  readonly translateSubtitle: (item: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1) => Effect.Effect<void, HttpClientError>
+  readonly translateSubtitle: (item: BazarrItemRef, source: BazarrSubtitleRef, target: TwoLetterLanguageCode) => Effect.Effect<void, HttpClientError>
 }
 
 type BazarrItemRef = { kind: 'movie'; id: number } | { kind: 'episode'; id: number; seriesId: number } // radarrId | sonarrEpisodeId
 interface BazarrSubtitleRef {
-  language: ISOCode1
+  language: TwoLetterLanguageCode
   forced: boolean
   hi: boolean
   path: string
@@ -347,7 +347,7 @@ type BazarrItem = BazarrItemRef & {
   title: string
   path: string
   subtitles: BazarrSubtitleRef[]
-  missingSubtitles: { language: ISOCode1; forced: boolean }[]
+  missingSubtitles: { language: TwoLetterLanguageCode; forced: boolean }[]
 }
 type SubtitleSource = { kind: 'provider'; provider: string; subsId: string } | { kind: 'translation' }
 // The track's times relate to the reference's as t_track ≈ ratio · t_ref + offset; the mod applies t ↦ (t − offset) / ratio.

@@ -30,7 +30,7 @@ const trackDirectories = Effect.gen(function* () {
 
 describe('sampleSpeech', () => {
   it.live(
-    '[VC-17] detects generated speech in media seconds within 0.3 seconds',
+    'detects generated speech in media seconds within 0.3 seconds',
     () =>
       Effect.gen(function* () {
         const { directories, fs, service } = yield* trackDirectories
@@ -50,7 +50,7 @@ describe('sampleSpeech', () => {
     15_000
   )
 
-  it.live('[VC-17] selects the requested audio stream rather than the first one', () =>
+  it.live('selects the requested audio stream rather than the first one', () =>
     Effect.gen(function* () {
       const client = yield* makeFfmpegClient
       const result = yield* client.sampleSpeech(fixture, known.silentStream, known.windows)
@@ -58,7 +58,7 @@ describe('sampleSpeech', () => {
     }).pipe(Effect.provide(services))
   )
 
-  it.live('[VC-17] is deterministic and resets recurrent state and context between windows', () =>
+  it.live('is deterministic and resets recurrent state and context between windows', () =>
     Effect.gen(function* () {
       const client = yield* makeFfmpegClient
       const combined = yield* client.sampleSpeech(fixture, known.speechStream, known.windows)
@@ -101,7 +101,7 @@ describe('sampleSpeech', () => {
     }).pipe(Effect.provide(services))
   )
 
-  it.live('[VC-17] removes its temporary directory when ffmpeg rejects the stream', () =>
+  it.live('removes its temporary directory when ffmpeg rejects the stream', () =>
     Effect.gen(function* () {
       const { directories, fs, service } = yield* trackDirectories
       const client = yield* makeFfmpegClient.pipe(Effect.provideService(FileSystem.FileSystem, service))
@@ -137,7 +137,7 @@ describe('sampleSpeech', () => {
     }).pipe(Effect.provide(services))
   )
 
-  it.live('[VC-17] propagates interruption and removes partially decoded temporary files', () =>
+  it.live('propagates interruption and removes partially decoded temporary files', () =>
     Effect.gen(function* () {
       const { directories, fs, service } = yield* trackDirectories
       const ready = yield* Deferred.make<void>()

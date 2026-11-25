@@ -29,7 +29,7 @@ describe('database resource lifecycle', () => {
     })
   )
 
-  it.effect('[VC-4] closes once and fails with DatabaseConnectionError when migration fails', () =>
+  it.effect('closes once and fails with DatabaseConnectionError when migration fails', () =>
     Effect.gen(function* () {
       const events: string[] = []
 

@@ -9,8 +9,8 @@ import { type UpdateLanguageParams } from '@/features/language_sync/types'
 import { type MediaType } from '@/integrations/plex/plex.service'
 import { type ITelegramClient } from '@/integrations/telegram/telegram.service'
 import { type ConversationState, type InlineKeyboardButton, type InlineKeyboardMarkup } from '@/providers/telegram/types'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
-import { normalizeToIso1 } from '@/shared/utils/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
+import { normalizeToTwoLetterCode } from '@/shared/utils/iso_codes'
 
 const PAGE_SIZE = 10
 const languageNames = new Intl.DisplayNames(['en'], { type: 'language' })
@@ -46,15 +46,15 @@ export const buildMediaKeyboard = (mediaList: Media[], page: number): InlineKeyb
 }
 
 /** @internal */
-export const buildLanguageKeyboard = (originalLanguage: ISOCode1): InlineKeyboardMarkup => {
-  const codes = [...new Set<ISOCode1>(['fr', 'en', originalLanguage])]
+export const buildLanguageKeyboard = (originalLanguage: TwoLetterLanguageCode): InlineKeyboardMarkup => {
+  const codes = [...new Set<TwoLetterLanguageCode>(['fr', 'en', originalLanguage])]
   return { inline_keyboard: [codes.map((code) => ({ callback_data: `lang:${code}`, text: languageNames.of(code) ?? code }))] }
 }
 
 export const handleUpdateLanguage = (params: UpdateLanguageParams) =>
   Effect.gen(function* () {
     const { mediaTitle, partsId, preferredLanguage, streams } = params
-    const audioStream = streams.find((stream) => stream.streamType === 2 && normalizeToIso1(stream.languageCode) === preferredLanguage)
+    const audioStream = streams.find((stream) => stream.streamType === 2 && normalizeToTwoLetterCode(stream.languageCode) === preferredLanguage)
 
     if (audioStream === undefined) {
       const message = `No ${preferredLanguage} audio stream found for ${mediaTitle}`
@@ -131,7 +131,7 @@ export const selectLanguage = (client: ITelegramClient, chatId: number, params: 
       Effect.tryPromise({
         catch: (cause) => DatabaseQueryError.make({ cause }),
         try: () => sql`
-          UPDATE media SET preferred_language = ${normalizeToIso1(lang)}
+          UPDATE media SET preferred_language = ${normalizeToTwoLetterCode(lang)}
           WHERE tmdb_id = ${state.tmdbId} AND type = ${state.mediaType}
         `,
       })

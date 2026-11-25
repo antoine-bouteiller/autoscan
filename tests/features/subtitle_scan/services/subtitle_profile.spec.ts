@@ -1,4 +1,3 @@
-/* oxlint-disable autoscan/no-shape-in-symbol-names, unicorn/no-null */
 import { describe, expect, test } from 'bun:test'
 
 import {
@@ -53,17 +52,17 @@ describe('profilePair', () => {
 })
 
 const corpus = await loadCorpus()
-describe('[VC-9.1] French corpus replay', () => {
+describe('French corpus replay', () => {
   for (const media of corpus.filter((item) => frenchControls.includes(item.id))) {
     const reference = trackOf(media, 'en').cues
     const track = trackOf(media, 'fr').cues
-    test(`[VC-9.1] ${media.id}: real resegmented French agrees with English`, () => {
+    test(`${media.id}: real resegmented French agrees with English`, () => {
       const result = profilePair(reference, track, media.duration)
       expect(result.shape).toBe('agree')
       expect(result.fit).toBeNull()
     })
     for (const offset of shifts) {
-      test(`[VC-9.1] ${media.id}: French shifted ${offset}s profiles a constant within 0.5s`, () => {
+      test(`${media.id}: French shifted ${offset}s profiles a constant within 0.5s`, () => {
         const result = profilePair(reference, transform(track, 1, offset), media.duration)
         expect(result.shape).toBe('constant')
         expect(result.fit).not.toBeNull()
@@ -71,19 +70,19 @@ describe('[VC-9.1] French corpus replay', () => {
         expect(result.fit?.ratio).toBe(1)
       })
     }
-    test(`[VC-9.1] ${media.id}: French 25fps timing profiles linear within 0.002`, () => {
+    test(`${media.id}: French 25fps timing profiles linear within 0.002`, () => {
       const result = profilePair(reference, transform(track, 25 / 23.976, 0), media.duration)
       expect(result.shape).toBe('linear')
       expect(Math.abs((result.fit?.ratio ?? 0) - 25 / 23.976)).toBeLessThanOrEqual(0.002)
     })
-    test(`[VC-9.1][VC-8.1] ${media.id}: quarter shifts are piecewise; a 46% cut agrees but fails coverage`, () => {
+    test(`${media.id}: quarter shifts are piecewise; a 46% cut agrees but fails coverage`, () => {
       expect(profilePair(reference, quarters(track, media.duration), media.duration).shape).toBe('piecewise')
       const truncated = cut(track, media.duration)
       expect(profilePair(reference, truncated, media.duration).shape).toBe('agree')
       expect(passesCoverage(reference, truncated, media.duration)).toBe(false)
     })
   }
-  test('[VC-9.1][VC-8.1] all 108 cross-episode Suits French profiles are unrelated or undetermined', () => {
+  test('all 108 cross-episode Suits French profiles are unrelated or undetermined', () => {
     const suits = corpus.filter((media) => media.name.startsWith('Suits'))
     let pairs = 0
     for (const reference of suits) {
@@ -96,11 +95,11 @@ describe('[VC-9.1] French corpus replay', () => {
     }
     expect(pairs).toBe(108)
   })
-  test('[VC-9.1] Interstellar interval-only translated track agrees', async () => {
+  test('Interstellar interval-only translated track agrees', async () => {
     const media = await loadInterstellar()
     expect(profilePair(media.reference, media.track, media.duration).shape).toBe('agree')
   })
-  test('[VC-9.1] House of the Dragon French retains the drift of the corrected English reference', () => {
+  test('House of the Dragon French retains the drift of the corrected English reference', () => {
     const media = corpus.find((item) => item.id === 'm23')
     if (media === undefined) {
       throw new Error('Missing m23')
@@ -118,7 +117,7 @@ describe('[VC-9.1] French corpus replay', () => {
 
 const endingAt = (end: number): Cue[] => [{ anchors: [], end, start: 0 }]
 describe('passesCoverage', () => {
-  test('[VC-8.1] coverage bounds are inclusive and a failing reference exempts the sibling', () => {
+  test('coverage bounds are inclusive and a failing reference exempts the sibling', () => {
     for (const [duration, overrun] of [
       [1000, 60],
       [4000, 120],
@@ -134,7 +133,7 @@ describe('passesCoverage', () => {
       expect(passesCoverage([], [], duration)).toBe(true)
     }
   })
-  test('[VC-8.1] a French track 100s late with a reference ending 20s before runtime passes after correction', () => {
+  test('a French track 100s late with a reference ending 20s before runtime passes after correction', () => {
     const reference = Array.from({ length: 114 }, (_value, index) => ({
       anchors: [`opaque-${index}`],
       end: index === 113 ? 580 : index * 5 + 3,
@@ -177,14 +176,14 @@ describe('profilePair boundaries', () => {
       start: index * 2 + 1 + (index % 7) * 0.13,
     }))
     const jumped = (jump: number) => reference.map((cue) => (cue.start >= 300 ? { ...cue, end: cue.end + jump, start: cue.start + jump } : cue))
-    test('[VC-9.1] beyond twice the agreement tolerance is piecewise, neither agreed nor fitted', () => {
+    test('beyond twice the agreement tolerance is piecewise, neither agreed nor fitted', () => {
       for (const jump of [3, 3.2, 5]) {
         const result = profilePair(reference, jumped(jump), 600)
         expect({ jump, shape: result.shape }).toEqual({ jump, shape: 'piecewise' })
         expect(result.fit).toBeNull()
       }
     })
-    test('[VC-9.1] past the agreement tolerance is not agreed, and its repair brings both halves within it', () => {
+    test('past the agreement tolerance is not agreed, and its repair brings both halves within it', () => {
       for (const jump of [1.6, 2, 2.6]) {
         const result = profilePair(reference, jumped(jump), 600)
         expect({ jump, shape: result.shape }).not.toEqual({ jump, shape: 'agree' })

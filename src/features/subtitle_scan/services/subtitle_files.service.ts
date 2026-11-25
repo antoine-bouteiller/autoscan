@@ -1,12 +1,12 @@
 import { Effect, FileSystem, Path } from 'effect'
 
 import { type FileStat, sameStat, statFile } from '@/features/subtitle_scan/services/scan_registry.service'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
-import { normalizeToIso1 } from '@/shared/utils/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
+import { normalizeToTwoLetterCode } from '@/shared/utils/iso_codes'
 
 export interface SubtitleFile {
   readonly path: string
-  readonly language: ISOCode1
+  readonly language: TwoLetterLanguageCode
   readonly forced: boolean
 }
 
@@ -33,7 +33,7 @@ export const discoverSubtitleFiles = (mediaFile: string) =>
       if (match?.groups === undefined) {
         continue
       }
-      const language = normalizeToIso1(match.groups['language'])
+      const language = normalizeToTwoLetterCode(match.groups['language'])
       if (language === undefined) {
         continue
       }

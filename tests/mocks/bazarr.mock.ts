@@ -12,7 +12,7 @@ import {
 } from '@/integrations/bazarr/bazarr.service'
 import { NetworkError } from '@/shared/errors/network'
 import { type HttpClientError } from '@/shared/types/http_client'
-import { type ISOCode1 } from '@/shared/types/iso_codes'
+import { type TwoLetterLanguageCode } from '@/shared/types/iso_codes'
 
 export const setProfileMock = jest
   .fn<(item: Extract<BazarrItemRef, { kind: 'movie' }>, profileId: number | null) => Promise<void>>()
@@ -26,7 +26,7 @@ export const blacklistSubtitleMock = jest
   .fn<(item: BazarrItemRef, subtitle: BazarrSubtitleRef, source: Extract<SubtitleSource, { kind: 'provider' }>) => Promise<void>>()
   .mockResolvedValue(undefined)
 const translateSubtitleMock = jest
-  .fn<(item: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1) => Promise<void>>()
+  .fn<(item: BazarrItemRef, source: BazarrSubtitleRef, target: TwoLetterLanguageCode) => Promise<void>>()
   .mockResolvedValue(undefined)
 
 const fromPromise = <Value>(run: () => Promise<Value>) =>
@@ -76,7 +76,7 @@ export class MockBazarrClient implements IBazarrClient {
     return fromPromise(() => blacklistSubtitleMock(item, subtitle, source))
   }
 
-  translateSubtitle(item: BazarrItemRef, source: BazarrSubtitleRef, target: ISOCode1) {
+  translateSubtitle(item: BazarrItemRef, source: BazarrSubtitleRef, target: TwoLetterLanguageCode) {
     return fromPromise(() => translateSubtitleMock(item, source, target))
   }
 }

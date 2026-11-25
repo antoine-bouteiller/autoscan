@@ -63,7 +63,7 @@ Features that process Plex media need a shared identity, language preference, an
 
 ### Media schema
 
-The `media` table holds non-null title, TMDB ID, type, original language, and preferred language. Its language fields are typed as `ISOCode1` in the app, and the named primary key spans `tmdb_id` and `type` (`migrations/20260315090840_rich_morbius/migration.sql`). The hand-written `Media` interface supplies the selected-row shape (`src/database/schema.ts:11-17`).
+The `media` table holds non-null title, TMDB ID, type, original language, and preferred language. Its language fields are typed as `TwoLetterLanguageCode` in the app, and the named primary key spans `tmdb_id` and `type` (`migrations/20260315090840_rich_morbius/migration.sql`). The hand-written `Media` interface supplies the selected-row shape (`src/database/schema.ts:11-17`).
 
 ### Media repository
 
