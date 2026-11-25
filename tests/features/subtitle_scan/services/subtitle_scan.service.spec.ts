@@ -1,4 +1,4 @@
-/* oxlint-disable unicorn/no-null -- registry columns are nullable and profile results expose a shape. */
+/* oxlint-disable unicorn/no-null -- nullable evidence and file identity columns are part of the registry contract. */
 import { beforeEach } from 'bun:test'
 
 import { BunServices } from '@effect/platform-bun'

@@ -49,7 +49,7 @@
           commit-msg = {
             enable = true;
             name = "commit-msg";
-            entry = "bunx devkit commit-msg";
+            entry = "node_modules/.bin/devkit commit-msg";
             stages = ["commit-msg"];
           };
           alejandra = {

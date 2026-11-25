@@ -18,8 +18,8 @@ under `src/features/<feature>/<feature>.spec.md`.
   `--fix`), `bun fmt` (Bun's built-in formatter), and `bun check` (Bun's built-in type
   checker). Config lives in `oxlint.config.ts`, the `[fmt]` section of `bunfig.toml`, and
   `tsconfig.json`. Do not add `fmt` or `check` scripts: they would shadow the built-ins.
-  The `--type-aware`/`--type-check` flags require the `oxlint-tsgolint` dependency
-  (invoked by oxlint, not directly).
+  Oxlint and `oxlint-tsgolint` come through `@antoine-bouteiller/devkit` and are patched
+  in `node_modules` by `effect-tsgo patch --oxlint`.
 - **Tests run on Bun's native runner (`bun test`), not vitest.** Use `bun run test`
   (and `bun run test:coverage`). Import test APIs from `bun:test` (`describe`, `test`,
   `expect`, `spyOn`, `jest`, `mock`). Config lives in `bunfig.toml`: it preloads

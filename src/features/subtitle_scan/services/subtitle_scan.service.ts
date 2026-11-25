@@ -1,4 +1,4 @@
-/* oxlint-disable unicorn/no-null -- registry evidence and assessment field names follow their contracts. */
+/* oxlint-disable unicorn/no-null -- null represents absent registry evidence and repair fits. */
 import { Cause, DateTime, Effect } from 'effect'
 
 import { Env } from '@/config/env'
