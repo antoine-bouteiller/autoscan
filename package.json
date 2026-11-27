@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@antoine-bouteiller/devkit": "0.5.0",
-    "@effect/tsgo": "0.68.1",
+    "@effect/tsgo": "0.73.7",
     "@types/bun": "1.4.5"
   },
   "overrides": {
